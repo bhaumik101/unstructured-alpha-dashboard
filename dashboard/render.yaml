@@ -16,12 +16,20 @@
 # because Render assigns the listen port dynamically via the $PORT env var
 # and proxies external traffic to it -- Streamlit's default
 # (localhost:8501) would never receive that traffic.
+#
+# rootDir: dashboard -- required because this repo's actual root (where
+# .git lives) is the PARENT of this dashboard/ folder, not this folder
+# itself (confirmed live: Render's Blueprint creation flow couldn't find
+# requirements.txt/app.py without this, since buildCommand/startCommand
+# otherwise execute relative to the repo root, not wherever render.yaml
+# happens to sit).
 
 services:
   - type: web
     name: unstructured-alpha
     runtime: python
     plan: free  # change to "starter" ($7/mo) for always-on, no cold start
+    rootDir: dashboard
     buildCommand: pip install -r requirements.txt
     startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
     envVars:
