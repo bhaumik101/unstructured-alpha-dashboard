@@ -1,16 +1,24 @@
 # utils/fetchers.py
 # Unstructured Alpha — Data Fetching Layer
 #
-# Data sources (all free):
-#   FRED API       — macro signals (ATA trucking, rail, jobless claims, WTI, etc.)
-#   yfinance       — stock/commodity prices (no key needed)
+# Data sources (all free, none require a credit card):
+#   FRED API       — macro signals (ATA trucking, rail, jobless claims, WTI, etc.) — key required
+#   EIA API        — crude oil inventories, natural gas storage — key required
+#   openFDA        — drug approval velocity — no key needed
+#   yfinance       — stock/commodity prices + live quotes (no key needed)
 #   CFTC.gov       — COT positioning data (public CSV downloads)
 #   USASpending    — federal contract awards (no key needed)
-#   SEC EDGAR      — Form 4 insider transactions (no key needed)
-#   pytrends       — Google Trends (no key needed)
+#   SEC EDGAR      — Form 4 insider transactions, both filing metadata and
+#                    actual parsed transaction detail (no key needed)
+#   FINRA          — consolidated equity short interest, exchange-listed
+#                    securities (no key needed) — verified live 2026-06-21:
+#                    despite living under the "otcMarket" API group name,
+#                    this dataset genuinely covers NYSE/NASDAQ-listed names
 #   arXiv API      — quantum paper velocity (no key needed)
 #
-# All functions fall back to synthetic demo data if real data is unavailable.
+# All functions fall back to synthetic demo data (or an empty result, where
+# fabricating a synthetic value wouldn't be honest) if real data is
+# unavailable.
 
 import os
 import io
@@ -554,6 +562,77 @@ def fetch_insider_transactions_detail(ticker: str, days: int = 180, max_filings:
     df = pd.DataFrame(records)
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     return df.dropna(subset=["date"]).sort_values("date", ascending=False).reset_index(drop=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FINRA — Consolidated Equity Short Interest
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=43200, show_spinner=False)
+def fetch_short_interest(ticker: str, years: float = 1.5) -> pd.DataFrame:
+    """
+    Fetch real, exchange-listed short interest history from FINRA's free,
+    keyless public API.
+
+    Endpoint and schema verified live before writing this (not assumed):
+    despite living under the API group name "otcMarket", the
+    "consolidatedShortInterest" dataset genuinely includes NYSE/NASDAQ-listed
+    names (confirmed directly against real Microsoft, Agilent, and Alcoa
+    records) — a DIFFERENT FINRA dataset ("EquityShortInterest", same
+    "otcMarket" group) returns nothing for those same tickers and only
+    covers genuinely OTC securities, which is why that one was rejected in
+    favor of this one.
+
+    FINRA's short interest reporting is bi-monthly (settlement dates near
+    the 15th and last business day of each month, published with a ~2-3
+    week lag), NOT daily or weekly — this is real, but the slowest-moving
+    of this product's signals, similar in spirit to 13F filings.
+
+    Returns columns: date (settlementDate), short_shares
+    (currentShortPositionQuantity), prev_short_shares, change_pct
+    (FINRA's own period-over-period calculation), days_to_cover,
+    avg_daily_volume.
+    """
+    cutoff = (datetime.now() - timedelta(days=int(years * 365))).strftime("%Y-%m-%d")
+    url = "https://api.finra.org/data/group/otcMarket/name/consolidatedShortInterest"
+    payload = {
+        "compareFilters": [
+            {"compareType": "EQUAL", "fieldName": "symbolCode", "fieldValue": ticker},
+            {"compareType": "GTE", "fieldName": "settlementDate", "fieldValue": cutoff},
+        ],
+        "limit": 50,
+    }
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+
+    try:
+        r = requests.post(url, json=payload, headers=headers, timeout=15)
+        if r.status_code == 204:  # FINRA's "no rows matched" response, not an error
+            return pd.DataFrame()
+        r.raise_for_status()
+        rows = r.json()
+        if not rows:
+            return pd.DataFrame()
+
+        df = pd.DataFrame(rows)
+        rename_map = {
+            "settlementDate": "date",
+            "currentShortPositionQuantity": "short_shares",
+            "previousShortPositionQuantity": "prev_short_shares",
+            "changePercent": "change_pct",
+            "daysToCoverQuantity": "days_to_cover",
+            "averageDailyVolumeQuantity": "avg_daily_volume",
+        }
+        df = df.rename(columns=rename_map)
+        keep = [c for c in rename_map.values() if c in df.columns]
+        df = df[keep].copy()
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        for c in ("short_shares", "prev_short_shares", "change_pct", "days_to_cover", "avg_daily_volume"):
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+        return df.dropna(subset=["date"]).sort_values("date").reset_index(drop=True)
+
+    except Exception:
+        return pd.DataFrame()
 
 
 # NOTE: a Google Trends fetcher (via the unofficial "pytrends" scraper) used

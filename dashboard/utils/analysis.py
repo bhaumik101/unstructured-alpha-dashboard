@@ -513,6 +513,63 @@ def score_contract_velocity(contracts_df: pd.DataFrame) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# SHORT INTEREST (real FINRA exchange-listed data)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def score_short_interest(si_df: pd.DataFrame) -> dict:
+    """
+    Score short interest trend from utils/fetchers.fetch_short_interest()
+    (real FINRA consolidated short interest, bi-monthly settlement dates).
+
+    INVERSE signal: rising short interest = more bearish positioning being
+    built = lower score. This intentionally does NOT model short-squeeze
+    dynamics (very high short interest + a price catalyst can produce a
+    sharp bullish squeeze) -- that requires combining this with price
+    action in a way this product doesn't yet do reliably, so the squeeze
+    case is called out as a caveat in the UI rather than silently modeled.
+
+    Averages the most recent 2 reporting periods' change_pct (FINRA's own
+    period-over-period calculation) rather than just the latest one, since
+    a single bi-monthly reading can be noisy.
+
+    Returns {"score", "status", "latest_change_pct", "short_shares",
+             "days_to_cover", "periods"}.
+    """
+    if si_df.empty or "change_pct" not in si_df.columns:
+        return {
+            "score": 50.0, "status": "no_data", "latest_change_pct": 0.0,
+            "short_shares": 0, "days_to_cover": 0.0, "periods": 0,
+        }
+
+    si_df = si_df.dropna(subset=["change_pct"])
+    if si_df.empty:
+        return {
+            "score": 50.0, "status": "no_data", "latest_change_pct": 0.0,
+            "short_shares": 0, "days_to_cover": 0.0, "periods": 0,
+        }
+
+    recent = si_df.tail(2)
+    avg_change = float(recent["change_pct"].mean())
+    latest = si_df.iloc[-1]
+
+    # ±15 percentage points of period-over-period change is treated as a
+    # roughly 1-"sigma" move for this signal -- a calibration choice, not
+    # derived from a backtest (this signal has not been backtested the way
+    # the Confluence/Supercycle scores have -- see About -> Methodology).
+    z = -avg_change / 15.0
+    score = float(np.clip(50.0 + z * 15.0, 5.0, 95.0))
+
+    return {
+        "score": round(score, 1),
+        "status": "bullish" if score >= 65 else ("bearish" if score <= 35 else "neutral"),
+        "latest_change_pct": round(float(latest.get("change_pct", 0.0)), 2),
+        "short_shares": int(latest.get("short_shares", 0)),
+        "days_to_cover": round(float(latest.get("days_to_cover", 0.0)), 2),
+        "periods": len(si_df),
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # MULTI-SIGNAL CONFLUENCE SCORING
 # ─────────────────────────────────────────────────────────────────────────────
 

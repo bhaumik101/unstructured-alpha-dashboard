@@ -21,7 +21,7 @@ import streamlit as st
 
 from utils.fetchers import (
     fetch_fred, fetch_eia, fetch_fda_approval_velocity, fetch_live_quote,
-    fetch_insider_transactions_detail,
+    fetch_insider_transactions_detail, fetch_short_interest,
     is_synthetic, _synthetic_signal,
 )
 
@@ -162,6 +162,69 @@ def test_fetch_fda_approval_velocity_falls_back_to_empty_on_request_exception():
     with patch("utils.fetchers.requests.get", side_effect=ConnectionError("network down")):
         s = fetch_fda_approval_velocity()
     assert s.empty
+
+
+# ── short interest (real FINRA consolidated short interest) ──────────────────
+#
+# This exact field shape (camelCase names, values) was confirmed live against
+# api.finra.org/data/group/otcMarket/name/consolidatedShortInterest for real
+# MSFT records on 2026-06-21 -- including the surprising part: that dataset,
+# despite its "otcMarket" group name, genuinely contains NYSE/NASDAQ-listed
+# securities (confirmed marketClassCode "NNM" for MSFT, "NYSE" for Agilent),
+# unlike the "EquityShortInterest" dataset in the same group, which returned
+# zero rows (HTTP 204) for AAPL -- that one really is OTC-only.
+FINRA_SHORT_INTEREST_FIXTURE = [
+    {
+        "settlementDate": "2026-05-15", "symbolCode": "MSFT",
+        "issueName": "Microsoft Corporation Common S",
+        "currentShortPositionQuantity": 77302679, "previousShortPositionQuantity": 79107882,
+        "changePercent": -2.28, "daysToCoverQuantity": 1.2, "averageDailyVolumeQuantity": 64000000,
+        "marketClassCode": "NNM",
+    },
+    {
+        "settlementDate": "2026-05-29", "symbolCode": "MSFT",
+        "issueName": "Microsoft Corporation Common S",
+        "currentShortPositionQuantity": 88696120, "previousShortPositionQuantity": 77302679,
+        "changePercent": 14.74, "daysToCoverQuantity": 2.4, "averageDailyVolumeQuantity": 37000000,
+        "marketClassCode": "NNM",
+    },
+]
+
+
+def test_fetch_short_interest_parses_real_response_shape():
+    fetch_short_interest.clear()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = FINRA_SHORT_INTEREST_FIXTURE
+    with patch("utils.fetchers.requests.post", return_value=mock_resp):
+        df = fetch_short_interest("MSFT", years=1.5)
+
+    assert len(df) == 2
+    assert list(df["date"]) == sorted(df["date"])  # ascending, oldest first
+    last = df.iloc[-1]
+    assert last["short_shares"] == 88696120
+    assert last["change_pct"] == 14.74
+    assert last["days_to_cover"] == 2.4
+
+
+def test_fetch_short_interest_empty_on_204_no_rows():
+    """FINRA returns HTTP 204 (no content) rather than an empty JSON array
+    when a symbol genuinely has no matching rows -- must not be treated as
+    an error/exception, just an empty, valid result."""
+    fetch_short_interest.clear()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 204
+    with patch("utils.fetchers.requests.post", return_value=mock_resp):
+        df = fetch_short_interest("ZZZZ_NOT_A_REAL_TICKER", years=1.5)
+    assert df.empty
+
+
+def test_fetch_short_interest_empty_on_request_exception():
+    fetch_short_interest.clear()
+    with patch("utils.fetchers.requests.post", side_effect=ConnectionError("network down")):
+        df = fetch_short_interest("MSFT", years=1.5)
+    assert df.empty
 
 
 # ── insider transaction detail (real Form 4 XML parsing) ─────────────────────

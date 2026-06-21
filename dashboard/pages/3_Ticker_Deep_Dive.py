@@ -20,11 +20,11 @@ from utils.config import SIGNALS, TICKERS, CATEGORIES
 from utils.fetchers import (
     fetch_price, fetch_signal_series, is_synthetic,
     fetch_federal_contracts, fetch_insider_trades, fetch_live_quote,
-    fetch_insider_transactions_detail,
+    fetch_insider_transactions_detail, fetch_short_interest,
 )
 from utils.analysis import (
     score_signal, compute_confluence, compute_quick_correlation,
-    score_insider_activity,
+    score_insider_activity, score_short_interest,
     compute_quick_correlation_stats, compute_correlation,
     score_contract_velocity, build_narrative,
 )
@@ -268,16 +268,34 @@ _insider_tx_early = fetch_insider_transactions_detail(ticker_input, days=180)
 _insider_score = score_insider_activity(_insider_tx_early)
 _has_insider_signal = _insider_score.get("status") != "no_data"
 
+# ── Blend in real short interest trend, when relevant ──────────────────────────
+# fetch_short_interest() pulls real FINRA consolidated short interest (see
+# its docstring for the verification story -- bi-monthly, exchange-listed).
+# Only blended in when there are at least 2 reporting periods on record
+# (need at least one period-over-period comparison to read a trend from).
+_short_interest_df_early = fetch_short_interest(ticker_input, years=1.5)
+_short_interest_score = score_short_interest(_short_interest_df_early)
+_has_short_interest_signal = _short_interest_score.get("status") != "no_data" and _short_interest_score.get("periods", 0) >= 2
+
+# Generic blend: macro + momentum always present (80/20 base split); each
+# active optional signal takes a fixed 12% slice, with macro+momentum's
+# combined weight shrinking proportionally to make room -- scales cleanly
+# as more optional signals are added, rather than hardcoding a weight
+# combination per possible count of active signals.
+_optional_signals = [
+    (_has_contract_signal, _contract_vel.get("score") if _has_contract_signal else None),
+    (_has_insider_signal, _insider_score.get("score") if _has_insider_signal else None),
+    (_has_short_interest_signal, _short_interest_score.get("score") if _has_short_interest_signal else None),
+]
+_active_optional = [score for active, score in _optional_signals if active]
+_n_optional = len(_active_optional)
+_OPTIONAL_SLICE = 0.12
+_remaining = 1.0 - _OPTIONAL_SLICE * _n_optional
+
 _macro_score = confluence["overall_score"]
-_n_optional = int(_has_contract_signal) + int(_has_insider_signal)
-if _n_optional == 0:
-    _final_score = _macro_score * 0.80 + _mom_score * 0.20
-elif _n_optional == 1:
-    _opt_score = _contract_vel["score"] if _has_contract_signal else _insider_score["score"]
-    _final_score = _macro_score * 0.70 + _mom_score * 0.15 + _opt_score * 0.15
-else:
-    _final_score = (_macro_score * 0.60 + _mom_score * 0.15
-                     + _contract_vel["score"] * 0.125 + _insider_score["score"] * 0.125)
+_final_score = _macro_score * (_remaining * 0.80) + _mom_score * (_remaining * 0.20)
+for _opt_score in _active_optional:
+    _final_score += _opt_score * _OPTIONAL_SLICE
 confluence["overall_score"] = round(_final_score, 1)
 
 # Recompute case from blended score
@@ -317,7 +335,7 @@ with c_case:
         <div style="font-size:2.2rem;font-weight:800;color:{score_color};">{case}</div>
         <div style="font-size:0.95rem;color:#1A1612;">Conviction: <b>{conviction}</b></div>
         <div style="font-size:0.80rem;color:#6B6560;margin-top:6px;">
-            Based on {len(relevant_sig_ids)} independent signals + price momentum{" + federal contract award velocity" if _has_contract_signal else ""}{" + insider buy/sell activity" if _has_insider_signal else ""}
+            Based on {len(relevant_sig_ids)} independent signals + price momentum{" + federal contract award velocity" if _has_contract_signal else ""}{" + insider buy/sell activity" if _has_insider_signal else ""}{" + short interest trend" if _has_short_interest_signal else ""}
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1245,6 +1263,51 @@ with st.expander("All Form 4 filings (including grants/vesting, not just buy/sel
         st.caption(f"Showing {min(10, len(insider_df))} most recent Form 4 filings from SEC EDGAR. [View all on SEC EDGAR →](https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company={ticker_input}&type=4&dateb=&owner=include&count=40)")
     else:
         st.info(f"No recent Form 4 filings found for {ticker_input} in EDGAR search. This may indicate low insider activity or the EDGAR search returned no results. [Search manually →](https://efts.sec.gov/LATEST/search-index?q={ticker_input}&forms=4)")
+
+st.divider()
+
+# ── Short Interest ──────────────────────────────────────────────────────────────
+st.markdown("### Short Interest (FINRA, Exchange-Listed)")
+
+with st.expander("How short interest works and what this score means"):
+    st.markdown("""
+    **FINRA short interest** is collected from broker-dealers twice a month (settlement near the
+    15th and the last business day of each month) and published with roughly a 2-3 week lag — the
+    slowest-moving signal on this page, similar in cadence to 13F filings.
+
+    **INVERSE signal:** rising short interest = more bearish positioning being built = lower score.
+    Falling short interest = bears covering = higher score.
+
+    **What this does NOT model:** short-squeeze dynamics. Very high short interest combined with a
+    bullish price catalyst can produce a sharp upward squeeze as shorts are forced to cover — that
+    is a real pattern, but modeling it reliably requires combining this with price action in a way
+    this product doesn't yet do. A high "days to cover" figure below is worth noticing on its own
+    merits, even though the score itself doesn't try to predict squeeze timing.
+
+    **Data source:** FINRA's free public API (`consolidatedShortInterest`) — exchange-listed
+    securities, not just OTC, verified directly against real data before this was built.
+    """)
+
+_si_df = fetch_short_interest(ticker_input, years=1.5)
+if _has_short_interest_signal:
+    si_color = "#1B5E20" if _short_interest_score["status"] == "bullish" else ("#7B1010" if _short_interest_score["status"] == "bearish" else "#8B7355")
+    s1, s2, s3, s4 = st.columns(4)
+    s1.metric("Short Interest Score", f"{_short_interest_score['score']:.0f}/100")
+    s2.metric("Current Short Shares", f"{_short_interest_score['short_shares']:,}")
+    s3.metric("Latest Period Change", f"{_short_interest_score['latest_change_pct']:+.1f}%")
+    s4.metric("Days to Cover", f"{_short_interest_score['days_to_cover']:.1f}")
+
+    si_display = _si_df.tail(10).copy()
+    si_display["date"] = si_display["date"].dt.strftime("%Y-%m-%d")
+    si_display["change_pct"] = si_display["change_pct"].map(lambda v: f"{v:+.1f}%" if pd.notna(v) else "—")
+    si_display["short_shares"] = si_display["short_shares"].map(lambda v: f"{v:,.0f}" if pd.notna(v) else "—")
+    st.dataframe(
+        si_display.rename(columns={"short_shares": "short_shares", "change_pct": "period_change",
+                                     "days_to_cover": "days_to_cover", "avg_daily_volume": "avg_daily_volume"}),
+        use_container_width=True, hide_index=True,
+    )
+else:
+    st.info(f"No FINRA short interest history found for {ticker_input} in the last 18 months — this can happen for very new listings or tickers FINRA's symbol matching doesn't recognize exactly as entered.")
 
 st.divider()
 

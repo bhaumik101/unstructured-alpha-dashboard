@@ -18,6 +18,7 @@ from utils.analysis import (
     score_signal,
     score_contract_velocity,
     score_insider_activity,
+    score_short_interest,
     compute_quick_correlation_stats,
     compute_backtested_pcs,
 )
@@ -137,6 +138,59 @@ def test_score_insider_activity_net_value_reflects_signed_sum():
     df = pd.DataFrame([_make_tx("P", "Alice", 5000), _make_tx("S", "Bob", 3000)])
     result = score_insider_activity(df)
     assert result["net_value"] == 2000.0  # +5000 - 3000
+
+
+# ── score_short_interest ─────────────────────────────────────────────────────
+
+def _make_si_row(date, short_shares, change_pct, days_to_cover=2.0):
+    return {"date": pd.Timestamp(date), "short_shares": short_shares,
+            "prev_short_shares": short_shares, "change_pct": change_pct,
+            "days_to_cover": days_to_cover, "avg_daily_volume": 1_000_000}
+
+
+def test_score_short_interest_empty_df_has_all_keys():
+    result = score_short_interest(pd.DataFrame())
+    for key in ("score", "status", "latest_change_pct", "short_shares", "days_to_cover", "periods"):
+        assert key in result
+    assert result["status"] == "no_data"
+
+
+def test_score_short_interest_missing_column_has_all_keys():
+    result = score_short_interest(pd.DataFrame({"foo": [1, 2]}))
+    assert result["status"] == "no_data"
+
+
+def test_score_short_interest_rising_short_interest_is_bearish():
+    """INVERSE signal: short interest growing sharply = bearish, lower score."""
+    df = pd.DataFrame([
+        _make_si_row("2026-04-15", 1_000_000, 5.0),
+        _make_si_row("2026-04-30", 1_300_000, 30.0),
+    ])
+    result = score_short_interest(df)
+    assert result["score"] < 50.0
+    assert result["status"] in ("bearish", "neutral")
+
+
+def test_score_short_interest_falling_short_interest_is_bullish():
+    df = pd.DataFrame([
+        _make_si_row("2026-04-15", 1_000_000, -5.0),
+        _make_si_row("2026-04-30", 700_000, -30.0),
+    ])
+    result = score_short_interest(df)
+    assert result["score"] > 50.0
+    assert result["status"] in ("bullish", "neutral")
+
+
+def test_score_short_interest_uses_latest_row_for_diagnostics():
+    df = pd.DataFrame([
+        _make_si_row("2026-04-15", 1_000_000, 5.0, days_to_cover=1.5),
+        _make_si_row("2026-04-30", 1_100_000, 10.0, days_to_cover=2.5),
+    ])
+    result = score_short_interest(df)
+    assert result["short_shares"] == 1_100_000
+    assert result["days_to_cover"] == 2.5
+    assert result["latest_change_pct"] == 10.0
+    assert result["periods"] == 2
 
 
 # ── score_contract_velocity ──────────────────────────────────────────────────
