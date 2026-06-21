@@ -19,6 +19,7 @@ from utils.analysis import (
     score_contract_velocity,
     score_insider_activity,
     score_short_interest,
+    score_13f_positioning,
     compute_quick_correlation_stats,
     compute_backtested_pcs,
 )
@@ -191,6 +192,64 @@ def test_score_short_interest_uses_latest_row_for_diagnostics():
     assert result["days_to_cover"] == 2.5
     assert result["latest_change_pct"] == 10.0
     assert result["periods"] == 2
+
+
+# ── score_13f_positioning ────────────────────────────────────────────────────
+
+def test_score_13f_positioning_empty_list_has_all_keys():
+    result = score_13f_positioning([])
+    for key in ("score", "status", "funds_long", "funds_short", "new_positions",
+                "exited_or_trimmed", "n_funds"):
+        assert key in result
+    assert result["status"] == "no_data"
+
+
+def test_score_13f_positioning_fund_adding_to_long_position_is_bullish():
+    rows = [{"fund": "Berkshire Hathaway", "style": "Value", "latest_shares": 1_100_000,
+             "latest_period": "2026-03-31", "prior_shares": 1_000_000, "prior_period": "2025-12-31"}]
+    result = score_13f_positioning(rows)
+    assert result["score"] > 50.0
+    assert result["funds_long"] == 1
+    assert result["funds_short"] == 0
+
+
+def test_score_13f_positioning_put_option_position_is_bearish():
+    """A fund's Put position must score bearish, not be mistaken for a long
+    share holding just because it appears in the same information table."""
+    rows = [{"fund": "Scion Asset Management", "style": "Contrarian", "latest_shares": -1_000_000,
+             "latest_period": "2025-09-30", "prior_shares": None, "prior_period": None}]
+    result = score_13f_positioning(rows)
+    assert result["score"] < 50.0
+    assert result["funds_short"] == 1
+    assert result["funds_long"] == 0
+
+
+def test_score_13f_positioning_trimming_a_position_pulls_score_toward_neutral():
+    adding = score_13f_positioning([{"fund": "F", "style": "S", "latest_shares": 1_200_000,
+                                       "latest_period": "Q2", "prior_shares": 1_000_000, "prior_period": "Q1"}])
+    trimming = score_13f_positioning([{"fund": "F", "style": "S", "latest_shares": 800_000,
+                                         "latest_period": "Q2", "prior_shares": 1_000_000, "prior_period": "Q1"}])
+    assert adding["score"] > trimming["score"]
+    assert trimming["score"] > 50.0  # still net long, just less conviction than adding
+
+
+def test_score_13f_positioning_new_position_counted_correctly():
+    rows = [{"fund": "F", "style": "S", "latest_shares": 500_000, "latest_period": "Q2",
+             "prior_shares": None, "prior_period": None}]
+    result = score_13f_positioning(rows)
+    assert result["new_positions"] == 1
+    assert result["score"] > 50.0
+
+
+def test_score_13f_positioning_multiple_funds_aggregate():
+    rows = [
+        {"fund": "A", "style": "S", "latest_shares": 1_000, "latest_period": "Q2", "prior_shares": 900, "prior_period": "Q1"},
+        {"fund": "B", "style": "S", "latest_shares": -500, "latest_period": "Q2", "prior_shares": -500, "prior_period": "Q1"},
+    ]
+    result = score_13f_positioning(rows)
+    assert result["n_funds"] == 2
+    assert result["funds_long"] == 1
+    assert result["funds_short"] == 1
 
 
 # ── score_contract_velocity ──────────────────────────────────────────────────

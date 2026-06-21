@@ -14,6 +14,10 @@
 #                    securities (no key needed) — verified live 2026-06-21:
 #                    despite living under the "otcMarket" API group name,
 #                    this dataset genuinely covers NYSE/NASDAQ-listed names
+#   SEC EDGAR      — Form 13F institutional holdings (no key needed) — a
+#                    curated, hand-verified set of funds only (see
+#                    utils/config.CURATED_FUNDS and its docstring for why
+#                    this is a whitelist, not algorithmic name-matching)
 #   arXiv API      — quantum paper velocity (no key needed)
 #
 # All functions fall back to synthetic demo data (or an empty result, where
@@ -633,6 +637,142 @@ def fetch_short_interest(ticker: str, years: float = 1.5) -> pd.DataFrame:
 
     except Exception:
         return pd.DataFrame()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEC EDGAR — Form 13F institutional holdings (curated funds only)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_THIRTEENF_NS = {"t": "http://www.sec.gov/edgar/document/thirteenf/informationtable"}
+_ATOM_NS = {"a": "http://www.w3.org/2005/Atom"}
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def fetch_13f_holdings(cik: str, fund_name: str, max_filings: int = 2) -> pd.DataFrame:
+    """
+    Fetch a fund's most recent Form 13F-HR holdings, real and live, for the
+    curated funds in utils/config.CURATED_FUNDS.
+
+    Endpoint chain verified live, 2026-06-21, against Berkshire Hathaway
+    (CIK 1067983), Pershing Square (CIK 1336528), and Scion Asset Management
+    (CIK 1649339) before any of this was written:
+      1. EDGAR atom feed (browse-edgar, type=13F-HR) -> accession numbers.
+         13F-HR/A amendments are explicitly excluded -- a re-filed amendment
+         is not a new quarter's worth of positioning, and including it would
+         double-count or misdate a period.
+      2. Each filing's /index.json -> the information table's actual XML
+         filename. This is NOT a fixed convention (Berkshire's filing agent
+         used "53405.xml"; Pershing Square's and Scion's used "infotable.xml")
+         -- same lesson as Form 4's filename variability, solved the same way:
+         read the real directory listing, don't assume a name.
+      3. primary_doc.xml -> the real periodOfReport (e.g. "03-31-2026"),
+         since the filing date and the quarter the holdings are AS OF are
+         different things and conflating them would misdate every position.
+      4. The information table XML itself -- infoTable entries with fields
+         nameOfIssuer, cusip, value, shrsOrPrnAmt/sshPrnamt, and an OPTIONAL
+         putCall field. putCall is the field that makes this non-trivial:
+         a "Put" position is a BEARISH bet (or hedge), not bullish share
+         ownership, even though it appears in the same information table
+         alongside plain long stock positions -- confirmed live in Scion's
+         actual filing (their NVIDIA position is a Put, their Halliburton
+         position is a Call, neither is a plain share holding). Treating
+         every line as "the fund owns this stock" would have been wrong.
+
+    Returns one row per (filing period x holding), with columns: fund,
+    period (the real periodOfReport, not the filing date), filed_date,
+    cusip, issuer, shares, value, direction ("long" for a plain share
+    position or a Call option, "short" for a Put option).
+    """
+    headers = {"User-Agent": "Unstructured Alpha research dashboard (contact: research@unstructuredalpha.example)"}
+    rows = []
+    try:
+        atom_url = (
+            f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}"
+            f"&type=13F-HR&dateb=&owner=include&count=20&output=atom"
+        )
+        r = requests.get(atom_url, headers=headers, timeout=15)
+        r.raise_for_status()
+        feed = ET.fromstring(r.content)
+
+        filings = []
+        for entry in feed.findall("a:entry", _ATOM_NS):
+            cat = entry.find("a:category", _ATOM_NS)
+            form_type = cat.get("term") if cat is not None else ""
+            if form_type != "13F-HR":  # excludes 13F-HR/A amendments on purpose
+                continue
+            content = entry.find("a:content", _ATOM_NS)
+            if content is None:
+                continue
+            acc = content.find("a:accession-number", _ATOM_NS)
+            if acc is None or not acc.text:
+                continue
+            filings.append(acc.text.strip())
+            if len(filings) >= max_filings:
+                break
+
+        for accession in filings:
+            accession_nodash = accession.replace("-", "")
+            base = f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession_nodash}"
+
+            idx_r = requests.get(f"{base}/index.json", headers=headers, timeout=15)
+            idx_r.raise_for_status()
+            items = idx_r.json().get("directory", {}).get("item", [])
+            info_table_name = next(
+                (it["name"] for it in items
+                 if it["name"].lower().endswith(".xml") and it["name"].lower() != "primary_doc.xml"),
+                None,
+            )
+            if not info_table_name:
+                continue
+
+            period = None
+            try:
+                pd_r = requests.get(f"{base}/primary_doc.xml", headers=headers, timeout=15)
+                pd_r.raise_for_status()
+                pd_root = ET.fromstring(pd_r.content)
+                for el in pd_root.iter():
+                    if el.tag.endswith("periodOfReport") and el.text:
+                        period = pd.to_datetime(el.text.strip(), format="%m-%d-%Y", errors="coerce")
+                        break
+            except Exception:
+                pass
+
+            tbl_r = requests.get(f"{base}/{info_table_name}", headers=headers, timeout=20)
+            tbl_r.raise_for_status()
+            tbl_root = ET.fromstring(tbl_r.content)
+
+            # Filing agents inconsistently use a namespace prefix (e.g.
+            # Bridgewater's filings use "ns1:infoTable") vs. the bare,
+            # default-namespace tag every curated fund here actually uses.
+            # iterate over all elements and match by LOCAL tag name (after
+            # the "}") so this works regardless of prefix.
+            for info_table in tbl_root.iter():
+                if not info_table.tag.endswith("}infoTable") and info_table.tag != "infoTable":
+                    continue
+                fields = {}
+                for child in info_table.iter():
+                    local = child.tag.split("}")[-1]
+                    if local in ("nameOfIssuer", "cusip", "value", "putCall", "sshPrnamt"):
+                        fields[local] = (child.text or "").strip()
+                if "cusip" not in fields:
+                    continue
+                direction = "short" if fields.get("putCall", "").lower() == "put" else "long"
+                rows.append({
+                    "fund": fund_name,
+                    "period": period,
+                    "filed_date": accession,  # kept for traceability, not displayed as the AS-OF date
+                    "cusip": fields.get("cusip", ""),
+                    "issuer": fields.get("nameOfIssuer", ""),
+                    "shares": pd.to_numeric(fields.get("sshPrnamt", ""), errors="coerce"),
+                    "value": pd.to_numeric(fields.get("value", ""), errors="coerce"),
+                    "direction": direction,
+                })
+    except Exception:
+        return pd.DataFrame()
+
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows)
 
 
 # NOTE: a Google Trends fetcher (via the unofficial "pytrends" scraper) used

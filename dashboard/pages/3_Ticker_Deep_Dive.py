@@ -16,15 +16,15 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-from utils.config import SIGNALS, TICKERS, CATEGORIES
+from utils.config import SIGNALS, TICKERS, CATEGORIES, CURATED_FUNDS, THIRTEENF_CUSIP_TO_TICKER
 from utils.fetchers import (
     fetch_price, fetch_signal_series, is_synthetic,
     fetch_federal_contracts, fetch_insider_trades, fetch_live_quote,
-    fetch_insider_transactions_detail, fetch_short_interest,
+    fetch_insider_transactions_detail, fetch_short_interest, fetch_13f_holdings,
 )
 from utils.analysis import (
     score_signal, compute_confluence, compute_quick_correlation,
-    score_insider_activity, score_short_interest,
+    score_insider_activity, score_short_interest, score_13f_positioning,
     compute_quick_correlation_stats, compute_correlation,
     score_contract_velocity, build_narrative,
 )
@@ -277,6 +277,46 @@ _short_interest_df_early = fetch_short_interest(ticker_input, years=1.5)
 _short_interest_score = score_short_interest(_short_interest_df_early)
 _has_short_interest_signal = _short_interest_score.get("status") != "no_data" and _short_interest_score.get("periods", 0) >= 2
 
+# ── Blend in real curated-fund 13F institutional positioning, when relevant ───
+# fetch_13f_holdings() pulls real Form 13F filings for a small, hand-verified
+# whitelist of funds (see utils/config.CURATED_FUNDS and its docstring for
+# why this is a whitelist, not algorithmic CUSIP/name matching -- 13F filings
+# report holdings by CUSIP + abbreviated company name, never by ticker).
+# Only blended in when at least one curated fund actually holds (or held
+# last quarter) this ticker -- true for a small minority of tickers, by
+# design, since the whitelist trades coverage for verified correctness.
+_ticker_cusips = {c for c, t in THIRTEENF_CUSIP_TO_TICKER.items() if t == ticker_input.upper()}
+_fund_rows_13f = []
+if _ticker_cusips:
+    _direction_sign = {"long": 1, "short": -1}
+    for _fund in CURATED_FUNDS:
+        _fund_df = fetch_13f_holdings(_fund["cik"], _fund["name"])
+        if _fund_df.empty:
+            continue
+        _periods = sorted(_fund_df["period"].dropna().unique(), reverse=True)
+        if not _periods:
+            continue
+        _latest_period, _prior_period = _periods[0], (_periods[1] if len(_periods) > 1 else None)
+
+        def _signed_shares(_period):
+            _rows = _fund_df[(_fund_df["period"] == _period) & (_fund_df["cusip"].isin(_ticker_cusips))]
+            if _rows.empty:
+                return 0.0
+            return float((_rows["shares"] * _rows["direction"].map(_direction_sign)).sum())
+
+        _latest_signed = _signed_shares(_latest_period)
+        _prior_signed = _signed_shares(_prior_period) if _prior_period is not None else None
+        if _latest_signed == 0.0 and not _prior_signed:
+            continue  # this fund never held this ticker in either available period
+        _fund_rows_13f.append({
+            "fund": _fund["name"], "style": _fund["style"],
+            "latest_shares": _latest_signed, "latest_period": _latest_period,
+            "prior_shares": _prior_signed, "prior_period": _prior_period,
+        })
+
+_thirteenf_score = score_13f_positioning(_fund_rows_13f)
+_has_13f_signal = _thirteenf_score.get("status") != "no_data"
+
 # Generic blend: macro + momentum always present (80/20 base split); each
 # active optional signal takes a fixed 12% slice, with macro+momentum's
 # combined weight shrinking proportionally to make room -- scales cleanly
@@ -286,6 +326,7 @@ _optional_signals = [
     (_has_contract_signal, _contract_vel.get("score") if _has_contract_signal else None),
     (_has_insider_signal, _insider_score.get("score") if _has_insider_signal else None),
     (_has_short_interest_signal, _short_interest_score.get("score") if _has_short_interest_signal else None),
+    (_has_13f_signal, _thirteenf_score.get("score") if _has_13f_signal else None),
 ]
 _active_optional = [score for active, score in _optional_signals if active]
 _n_optional = len(_active_optional)
@@ -335,7 +376,7 @@ with c_case:
         <div style="font-size:2.2rem;font-weight:800;color:{score_color};">{case}</div>
         <div style="font-size:0.95rem;color:#1A1612;">Conviction: <b>{conviction}</b></div>
         <div style="font-size:0.80rem;color:#6B6560;margin-top:6px;">
-            Based on {len(relevant_sig_ids)} independent signals + price momentum{" + federal contract award velocity" if _has_contract_signal else ""}{" + insider buy/sell activity" if _has_insider_signal else ""}{" + short interest trend" if _has_short_interest_signal else ""}
+            Based on {len(relevant_sig_ids)} independent signals + price momentum{" + federal contract award velocity" if _has_contract_signal else ""}{" + insider buy/sell activity" if _has_insider_signal else ""}{" + short interest trend" if _has_short_interest_signal else ""}{" + 13F institutional positioning" if _has_13f_signal else ""}
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1132,7 +1173,17 @@ with st.expander("Why federal contracts matter for investors"):
 company_search = st.text_input(
     "Search company name (for USASpending.gov lookup):",
     value=company_name_hint,
-    key="company_search",
+    # BUG FIX: this key used to be a fixed "company_search" string. Streamlit
+    # widgets ignore the `value=` argument on reruns once session_state
+    # already has an entry for that key -- so after switching tickers (e.g.
+    # CCJ -> GOOGL), this box kept showing "Cameco Corporation" and, worse,
+    # the fetch below kept searching for Cameco's contracts while analyzing
+    # Alphabet. Keying it per-ticker makes each ticker get its own
+    # remembered search text, correctly defaulting to the fresh company
+    # name when the ticker actually changes. Caught via live verification
+    # while testing the 13F feature, not by the test suite (AppTest doesn't
+    # simulate a user switching tickers mid-session the way this bug needs).
+    key=f"company_search_{ticker_input}",
 )
 
 if company_search:
@@ -1308,6 +1359,66 @@ if _has_short_interest_signal:
     )
 else:
     st.info(f"No FINRA short interest history found for {ticker_input} in the last 18 months — this can happen for very new listings or tickers FINRA's symbol matching doesn't recognize exactly as entered.")
+
+st.divider()
+
+# ── 13F Institutional Positioning ────────────────────────────────────────────
+st.markdown("### 13F Institutional Positioning")
+
+with st.expander("What is a 13F filing, and why is this section limited to a few funds?"):
+    st.markdown("""
+    **A 13F is a quarterly disclosure the SEC requires** from any institutional investment manager
+    overseeing more than $100 million in U.S. equities — hedge funds, mutual funds, pension funds,
+    and similar. It lists every U.S.-listed stock (and certain options) the manager held at quarter-end.
+    It's public, free, and is how the public learns what funds like Berkshire Hathaway are buying or
+    selling — but with a real lag: managers have **45 days after quarter-end** to file, so a 13F is
+    always showing a snapshot that's at least 1.5–4.5 months old by the time it's public. This is the
+    slowest-moving signal on this page, in the same category as short interest but even more so.
+
+    **Why only a handful of funds, not "every fund that holds this stock":** 13F filings report
+    holdings by abbreviated company name and CUSIP — there is no ticker symbol field anywhere in a
+    13F. There's no free, reliable, automatic way to turn a CUSIP into a ticker symbol. Rather than
+    algorithmically fuzzy-match company names (which risks confidently mismatching two similarly-named
+    companies, or missing a real holding because of an abbreviation), this product hand-verifies a
+    small, well-known set of funds' actual filings against its own ticker list, fund by fund, position
+    by position. That trades breadth for being right.
+
+    **Curated funds currently tracked:** Berkshire Hathaway (value/conglomerate), Pershing Square
+    Capital Management (concentrated activist), and Scion Asset Management — Michael Burry's fund
+    (contrarian). These were chosen because their filings are small and concentrated enough to fully
+    read and verify by hand, not because they're "the best" funds to follow.
+
+    **A note on Put and Call options:** some 13F lines aren't plain stock ownership — they're options.
+    A Call position is a bullish bet; a Put position is a bearish one (or a hedge). This product reads
+    that field and scores Puts as bearish, not as if the fund simply owns the stock.
+    """)
+
+if _has_13f_signal:
+    f1, f2, f3, f4 = st.columns(4)
+    f1.metric("13F Score", f"{_thirteenf_score['score']:.0f}/100")
+    f2.metric("Funds Long", _thirteenf_score["funds_long"])
+    f3.metric("Funds Short", _thirteenf_score["funds_short"])
+    f4.metric("New Positions", _thirteenf_score["new_positions"])
+
+    _fund_display_rows = []
+    for _row in _fund_rows_13f:
+        _direction_label = "Long" if _row["latest_shares"] > 0 else "Short (Put)"
+        _trend = "—"
+        if _row["prior_shares"]:
+            _chg = (abs(_row["latest_shares"]) - abs(_row["prior_shares"])) / abs(_row["prior_shares"]) * 100
+            _trend = f"{_chg:+.1f}% vs. prior quarter"
+        elif _row["latest_shares"] != 0:
+            _trend = "New position this quarter"
+        _fund_display_rows.append({
+            "Fund": _row["fund"], "Style": _row["style"], "Position": _direction_label,
+            "Shares": f"{abs(_row['latest_shares']):,.0f}",
+            "As of": _row["latest_period"].strftime("%Y-%m-%d") if pd.notna(_row["latest_period"]) else "—",
+            "Trend": _trend,
+        })
+    st.dataframe(pd.DataFrame(_fund_display_rows), use_container_width=True, hide_index=True)
+    st.caption("Source: SEC EDGAR Form 13F-HR, fetched live from each fund's actual filing. \"As of\" is the real reporting period, not the filing date — those can be ~45 days apart.")
+else:
+    st.info(f"None of the curated funds (Berkshire Hathaway, Pershing Square, Scion Asset Management) currently hold {ticker_input} in their most recent 13F filing. This reflects only those 3 funds, not the full universe of institutional holders — for broader 13F coverage, check a dedicated 13F aggregator like WhaleWisdom.")
 
 st.divider()
 

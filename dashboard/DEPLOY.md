@@ -144,6 +144,7 @@ git push origin main
 | arXiv paper velocity | Daily | 24 hours |
 | EIA (crude inventories, gas storage) | Weekly | 1 hour |
 | openFDA (drug approvals) | Real-time | 24 hours |
+| FINRA (short interest, exchange-listed) | Bi-monthly (~2-3wk publish lag) | 12 hours |
 
 Data is **cached** using `@st.cache_data` with these TTLs — the app won't re-fetch on every page load.
 Users can force a refresh by pressing Ctrl+R.
@@ -182,5 +183,6 @@ Or just link to it: *"Access the live dashboard at dashboard.unstructuredalpha.c
 | arXiv API | **Free** |
 | EIA API key | **Free** |
 | openFDA | **Free** |
+| FINRA API | **Free** |
 | Custom domain | ~$10–15/year |
 | **Total** | **~$0–15/year** |

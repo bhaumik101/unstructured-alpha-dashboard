@@ -1219,6 +1219,66 @@ TICKERS = {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 13F INSTITUTIONAL POSITIONING — curated funds + hand-verified CUSIP map
+# ─────────────────────────────────────────────────────────────────────────────
+# Why this exists as a hand-verified whitelist, not algorithmic fuzzy matching:
+# SEC Form 13F filings report holdings by abbreviated company name + CUSIP --
+# there is NO ticker symbol field anywhere in a 13F (confirmed live, 2026-06-21,
+# by reading Berkshire Hathaway's, Pershing Square's, and Scion Asset
+# Management's actual most-recent information tables). A free, reliable,
+# keyless CUSIP->ticker lookup doesn't exist (OpenFIGI requires registration).
+# Rather than fuzzy-match company names algorithmically -- which risks both
+# false negatives (e.g. "ALLY FINL INC" vs "Ally Financial Inc") and, worse,
+# false positives (two different companies sharing a generic first word) --
+# every mapping below was built by manually reading each fund's real filing
+# and confirming the CUSIP against this product's existing TICKERS universe.
+# This trades coverage (only tickers already in TICKERS, and only positions
+# these specific funds happen to currently hold) for actual correctness.
+#
+# CURATED_FUNDS: well-known, publicly notable institutional managers chosen
+# for filing-size feasibility (small enough to fully fetch and verify by
+# hand) and style diversity, not for being the "best" funds to track.
+# Bridgewater Associates was deliberately excluded after live-checking their
+# actual filing: it runs an extremely diversified macro/options-overlay book
+# (largest 13F infotable.xml file checked ran ~600KB, alphabetically still
+# only through "ATI" after the the portion fetched) -- far too large to read
+# in full and hand-verify, and a single name appearing in a 3000+ position
+# book is a much weaker "smart money" signal than a concentrated holding.
+CURATED_FUNDS = [
+    {"cik": "1067983",  "name": "Berkshire Hathaway",          "style": "Value / conglomerate"},
+    {"cik": "1336528",  "name": "Pershing Square Capital Mgmt", "style": "Concentrated activist"},
+    {"cik": "1649339",  "name": "Scion Asset Management",       "style": "Contrarian (Michael Burry)"},
+]
+
+# CUSIP -> ticker, hand-verified against each curated fund's most recent
+# real 13F-HR information table (periods: Berkshire & Pershing Square
+# 2026-03-31 filed 2026-05-15; Scion 2025-09-30 filed 2025-11-03 -- Scion's
+# is the most recent filing that fund has on record as of 2026-06-21, so
+# their data is genuinely older/staler than the other two; this is
+# disclosed in the UI, not hidden).
+THIRTEENF_CUSIP_TO_TICKER = {
+    "02079K305": "GOOGL",   # Alphabet Inc Class A
+    "02079K107": "GOOGL",   # Alphabet Inc Class C
+    "025816109": "AXP",     # American Express Co
+    "060505104": "BAC",     # Bank of America Corp
+    "14040H105": "COF",     # Capital One Financial Corp
+    "166764100": "CVX",     # Chevron Corporation
+    "501044101": "KR",      # Kroger Co
+    "526057104": "LEN",     # Lennar Corp Class A
+    "526057302": "LEN",     # Lennar Corp Class B
+    "546347105": "LPX",     # Louisiana-Pacific Corp
+    "55616P104": "M",       # Macy's Inc
+    "62944T105": "NVR",     # NVR Inc
+    "670346105": "NUE",     # Nucor Corp
+    "674599105": "OXY",     # Occidental Petroleum Corp
+    "023135106": "AMZN",    # Amazon.com Inc
+    "594918104": "MSFT",    # Microsoft Corp
+    "406216101": "HAL",     # Halliburton Co
+    "67066G104": "NVDA",    # NVIDIA Corporation
+    "717081103": "PFE",     # Pfizer Inc
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # CATEGORY METADATA
 # ─────────────────────────────────────────────────────────────────────────────
 

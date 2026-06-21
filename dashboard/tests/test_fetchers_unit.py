@@ -21,7 +21,7 @@ import streamlit as st
 
 from utils.fetchers import (
     fetch_fred, fetch_eia, fetch_fda_approval_velocity, fetch_live_quote,
-    fetch_insider_transactions_detail, fetch_short_interest,
+    fetch_insider_transactions_detail, fetch_short_interest, fetch_13f_holdings,
     is_synthetic, _synthetic_signal,
 )
 
@@ -224,6 +224,133 @@ def test_fetch_short_interest_empty_on_request_exception():
     fetch_short_interest.clear()
     with patch("utils.fetchers.requests.post", side_effect=ConnectionError("network down")):
         df = fetch_short_interest("MSFT", years=1.5)
+    assert df.empty
+
+
+# ── 13F institutional holdings (curated fund whitelist) ───────────────────────
+#
+# All fixture shapes below are simplified but structurally exact copies of
+# real responses fetched live, 2026-06-21, from Berkshire Hathaway's actual
+# CIK/filings: the atom feed (browse-edgar, type=13F-HR), a filing's
+# /index.json, primary_doc.xml's periodOfReport, and a real infoTable XML
+# entry. The 13F-HR/A amendment entry in the atom fixture is there
+# specifically to verify it gets excluded -- confirmed live that Berkshire
+# files those (e.g. accession 0000950123-25-008361) and they must not be
+# treated as a distinct reporting period.
+THIRTEENF_ATOM_FIXTURE = b"""<?xml version="1.0" encoding="ISO-8859-1"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <category term="13F-HR" label="form type"/>
+    <content type="text/xml">
+      <accession-number>0001193125-26-226661</accession-number>
+    </content>
+  </entry>
+  <entry>
+    <category term="13F-HR/A" label="form type"/>
+    <content type="text/xml">
+      <accession-number>0000950123-25-008361</accession-number>
+    </content>
+  </entry>
+  <entry>
+    <category term="13F-HR" label="form type"/>
+    <content type="text/xml">
+      <accession-number>0000950123-25-008343</accession-number>
+    </content>
+  </entry>
+</feed>"""
+
+THIRTEENF_INDEX_JSON_FIXTURE_1 = {
+    "directory": {"item": [
+        {"name": "0001193125-26-226661-index.html"},
+        {"name": "primary_doc.xml"},
+        {"name": "53405.xml"},
+    ]}
+}
+THIRTEENF_INDEX_JSON_FIXTURE_2 = {
+    "directory": {"item": [
+        {"name": "0000950123-25-008343-index.html"},
+        {"name": "primary_doc.xml"},
+        {"name": "infotable.xml"},
+    ]}
+}
+
+THIRTEENF_PRIMARY_DOC_FIXTURE_1 = b"""<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler">
+  <headerData><filerInfo><periodOfReport>03-31-2026</periodOfReport></filerInfo></headerData>
+</edgarSubmission>"""
+THIRTEENF_PRIMARY_DOC_FIXTURE_2 = b"""<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler">
+  <headerData><filerInfo><periodOfReport>12-31-2025</periodOfReport></filerInfo></headerData>
+</edgarSubmission>"""
+
+# Real shape confirmed live: a plain long stock position (no putCall field)
+# and a Put options position (Scion's actual NVIDIA holding) in the same
+# table -- the parser must tell these apart, not treat every row as a share.
+THIRTEENF_INFOTABLE_FIXTURE_1 = b"""<?xml version="1.0"?>
+<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+  <infoTable>
+    <nameOfIssuer>CHEVRON CORPORATION</nameOfIssuer>
+    <cusip>166764100</cusip>
+    <value>12052286868</value>
+    <shrsOrPrnAmt><sshPrnamt>58251749</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt>
+  </infoTable>
+  <infoTable>
+    <nameOfIssuer>NVIDIA CORPORATION</nameOfIssuer>
+    <cusip>67066G104</cusip>
+    <value>186580000</value>
+    <shrsOrPrnAmt><sshPrnamt>1000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt>
+    <putCall>Put</putCall>
+  </infoTable>
+</informationTable>"""
+THIRTEENF_INFOTABLE_FIXTURE_2 = b"""<?xml version="1.0"?>
+<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+  <infoTable>
+    <nameOfIssuer>CHEVRON CORPORATION</nameOfIssuer>
+    <cusip>166764100</cusip>
+    <value>9000000000</value>
+    <shrsOrPrnAmt><sshPrnamt>50000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt>
+  </infoTable>
+</informationTable>"""
+
+
+def _xml_mock(content_bytes):
+    m = MagicMock()
+    m.raise_for_status = MagicMock()
+    m.content = content_bytes
+    return m
+
+
+def test_fetch_13f_holdings_excludes_amendments_and_parses_put_options():
+    fetch_13f_holdings.clear()
+    atom_resp = _xml_mock(THIRTEENF_ATOM_FIXTURE)
+    idx1 = _mock_response(THIRTEENF_INDEX_JSON_FIXTURE_1)
+    pdoc1 = _xml_mock(THIRTEENF_PRIMARY_DOC_FIXTURE_1)
+    tbl1 = _xml_mock(THIRTEENF_INFOTABLE_FIXTURE_1)
+    idx2 = _mock_response(THIRTEENF_INDEX_JSON_FIXTURE_2)
+    pdoc2 = _xml_mock(THIRTEENF_PRIMARY_DOC_FIXTURE_2)
+    tbl2 = _xml_mock(THIRTEENF_INFOTABLE_FIXTURE_2)
+
+    with patch("utils.fetchers.requests.get",
+               side_effect=_mock_get_sequence(atom_resp, idx1, pdoc1, tbl1, idx2, pdoc2, tbl2)):
+        df = fetch_13f_holdings("1067983", "Berkshire Hathaway", max_filings=2)
+
+    # Only 2 filing periods worth of rows (3 infoTable rows total across both
+    # periods) -- the 13F-HR/A amendment must NOT have produced a 3rd period.
+    assert len(df) == 3
+    assert df["period"].nunique() == 2
+
+    nvda_row = df[df["cusip"] == "67066G104"].iloc[0]
+    assert nvda_row["direction"] == "short"  # Put position, not a plain long share
+
+    cvx_rows = df[df["cusip"] == "166764100"]
+    assert (cvx_rows["direction"] == "long").all()
+    assert set(cvx_rows["shares"]) == {58251749.0, 50000000.0}
+
+
+def test_fetch_13f_holdings_empty_on_request_exception():
+    fetch_13f_holdings.clear()
+    with patch("utils.fetchers.requests.get", side_effect=ConnectionError("network down")):
+        df = fetch_13f_holdings("1067983", "Berkshire Hathaway")
     assert df.empty
 
 

@@ -570,6 +570,83 @@ def score_short_interest(si_df: pd.DataFrame) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 13F INSTITUTIONAL POSITIONING (curated, hand-verified fund whitelist)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def score_13f_positioning(fund_rows: List[dict]) -> dict:
+    """
+    Score curated-fund 13F positioning for one ticker.
+
+    fund_rows: one dict per curated fund that holds (or held last quarter)
+    this ticker, each shaped {"fund", "style", "latest_shares",
+    "latest_period", "prior_shares", "prior_period"}. "latest_shares" is
+    SIGNED -- negative means the fund's position is net short via Put
+    options (see fetch_13f_holdings' docstring), not a plain share count.
+    "prior_shares" is None if that fund's prior-quarter filing wasn't
+    available or didn't include this ticker (a real "they didn't hold it
+    last quarter," not missing data -- the caller is responsible for that
+    distinction since it requires the fund's FULL holdings, not just the
+    rows matching this one ticker).
+
+    This signal is structurally the slowest-moving and most stale of this
+    product's signals: 13F filings are quarterly with a 45-day filing lag,
+    and the curated funds here don't all file on the same schedule (one of
+    the three, as of this writing, has a most-recent filing nearly three
+    quarters old). That staleness is surfaced via "latest_period" in the
+    UI, not hidden.
+
+    Returns {"score", "status", "funds_long", "funds_short",
+             "new_positions", "exited_or_trimmed", "n_funds"}.
+    """
+    if not fund_rows:
+        return {
+            "score": 50.0, "status": "no_data", "funds_long": 0, "funds_short": 0,
+            "new_positions": 0, "exited_or_trimmed": 0, "n_funds": 0,
+        }
+
+    score = 50.0
+    funds_long = 0
+    funds_short = 0
+    new_positions = 0
+    exited_or_trimmed = 0
+
+    for row in fund_rows:
+        latest = row.get("latest_shares") or 0.0
+        prior = row.get("prior_shares")
+        direction_sign = 1 if latest > 0 else (-1 if latest < 0 else 0)
+        if direction_sign > 0:
+            funds_long += 1
+        elif direction_sign < 0:
+            funds_short += 1
+        if direction_sign == 0:
+            continue
+
+        if prior is None or prior == 0:
+            trend_mult = 1.2  # newly initiated this quarter
+            new_positions += 1
+        elif abs(latest) > abs(prior) * 1.05:
+            trend_mult = 1.3  # adding to the position
+        elif abs(latest) < abs(prior) * 0.95:
+            trend_mult = 0.7  # trimming
+            exited_or_trimmed += 1
+        else:
+            trend_mult = 1.0  # roughly unchanged
+
+        score += direction_sign * 15.0 * trend_mult
+
+    score = float(np.clip(score, 5.0, 95.0))
+    return {
+        "score": round(score, 1),
+        "status": "bullish" if score >= 65 else ("bearish" if score <= 35 else "neutral"),
+        "funds_long": funds_long,
+        "funds_short": funds_short,
+        "new_positions": new_positions,
+        "exited_or_trimmed": exited_or_trimmed,
+        "n_funds": len(fund_rows),
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # MULTI-SIGNAL CONFLUENCE SCORING
 # ─────────────────────────────────────────────────────────────────────────────
 
