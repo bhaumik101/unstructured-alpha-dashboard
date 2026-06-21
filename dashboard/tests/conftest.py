@@ -38,6 +38,28 @@ directly (pure DB functions, no Streamlit involved), which is real
 coverage -- but whether a cookie actually gets set in a browser, survives
 a restart, and gets read back correctly has to be checked against a live,
 deployed app in a real browser; this suite cannot confirm it.
+
+KNOWN GAP — the "Run validated lead-time scan" button on Ticker Deep Dive
+(insider activity / short interest) is NOT exercised end-to-end by any
+test, for a different reason than the two blind spots above: it's not an
+AppTest limitation, it's the classic "from module import name" footgun
+this project has hit before. The page's own `from utils.fetchers import
+fetch_insider_transactions_detail` re-resolves fresh on every AppTest
+.run() (pages get fully re-executed, imports included), so mocking
+utils.fetchers before a run WOULD reach the page-level call site -- but
+utils/ticker_score.py imported the same function once, at first module
+load, and keeps that original reference for the rest of the test session;
+mocking utils.fetchers after that point does not reach it. Properly
+testing the button's full handler therefore needs monkeypatching BOTH
+utils.fetchers and utils.ticker_score's already-bound name, done with
+real care -- not attempted yet. What IS tested directly and thoroughly:
+every pure function the button's handler calls (lag_scan_with_validation,
+pooled_lag_scan_across_sector, compute_signal_reliability_score, the
+weekly-series adapters -- see tests/test_lead_time_research_unit.py).
+What is NOT tested: that wiring those functions together behind a real
+button click, with real fetcher data, doesn't raise. That needs either a
+careful multi-module mock or a live check against a real ticker with
+actual insider/short-interest history before trusting it in production.
 """
 
 import os

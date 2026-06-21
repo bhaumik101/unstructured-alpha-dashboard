@@ -197,6 +197,18 @@ def compute_full_ticker_score(ticker: str, signal_ids: list | None = None) -> di
                     return 0.0
                 return float((rows["shares"] * rows["direction"].map(direction_sign)).sum())
 
+            def _source_url(period):
+                # Audit-trail field: the exact information-table XML this
+                # position came from. Picks the first matching row's
+                # source_url -- a fund can hold this ticker via more than
+                # one CUSIP/option-type row in the same filing, but they all
+                # share the same filing, so any one of their source_urls
+                # points to the right document.
+                rows = fund_df[(fund_df["period"] == period) & (fund_df["cusip"].isin(ticker_cusips))]
+                if rows.empty or "source_url" not in rows.columns:
+                    return None
+                return rows["source_url"].iloc[0]
+
             latest_signed = _signed_shares(latest_period)
             prior_signed = _signed_shares(prior_period) if prior_period is not None else None
             if latest_signed == 0.0 and not prior_signed:
@@ -205,6 +217,7 @@ def compute_full_ticker_score(ticker: str, signal_ids: list | None = None) -> di
                 "fund": fund["name"], "style": fund["style"],
                 "latest_shares": latest_signed, "latest_period": latest_period,
                 "prior_shares": prior_signed, "prior_period": prior_period,
+                "latest_source_url": _source_url(latest_period),
             })
 
     thirteenf_score = score_13f_positioning(fund_rows_13f)

@@ -426,7 +426,7 @@ def score_insider_activity(tx_df: pd.DataFrame) -> dict:
         return {
             "score": 50.0, "status": "no_data", "distinct_buyers": 0,
             "distinct_sellers": 0, "buy_count": 0, "sell_count": 0,
-            "net_value": 0.0, "cluster_bonus_applied": False,
+            "net_value": 0.0, "cluster_bonus_applied": False, "evidence": [],
         }
 
     buys  = tx_df[tx_df["code"] == "P"]
@@ -435,11 +435,29 @@ def score_insider_activity(tx_df: pd.DataFrame) -> dict:
     distinct_sellers = sells["insider"].nunique()
     total_distinct = distinct_buyers + distinct_sellers
 
+    # Audit-trail evidence: one entry per transaction, each linking back to
+    # the exact Form 4 it came from. Capped at the 20 most recent so this
+    # doesn't balloon the returned dict for a heavily-traded name; the UI
+    # is meant to show "here's what's actually backing this score," not
+    # every transaction ever filed.
+    evidence = []
+    if "date" in tx_df.columns:
+        for _, row in tx_df.sort_values("date", ascending=False).head(20).iterrows():
+            evidence.append({
+                "date": row["date"],
+                "description": f"{row.get('insider', 'Unknown')} ({row.get('role', 'Unknown')}) "
+                                f"{'bought' if row.get('code') == 'P' else 'sold'} "
+                                f"{abs(row.get('shares', 0)):,.0f} shares",
+                "value": row.get("value", 0.0),
+                "source_url": row.get("source_url"),
+            })
+
     if total_distinct == 0:
         return {
             "score": 50.0, "status": "no_data", "distinct_buyers": 0,
             "distinct_sellers": 0, "buy_count": len(buys), "sell_count": len(sells),
             "net_value": float(tx_df["value"].sum()), "cluster_bonus_applied": False,
+            "evidence": evidence,
         }
 
     buy_ratio = distinct_buyers / total_distinct
@@ -467,6 +485,7 @@ def score_insider_activity(tx_df: pd.DataFrame) -> dict:
         "sell_count": len(sells),
         "net_value": float(tx_df["value"].sum()),
         "cluster_bonus_applied": cluster_bonus_applied,
+        "evidence": evidence,
     }
 
 
@@ -538,19 +557,38 @@ def score_short_interest(si_df: pd.DataFrame) -> dict:
     if si_df.empty or "change_pct" not in si_df.columns:
         return {
             "score": 50.0, "status": "no_data", "latest_change_pct": 0.0,
-            "short_shares": 0, "days_to_cover": 0.0, "periods": 0,
+            "short_shares": 0, "days_to_cover": 0.0, "periods": 0, "evidence": [],
         }
 
     si_df = si_df.dropna(subset=["change_pct"])
     if si_df.empty:
         return {
             "score": 50.0, "status": "no_data", "latest_change_pct": 0.0,
-            "short_shares": 0, "days_to_cover": 0.0, "periods": 0,
+            "short_shares": 0, "days_to_cover": 0.0, "periods": 0, "evidence": [],
         }
 
     recent = si_df.tail(2)
     avg_change = float(recent["change_pct"].mean())
     latest = si_df.iloc[-1]
+
+    # Audit-trail evidence: one entry per FINRA settlement-date report. NO
+    # source_url here, deliberately, rather than a fake one -- FINRA's API
+    # doesn't expose a stable per-record deep link the way SEC EDGAR does,
+    # so the "source" is named plainly (settlement date + dataset), not
+    # presented as a clickable permalink that doesn't really point anywhere
+    # specific.
+    evidence = [
+        {
+            "date": row["date"],
+            "description": f"FINRA consolidated short interest, settlement date "
+                            f"{row['date'].strftime('%Y-%m-%d') if pd.notna(row['date']) else 'unknown'}: "
+                            f"{row.get('change_pct', 0):+.1f}% vs. prior period",
+            "value": row.get("change_pct", 0.0),
+            "source_url": None,
+            "source_label": "FINRA consolidated short interest (no stable per-record deep link available)",
+        }
+        for _, row in si_df.tail(10).iterrows()
+    ]
 
     # ±15 percentage points of period-over-period change is treated as a
     # roughly 1-"sigma" move for this signal -- a calibration choice, not
@@ -566,6 +604,7 @@ def score_short_interest(si_df: pd.DataFrame) -> dict:
         "short_shares": int(latest.get("short_shares", 0)),
         "days_to_cover": round(float(latest.get("days_to_cover", 0.0)), 2),
         "periods": len(si_df),
+        "evidence": evidence,
     }
 
 
@@ -601,7 +640,7 @@ def score_13f_positioning(fund_rows: List[dict]) -> dict:
     if not fund_rows:
         return {
             "score": 50.0, "status": "no_data", "funds_long": 0, "funds_short": 0,
-            "new_positions": 0, "exited_or_trimmed": 0, "n_funds": 0,
+            "new_positions": 0, "exited_or_trimmed": 0, "n_funds": 0, "evidence": [],
         }
 
     score = 50.0
@@ -609,6 +648,7 @@ def score_13f_positioning(fund_rows: List[dict]) -> dict:
     funds_short = 0
     new_positions = 0
     exited_or_trimmed = 0
+    evidence = []
 
     for row in fund_rows:
         latest = row.get("latest_shares") or 0.0
@@ -624,15 +664,28 @@ def score_13f_positioning(fund_rows: List[dict]) -> dict:
         if prior is None or prior == 0:
             trend_mult = 1.2  # newly initiated this quarter
             new_positions += 1
+            trend_desc = "new position this quarter"
         elif abs(latest) > abs(prior) * 1.05:
             trend_mult = 1.3  # adding to the position
+            trend_desc = "adding to position"
         elif abs(latest) < abs(prior) * 0.95:
             trend_mult = 0.7  # trimming
             exited_or_trimmed += 1
+            trend_desc = "trimming position"
         else:
             trend_mult = 1.0  # roughly unchanged
+            trend_desc = "roughly unchanged"
 
         score += direction_sign * 15.0 * trend_mult
+
+        evidence.append({
+            "date": row.get("latest_period"),
+            "description": f"{row.get('fund', 'Unknown fund')} "
+                            f"{'long' if direction_sign > 0 else 'short (via Put)'} "
+                            f"{abs(latest):,.0f} shares — {trend_desc}",
+            "value": latest,
+            "source_url": row.get("latest_source_url"),
+        })
 
     score = float(np.clip(score, 5.0, 95.0))
     return {
@@ -643,6 +696,7 @@ def score_13f_positioning(fund_rows: List[dict]) -> dict:
         "new_positions": new_positions,
         "exited_or_trimmed": exited_or_trimmed,
         "n_funds": len(fund_rows),
+        "evidence": evidence,
     }
 
 

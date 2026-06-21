@@ -30,6 +30,13 @@ from utils.analysis import (
 )
 from utils.ticker_score import compute_full_ticker_score, resolve_ticker_meta
 from utils.header import render_header, render_sidebar_base, go_to_ticker, ticker_chips, ticker_label, render_synthetic_data_banner
+from utils.audit_ui import render_evidence_expander
+from utils.lead_time_research import (
+    build_insider_intensity_series, build_short_interest_change_series,
+    lag_scan_with_validation, get_sector_peers, pooled_lag_scan_across_sector,
+    compute_signal_reliability_score,
+)
+from utils.lead_time_ui import render_validated_lag_scan
 
 st.set_page_config(page_title="Ticker Deep Dive — UA", layout="wide")
 render_header("Ticker Deep Dive")
@@ -850,6 +857,12 @@ if table_rows:
         """)
 
     deep_sig_options = {sid: SIGNALS[sid]["name"] for sid in relevant_sig_ids if sid in SIGNALS}
+    if _has_insider_signal:
+        deep_sig_options["_insider_activity"] = "Insider Activity — validated lead-time scan"
+    if _has_short_interest_signal:
+        deep_sig_options["_short_interest"] = "Short Interest — validated lead-time scan"
+
+    is_alt_data_scan = False
     if deep_sig_options:
         dc1, dc2 = st.columns([2, 1])
         with dc1:
@@ -859,12 +872,85 @@ if table_rows:
                 format_func=lambda x: deep_sig_options[x],
                 key="deep_scan_sig",
             )
-        deep_cfg = SIGNALS.get(deep_sig_id, {})
-        with dc2:
-            deep_lag = st.slider(
-                "Manual lag (weeks):", 0, 16, deep_cfg.get("lag_weeks", 0), key="deep_scan_lag"
+        is_alt_data_scan = deep_sig_id in ("_insider_activity", "_short_interest")
+
+        if is_alt_data_scan:
+            with dc2:
+                st.caption(
+                    "Reuses the lag-scan above, but adds an out-of-sample check, a "
+                    "multiple-comparisons correction, and cross-ticker pooling — alt-data "
+                    "signals like this are sparser and easier to overfit by accident than "
+                    "the macro signals above, so they get more rigor, not less."
+                )
+        else:
+            deep_cfg = SIGNALS.get(deep_sig_id, {})
+            with dc2:
+                deep_lag = st.slider(
+                    "Manual lag (weeks):", 0, 16, deep_cfg.get("lag_weeks", 0), key="deep_scan_lag"
+                )
+
+    if deep_sig_options and is_alt_data_scan:
+        _alt_label = deep_sig_options[deep_sig_id]
+        if st.button(f"Run validated lead-time scan: {_alt_label}", key="run_alt_lag_scan"):
+            with st.spinner(
+                "Fetching extended history and running the validated scan "
+                "(slower than the instant macro-signal scan above) …"
+            ):
+                if deep_sig_id == "_insider_activity":
+                    _ext_df = fetch_insider_transactions_detail(ticker_input, days=730, max_filings=150)
+                    _alt_series = build_insider_intensity_series(_ext_df)
+                else:
+                    _ext_df = fetch_short_interest(ticker_input, years=2.0)
+                    _alt_series = build_short_interest_change_series(_ext_df)
+
+                if _alt_series.empty or price_series.empty:
+                    _alt_result = {"error": "Insufficient data for this ticker", "n": 0}
+                    _alt_reliability = compute_signal_reliability_score(_alt_result)
+                    _alt_pooled = None
+                else:
+                    _alt_result = lag_scan_with_validation(_alt_series, price_series, scan_max_lag=16)
+
+                    _peer_tickers = get_sector_peers(ticker_input, max_peers=4)
+                    _alt_pooled = None
+                    if _peer_tickers and not _alt_result.get("error"):
+                        _peer_end = pd.Timestamp.now().strftime("%Y-%m-%d")
+                        _peer_start = (pd.Timestamp.now() - pd.Timedelta(days=900)).strftime("%Y-%m-%d")
+                        _peer_signals, _peer_prices = {}, {}
+                        for _peer in _peer_tickers:
+                            try:
+                                if deep_sig_id == "_insider_activity":
+                                    _peer_raw = fetch_insider_transactions_detail(_peer, days=730, max_filings=150)
+                                    _peer_sig = build_insider_intensity_series(_peer_raw)
+                                else:
+                                    _peer_raw = fetch_short_interest(_peer, years=2.0)
+                                    _peer_sig = build_short_interest_change_series(_peer_raw)
+                                _peer_price = fetch_price(_peer, _peer_start, _peer_end)
+                                if not _peer_sig.empty and not _peer_price.empty:
+                                    _peer_signals[_peer] = _peer_sig
+                                    _peer_prices[_peer] = _peer_price
+                            except Exception:
+                                continue
+                        if _peer_signals:
+                            _alt_pooled = pooled_lag_scan_across_sector(_peer_signals, _peer_prices, scan_max_lag=16)
+
+                    _alt_reliability = compute_signal_reliability_score(_alt_result, _alt_pooled)
+
+                st.session_state["_alt_lag_result"] = _alt_result
+                st.session_state["_alt_lag_reliability"] = _alt_reliability
+                st.session_state["_alt_lag_pooled"] = _alt_pooled
+                st.session_state["_alt_lag_signal_id"] = deep_sig_id
+
+        if (
+            "_alt_lag_result" in st.session_state
+            and st.session_state.get("_alt_lag_signal_id") == deep_sig_id
+        ):
+            render_validated_lag_scan(
+                st.session_state["_alt_lag_result"],
+                st.session_state["_alt_lag_reliability"],
+                st.session_state.get("_alt_lag_pooled"),
             )
 
+    elif deep_sig_options:
         # Reuse data already fetched earlier on this page — no extra network calls.
         deep_sig_data = signal_data.get(deep_sig_id, pd.Series(dtype=float))
         if not deep_sig_data.empty and not price_series.empty:
@@ -1111,6 +1197,7 @@ if _has_insider_signal:
     tx_display["price"] = tx_display["price"].map(lambda v: f"${v:,.2f}")
     tx_display["value"] = tx_display["value"].map(lambda v: f"${v:,.0f}")
     st.dataframe(tx_display, use_container_width=True, hide_index=True)
+    render_evidence_expander(_insider_score.get("evidence", []))
 else:
     st.info(f"No genuine open-market purchases or sales (transaction code P/S) found for {ticker_input} in the last 180 days — most Form 4 activity in this window, if any, was grants, vesting, or option exercises, not a buy/sell decision.")
 
@@ -1171,6 +1258,7 @@ if _has_short_interest_signal:
                                      "days_to_cover": "days_to_cover", "avg_daily_volume": "avg_daily_volume"}),
         use_container_width=True, hide_index=True,
     )
+    render_evidence_expander(_short_interest_score.get("evidence", []))
 else:
     st.info(f"No FINRA short interest history found for {ticker_input} in the last 18 months — this can happen for very new listings or tickers FINRA's symbol matching doesn't recognize exactly as entered.")
 
@@ -1231,6 +1319,7 @@ if _has_13f_signal:
         })
     st.dataframe(pd.DataFrame(_fund_display_rows), use_container_width=True, hide_index=True)
     st.caption("Source: SEC EDGAR Form 13F-HR, fetched live from each fund's actual filing. \"As of\" is the real reporting period, not the filing date — those can be ~45 days apart.")
+    render_evidence_expander(_thirteenf_score.get("evidence", []))
 else:
     _curated_fund_names_str = ", ".join(_f["name"] for _f in CURATED_FUNDS)
     st.info(f"None of the curated funds ({_curated_fund_names_str}) currently hold {ticker_input} in their most recent 13F filing. This reflects only those {len(CURATED_FUNDS)} funds, not the full universe of institutional holders — for broader 13F coverage, check a dedicated 13F aggregator like WhaleWisdom.")

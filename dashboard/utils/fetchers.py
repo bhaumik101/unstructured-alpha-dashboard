@@ -484,7 +484,9 @@ def fetch_insider_transactions_detail(ticker: str, days: int = 180, max_filings:
     of which reflect a genuine buy/sell decision by the insider.
 
     Returns columns: date, insider, role, code (P/S), shares, price, value
-    (shares * price, signed: + for P, - for S).
+    (shares * price, signed: + for P, - for S), accession, filer_cik,
+    source_url (the exact filing XML each row came from -- the audit-trail
+    feature links back to this directly rather than a generic search page).
     """
     start = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     end   = datetime.now().strftime("%Y-%m-%d")
@@ -558,6 +560,16 @@ def fetch_insider_transactions_detail(ticker: str, days: int = 180, max_filings:
                 "shares":  shares,
                 "price":   price,
                 "value":   value if code == "P" else -value,
+                # Kept for the audit-trail feature: this is the exact filing
+                # each transaction came from, already built above to fetch
+                # the XML in the first place -- previously computed and then
+                # discarded once parsing was done, even though every row
+                # legitimately needs its own source link (a single filing
+                # can contain multiple transactions, each potentially from
+                # a different filer for joint-filer forms).
+                "accession":  accession,
+                "filer_cik":  filer_cik,
+                "source_url": xml_url,
             })
 
     if not records:
@@ -758,6 +770,12 @@ def fetch_13f_holdings(cik: str, fund_name: str, max_filings: int = 2) -> pd.Dat
                     "shares": pd.to_numeric(fields.get("sshPrnamt", ""), errors="coerce"),
                     "value": pd.to_numeric(fields.get("value", ""), errors="coerce"),
                     "direction": direction,
+                    # Audit-trail field: the exact information-table XML this
+                    # row came from. `base`/`info_table_name` were already
+                    # being computed above to fetch the filing in the first
+                    # place -- same pattern as the insider-transaction fetch,
+                    # previously discarded once parsing was done.
+                    "source_url": f"{base}/{info_table_name}",
                 })
     except Exception:
         return pd.DataFrame()
