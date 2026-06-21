@@ -97,7 +97,7 @@ ROUTED_PAGES = [
     "pages/6_Stock_Screener.py",
     "pages/8_About.py",
     "pages/9_AI_Assistant.py",
-    "pages/10_Alerts.py",
+    "pages/10_Watchlist.py",
 ]
 
 # pages/2_Signal_Analysis.py and pages/7_Macro_Monitor.py used to be kept
