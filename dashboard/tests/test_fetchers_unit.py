@@ -67,47 +67,59 @@ def _mock_response(json_body):
 
 
 def test_fetch_eia_parses_real_response_shape_when_key_present():
-    st.session_state["EIA_API_KEY"] = "fake-key-for-test"
     fetch_eia.clear()  # bypass @st.cache_data between test runs
     with patch("utils.fetchers.requests.get", return_value=_mock_response(EIA_RESPONSE_FIXTURE)):
-        s = fetch_eia("PET.WCESTUS1.W", "2026-01-01", "2026-12-31")
+        s = fetch_eia("PET.WCESTUS1.W", "2026-01-01", "2026-12-31", api_key="fake-key-for-test")
     assert not is_synthetic(s)
     assert len(s) == 2
     assert float(s.iloc[-1]) == 418222.0  # most recent period, sorted ascending
-    del st.session_state["EIA_API_KEY"]
 
 
 def test_fetch_eia_falls_back_to_synthetic_without_key():
-    st.session_state.pop("EIA_API_KEY", None)
     fetch_eia.clear()
-    s = fetch_eia("PET.WCESTUS1.W", "2024-01-01", "2024-06-01")
+    s = fetch_eia("PET.WCESTUS1.W", "2024-01-01", "2024-06-01", api_key="")
     assert is_synthetic(s)
 
 
 def test_fetch_eia_falls_back_to_synthetic_on_request_exception():
-    st.session_state["EIA_API_KEY"] = "fake-key-for-test"
     fetch_eia.clear()
     with patch("utils.fetchers.requests.get", side_effect=ConnectionError("network down")):
-        s = fetch_eia("PET.WCESTUS1.W", "2024-01-01", "2024-06-01")
+        s = fetch_eia("PET.WCESTUS1.W", "2024-01-01", "2024-06-01", api_key="fake-key-for-test")
     assert is_synthetic(s)
-    del st.session_state["EIA_API_KEY"]
 
 
 def test_fetch_fred_parses_real_response_shape_when_key_present():
-    st.session_state["FRED_API_KEY"] = "fake-key-for-test"
     fetch_fred.clear()
     with patch("utils.fetchers.requests.get", return_value=_mock_response(FRED_RESPONSE_FIXTURE)):
-        s = fetch_fred("SOME_SERIES", "2026-01-01", "2026-12-31")
+        s = fetch_fred("SOME_SERIES", "2026-01-01", "2026-12-31", api_key="fake-key-for-test")
     assert not is_synthetic(s)
     assert len(s) == 2
-    del st.session_state["FRED_API_KEY"]
 
 
 def test_fetch_fred_falls_back_to_synthetic_without_key():
-    st.session_state.pop("FRED_API_KEY", None)
     fetch_fred.clear()
-    s = fetch_fred("SOME_SERIES", "2024-01-01", "2024-06-01")
+    s = fetch_fred("SOME_SERIES", "2024-01-01", "2024-06-01", api_key="")
     assert is_synthetic(s)
+
+
+def test_fetch_fred_cache_is_keyed_on_api_key_not_just_series_and_dates():
+    """
+    Regression test for a real concurrency bug found during a multi-user
+    hardening pass: fetch_fred is @st.cache_data (a server-wide cache shared
+    across every concurrent Streamlit session). If api_key were read from
+    st.session_state INSIDE the function instead of being a parameter, the
+    first user to request a given (series_id, start, end) would silently
+    determine what every other user sees for that same request for the next
+    hour -- a user with a real key could get served another user's
+    synthetic fallback, or vice versa. This test proves the two calls below,
+    which differ ONLY in api_key, do NOT share a cache entry.
+    """
+    fetch_fred.clear()
+    with patch("utils.fetchers.requests.get", return_value=_mock_response(FRED_RESPONSE_FIXTURE)):
+        with_key = fetch_fred("SAME_SERIES", "2024-01-01", "2024-06-01", api_key="real-key")
+    without_key = fetch_fred("SAME_SERIES", "2024-01-01", "2024-06-01", api_key="")
+    assert not is_synthetic(with_key)
+    assert is_synthetic(without_key)
 
 
 def test_synthetic_signal_is_marked_synthetic():

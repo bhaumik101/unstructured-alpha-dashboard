@@ -71,15 +71,26 @@ def is_synthetic(s: pd.Series) -> bool:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_fred(series_id: str, start: str, end: str) -> pd.Series:
+def fetch_fred(series_id: str, start: str, end: str, api_key: str = "") -> pd.Series:
     """
     Fetch a FRED data series.
     Falls back to synthetic data if no API key is configured. The returned
     series carries s.attrs["synthetic"] so callers/pages can detect and
     visibly flag demo data instead of silently presenting it as real.
-    """
-    api_key = _get_fred_key()
 
+    IMPORTANT — api_key MUST be passed in by the caller (resolved via
+    _get_fred_key()), not read internally from st.session_state here. This
+    function is decorated with @st.cache_data, which is a server-wide cache
+    shared across every concurrent user, keyed on this function's arguments.
+    If api_key were read from session_state INSIDE the cached function
+    instead of being part of the cache key, the first user to request a
+    given (series_id, start, end) would silently determine what every OTHER
+    user sees for that same request for the next hour — a user with no key
+    could get served another user's real fetched data, or a user who
+    correctly configured a key could get served someone else's synthetic
+    fallback. Passing api_key as an explicit argument makes it part of the
+    cache key, so each key (or lack of one) gets its own cache entry.
+    """
     if api_key:
         url = "https://api.stlouisfed.org/fred/series/observations"
         params = {
@@ -111,7 +122,7 @@ def fetch_fred(series_id: str, start: str, end: str) -> pd.Series:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_eia(series_id: str, start: str, end: str) -> pd.Series:
+def fetch_eia(series_id: str, start: str, end: str, api_key: str = "") -> pd.Series:
     """
     Fetch an EIA data series via the API v2 backward-compatibility endpoint
     (api.eia.gov/v2/seriesid/{id}), which accepts legacy v1-style series IDs
@@ -121,9 +132,13 @@ def fetch_eia(series_id: str, start: str, end: str) -> pd.Series:
 
     Falls back to synthetic data if no key is configured or the fetch fails,
     same contract as fetch_fred(): s.attrs["synthetic"] marks which is which.
-    """
-    api_key = _get_eia_key()
 
+    api_key MUST be passed in by the caller (resolved via _get_eia_key()) for
+    the same reason documented on fetch_fred() — this is a server-wide cache
+    shared across every concurrent user, and the key needs to be part of the
+    cache key so one user's key (or lack of one) can't leak into what
+    another user sees for the same series/date-range request.
+    """
     if api_key:
         url = f"https://api.eia.gov/v2/seriesid/{series_id}"
         params = {"api_key": api_key}
@@ -204,9 +219,9 @@ def fetch_signal_series(cfg: dict, start: str, end: str) -> pd.Series:
     src = cfg.get("source")
     try:
         if src == "fred":
-            return fetch_fred(cfg["series_id"], start, end)
+            return fetch_fred(cfg["series_id"], start, end, api_key=_get_fred_key())
         elif src == "eia":
-            return fetch_eia(cfg["series_id"], start, end)
+            return fetch_eia(cfg["series_id"], start, end, api_key=_get_eia_key())
         elif src == "yfinance":
             return fetch_price(cfg["series_id"], start, end)
         elif src in ("yfinance_basket", "yfinance_multi"):

@@ -571,7 +571,7 @@ st.caption(
 # this content didn't need its own page when Market Overview already covers
 # markets — keeping macro context here instead of forcing a second page click)
 # ─────────────────────────────────────────────────────────────────────────────
-from utils.fetchers import fetch_fred, is_synthetic
+from utils.fetchers import fetch_fred, is_synthetic, _get_fred_key
 from utils.header import render_synthetic_data_banner
 
 MACRO_END   = datetime.now().strftime("%Y-%m-%d")
@@ -606,18 +606,32 @@ def _status_chip(value: float, thresholds: tuple, labels: tuple, inverse: bool =
 
 
 @st.cache_data(ttl=14400, show_spinner=False)
-def _get_fred_cached(series_id: str, start: str, end: str) -> pd.Series:
+def _get_fred_cached(series_id: str, start: str, end: str, api_key: str = "") -> pd.Series:
+    """
+    api_key is threaded through explicitly (not read from session_state
+    inside this function) so it participates in the cache key — see the
+    detailed comment on fetch_fred() in utils/fetchers.py for why: this is
+    a server-wide cache shared across every concurrent user, and without the
+    key as part of the cache key, one user's key (or lack of one) could
+    silently leak into what another user sees for the same series/range.
+    """
     try:
-        return fetch_fred(series_id, start, end)
+        return fetch_fred(series_id, start, end, api_key=api_key)
     except Exception:
         return pd.Series(dtype=float)
 
 
 st.divider()
 
-_macro_series_ids = ["TRUCKD11", "NAPM", "DGORDER", "IC4WSA", "JTSLDR", "RAILFRTINTERMODAL",
+_fred_key = _get_fred_key()
+
+# NOTE: was "NAPM" — removed from FRED in 2016 (same dead series fixed in
+# utils/config.py's ism_pmi signal earlier; this page had its own separate
+# hardcoded copy that the earlier fix didn't touch). Replaced with the same
+# Philly Fed Manufacturing Index used there, verified live against FRED.
+_macro_series_ids = ["TRUCKD11", "GACDFSA066MSFRBPHI", "DGORDER", "IC4WSA", "JTSLDR", "RAILFRTINTERMODAL",
                      "UMCSENT", "RSXFS", "CPIUFDSL", "T10Y2Y"]
-_macro_fetched = {sid: _get_fred_cached(sid, MACRO_START, MACRO_END) for sid in _macro_series_ids}
+_macro_fetched = {sid: _get_fred_cached(sid, MACRO_START, MACRO_END, api_key=_fred_key) for sid in _macro_series_ids}
 render_synthetic_data_banner(
     sum(1 for s in _macro_fetched.values() if is_synthetic(s)),
     len(_macro_fetched),
@@ -629,7 +643,7 @@ st.caption("Real published economic data — not live prices. Updates as slowly 
 g1, g2, g3 = st.columns(3)
 
 with g1:
-    ata = _get_fred_cached("TRUCKD11", MACRO_START, MACRO_END)
+    ata = _macro_fetched["TRUCKD11"]
     if not ata.empty:
         last_v = float(ata.iloc[-1])
         prev_v = float(ata.iloc[-5]) if len(ata) > 5 else last_v
@@ -645,7 +659,7 @@ with g1:
         st.info("Trucking data unavailable. Add FRED API key.")
 
 with g2:
-    ism = _get_fred_cached("NAPM", MACRO_START, MACRO_END)
+    ism = _macro_fetched["GACDFSA066MSFRBPHI"]
     if not ism.empty:
         last_v = float(ism.iloc[-1])
         chip   = _status_chip(last_v, (47, 53), ("Expanding (>50)", "Contracting (<50)", "Near 50"))
@@ -657,7 +671,7 @@ with g2:
         st.info("ISM PMI unavailable. Add FRED API key.")
 
 with g3:
-    dgo = _get_fred_cached("DGORDER", MACRO_START, MACRO_END)
+    dgo = _macro_fetched["DGORDER"]
     if not dgo.empty:
         last_v = float(dgo.iloc[-1])
         prev_v = float(dgo.iloc[-2]) if len(dgo) > 1 else last_v
@@ -675,7 +689,7 @@ st.markdown('<div class="section-header">LABOR MARKET</div>', unsafe_allow_html=
 l1, l2, l3 = st.columns(3)
 
 with l1:
-    ic = _get_fred_cached("IC4WSA", MACRO_START, MACRO_END)
+    ic = _macro_fetched["IC4WSA"]
     if not ic.empty:
         last_v = float(ic.iloc[-1])
         chip   = _status_chip(last_v, (220000, 280000), ("Healthy (<220K)", "Elevated (>280K)", "Normal"), inverse=True)
@@ -686,7 +700,7 @@ with l1:
         st.info("Jobless claims unavailable. Add FRED API key.")
 
 with l2:
-    jolts_ld = _get_fred_cached("JTSLDR", MACRO_START, MACRO_END)
+    jolts_ld = _macro_fetched["JTSLDR"]
     if not jolts_ld.empty:
         last_v = float(jolts_ld.iloc[-1])
         chip   = _status_chip(last_v, (1.0, 2.5), ("High demand (>2.5)", "Low demand (<1.0)", "Normal"))
@@ -697,7 +711,7 @@ with l2:
         st.info("JOLTS data unavailable. Add FRED API key.")
 
 with l3:
-    rail = _get_fred_cached("RAILFRTINTERMODAL", MACRO_START, MACRO_END)
+    rail = _macro_fetched["RAILFRTINTERMODAL"]
     if not rail.empty:
         last_v = float(rail.iloc[-1])
         mean_v = float(rail.mean())
@@ -714,7 +728,7 @@ st.markdown('<div class="section-header">CONSUMER & INFLATION</div>', unsafe_all
 c1, c2, c3 = st.columns(3)
 
 with c1:
-    umcs = _get_fred_cached("UMCSENT", MACRO_START, MACRO_END)
+    umcs = _macro_fetched["UMCSENT"]
     if not umcs.empty:
         last_v = float(umcs.iloc[-1])
         mean_v = float(umcs.mean())
@@ -727,7 +741,7 @@ with c1:
         st.info("Consumer sentiment unavailable.")
 
 with c2:
-    rsxfs = _get_fred_cached("RSXFS", MACRO_START, MACRO_END)
+    rsxfs = _macro_fetched["RSXFS"]
     if not rsxfs.empty:
         last_v = float(rsxfs.iloc[-1])
         prev_v = float(rsxfs.iloc[-2]) if len(rsxfs) > 1 else last_v
@@ -741,7 +755,7 @@ with c2:
         st.info("Retail sales unavailable.")
 
 with c3:
-    cpi_food = _get_fred_cached("CPIUFDSL", MACRO_START, MACRO_END)
+    cpi_food = _macro_fetched["CPIUFDSL"]
     if not cpi_food.empty:
         last_v = float(cpi_food.iloc[-1])
         yoy = ((last_v / float(cpi_food.iloc[-13])) - 1) * 100 if len(cpi_food) > 13 else float("nan")
@@ -755,7 +769,7 @@ with c3:
 st.markdown('<div class="section-header">OFFICIAL YIELD CURVE (FRED)</div>', unsafe_allow_html=True)
 st.caption("FRED's own 10Y-2Y series — complements the live 10Y-3M spread computed from yfinance above.")
 
-yc = _get_fred_cached("T10Y2Y", MACRO_START, MACRO_END)
+yc = _macro_fetched["T10Y2Y"]
 if not yc.empty:
     fig_yc = go.Figure(go.Scatter(
         x=yc.index, y=yc.values, name="10Y–2Y Spread",
