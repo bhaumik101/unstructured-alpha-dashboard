@@ -19,7 +19,7 @@ import streamlit as st
 from utils.config import SIGNALS, TICKERS, CATEGORIES
 from utils.fetchers import (
     fetch_price, fetch_signal_series, is_synthetic,
-    fetch_federal_contracts, fetch_insider_trades,
+    fetch_federal_contracts, fetch_insider_trades, fetch_live_quote,
 )
 from utils.analysis import (
     score_signal, compute_confluence, compute_quick_correlation,
@@ -419,7 +419,29 @@ if not price_series.empty:
         ret_ytd    = (current_p / ytd_base.iloc[-1] - 1) * 100 if (len(price_series) > 50 and not ytd_base.empty) else float("nan")
 
         p1, p2, p3, p4 = st.columns(4)
-        p1.metric("Current Price", f"${current_p:.2f}")
+
+        @st.fragment(run_every="60s")
+        def _render_live_price(ticker: str, fallback_price: float) -> None:
+            """
+            Auto-refreshes every 60s independent of the rest of the page —
+            only this fragment re-runs on the timer, not the full script, so
+            the expensive historical chart/signal fetches above don't re-fire
+            every minute. Falls back to the last historical close (from the
+            already-fetched daily series) if the live quote is unavailable
+            (after hours, network hiccup, etc.) rather than showing nothing.
+            """
+            q = fetch_live_quote(ticker)
+            if q["price"] is not None:
+                delta = f"{q['pct_change']:+.2f}%" if q["pct_change"] is not None else None
+                st.metric("Current Price", f"${q['price']:.2f}", delta=delta)
+                st.caption("LIVE · updates every 60s")
+            else:
+                st.metric("Current Price", f"${fallback_price:.2f}")
+                st.caption("Last close (live quote unavailable)")
+
+        with p1:
+            _render_live_price(ticker_input, current_p)
+
         p2.metric("52-Week High",  f"${high_52w:.2f}", delta=f"{pct_from_high:+.1f}%")
         p3.metric("52-Week Low",   f"${low_52w:.2f}",  delta=f"{pct_from_low:+.1f}%")
         p4.metric("YTD Return",    f"{ret_ytd:+.1f}%")

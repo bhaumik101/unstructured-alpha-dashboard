@@ -164,6 +164,36 @@ def fetch_price(ticker: str, start: str, end: str) -> pd.Series:
         return pd.Series(dtype=float, name=ticker)
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def fetch_live_quote(ticker: str) -> dict:
+    """
+    Fetch just the current price + day change for a ticker — cheap and fast
+    (yfinance's fast_info, not a full .history() pull), cached for only 60
+    seconds instead of fetch_price's 30 minutes. Meant to be called from
+    inside an st.fragment(run_every=...) block so price displays visibly
+    auto-update without re-running the whole page or re-fetching full
+    historical chart data, which stays on the longer 30-min cache above.
+
+    Returns {"price": float|None, "prev_close": float|None, "pct_change": float|None}.
+    All None on failure — callers should handle that as "quote unavailable"
+    rather than crash, same fallback contract as the rest of this module.
+    """
+    try:
+        fi = yf.Ticker(ticker).fast_info
+        price = fi.get("lastPrice") or fi.get("last_price")
+        prev_close = fi.get("previousClose") or fi.get("previous_close")
+        if price is None:
+            return {"price": None, "prev_close": None, "pct_change": None}
+        pct_change = ((price - prev_close) / prev_close * 100) if prev_close else None
+        return {
+            "price": float(price),
+            "prev_close": float(prev_close) if prev_close else None,
+            "pct_change": float(pct_change) if pct_change is not None else None,
+        }
+    except Exception:
+        return {"price": None, "prev_close": None, "pct_change": None}
+
+
 def fetch_signal_series(cfg: dict, start: str, end: str) -> pd.Series:
     """
     Single dispatch point for fetching a signal's raw data series, used by

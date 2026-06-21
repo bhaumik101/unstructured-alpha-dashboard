@@ -19,7 +19,10 @@ from unittest.mock import patch, MagicMock
 import pandas as pd
 import streamlit as st
 
-from utils.fetchers import fetch_fred, fetch_eia, fetch_fda_approval_velocity, is_synthetic, _synthetic_signal
+from utils.fetchers import (
+    fetch_fred, fetch_eia, fetch_fda_approval_velocity, fetch_live_quote,
+    is_synthetic, _synthetic_signal,
+)
 
 
 EIA_RESPONSE_FIXTURE = {
@@ -146,3 +149,33 @@ def test_fetch_fda_approval_velocity_falls_back_to_empty_on_request_exception():
     with patch("utils.fetchers.requests.get", side_effect=ConnectionError("network down")):
         s = fetch_fda_approval_velocity()
     assert s.empty
+
+
+# ── live quote (st.fragment auto-refresh feature) ────────────────────────────
+
+def test_fetch_live_quote_parses_fast_info():
+    fetch_live_quote.clear()
+    mock_fast_info = {"lastPrice": 190.5, "previousClose": 188.0}
+    mock_ticker = MagicMock()
+    mock_ticker.fast_info = mock_fast_info
+    with patch("utils.fetchers.yf.Ticker", return_value=mock_ticker):
+        q = fetch_live_quote("AAPL")
+    assert q["price"] == 190.5
+    assert q["prev_close"] == 188.0
+    assert round(q["pct_change"], 4) == round((190.5 - 188.0) / 188.0 * 100, 4)
+
+
+def test_fetch_live_quote_handles_missing_price():
+    fetch_live_quote.clear()
+    mock_ticker = MagicMock()
+    mock_ticker.fast_info = {"previousClose": 188.0}  # no lastPrice
+    with patch("utils.fetchers.yf.Ticker", return_value=mock_ticker):
+        q = fetch_live_quote("AAPL")
+    assert q == {"price": None, "prev_close": None, "pct_change": None}
+
+
+def test_fetch_live_quote_falls_back_on_exception():
+    fetch_live_quote.clear()
+    with patch("utils.fetchers.yf.Ticker", side_effect=ConnectionError("network down")):
+        q = fetch_live_quote("AAPL")
+    assert q == {"price": None, "prev_close": None, "pct_change": None}
