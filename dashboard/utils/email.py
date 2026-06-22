@@ -60,9 +60,23 @@ def _get_resend_config() -> tuple[str, str]:
 
 def send_verification_email(to_email: str, code: str) -> None:
     """Send a 6-digit verification code to to_email. Raises EmailSendError
-    if RESEND_API_KEY isn't configured or Resend's API rejects the request."""
+    if RESEND_API_KEY isn't configured or Resend's API rejects the request.
+
+    TEMPORARY DIAGNOSTIC LOGGING (added 2026-06-22, remove once the "emails
+    aren't arriving for arbitrary recipients" issue is confirmed fixed):
+    Render's own stdout logs showed NOTHING for a real failed-to-arrive
+    signup attempt -- neither a request log nor an exception -- which is
+    only possible if this function is silently returning success without
+    Resend ever actually receiving/logging the request, or if something
+    upstream of this call never reaches it at all. print() output here
+    shows up in Render's Logs tab directly, unlike anything raised purely
+    inside Streamlit's own UI layer.
+    """
     api_key, from_email = _get_resend_config()
+    print(f"[email] send_verification_email called: to={to_email!r} from={from_email!r} "
+          f"api_key_present={bool(api_key)} api_key_prefix={api_key[:6] if api_key else None!r}")
     if not api_key:
+        print("[email] aborting: no RESEND_API_KEY configured")
         raise EmailSendError(
             "No RESEND_API_KEY configured -- add one in Streamlit secrets to send real verification emails."
         )
@@ -90,6 +104,9 @@ def send_verification_email(to_email: str, code: str) -> None:
             },
             timeout=15,
         )
+        print(f"[email] Resend API responded: status={resp.status_code} body={resp.text[:500]!r}")
         resp.raise_for_status()
+        print(f"[email] send succeeded for to={to_email!r}")
     except requests.RequestException as e:
+        print(f"[email] send FAILED for to={to_email!r}: {type(e).__name__}: {e}")
         raise EmailSendError(f"Failed to send verification email: {e}") from e
