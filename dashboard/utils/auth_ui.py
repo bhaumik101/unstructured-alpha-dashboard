@@ -71,11 +71,30 @@ def init_cookies_for_this_run() -> CookieManager:
 
 def get_cookies() -> CookieManager:
     """
-    Read the single CookieManager instance app.py already constructed for
-    this run. Every call site EXCEPT app.py's own top-level code should
-    use this, not init_cookies_for_this_run() -- calling the constructor
-    again mid-run is exactly the bug this split was built to avoid.
+    Read the single CookieManager instance for this run -- constructing
+    one if app.py's own top-level call somehow hasn't happened yet for
+    this specific request.
+
+    Caught live in production (2026-06-22): right after a deploy restarts
+    the server, a browser tab left open from before the restart can
+    reconnect to the new process using its old session id -- a session id
+    the new process has NO session_state for at all, including
+    "_cookies_this_run", which app.py otherwise sets unconditionally at
+    the top of every run. Indexing st.session_state directly turned that
+    into a raw KeyError that crashed the whole page (render_header() ->
+    render_account_widget() -> get_cookies(), on every single page) for
+    whoever's tab reconnected at the wrong moment.
+
+    Falling back to init_cookies_for_this_run() here is safe specifically
+    BECAUSE this branch only runs when nothing has constructed a
+    CookieManager yet this run -- the double-construction bug this
+    get_cookies()/init_cookies_for_this_run() split exists to prevent
+    (StreamlitDuplicateElementKey) only happens when something calls the
+    constructor a SECOND time in the same run, which by definition can't
+    happen if the cache was empty a moment ago.
     """
+    if _COOKIES_SESSION_KEY not in st.session_state:
+        return init_cookies_for_this_run()
     return st.session_state[_COOKIES_SESSION_KEY]
 
 
