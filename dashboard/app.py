@@ -7,35 +7,36 @@ Run locally:
     pip install -r requirements.txt
     streamlit run app.py
 
-Accounts: every page requires a logged-in user (see utils/auth_ui.py).
-Deliberately does NOT call st.set_page_config() here -- every routed page
-already calls it itself as that page's first Streamlit command, and
-Streamlit only allows ONE set_page_config() call per script run. On a run
-where the user isn't logged in yet, require_login() renders the login
-form and calls st.stop() before pg.run() ever reaches a page, so no
-conflict; on a run where they're already logged in, require_login()
-returns immediately without rendering anything, leaving the routed page's
-own set_page_config() call as the genuine first command.
+Accounts: per explicit user request, this app does NOT require an account
+to browse most of it -- only the Watchlist page (inherently per-account)
+calls utils.auth_ui.require_login() itself, as that page's own concern.
+Every other page is fully usable by an anonymous visitor. This file just
+does a non-blocking session check (try_restore_session()) so a returning
+logged-in user is recognized -- via the "remember me" cookie or an
+already-active tab session -- without ever forcing anyone through a login
+wall. The actual sign-in/sign-up affordance lives in the top-right of
+every page (utils.header.render_account_widget(), called from each page's
+own render_header()), reachable voluntarily from anywhere, not a forced
+first step. Deliberately does NOT call st.set_page_config() here -- every
+routed page already calls it itself as that page's first Streamlit
+command, and Streamlit only allows ONE set_page_config() call per script
+run.
 
-st.navigation() is called BEFORE require_login(), deliberately. Calling it
-draws the grouped sidebar (Home/Signals/Research/Market/Alerts/Info)
-immediately as a side effect -- separate from pg.run(), which is what
-actually executes the selected page's content. require_login() still
-gates the content: if nobody's logged in, it renders the login form in
-the main area and calls st.stop() before pg.run() below ever executes, so
-no page content leaks pre-login. This was caught live, not assumed: with
-the order reversed (require_login() first), st.navigation() never ran
-on a not-logged-in script pass, so Streamlit fell back to auto-discovering
-every file in pages/ and showed that flat, ungrouped list (complete with
-two already-retired stub pages) instead of the intended grouped nav.
+st.navigation() is called first, drawing the grouped sidebar
+(Home/Signals/Research/Market/Watchlist/Info) as a side effect -- separate
+from pg.run(), which is what actually executes the selected page's
+content. This ordering mattered even more under the old forced-login
+design (a stale flat sidebar bug, since fixed) and remains the right order
+now: the sidebar should never depend on auth state to render correctly.
 """
 
 import streamlit as st
 
 from utils.db import init_db
-from utils.auth_ui import require_login
+from utils.auth_ui import init_cookies_for_this_run, try_restore_session
 
 init_db()
+_cookies = init_cookies_for_this_run()
 
 pg = st.navigation(
     {
@@ -64,6 +65,6 @@ pg = st.navigation(
     position="sidebar",
 )
 
-current_user = require_login()
+current_user = try_restore_session(_cookies)
 
 pg.run()

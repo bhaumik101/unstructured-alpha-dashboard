@@ -26,6 +26,7 @@ from utils.config import TICKERS
 from utils import alerts_db
 from utils.alerts import evaluate_watchlist
 from utils.header import render_header, render_sidebar_base, go_to_ticker
+from utils.auth_ui import require_login
 
 # "Quick add" presets (per explicit user request: most people adding a
 # ticker don't want to hand-tune 3 threshold numbers every time). Each
@@ -53,9 +54,13 @@ render_sidebar_base()
 
 alerts_db.init_db()
 
-# app.py's login gate guarantees this exists before any page runs -- this
-# page's own watchlist/alerts are scoped entirely to this id, never global.
-user_id = st.session_state["user"]["id"]
+# Unlike every other page, Watchlist DOES require an account -- it's
+# inherently per-user data, so this is the one place that still calls the
+# blocking gate. require_login() renders its own sign-in form and stops
+# the script here if nobody's logged in; everything below this line can
+# safely assume a real, verified user.
+current_user = require_login()
+user_id = current_user["id"]
 
 st.markdown("# My Watchlist")
 st.caption("Track the tickers you care about. Click any ticker for the full signal breakdown, "

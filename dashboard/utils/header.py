@@ -303,6 +303,15 @@ def render_header(page_subtitle: str = "") -> None:
     <div class="gold-rule"></div>
     """, unsafe_allow_html=True)
 
+    # Top-right Sign In / account widget -- a real Streamlit popover, not
+    # raw HTML, so it can't live inside the markdown block above (Streamlit
+    # widgets don't render inside injected HTML). Rendered here so every
+    # page gets it automatically just by calling render_header(), which
+    # they all already do -- no per-page wiring needed, and no risk of a
+    # page forgetting to add it.
+    from utils.auth_ui import render_account_widget
+    render_account_widget()
+
 
 def render_sidebar_base() -> None:
     """
@@ -311,10 +320,12 @@ def render_sidebar_base() -> None:
     standalone.
     """
     with st.sidebar:
-        # Account — only rendered once a user is actually logged in (every
-        # page is gated by utils.auth_ui.require_login() before this runs,
-        # so st.session_state["user"] should always exist here in practice,
-        # but checked defensively rather than assumed).
+        # Account info — most pages no longer require login (per explicit
+        # user request), so an anonymous visitor is a completely normal,
+        # expected case here, not an edge case. This sidebar block is just
+        # a secondary "you're logged in" indicator + quick Log Out; the
+        # actual sign-in entry point is the top-right widget rendered by
+        # render_header() (utils.auth_ui.render_account_widget()).
         user = st.session_state.get("user")
         if user:
             st.markdown(

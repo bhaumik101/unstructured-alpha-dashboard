@@ -38,22 +38,23 @@ def test_about_page_backtest_button_runs_without_exception(app_test):
     )
 
 
-def test_not_logged_in_path_renders_without_exception():
+def test_anonymous_visitor_sees_real_home_page_content():
     """
     Every test above uses the app_test fixture, which injects a fake
     logged-in user into session_state BEFORE the first .run() -- meaning
-    none of them ever exercise require_login()'s actual not-logged-in
-    branch, the one that now also instantiates a CookieManager() for the
-    "remember me" check (utils/auth_ui.py). This test runs app.py fresh,
-    with no session_state injected at all, specifically to confirm that
-    branch doesn't raise now that the cookie component is wired in.
+    none of them ever exercise a genuinely anonymous visit. Per explicit
+    user request, this app no longer requires an account to browse most of
+    it: app.py's non-blocking try_restore_session() (utils/auth_ui.py)
+    must let the default Home page render its real content for someone
+    with no session_state user at all, not show a login gate or stop the
+    script. This also exercises the CookieManager() instantiated at the
+    top of every run -- AppTest has no real browser attached, so
+    cookies.ready() is always False here, which is exactly the case this
+    test confirms doesn't block anything anymore.
 
-    What this does NOT confirm: AppTest has no real browser attached, so
-    cookies.ready() is always False here, and require_login() calls
-    st.stop() immediately after that check -- this test only proves the
-    script doesn't crash before reaching that point. It says nothing
-    about whether a real "remember me" cookie round-trip works; that
-    requires a live browser (see tests/conftest.py's module docstring).
+    What this does NOT confirm: whether a real "remember me" cookie
+    round-trip works; that requires a live browser (see tests/conftest.py's
+    module docstring).
     """
     from streamlit.testing.v1 import AppTest
     from tests.conftest import DASHBOARD_ROOT
@@ -61,5 +62,51 @@ def test_not_logged_in_path_renders_without_exception():
     at = AppTest.from_file(str(DASHBOARD_ROOT / "app.py"), default_timeout=60)
     at.run()
     assert not at.exception, (
-        "Not-logged-in path raised: " + "\n".join(str(e) for e in at.exception)
+        "Anonymous Home page visit raised: " + "\n".join(str(e) for e in at.exception)
+    )
+    # Not just "didn't crash" -- confirm REAL page content rendered, not a
+    # blank page or a login form silently swallowing everything below it.
+    all_text = " ".join(md.value for md in at.markdown) + " ".join(t.value for t in at.title)
+    assert "UNSTRUCTURED" in all_text or "Hedge Fund Signals" in all_text, (
+        "Expected real Home page content for an anonymous visitor, got: " + all_text[:500]
+    )
+
+
+def test_watchlist_anonymous_visitor_sees_sign_in_prompt_not_watchlist_data():
+    """
+    Watchlist is the one page that still requires an account (per explicit
+    user request -- every other page is now browsable by anyone). Loading
+    it with NO session_state user must NOT show the actual watchlist
+    add/list UI -- which would mean either leaking the watchlist-
+    management interface to someone never authenticated, or crashing on
+    st.session_state["user"]["id"] with no "user" key present at all.
+
+    What this does NOT confirm: require_login()'s actual "Sign in to use
+    your watchlist" copy rendering -- under AppTest, cookies.ready() is
+    always False (no real browser attached), so require_login() calls
+    st.stop() immediately after that check, BEFORE the sign-in form ever
+    renders. That's the correct, intended behavior in a real browser
+    (where the cookie component does become ready) but means this test
+    can only confirm "nothing leaked and nothing crashed," not "the
+    sign-in form itself looks right" -- same category of live-browser-only
+    blind spot as the remember-me cookie round-trip (see tests/conftest.py).
+    """
+    from streamlit.testing.v1 import AppTest
+    from tests.conftest import DASHBOARD_ROOT
+
+    at = AppTest.from_file(str(DASHBOARD_ROOT / "app.py"), default_timeout=60)
+    at.run()
+    at.switch_page("pages/10_Watchlist.py")
+    at.run()
+
+    assert not at.exception, (
+        "Anonymous Watchlist visit raised: " + "\n".join(str(e) for e in at.exception)
+    )
+
+    # The real watchlist-management UI must NOT render -- specifically, no
+    # "Add a ticker to watch" input, which only require_login() actually
+    # returning a real user would ever reach.
+    watch_labels = [ti.label for ti in at.text_input if ti.label]
+    assert not any("Add a ticker to watch" in label for label in watch_labels), (
+        "Watchlist add-ticker input leaked to an anonymous visitor"
     )
