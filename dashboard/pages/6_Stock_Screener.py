@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import yfinance as yf
 
-from utils.config import SIGNALS, TICKERS, CATEGORIES
+from utils.config import SIGNALS, TICKERS
 from utils.fetchers import fetch_live_quote, fetch_signal_series
 from utils.analysis import compute_confluence, score_signal
 from utils.header import render_header, render_sidebar_base, render_synthetic_data_banner

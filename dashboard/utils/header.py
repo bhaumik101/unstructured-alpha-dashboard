@@ -10,34 +10,29 @@ from utils.config import TICKERS
 # ── Shared WSJ / Bloomberg CSS ──────────────────────────────────────────────
 _CSS = """
 <style>
+/* ── Typography ─────────────────────────────────────────────────────────────── */
 html, body, [class*="css"] {
     font-family: Georgia, "Times New Roman", serif !important;
     font-variant-numeric: tabular-nums;
+    line-height: 1.55;
 }
-
-/* Bloomberg-style tabular monospace for headline figures — keeps digits from
-   "jiggling" in stacked card grids, the way terminal-style data displays do. */
+/* Monospace for figures — stops digits from "jiggling" in grids */
 .stat-value, .score-number, [data-testid="stMetricValue"], .mono-num {
     font-family: "SF Mono", "Roboto Mono", "Consolas", "Menlo", monospace !important;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
 }
 
-/* Market open/closed status badge, shown in the masthead */
-.market-status-badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em;
-    padding: 2px 8px; border-radius: 3px;
-    font-family: "SF Mono", "Roboto Mono", "Consolas", monospace !important;
-}
-.market-status-dot {
-    width: 6px; height: 6px; border-radius: 50%; display: inline-block;
-}
+/* ── Scrollbar ───────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: 5px; height: 5px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: rgba(201,168,76,0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: rgba(201,168,76,0.65); }
 
-/* Page background */
+/* ── Page background ─────────────────────────────────────────────────────────── */
 .main { background-color: #FAF7F0 !important; }
 
-/* Sidebar */
+/* ── Sidebar ─────────────────────────────────────────────────────────────────── */
 section[data-testid="stSidebar"] { background-color: #1C2B4A !important; }
 section[data-testid="stSidebar"] * { color: #F0EBE1 !important; }
 section[data-testid="stSidebar"] p,
@@ -47,170 +42,214 @@ section[data-testid="stSidebar"] .stTextInput label { color: #C9A84C !important;
 section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3 {
     color: #FAF7F0 !important;
-    border-bottom: 1px solid rgba(201,168,76,0.35);
+    border-bottom: 1px solid rgba(201,168,76,0.30);
     padding-bottom: 4px;
 }
-/* Nav section group headers (Watchlist, Daily Intel, Signals, etc.) */
+/* Nav section group header pills */
 [data-testid="stNavSectionHeader"] {
-    background: rgba(201,168,76,0.14) !important;
+    background: rgba(201,168,76,0.13) !important;
     border-radius: 4px !important;
     padding: 3px 8px !important;
-    margin-top: 8px !important;
+    margin-top: 10px !important;
     margin-bottom: 2px !important;
 }
 [data-testid="stNavSectionHeader"] p {
-    font-size: 0.70rem !important;
+    font-size: 0.68rem !important;
     font-weight: 700 !important;
-    letter-spacing: 0.07em !important;
+    letter-spacing: 0.09em !important;
+    text-transform: uppercase !important;
     color: #C9A84C !important;
 }
-/* Sidebar buttons — ensure text stays white even when span override is present */
+/* Sidebar buttons */
 section[data-testid="stSidebar"] .stButton > button {
     background-color: #B8860B !important;
     color: #FAF7F0 !important;
     border: none !important;
+    transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+section[data-testid="stSidebar"] .stButton > button:hover {
+    filter: brightness(1.10);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 section[data-testid="stSidebar"] .stButton > button span,
-section[data-testid="stSidebar"] .stButton > button p {
-    color: #FAF7F0 !important;
-}
+section[data-testid="stSidebar"] .stButton > button p { color: #FAF7F0 !important; }
 
-/* Masthead */
-.ua-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    border-bottom: 3px solid #1C2B4A;
-    padding-bottom: 10px;
-    margin-bottom: 0;
+/* ── Masthead ─────────────────────────────────────────────────────────────────── */
+.market-status-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em;
+    padding: 2px 8px; border-radius: 3px;
+    font-family: "SF Mono", "Roboto Mono", "Consolas", monospace !important;
 }
-.ua-header-left {}
+.market-status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.ua-header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    border-bottom: 3px solid #1C2B4A; padding-bottom: 10px; margin-bottom: 0;
+}
 .ua-wordmark {
-    font-size: 2.0rem;
-    font-weight: 700;
-    color: #1C2B4A;
-    font-family: Georgia, serif;
-    letter-spacing: -0.5px;
-    line-height: 1.15;
+    font-size: 2.0rem; font-weight: 700; color: #1C2B4A;
+    font-family: Georgia, serif; letter-spacing: -0.5px; line-height: 1.15;
 }
 .ua-wordmark span { color: #B8860B; }
 .ua-tagline {
-    font-size: 0.82rem;
-    color: #8B7355;
-    font-family: Georgia, serif;
-    font-style: italic;
-    margin-top: 1px;
-    letter-spacing: 0.02em;
+    font-size: 0.82rem; color: #8B7355; font-family: Georgia, serif;
+    font-style: italic; margin-top: 1px; letter-spacing: 0.02em;
 }
 .ua-header-right {
-    text-align: right;
-    font-size: 0.78rem;
-    color: #8B7355;
-    font-family: Georgia, serif;
-    padding-bottom: 2px;
+    text-align: right; font-size: 0.78rem; color: #8B7355;
+    font-family: Georgia, serif; padding-bottom: 2px;
 }
 .ua-header-right b { color: #1C2B4A; }
 .gold-rule {
     height: 3px;
     background: linear-gradient(90deg, #B8860B, #C9A84C, #B8860B);
-    border: none;
-    margin: 0 0 18px 0;
+    border: none; margin: 0 0 18px 0;
 }
 
-/* Metric cards */
+/* ── Cards ───────────────────────────────────────────────────────────────────── */
 .metric-card {
-    background: #F0EBE1;
-    border-radius: 6px;
-    padding: 16px 20px;
-    border-left: 4px solid #B8860B;
-    border: 1px solid #D4C9B0;
-    border-left: 4px solid #B8860B;
-    margin-bottom: 10px;
-    font-family: Georgia, serif;
+    background: #F0EBE1; border-radius: 6px; padding: 16px 20px;
+    border: 1px solid #D4C9B0; border-left: 4px solid #B8860B;
+    margin-bottom: 10px; font-family: Georgia, serif;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
-.metric-card.bull  { border-left-color: #1B5E20; }
-.metric-card.bear  { border-left-color: #7B1010; }
+.metric-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.09);
+    transform: translateY(-1px);
+}
+.metric-card.bull    { border-left-color: #1B5E20; }
+.metric-card.bear    { border-left-color: #7B1010; }
 .metric-card.neutral { border-left-color: #8B7355; }
-.metric-card b { color: #1A1612; }
-.metric-card span { color: #6B6560; }
+.metric-card b       { color: #1A1612; }
+.metric-card span    { color: #6B6560; }
 
-/* Page cards */
 .page-card {
-    background: #F0EBE1;
-    border-radius: 6px;
-    padding: 18px 20px;
-    border: 1px solid #D4C9B0;
-    border-left: 4px solid #B8860B;
-    margin-bottom: 12px;
-    transition: border-left-color 0.15s;
+    background: #F0EBE1; border-radius: 6px; padding: 18px 20px;
+    border: 1px solid #D4C9B0; border-left: 4px solid #B8860B;
+    margin-bottom: 12px; font-family: Georgia, serif;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: border-left-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
-.page-card:hover { border-left-color: #1C2B4A; }
+.page-card:hover {
+    border-left-color: #1C2B4A;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.09);
+    transform: translateY(-1px);
+}
 .page-card .page-title { font-size: 1.0rem; font-weight: 700; color: #1C2B4A; margin-bottom: 4px; }
-.page-card .page-desc  { font-size: 0.83rem; color: #6B6560; line-height: 1.5; }
+.page-card .page-desc  { font-size: 0.83rem; color: #6B6560; line-height: 1.55; }
 
-/* Section header */
+/* ── Section header ──────────────────────────────────────────────────────────── */
 .section-header {
-    font-size: 1.0rem; font-weight: 700; color: #1C2B4A;
-    font-family: Georgia, serif;
-    border-bottom: 2px solid #B8860B;
-    padding-bottom: 4px; margin-bottom: 14px;
-    letter-spacing: 0.02em;
+    font-size: 0.72rem; font-weight: 700; color: #8B7355;
+    font-family: Georgia, serif; letter-spacing: 0.10em;
+    text-transform: uppercase; border-bottom: 1px solid #D4C9B0;
+    padding-bottom: 6px; margin-bottom: 14px;
 }
 
-/* Score */
+/* ── Score ───────────────────────────────────────────────────────────────────── */
 .score-number { font-size: 2.4rem; font-weight: 700; line-height: 1.1; font-family: Georgia, serif; }
 .score-bull    { color: #1B5E20; }
 .score-bear    { color: #7B1010; }
 .score-neutral { color: #8B7355; }
 
-/* Disclaimer */
+/* ── Info / disclaimer ───────────────────────────────────────────────────────── */
 .disclaimer {
     background: #F0EBE1; border: 1px solid #D4C9B0; border-radius: 6px;
     padding: 10px 14px; font-size: 0.76rem; color: #8B7355; margin-top: 16px;
     font-family: Georgia, serif;
 }
-
-/* Info box */
 .info-box {
     background: #EEF3F7; border: 1px solid #A8BCD0; border-radius: 6px;
     padding: 12px 16px; margin-bottom: 12px; font-size: 0.87rem;
     color: #1C2B4A; font-family: Georgia, serif;
 }
 
-/* Comparison table */
+/* ── Tables ──────────────────────────────────────────────────────────────────── */
 .comparison-table { width: 100%; border-collapse: collapse; font-family: Georgia, serif; font-size: 0.87rem; }
 .comparison-table th { background: #1C2B4A; color: #FAF7F0; padding: 8px 12px; text-align: left; font-weight: 600; }
 .comparison-table td { padding: 7px 12px; border-bottom: 1px solid #D4C9B0; color: #1A1612; }
 .comparison-table tr:nth-child(even) td { background: #F0EBE1; }
 .comparison-table tr.highlight td { background: #FFF8E7; font-weight: 600; }
 
-/* Streamlit native overrides */
-.stMetric label { color: #6B6560 !important; font-size: 0.78rem !important; }
-.stMetric [data-testid="stMetricValue"] { color: #1C2B4A !important; font-family: Georgia, serif !important; font-size: 1.5rem !important; }
-div[data-testid="stExpander"] { background: #F0EBE1 !important; border: 1px solid #D4C9B0 !important; border-radius: 6px !important; }
-.streamlit-expanderHeader { color: #1C2B4A !important; font-family: Georgia, serif !important; font-weight: 600 !important; }
-
-/* Data tables */
 .ua-data-table { width: 100%; border-collapse: collapse; font-family: Georgia, serif; font-size: 0.84rem; }
-.ua-data-table th { background: #1C2B4A; color: #FAF7F0; padding: 7px 10px; text-align: left; font-weight: 600; font-size: 0.80rem; letter-spacing: 0.04em; text-transform: uppercase; }
-.ua-data-table td { padding: 7px 10px; border-bottom: 1px solid #E8E0CE; color: #1A1612; vertical-align: middle; }
+.ua-data-table th {
+    background: #1C2B4A; color: #FAF7F0; padding: 8px 10px; text-align: left;
+    font-weight: 600; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.ua-data-table td { padding: 8px 10px; border-bottom: 1px solid #E8E0CE; color: #1A1612; vertical-align: middle; }
 .ua-data-table tr:nth-child(even) td { background: #F5F1E8; }
-.ua-data-table tr:hover td { background: #EDE7D4; }
-.ua-data-table .bull { color: #1B5E20; font-weight: 700; }
-.ua-data-table .bear { color: #7B1010; font-weight: 700; }
+.ua-data-table tr:hover td { background: #EAE3D2; transition: background 0.10s ease; }
+.ua-data-table .bull    { color: #1B5E20; font-weight: 700; }
+.ua-data-table .bear    { color: #7B1010; font-weight: 700; }
 .ua-data-table .neutral { color: #8B7355; }
 
-/* Stat box (used in Market Overview) */
+/* ── Stat box ────────────────────────────────────────────────────────────────── */
 .stat-box {
     background: #F0EBE1; border: 1px solid #D4C9B0; border-radius: 6px;
     padding: 14px 16px; text-align: center; font-family: Georgia, serif;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.stat-box .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8B7355; margin-bottom: 4px; }
-.stat-box .stat-value { font-size: 1.35rem; font-weight: 700; color: #1C2B4A; }
+.stat-box .stat-label  { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em; color: #8B7355; margin-bottom: 4px; }
+.stat-box .stat-value  { font-size: 1.35rem; font-weight: 700; color: #1C2B4A; }
 .stat-box .stat-change { font-size: 0.82rem; margin-top: 2px; }
-.stat-box .stat-change.pos { color: #1B5E20; }
-.stat-box .stat-change.neg { color: #7B1010; }
+.stat-box .stat-change.pos  { color: #1B5E20; }
+.stat-box .stat-change.neg  { color: #7B1010; }
 .stat-box .stat-change.flat { color: #8B7355; }
+
+/* ── Streamlit native overrides ─────────────────────────────────────────────── */
+/* Metrics */
+.stMetric label                              { color: #6B6560 !important; font-size: 0.78rem !important; letter-spacing: 0.03em !important; }
+.stMetric [data-testid="stMetricValue"]      { color: #1C2B4A !important; font-family: Georgia, serif !important; font-size: 1.5rem !important; }
+.stMetric [data-testid="stMetricDelta"]      { font-size: 0.82rem !important; }
+
+/* Expanders */
+div[data-testid="stExpander"]               { background: #F5F1E8 !important; border: 1px solid #D4C9B0 !important; border-radius: 6px !important; }
+.streamlit-expanderHeader                   { color: #1C2B4A !important; font-family: Georgia, serif !important; font-weight: 600 !important; font-size: 0.90rem !important; }
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"]           { border-bottom: 2px solid #D4C9B0 !important; gap: 0 !important; background: transparent !important; }
+.stTabs [data-baseweb="tab"]                { font-family: Georgia, serif !important; font-size: 0.85rem !important; padding: 8px 20px !important; color: #8B7355 !important; background: transparent !important; border: none !important; }
+.stTabs [aria-selected="true"]              { color: #1C2B4A !important; border-bottom: 2px solid #B8860B !important; font-weight: 600 !important; }
+.stTabs [data-baseweb="tab-highlight"]      { background: #B8860B !important; height: 2px !important; }
+.stTabs [data-baseweb="tab-panel"]          { padding-top: 18px !important; }
+
+/* Buttons (main content area) */
+.stButton > button {
+    font-family: Georgia, serif !important;
+    border-radius: 4px !important;
+    transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+.stButton > button:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+/* Text inputs + selectboxes */
+.stTextInput > div > div > input {
+    border: 1px solid #D4C9B0 !important;
+    border-radius: 4px !important;
+    font-family: Georgia, serif !important;
+    background: #FFFFFF !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.stTextInput > div > div > input:focus {
+    border-color: #B8860B !important;
+    box-shadow: 0 0 0 2px rgba(184,134,11,0.18) !important;
+    outline: none !important;
+}
+.stSelectbox > div > div {
+    border: 1px solid #D4C9B0 !important;
+    border-radius: 4px !important;
+    font-family: Georgia, serif !important;
+    background: #FFFFFF !important;
+}
+
+/* Dividers */
+hr { border-color: #D4C9B0 !important; opacity: 0.6; }
+
+/* Spinner */
+.stSpinner > div { border-top-color: #B8860B !important; }
 </style>
 """
 
@@ -402,10 +441,10 @@ def render_sidebar_base() -> None:
 
         # AI Assistant quick-access
         st.markdown(
-            '<div style="background:rgba(184,134,11,0.15);border-radius:6px;padding:10px 12px;'
-            'border:1px solid rgba(184,134,11,0.4);margin-bottom:12px;">'
-            '<div style="font-size:0.75rem;color:#C9A84C;font-weight:700;letter-spacing:0.05em;">AI RESEARCH ASSISTANT</div>'
-            '<div style="font-size:0.80rem;color:#F0EBE1;margin-top:3px;">'
+            '<div style="background:rgba(184,134,11,0.13);border-radius:6px;padding:10px 12px;'
+            'border:1px solid rgba(184,134,11,0.35);margin-bottom:10px;">'
+            '<div style="font-size:0.68rem;color:#C9A84C;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">AI Research Assistant</div>'
+            '<div style="font-size:0.79rem;color:#D4C9B0;margin-top:3px;line-height:1.4;">'
             'Questions about signals, tickers, or methodology?</div>'
             '</div>',
             unsafe_allow_html=True,
@@ -413,33 +452,11 @@ def render_sidebar_base() -> None:
         st.page_link("pages/9_AI_Assistant.py", label="Open AI Assistant")
 
         st.divider()
-        st.markdown("### Setup")
-        with st.expander("Configure API Keys"):
-            st.markdown("All signals work in **demo mode** without keys. Add keys for real-time data.")
-            fred_key = st.text_input(
-                "FRED API Key", type="password",
-                value=st.session_state.get("FRED_API_KEY", ""),
-                help="Free key at fred.stlouisfed.org",
-            )
-            if fred_key:
-                st.session_state["FRED_API_KEY"] = fred_key
-                st.success("FRED key saved")
-            st.caption("[Get free FRED key](https://fred.stlouisfed.org/docs/api/api_key.html)")
-
-            eia_key = st.text_input(
-                "EIA API Key", type="password",
-                value=st.session_state.get("EIA_API_KEY", ""),
-                help="Free key at eia.gov/opendata — powers crude oil inventories and natural gas storage",
-            )
-            if eia_key:
-                st.session_state["EIA_API_KEY"] = eia_key
-                st.success("EIA key saved")
-            st.caption("[Get free EIA key](https://www.eia.gov/opendata/register.php)")
-
-        st.divider()
-        st.markdown("""
-        <div class="disclaimer">
-        <b>Not financial advice.</b> All signals are interpretations of publicly available data.
-        Do your own research before making any investment decision.
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div style="font-size:0.72rem;color:rgba(201,168,76,0.55);line-height:1.5;padding:0 2px;">'
+            '<b style="color:rgba(201,168,76,0.70);">Not financial advice.</b> '
+            'All signals are interpretations of publicly available data. '
+            'Do your own research before making any investment decision.'
+            '</div>',
+            unsafe_allow_html=True,
+        )

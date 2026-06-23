@@ -17,7 +17,6 @@
 # or:
 #   python cron/send_digest.py
 
-import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path

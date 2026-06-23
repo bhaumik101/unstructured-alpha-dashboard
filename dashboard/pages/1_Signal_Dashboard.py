@@ -4,7 +4,7 @@ Clean, accessible signal library with Simple / Pro mode toggle.
 Tab-based category filter. Searchable signal list.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pandas as pd
 import plotly.graph_objects as go

@@ -35,10 +35,17 @@ import streamlit as st
 from utils.db import init_db, run_periodic_maintenance
 from utils.auth_ui import init_cookies_for_this_run, try_restore_session
 
-init_db()
-run_periodic_maintenance()  # low-probability hygiene pass -- see utils/db.py
-_cookies = init_cookies_for_this_run()
-
+# ── Navigation registered FIRST ───────────────────────────────────────────────
+# st.navigation() MUST be the first Streamlit call in app.py. Every run of
+# app.py — including reruns triggered by the CookieManager component loading
+# its data, or by any downstream st.rerun() — must establish the sidebar
+# structure before anything else executes. If init_db() or the cookie manager
+# were allowed to run first and threw (e.g. a cold-start DB timeout, a
+# transient Neon connection error, or the CookieManager's own two-run init
+# cycle), st.navigation() would never be called and Streamlit falls back to
+# automatic page discovery, showing a flat unstyled list of raw filenames
+# instead of the grouped navigation. Verified live: this is the exact cause
+# of the "sidebar reverts to flat list after clicking anything" bug.
 pg = st.navigation(
     {
         "": [
@@ -72,6 +79,25 @@ pg = st.navigation(
     position="sidebar",
 )
 
-current_user = try_restore_session(_cookies)
+# ── DB init + session restore — best-effort, never block the nav ──────────────
+# Wrapped in try/except so a transient DB error or slow cold-start connection
+# can't crash app.py after navigation is already established. Each individual
+# page handles its own DB errors gracefully via its own try/except blocks.
+try:
+    init_db()
+except Exception:
+    pass  # page-level DB calls will surface their own errors
+
+try:
+    run_periodic_maintenance()  # low-probability hygiene pass — see utils/db.py
+except Exception:
+    pass  # maintenance is best-effort; never block page render
+
+_cookies = init_cookies_for_this_run()
+
+try:
+    current_user = try_restore_session(_cookies)
+except Exception:
+    current_user = None  # treat as anonymous; page auth checks handle the rest
 
 pg.run()

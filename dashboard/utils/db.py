@@ -80,7 +80,24 @@ def _resolve_database_url() -> str:
 DATABASE_URL = _resolve_database_url()
 IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
-_engine_kwargs = {"connect_args": {"check_same_thread": False}} if IS_SQLITE else {"pool_pre_ping": True}
+# SQLite: single-file, no pool — just enable multi-thread access.
+# PostgreSQL: production-grade pool tuned for a Render free/starter instance.
+#   pool_size=5      — keep 5 idle connections ready (PaaS instances spin down
+#                      idle workers, so pre-warmed connections survive restarts)
+#   max_overflow=10  — allow up to 10 additional connections under burst load
+#   pool_recycle=300 — recycle connections every 5 min to avoid stale/timed-out
+#                      connections that PaaS NATs typically drop after ~4 min
+#   pool_pre_ping    — execute a lightweight SELECT 1 before handing a connection
+#                      to the caller, ensuring stale connections fail fast
+if IS_SQLITE:
+    _engine_kwargs: dict = {"connect_args": {"check_same_thread": False}}
+else:
+    _engine_kwargs = {
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_recycle": 300,
+    }
 engine = create_engine(DATABASE_URL, **_engine_kwargs)
 
 metadata = MetaData()
