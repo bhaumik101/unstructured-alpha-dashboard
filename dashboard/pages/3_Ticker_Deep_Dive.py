@@ -211,7 +211,7 @@ st.divider()
 
 section = st.segmented_control(
     "View",
-    ["Overview", "Deep Correlation Scan", "Insider & Short Interest", "13F & Federal Contracts"],
+    ["Overview", "Deep Correlation Scan", "Insider & Short Interest", "13F & Federal Contracts", "Earnings Track Record"],
     default="Overview",
     key="dive_section",
 )
@@ -1871,3 +1871,214 @@ elif section == "Deep Correlation Scan":
         ):
             render_lag_decay_chart(st.session_state["_macro_decay_result"])
 
+
+elif section == "Earnings Track Record":
+    # ── Earnings Track Record ─────────────────────────────────────────────────
+    # Compare what the Confluence Score said in the 7–45 days before each
+    # earnings event vs what actually happened (EPS beat / miss / meet).
+    # Data coverage is organic: score history accumulates only when someone
+    # opens this ticker on Ticker Deep Dive, so early-stage tickers may have
+    # sparse history. We're honest about that here.
+    st.markdown("### Pre-Earnings Signal Track Record")
+    st.caption(
+        f"Did the Confluence Score correctly anticipate earnings outcomes for **{ticker_input}**? "
+        "Shows score snapshots recorded 7–45 days before each past earnings date vs actual EPS result. "
+        "History accumulates as this ticker is viewed — sparse for tickers not yet frequently visited."
+    )
+
+    try:
+        _trk_earnings = fetch_earnings_dates(ticker_input)
+        _trk_history  = get_score_history(ticker_input, days=365)
+
+        # Build a lookup: date → snapshot row
+        import datetime as _datetime_mod
+        _trk_snap_map: dict = {}
+        for _row in _trk_history:
+            try:
+                _d = _datetime_mod.date.fromisoformat(_row["snapshot_date"])
+                _trk_snap_map[_d] = _row
+            except Exception:
+                pass
+
+        _trk_past = [e for e in _trk_earnings if e.get("reported") and e.get("eps_actual") is not None]
+        _trk_upcoming = [e for e in _trk_earnings if not e.get("reported")]
+
+        # For each past earnings, find most recent snapshot in 7–45 day pre-window
+        _trk_rows = []
+        for _e in _trk_past:
+            _earn_d = _e["date"]
+            if isinstance(_earn_d, str):
+                _earn_d = _datetime_mod.date.fromisoformat(_earn_d)
+            _best_snap = None
+            _best_delta = None
+            for _snap_d, _snap_row in _trk_snap_map.items():
+                _delta = (_earn_d - _snap_d).days
+                if 7 <= _delta <= 45:
+                    if _best_delta is None or _delta < _best_delta:
+                        _best_snap = _snap_row
+                        _best_delta = _delta
+            _trk_rows.append({"earnings": _e, "snap": _best_snap, "delta_days": _best_delta})
+
+        # ── Upcoming earnings reminder ─────────────────────────────────────────
+        if _trk_upcoming:
+            _up = _trk_upcoming[-1]  # most recent upcoming
+            _up_est = f"{_up['eps_estimate']:+.2f}" if _up.get("eps_estimate") is not None else "N/A"
+            st.info(
+                f"**Next earnings:** {_up['date']} — Consensus EPS estimate: **{_up_est}**  \n"
+                "Current Confluence Score above may indicate signal posture heading in. "
+                "This page will update after the event is reported."
+            )
+
+        # ── Track record table ────────────────────────────────────────────────
+        _rows_with_data = [r for r in _trk_rows if r["snap"] is not None]
+        _rows_no_data   = [r for r in _trk_rows if r["snap"] is None]
+
+        if not _trk_past:
+            st.info("No past earnings data available for this ticker.")
+        elif not _rows_with_data:
+            st.warning(
+                "No pre-earnings score snapshots found yet. Score history accumulates "
+                "each time this ticker is opened on Ticker Deep Dive. Check back after "
+                "a few more views — especially in the 6 weeks before the next earnings date."
+            )
+        else:
+            # Accuracy metrics
+            _n_checked = 0
+            _n_correct  = 0
+            _n_neutral  = 0
+            for _r in _rows_with_data:
+                _score = _r["snap"]["score"]
+                _surp  = _r["earnings"].get("surprise_pct")
+                if _surp is None:
+                    continue
+                _n_checked += 1
+                if _score >= 60:
+                    _pred_dir = "bullish"
+                elif _score <= 40:
+                    _pred_dir = "bearish"
+                else:
+                    _pred_dir = "neutral"
+                    _n_neutral += 1
+                    continue
+                _actual_dir = "bullish" if _surp > 0 else "bearish"
+                if _pred_dir == _actual_dir:
+                    _n_correct += 1
+
+            _n_directional = _n_checked - _n_neutral
+            _accuracy = (_n_correct / _n_directional * 100) if _n_directional > 0 else None
+
+            # Summary banner
+            _acc_color = "#1B5E20" if (_accuracy or 0) >= 60 else ("#7B1010" if (_accuracy or 0) < 45 else "#8B7355")
+            _m1, _m2, _m3 = st.columns(3)
+            _m1.metric("Earnings Events Checked", len(_rows_with_data))
+            _m2.metric("Directional Calls Made", _n_directional)
+            if _accuracy is not None:
+                _m3.metric("Accuracy", f"{_accuracy:.0f}%",
+                           delta="above coin-flip" if _accuracy >= 55 else "below coin-flip")
+            else:
+                _m3.metric("Accuracy", "—")
+
+            st.caption(
+                "⚠️ Small sample — interpret cautiously. Accuracy here is directional only "
+                "(score ≥60 → predicts beat; ≤40 → predicts miss). Neutral scores (40–60) are excluded from accuracy."
+            )
+            st.markdown("")
+
+            # Per-earnings rows
+            for _r in sorted(_rows_with_data, key=lambda x: x["earnings"]["date"], reverse=True):
+                _e    = _r["earnings"]
+                _snap = _r["snap"]
+                _earn_d = _e["date"]
+                _score  = _snap["score"]
+                _case   = _snap.get("case", "mixed")
+                _delta  = _r["delta_days"]
+                _surp   = _e.get("surprise_pct")
+                _actual = _e.get("eps_actual")
+                _est    = _e.get("eps_estimate")
+
+                if _score >= 60:
+                    _pred_dir = "bullish"
+                    _pred_label = f"▲ Bullish ({_score:.0f})"
+                    _pred_color = "#1B5E20"
+                elif _score <= 40:
+                    _pred_dir = "bearish"
+                    _pred_label = f"▼ Bearish ({_score:.0f})"
+                    _pred_color = "#7B1010"
+                else:
+                    _pred_dir = "neutral"
+                    _pred_label = f"● Neutral ({_score:.0f})"
+                    _pred_color = "#8B7355"
+
+                if _surp is not None:
+                    _actual_dir = "bullish" if _surp > 0 else ("bearish" if _surp < 0 else "neutral")
+                    _outcome_label = (
+                        f"✅ Beat (+{_surp:.1f}%)" if _surp > 0 else
+                        f"❌ Miss ({_surp:.1f}%)" if _surp < 0 else
+                        "● Met estimate"
+                    )
+                    _outcome_color = "#1B5E20" if _surp > 0 else ("#7B1010" if _surp < 0 else "#8B7355")
+                    if _pred_dir != "neutral":
+                        _matched = _pred_dir == _actual_dir
+                        _match_label = "✅ Correct" if _matched else "❌ Wrong"
+                        _match_color = "#1B5E20" if _matched else "#7B1010"
+                    else:
+                        _match_label = "— No call"
+                        _match_color = "#8B7355"
+                else:
+                    _outcome_label = "No surprise data"
+                    _outcome_color = "#9E9E8E"
+                    _match_label = "—"
+                    _match_color = "#9E9E8E"
+
+                _eps_line = ""
+                if _actual is not None and _est is not None:
+                    _eps_line = f"EPS: **{_actual:+.2f}** actual vs **{_est:+.2f}** est"
+                elif _actual is not None:
+                    _eps_line = f"EPS: **{_actual:+.2f}** (no estimate available)"
+
+                st.markdown(f"""
+<div style="background:#FAF7F0;border:1px solid #D4C9B0;border-left:4px solid {_pred_color};
+            border-radius:6px;padding:12px 16px;margin-bottom:8px;font-family:Georgia,serif;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div>
+            <div style="font-size:0.70rem;color:#8B7355;letter-spacing:0.06em;">
+                EARNINGS · {_earn_d}
+            </div>
+            <div style="font-size:0.85rem;color:#1A1612;margin-top:2px;">{_eps_line}</div>
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+            <div style="text-align:center;">
+                <div style="font-size:0.65rem;color:#9E9E8E;letter-spacing:0.06em;">SCORE {_delta}d BEFORE</div>
+                <div style="font-weight:700;color:{_pred_color};font-size:0.88rem;">{_pred_label}</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:0.65rem;color:#9E9E8E;letter-spacing:0.06em;">ACTUAL RESULT</div>
+                <div style="font-weight:700;color:{_outcome_color};font-size:0.88rem;">{_outcome_label}</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:0.65rem;color:#9E9E8E;letter-spacing:0.06em;">CALL</div>
+                <div style="font-weight:700;color:{_match_color};font-size:0.88rem;">{_match_label}</div>
+            </div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+        # Rows without snapshot data
+        if _rows_no_data:
+            with st.expander(f"{len(_rows_no_data)} earnings event(s) with no pre-earnings score snapshot"):
+                for _r in _rows_no_data:
+                    _e = _r["earnings"]
+                    _surp = _e.get("surprise_pct")
+                    _s_label = f"+{_surp:.1f}% beat" if (_surp or 0) > 0 else (f"{_surp:.1f}% miss" if _surp else "")
+                    st.markdown(
+                        f"- **{_e['date']}** — EPS: {_e.get('eps_actual', '?'):+.2f} "
+                        f"({_s_label}) — *No score snapshot in 7–45 day pre-window*"
+                    )
+
+    except Exception as _trk_err:
+        st.error(f"Could not load earnings track record: {_trk_err}")
+
+    st.divider()
+    if st.button("View full Track Record page →", key="goto_track_record_from_tdd"):
+        st.switch_page("pages/13_Track_Record.py")

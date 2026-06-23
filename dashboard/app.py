@@ -49,12 +49,14 @@ pg = st.navigation(
             st.Page("pages/1_Signal_Dashboard.py",  title="Signal Dashboard"),
         ],
         "Research": [
-            st.Page("pages/3_Ticker_Deep_Dive.py", title="Ticker Deep Dive"),
-            st.Page("pages/4_Power_Supercycle.py", title="Power Supercycle"),
+            st.Page("pages/3_Ticker_Deep_Dive.py",  title="Ticker Deep Dive"),
+            st.Page("pages/13_Track_Record.py",      title="Earnings Track Record"),
+            st.Page("pages/4_Power_Supercycle.py",   title="Power Supercycle"),
         ],
         "Market": [
             st.Page("pages/5_Market_Overview.py",  title="Market Overview"),
             st.Page("pages/6_Stock_Screener.py",   title="Stock Screener"),
+            st.Page("pages/12_Sector_Map.py",      title="Sector Map"),
         ],
         "Watchlist": [
             st.Page("pages/10_Watchlist.py",        title="My Watchlist"),
