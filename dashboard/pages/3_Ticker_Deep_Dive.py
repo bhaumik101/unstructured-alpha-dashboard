@@ -305,6 +305,117 @@ if section == "Overview":
         tomorrow. Full methodology and numbers: About → Methodology.
         """)
 
+    # ── Signal Shape Radar ────────────────────────────────────────────────────────
+    # Spider/radar chart showing how each of the 5 independent score dimensions
+    # contributes to the final Confluence Score. Unlike the single number above,
+    # the radar reveals the SHAPE of the bull/bear case — e.g., "macro signals
+    # strong, but insiders are selling" reads very differently from "macro + insider
+    # both bullish." Inspired by Simply Wall St's Snowflake visualization.
+    #
+    # The 5 axes:
+    #   Macro Signals      — derived from bull/bear/neutral signal count ratio
+    #   Price Momentum     — 1Y/1M blended momentum score (already 0-100)
+    #   Insider Activity   — from EDGAR Form 4 buy/sell clustering
+    #   Institutional Flow — from 13F filings (curated hedge funds)
+    #   Short Interest     — from FINRA (high = bearish, already inverted to 0-100)
+    try:
+        _total_sigs = max(1, confluence["bull_count"] + confluence["bear_count"] + confluence["neutral_count"])
+        _macro_axis = round(min(95, max(5,
+            (confluence["bull_count"] - confluence["bear_count"]) / _total_sigs * 50 + 50
+        )), 1)
+        _mom_axis  = round(min(95, max(5, _mom_score)), 1)
+
+        _radar_axes   = ["Macro\nSignals", "Price\nMomentum", "Insider\nActivity", "Institutional\nFlow", "Short\nInterest"]
+        _radar_vals   = [_macro_axis, _mom_axis,
+                         round(_insider_score.get("score", 50), 1)        if _has_insider_signal        else 50.0,
+                         round(_thirteenf_score.get("score", 50), 1)      if _has_13f_signal            else 50.0,
+                         round(_short_interest_score.get("score", 50), 1) if _has_short_interest_signal else 50.0]
+        _radar_has_data = [True, True, _has_insider_signal, _has_13f_signal, _has_short_interest_signal]
+
+        # Close the polygon
+        _rv_closed = _radar_vals + [_radar_vals[0]]
+        _ra_closed = _radar_axes + [_radar_axes[0]]
+
+        _fill_color = (
+            "rgba(27,94,32,0.20)"  if case == "BULL" else
+            "rgba(123,16,16,0.20)" if case == "BEAR" else
+            "rgba(139,115,85,0.15)"
+        )
+        _line_color = "#1B5E20" if case == "BULL" else ("#7B1010" if case == "BEAR" else "#8B7355")
+
+        _fig_radar = go.Figure()
+
+        # Neutral reference ring at 50
+        _fig_radar.add_trace(go.Scatterpolar(
+            r=[50] * (len(_radar_axes) + 1),
+            theta=_ra_closed,
+            mode="lines",
+            line=dict(color="#D4C9B0", width=1, dash="dot"),
+            showlegend=False, hoverinfo="skip",
+        ))
+
+        # Score polygon
+        _fig_radar.add_trace(go.Scatterpolar(
+            r=_rv_closed,
+            theta=_ra_closed,
+            fill="toself",
+            fillcolor=_fill_color,
+            line=dict(color=_line_color, width=2.5),
+            hovertemplate="%{theta}: %{r:.0f}/100<extra></extra>",
+            showlegend=False,
+        ))
+
+        _fig_radar.update_layout(
+            polar=dict(
+                radialaxis=dict(
+                    visible=True, range=[0, 100],
+                    tickvals=[25, 50, 75],
+                    tickfont=dict(size=9, color="#8B7355", family="Georgia, serif"),
+                    gridcolor="#E8E0CE", linecolor="#D4C9B0",
+                ),
+                angularaxis=dict(
+                    tickfont=dict(size=10, color="#1C2B4A", family="Georgia, serif"),
+                    linecolor="#D4C9B0", gridcolor="#E8E0CE",
+                ),
+                bgcolor="#FAF7F0",
+            ),
+            height=300, margin=dict(l=30, r=30, t=20, b=20),
+            paper_bgcolor="#FAF7F0", showlegend=False,
+        )
+
+        _radar_col_l, _radar_col_r = st.columns([1, 1])
+        with _radar_col_l:
+            st.markdown(
+                f'<div style="font-family:Georgia,serif;padding:10px 0;">'
+                f'<div style="font-size:0.70rem;text-transform:uppercase;letter-spacing:0.08em;'
+                f'color:#8B7355;margin-bottom:8px;">SIGNAL SHAPE — {ticker_input}</div>'
+                f'<div style="font-size:0.80rem;color:#6B6560;line-height:1.7;">',
+                unsafe_allow_html=True,
+            )
+            for _i, (_aname, _aval, _has) in enumerate(zip(_radar_axes, _radar_vals, _radar_has_data)):
+                _acolor = "#1B5E20" if _aval >= 60 else ("#7B1010" if _aval <= 40 else "#8B7355")
+                _asym   = "▲" if _aval >= 60 else ("▼" if _aval <= 40 else "●")
+                _adisp  = _aname.replace("\n", " ")
+                _no_data_note = "" if _has else " <span style='color:#9E9E9E;font-size:0.70rem;'>no data yet</span>"
+                st.markdown(
+                    f'<div style="display:flex;justify-content:space-between;padding:3px 0;'
+                    f'border-bottom:1px solid #F0EBE1;font-family:Georgia,serif;">'
+                    f'<span style="color:#1A1612;">{_adisp}{_no_data_note}</span>'
+                    f'<span style="color:{_acolor};font-weight:700;">{_asym} {_aval:.0f}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            st.markdown(
+                '<div style="font-size:0.68rem;color:#9E9E8E;margin-top:8px;">'
+                'Dashed ring = 50 (neutral). Score > 60 = bullish, < 40 = bearish.</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+        with _radar_col_r:
+            st.plotly_chart(_fig_radar, use_container_width=True)
+    except Exception:
+        pass  # Radar chart failure must never crash the rest of the page
+
     # ── Auto-Explainer ────────────────────────────────────────────────────────────
     # Build a 2–3 sentence plain-English summary of what's driving the score,
     # using only the statistically significant signals (corr_info significant=True)
@@ -594,17 +705,44 @@ if section == "Overview":
                 @st.fragment(run_every="60s")
                 def _render_live_price(ticker: str, fallback_price: float) -> None:
                     """
-                    Auto-refreshes every 60s independent of the rest of the page —
-                    only this fragment re-runs on the timer, not the full script, so
-                    the expensive historical chart/signal fetches above don't re-fire
-                    every minute. Falls back to the last historical close (from the
-                    already-fetched daily series) if the live quote is unavailable
-                    (after hours, network hiccup, etc.) rather than showing nothing.
+                    Auto-refreshes every 60s independent of the rest of the page.
+                    Shows regular session price + delta, and pre/post market price
+                    when available (market_state PRE or POST), with color-coded badge.
                     """
                     q = fetch_live_quote(ticker)
                     if q["price"] is not None:
                         delta = f"{q['pct_change']:+.2f}%" if q["pct_change"] is not None else None
                         st.metric("Current Price", f"${q['price']:.2f}", delta=delta)
+
+                        # Pre/post market display
+                        _mst = q.get("market_state")
+                        _pre_p   = q.get("pre_price")
+                        _pre_c   = q.get("pre_change_pct")
+                        _post_p  = q.get("post_price")
+                        _post_c  = q.get("post_change_pct")
+
+                        if _mst == "PRE" and _pre_p is not None:
+                            _pre_color = "#1B5E20" if (_pre_c or 0) >= 0 else "#7B1010"
+                            _pre_sym   = "▲" if (_pre_c or 0) >= 0 else "▼"
+                            st.markdown(
+                                f'<div style="background:#EEF3FA;border-radius:4px;padding:4px 10px;'
+                                f'font-family:Georgia,serif;font-size:0.78rem;margin-top:2px;">'
+                                f'<span style="color:#8B7355;font-weight:600;">PRE-MARKET</span> &nbsp;'
+                                f'<span style="color:{_pre_color};font-weight:700;">'
+                                f'${_pre_p:.2f} &nbsp;{_pre_sym} {abs(_pre_c):.2f}%</span></div>',
+                                unsafe_allow_html=True,
+                            )
+                        elif _mst == "POST" and _post_p is not None:
+                            _post_color = "#1B5E20" if (_post_c or 0) >= 0 else "#7B1010"
+                            _post_sym   = "▲" if (_post_c or 0) >= 0 else "▼"
+                            st.markdown(
+                                f'<div style="background:#FBF8F0;border-radius:4px;padding:4px 10px;'
+                                f'font-family:Georgia,serif;font-size:0.78rem;margin-top:2px;">'
+                                f'<span style="color:#8B7355;font-weight:600;">AFTER-HOURS</span> &nbsp;'
+                                f'<span style="color:{_post_color};font-weight:700;">'
+                                f'${_post_p:.2f} &nbsp;{_post_sym} {abs(_post_c):.2f}%</span></div>',
+                                unsafe_allow_html=True,
+                            )
                         st.caption("LIVE · updates every 60s")
                     else:
                         st.metric("Current Price", f"${fallback_price:.2f}")

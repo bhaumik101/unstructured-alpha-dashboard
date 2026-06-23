@@ -63,8 +63,8 @@ render_synthetic_data_banner(
     len(all_signals),
 )
 
-# ── Mode Toggle ───────────────────────────────────────────────────────────────
-col_mode, col_spacer = st.columns([2, 5])
+# ── Mode + Display Toggles ────────────────────────────────────────────────────
+col_mode, col_display, col_spacer = st.columns([2, 2, 3])
 with col_mode:
     mode = st.radio(
         "View mode",
@@ -73,6 +73,15 @@ with col_mode:
         index=0,
         help="Simple: plain-English signals for any investor. Pro: full z-score and correlation data.",
         key="dash_mode",
+    )
+with col_display:
+    _view_layout = st.radio(
+        "Layout",
+        ["Cards", "Heatmap"],
+        horizontal=True,
+        index=0,
+        help="Cards: full-detail cards. Heatmap: compact color grid showing all signals at once.",
+        key="dash_layout",
     )
 
 st.markdown("")
@@ -210,6 +219,23 @@ try:
 except Exception:
     pass  # Never crash the dashboard if flip history isn't available yet
 
+# ── Flip Lookup (last 60 days) — used by cards to show "changed X days ago" ──
+# Separate from the banner above, which only looks back 1 day for the flip
+# announcement strip. This wider window feeds each card's footer line.
+_flip_lookup: dict[str, int] = {}  # signal_id → days since last directional flip
+try:
+    _flips_60 = get_signal_flips(days_back=60)
+    for _f60 in _flips_60:
+        _fsid60 = _f60["signal_id"]
+        if _fsid60 not in _flip_lookup:   # list comes newest-first; keep first hit
+            try:
+                _fd60 = datetime.strptime(_f60["to_date"], "%Y-%m-%d")
+                _flip_lookup[_fsid60] = (datetime.now() - _fd60).days
+            except Exception:
+                pass
+except Exception:
+    pass
+
 # ── Theme Context Banner ──────────────────────────────────────────────────────
 st.markdown("""
 <div style="background:#EEF3FA;border-radius:8px;padding:14px 20px;
@@ -233,6 +259,57 @@ if not visible_signals:
     st.info("No signals match your filter. Try broadening the category or search term.")
     st.stop()
 
+# ── Heatmap View (alternative to card grid) ───────────────────────────────────
+# Shows every signal as a small colored cell — great for at-a-glance scanning
+# across all signals at once, similar to a Bloomberg heat map or Finviz's
+# sector overview. Score intensity drives the shade depth (same palette as cards).
+if _view_layout == "Heatmap":
+    try:
+        _hm_cells = ""
+        for _hm_id, _hm_sv in visible_signals:
+            _hm_status = _hm_sv.get("status", "neutral")
+            _hm_score  = _hm_sv.get("score", 50)
+            _hm_name   = _hm_sv["config"]["name"][:28]
+            # Background + text color by score intensity
+            if _hm_status == "bullish":
+                _strength = (_hm_score - 60) / 40  # 0.0 to 1.0
+                _g = int(94 + _strength * 100)
+                _hm_bg    = f"rgb(15,{_g},20)"
+                _hm_fc    = "#FFFFFF"
+                _hm_bdr   = "#0D3B0E"
+            elif _hm_status == "bearish":
+                _strength = (40 - _hm_score) / 40
+                _r = int(100 + _strength * 100)
+                _hm_bg    = f"rgb({_r},10,10)"
+                _hm_fc    = "#FFFFFF"
+                _hm_bdr   = "#4B0000"
+            else:
+                _hm_bg    = "#F0EBE1"
+                _hm_fc    = "#6B6560"
+                _hm_bdr   = "#D4C9B0"
+
+            _hm_cells += (
+                f'<div title="{_hm_sv["config"]["name"]} — {_hm_score:.0f}/100" '
+                f'style="background:{_hm_bg};border:1px solid {_hm_bdr};border-radius:5px;'
+                f'padding:7px 10px;min-width:130px;flex:1;cursor:default;'
+                f'font-family:Georgia,serif;">'
+                f'<div style="font-size:0.70rem;color:{_hm_fc};opacity:0.85;line-height:1.3;'
+                f'margin-bottom:3px;">{_hm_name}</div>'
+                f'<div style="font-size:1.1rem;font-weight:700;color:{_hm_fc};">{_hm_score:.0f}</div>'
+                f'</div>'
+            )
+
+        st.markdown(
+            f'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px;">'
+            f'{_hm_cells}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption("Each cell: score/100. Darker = stronger conviction. Hover for full name.")
+    except Exception as _hm_err:
+        st.warning(f"Heatmap render failed: {_hm_err}")
+    st.stop()
+
 # ── Signal Cards ──────────────────────────────────────────────────────────────
 COLS = 3
 for row_start in range(0, len(visible_signals), COLS):
@@ -246,10 +323,31 @@ for row_start in range(0, len(visible_signals), COLS):
         dev    = sv.get("deviation_pct", 0)
         trend  = sv.get("trend_4w_pct", 0)
         cat    = CATEGORIES.get(cfg.get("category", "macro"), {})
-        border = STATUS_COLOR.get(status, "#9E9E9E")
         sym    = STATUS_SYM.get(status, "●")
         lbl    = STATUS_LABEL.get(status, "●")
         trend_arrow = "↑" if trend > 1 else ("↓" if trend < -1 else "→")
+
+        # Score-intensity border color: deeper shade = stronger conviction
+        # Bullish: 60-69 = #1B5E20, 70-79 = #145214, 80+ = #0D3B0E
+        # Bearish: 31-40 = #7B1010, 21-30 = #6B0000, ≤20 = #4B0000
+        if status == "bullish":
+            border = "#0D3B0E" if score >= 80 else ("#145214" if score >= 70 else "#1B5E20")
+        elif status == "bearish":
+            border = "#4B0000" if score <= 20 else ("#6B0000" if score <= 30 else "#7B1010")
+        else:
+            border = STATUS_COLOR.get(status, "#9E9E9E")
+
+        # "Changed X days ago" footer — from the 60-day flip lookup
+        _days_flipped = _flip_lookup.get(sig_id)
+        if _days_flipped is not None:
+            if _days_flipped == 0:
+                _flip_note = "⚡ changed today"
+            elif _days_flipped == 1:
+                _flip_note = "⚡ changed yesterday"
+            else:
+                _flip_note = f"↺ changed {_days_flipped}d ago"
+        else:
+            _flip_note = None
 
         with col:
             try:
@@ -277,6 +375,11 @@ for row_start in range(0, len(visible_signals), COLS):
                         if _lag_weeks > 0 else ""
                     )
 
+                    _flip_html = (
+                        f'<div style="font-size:0.67rem;color:#8B7355;margin-top:5px;'
+                        f'border-top:1px solid #E8E0CE;padding-top:4px;">{_flip_note}</div>'
+                        if _flip_note else ""
+                    )
                     st.markdown(
                         f'<div style="background:#FAFAFA;border-radius:8px;padding:14px 16px;'
                         f'border-left:4px solid {border};border:1px solid #E0E0E0;'
@@ -291,6 +394,7 @@ for row_start in range(0, len(visible_signals), COLS):
                         f'{_bottom_note}{_lag_html}'
                         f'</div>'
                         f'<div style="font-size:0.68rem;color:#8B7355;">{_cat_icon} {_cat_name}</div>'
+                        f'{_flip_html}'
                         f'</div>',
                         unsafe_allow_html=True,
                     )
@@ -305,6 +409,11 @@ for row_start in range(0, len(visible_signals), COLS):
                     _cat_icon  = cat.get("icon", "")
                     _cat_name  = cat.get("name", "").upper()
 
+                    _pro_flip_html = (
+                        f'<div style="font-size:0.67rem;color:#8B7355;margin-top:6px;'
+                        f'border-top:1px solid #D4C9B0;padding-top:4px;">{_flip_note}</div>'
+                        if _flip_note else ""
+                    )
                     st.markdown(
                         f'<div style="background:#F0EBE1;border-radius:6px;padding:14px 16px;'
                         f'border-left:4px solid {border};border:1px solid #D4C9B0;'
@@ -320,7 +429,9 @@ for row_start in range(0, len(visible_signals), COLS):
                         f'<div>Dev: <b>{_dev_fmt}%</b> vs 52w</div>'
                         f'<div>Z-score: <b>{_z_fmt}σ</b> · P{pct_rank:.0f}</div>'
                         f'<div>Trend: {trend_arrow} {_trend_fmt}% / 4w · Lead ~{cfg.get("lag_weeks", 0)}w</div>'
-                        f'</div></div></div>',
+                        f'</div></div>'
+                        f'{_pro_flip_html}'
+                        f'</div>',
                         unsafe_allow_html=True,
                     )
             except Exception as _card_err:

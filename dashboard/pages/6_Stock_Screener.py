@@ -14,7 +14,7 @@ import streamlit as st
 import yfinance as yf
 
 from utils.config import SIGNALS, TICKERS, CATEGORIES
-from utils.fetchers import fetch_signal_series, is_synthetic
+from utils.fetchers import fetch_signal_series, is_synthetic, fetch_live_quote
 from utils.analysis import score_signal, compute_confluence
 from utils.header import render_header, render_sidebar_base, render_synthetic_data_banner
 from utils.quotes import get_batch_quotes
@@ -430,31 +430,85 @@ if selected_rows:
 
     score_col = "#1B5E20" if sel_score >= 65 else ("#7B1010" if sel_score <= 35 else "#8B7355")
 
+    # Live quote + pre/post market (cached 60s — negligible cost)
+    _sel_q = fetch_live_quote(sel_ticker)
+    _sel_price_str = f"${_sel_q['price']:.2f}" if _sel_q.get("price") else "—"
+    _sel_chg_str   = (f"{_sel_q['pct_change']:+.2f}%" if _sel_q.get("pct_change") is not None else "")
+    _sel_chg_col   = "#1B5E20" if (_sel_q.get("pct_change") or 0) >= 0 else "#7B1010"
+
+    # Extended hours badge
+    _sel_ext_html = ""
+    _sel_mst = _sel_q.get("market_state")
+    if _sel_mst == "PRE" and _sel_q.get("pre_price"):
+        _ec = "#1B5E20" if (_sel_q.get("pre_change_pct") or 0) >= 0 else "#7B1010"
+        _es = "▲" if (_sel_q.get("pre_change_pct") or 0) >= 0 else "▼"
+        _sel_ext_html = (
+            f'<span style="background:#EEF3FA;border-radius:3px;padding:2px 7px;'
+            f'font-size:0.70rem;color:{_ec};font-weight:700;margin-left:8px;">'
+            f'PRE {_es} ${_sel_q["pre_price"]:.2f} ({abs(_sel_q["pre_change_pct"]):.2f}%)</span>'
+        )
+    elif _sel_mst == "POST" and _sel_q.get("post_price"):
+        _ec = "#1B5E20" if (_sel_q.get("post_change_pct") or 0) >= 0 else "#7B1010"
+        _es = "▲" if (_sel_q.get("post_change_pct") or 0) >= 0 else "▼"
+        _sel_ext_html = (
+            f'<span style="background:#FBF8F0;border-radius:3px;padding:2px 7px;'
+            f'font-size:0.70rem;color:{_ec};font-weight:700;margin-left:8px;">'
+            f'AH {_es} ${_sel_q["post_price"]:.2f} ({abs(_sel_q["post_change_pct"]):.2f}%)</span>'
+        )
+
+    # Find top driving signals from the pre-computed all_scores dict
+    # all_scores has {sig_id: {score, status, is_synthetic}} — no "config" key,
+    # so we join back to SIGNALS for the display name.
+    _top_bull_sigs = sorted(
+        [(sig_id, sv) for sig_id, sv in all_scores.items() if sv.get("status") == "bullish"],
+        key=lambda x: -x[1].get("score", 50),
+    )[:3]
+    _top_bear_sigs = sorted(
+        [(sig_id, sv) for sig_id, sv in all_scores.items() if sv.get("status") == "bearish"],
+        key=lambda x: x[1].get("score", 50),
+    )[:3]
+    _top_sig_lines = ""
+    for _tsid, _tsv in _top_bull_sigs:
+        _tname = SIGNALS.get(_tsid, {}).get("name", _tsid)[:32]
+        _top_sig_lines += f'<div style="color:#1B5E20;font-size:0.75rem;">▲ {_tname} ({_tsv["score"]:.0f})</div>'
+    for _tsid, _tsv in _top_bear_sigs:
+        _tname = SIGNALS.get(_tsid, {}).get("name", _tsid)[:32]
+        _top_sig_lines += f'<div style="color:#7B1010;font-size:0.75rem;">▼ {_tname} ({_tsv["score"]:.0f})</div>'
+
     st.markdown(f"""
     <div style="background:#F0EBE1;border-radius:8px;padding:18px 24px;border:1px solid #D4C9B0;
                 border-left:5px solid {score_col};font-family:Georgia,serif;margin:12px 0;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-            <div>
-                <div style="font-size:1.1rem;font-weight:700;color:#1A1612;">{sel_name} ({sel_ticker})</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+            <div style="flex:2;min-width:220px;">
+                <div style="font-size:1.1rem;font-weight:700;color:#1A1612;">{sel_name}
+                    <span style="font-size:0.85rem;color:#8B7355;font-weight:400;"> ({sel_ticker})</span>
+                </div>
                 <div style="font-size:0.80rem;color:#8B7355;margin-top:3px;">{sel_sector}</div>
+                <div style="margin-top:10px;font-size:0.80rem;color:#6B6560;line-height:1.7;">
+                    Bull signals: <b>{int(sel_row['Bull Sigs'])}</b> &nbsp;·&nbsp;
+                    Bear signals: <b>{int(sel_row['Bear Sigs'])}</b> &nbsp;·&nbsp;
+                    Total: <b>{int(sel_row['Signals'])}</b>
+                </div>
+                <div style="margin-top:8px;">{_top_sig_lines}</div>
             </div>
-            <div style="text-align:right;">
+            <div style="text-align:right;min-width:160px;">
                 <div style="font-size:2rem;font-weight:700;color:{score_col};">{sel_score:.0f}<span style="font-size:1rem;color:#8B7355;">/100</span></div>
-                <div style="font-size:0.80rem;color:{score_col};">{sel_case} — {sel_conv}</div>
+                <div style="font-size:0.80rem;color:{score_col};margin-bottom:8px;">{sel_case} — {sel_conv}</div>
+                <div style="font-size:1.1rem;font-weight:700;color:#1A1612;">{_sel_price_str}
+                    <span style="color:{_sel_chg_col};font-size:0.85rem;"> {_sel_chg_str}</span>
+                    {_sel_ext_html}
+                </div>
+                <div style="font-size:0.68rem;color:#8B7355;margin-top:2px;">live · 60s</div>
             </div>
-        </div>
-        <div style="margin-top:10px;font-size:0.80rem;color:#6B6560;">
-            Bull signals: {int(sel_row['Bull Sigs'])} &nbsp;·&nbsp;
-            Bear signals: {int(sel_row['Bear Sigs'])} &nbsp;·&nbsp;
-            Total signals: {int(sel_row['Signals'])}
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown(
-        f"**Go deeper:** navigate to [Ticker Deep Dive](/Ticker_Deep_Dive) and select **{sel_ticker}** for full signal breakdown, "
-        "per-signal correlations, price overlays, and conviction drivers."
-    )
+    _prev_col, _tdd_col = st.columns([1, 1])
+    with _tdd_col:
+        if st.button(f"Open {sel_ticker} in Ticker Deep Dive →", type="primary", use_container_width=True, key="scr_tdd_btn"):
+            st.query_params["ticker"] = sel_ticker
+            st.switch_page("pages/3_Ticker_Deep_Dive.py")
 
     # Store selection in session state so Ticker Deep Dive can auto-load it
     if "selected_ticker" not in st.session_state or st.session_state.selected_ticker != sel_ticker:

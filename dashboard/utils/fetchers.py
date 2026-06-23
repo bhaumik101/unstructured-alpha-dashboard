@@ -216,31 +216,67 @@ def fetch_volume(ticker: str, start: str, end: str) -> pd.Series:
 @st.cache_data(ttl=60, show_spinner=False)
 def fetch_live_quote(ticker: str) -> dict:
     """
-    Fetch just the current price + day change for a ticker — cheap and fast
-    (yfinance's fast_info, not a full .history() pull), cached for only 60
-    seconds instead of fetch_price's 30 minutes. Meant to be called from
-    inside an st.fragment(run_every=...) block so price displays visibly
-    auto-update without re-running the whole page or re-fetching full
-    historical chart data, which stays on the longer 30-min cache above.
+    Fetch current price, day change, and pre/post-market data for a ticker.
 
-    Returns {"price": float|None, "prev_close": float|None, "pct_change": float|None}.
-    All None on failure — callers should handle that as "quote unavailable"
-    rather than crash, same fallback contract as the rest of this module.
+    Uses fast_info for the main price (cheap), then pulls preMarketPrice /
+    postMarketPrice from Ticker.info where available. Both are cached for
+    60 seconds — the pre/post prices are volatile but not sub-minute signals.
+
+    Returns dict with keys:
+        price, prev_close, pct_change         — regular session
+        pre_price, pre_change_pct             — pre-market (None if unavailable)
+        post_price, post_change_pct           — post-market (None if unavailable)
+        market_state                          — "PRE", "REGULAR", "POST", "CLOSED", None
+
+    All None on failure — callers must treat as "unavailable", never crash.
     """
     try:
-        fi = yf.Ticker(ticker).fast_info
+        t = yf.Ticker(ticker)
+        fi = t.fast_info
         price = fi.get("lastPrice") or fi.get("last_price")
         prev_close = fi.get("previousClose") or fi.get("previous_close")
         if price is None:
-            return {"price": None, "prev_close": None, "pct_change": None}
+            return {
+                "price": None, "prev_close": None, "pct_change": None,
+                "pre_price": None, "pre_change_pct": None,
+                "post_price": None, "post_change_pct": None,
+                "market_state": None,
+            }
         pct_change = ((price - prev_close) / prev_close * 100) if prev_close else None
+
+        # Pre/post market — from .info (heavier but cached 60s, acceptable)
+        pre_price = pre_chg = post_price = post_chg = market_state = None
+        try:
+            info = t.info or {}
+            market_state  = info.get("marketState")  # "PRE", "REGULAR", "POST", "CLOSED"
+            pre_price_raw  = info.get("preMarketPrice")
+            post_price_raw = info.get("postMarketPrice")
+            if pre_price_raw and prev_close:
+                pre_price = float(pre_price_raw)
+                pre_chg   = (pre_price - float(prev_close)) / float(prev_close) * 100
+            if post_price_raw and prev_close:
+                post_price = float(post_price_raw)
+                post_chg   = (post_price - float(prev_close)) / float(prev_close) * 100
+        except Exception:
+            pass  # Pre/post market failure must never crash the main price display
+
         return {
-            "price": float(price),
-            "prev_close": float(prev_close) if prev_close else None,
-            "pct_change": float(pct_change) if pct_change is not None else None,
+            "price":          float(price),
+            "prev_close":     float(prev_close) if prev_close else None,
+            "pct_change":     float(pct_change) if pct_change is not None else None,
+            "pre_price":      pre_price,
+            "pre_change_pct": float(pre_chg) if pre_chg is not None else None,
+            "post_price":     post_price,
+            "post_change_pct": float(post_chg) if post_chg is not None else None,
+            "market_state":   market_state,
         }
     except Exception:
-        return {"price": None, "prev_close": None, "pct_change": None}
+        return {
+            "price": None, "prev_close": None, "pct_change": None,
+            "pre_price": None, "pre_change_pct": None,
+            "post_price": None, "post_change_pct": None,
+            "market_state": None,
+        }
 
 
 def fetch_signal_series(cfg: dict, start: str, end: str) -> pd.Series:

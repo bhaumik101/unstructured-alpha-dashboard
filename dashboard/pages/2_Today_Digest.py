@@ -184,7 +184,22 @@ try:
 except Exception:
     pass
 
-st.caption(f"As of {_as_of} · Cached 2 hours · {len(_all_scores)} signals evaluated")
+st.markdown(
+    f'<div style="background:#1C2B4A;border-radius:8px;padding:10px 18px;margin-bottom:14px;'
+    f'display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;'
+    f'font-family:Georgia,serif;">'
+    f'<div style="color:#EEF3FA;font-size:0.82rem;">'
+    f'<span style="color:#8FB3D4;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;">'
+    f'DATA AS OF</span><br>'
+    f'<b style="font-size:1.0rem;">{_as_of}</b>'
+    f'</div>'
+    f'<div style="color:#8FB3D4;font-size:0.75rem;text-align:right;">'
+    f'{len(_all_scores)} signals · cached 2h<br>'
+    f'<span style="color:#6B8FA8;">signals are weekly/monthly; 2h cache is appropriate</span>'
+    f'</div>'
+    f'</div>',
+    unsafe_allow_html=True,
+)
 
 _bull_sigs = sorted(
     [(sid, d) for sid, d in _all_scores.items() if d["status"] == "bullish" and not d.get("error")],
@@ -283,6 +298,57 @@ st.markdown(
     f'</div>',
     unsafe_allow_html=True,
 )
+
+st.divider()
+
+# ── "What Changed This Week" — highest-retention section ─────────────────────
+# Shows signal direction changes over the past 7 days in a clean summary.
+# This answers "do I need to act on anything since I last checked?" — the core
+# reason a user returns to the Brief each morning. 7-day window is deliberately
+# wider than the "since yesterday" banner below, catching users who check weekly.
+try:
+    _week_flips = get_signal_flips(days_back=7)
+    if _week_flips:
+        st.markdown(
+            f'<div style="background:#FAF7F0;border:1px solid #D4C9B0;border-left:5px solid #1C2B4A;'
+            f'border-radius:8px;padding:14px 20px;margin-bottom:14px;font-family:Georgia,serif;">'
+            f'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;'
+            f'color:#1C2B4A;font-weight:700;margin-bottom:10px;">'
+            f'⚡ {len(_week_flips)} signal change{"s" if len(_week_flips) != 1 else ""} this week — what you may have missed</div>'
+            f'<div style="display:flex;flex-wrap:wrap;gap:8px;">',
+            unsafe_allow_html=True,
+        )
+        _FLIP_C  = {"bullish": "#1B5E20", "bearish": "#7B1010", "neutral": "#8B7355", "insufficient_data": "#9E9E8E"}
+        _FLIP_BG = {"bullish": "#EDF7ED", "bearish": "#FDF0F0", "neutral": "#FAF7F0", "insufficient_data": "#F5F5F5"}
+        _FLIP_S  = {"bullish": "▲", "bearish": "▼", "neutral": "●", "insufficient_data": "○"}
+        _wflip_cells = ""
+        for _wf in _week_flips[:12]:  # cap at 12 for layout
+            _wf_name  = SIGNALS.get(_wf["signal_id"], {}).get("name", _wf["signal_id"])
+            _wf_tc    = _FLIP_C.get(_wf["to_status"], "#8B7355")
+            _wf_bg    = _FLIP_BG.get(_wf["to_status"], "#FAF7F0")
+            _wf_fc    = _FLIP_C.get(_wf["from_status"], "#8B7355")
+            _wf_ts    = _FLIP_S.get(_wf["to_status"], "●")
+            _wf_fs    = _FLIP_S.get(_wf["from_status"], "●")
+            _wflip_cells += (
+                f'<div style="background:{_wf_bg};border:1px solid {_wf_tc}40;border-left:3px solid {_wf_tc};'
+                f'border-radius:5px;padding:6px 10px;min-width:160px;flex:1;">'
+                f'<div style="font-size:0.76rem;font-weight:700;color:#1A1612;line-height:1.3;margin-bottom:3px;">'
+                f'{_wf_name[:30]}</div>'
+                f'<div style="font-size:0.78rem;">'
+                f'<span style="color:{_wf_fc};">{_wf_fs}</span>'
+                f' <span style="color:#9E9E8E;">→</span> '
+                f'<span style="font-weight:700;color:{_wf_tc};">{_wf_ts} {_wf["to_status"].replace("_"," ").title()}</span>'
+                f'</div>'
+                f'<div style="font-size:0.67rem;color:#8B7355;margin-top:2px;">{_wf["to_date"]}</div>'
+                f'</div>'
+            )
+        st.markdown(_wflip_cells + f'</div></div>', unsafe_allow_html=True)
+        if len(_week_flips) > 12:
+            st.caption(f"+ {len(_week_flips) - 12} more signal changes this week.")
+    else:
+        st.info("No signal direction changes in the past 7 days — the macro picture is holding steady.", icon="✅")
+except Exception:
+    pass  # Never crash the page if flip history unavailable
 
 st.divider()
 
