@@ -179,6 +179,24 @@ score_snapshots = Table(
 )
 
 
+# Daily signal status snapshots (added 2026-06-23). Parallel to
+# score_snapshots but for individual signals rather than per-ticker
+# confluence scores. Keyed by (signal_id, snapshot_date). Upserted by
+# Today's Brief (pages/2_Today_Digest.py) on each visit — same organic,
+# traffic-driven coverage model as score_snapshots. Powers the "X signals
+# flipped since yesterday" feed in Today's Brief.
+signal_snapshots = Table(
+    "signal_snapshots", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("signal_id", String(64), nullable=False),
+    Column("snapshot_date", String(10), nullable=False),  # YYYY-MM-DD
+    Column("score", Float, nullable=False),
+    Column("status", String(16), nullable=False),         # bullish / neutral / bearish
+    Column("created_at", String(64), nullable=False),
+    UniqueConstraint("signal_id", "snapshot_date", name="uq_signal_snapshot_sig_date"),
+)
+
+
 def _migrate_users_table() -> None:
     """
     metadata.create_all() only creates tables that don't exist yet -- it

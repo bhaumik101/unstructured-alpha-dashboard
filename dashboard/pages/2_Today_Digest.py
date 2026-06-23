@@ -28,6 +28,7 @@ from utils.fetchers import fetch_signal_series
 from utils.analysis import score_signal
 from utils.header import render_header, render_sidebar_base, go_to_ticker, ticker_label
 from utils.quotes import get_batch_quotes
+from utils.score_history import record_signal_snapshot, get_signal_flips
 
 st.set_page_config(page_title="Today's Brief — UA", layout="wide")
 render_header("Today's Brief")
@@ -174,6 +175,15 @@ st.markdown('<div class="section-header">SIGNAL PULSE</div>', unsafe_allow_html=
 with st.spinner("Loading signal pulse (40 signals — cached 2 hours)…"):
     _all_scores, _as_of = compute_all_signal_scores()
 
+# Upsert today's snapshot for every signal so get_signal_flips() has data
+# to compare against tomorrow. Best-effort: never crash the page on a DB error.
+try:
+    for _sid, _d in _all_scores.items():
+        if not _d.get("error"):
+            record_signal_snapshot(_sid, _d["score"], _d["status"])
+except Exception:
+    pass
+
 st.caption(f"As of {_as_of} · Cached 2 hours · {len(_all_scores)} signals evaluated")
 
 _bull_sigs = sorted(
@@ -276,7 +286,38 @@ st.markdown(
 
 st.divider()
 
-# ── Section 2: Score Movers ───────────────────────────────────────────────────
+# ── Section 2: Signal Flips ───────────────────────────────────────────────────
+
+st.markdown('<div class="section-header">SIGNAL FLIPS (SINCE YESTERDAY)</div>', unsafe_allow_html=True)
+
+_flips = get_signal_flips(days_back=1)
+
+if not _flips:
+    st.caption("No signal status changes recorded since yesterday — either nothing flipped, or today is the first visit (snapshots accumulate with each visit to this page).")
+else:
+    FLIP_COLOR = {"bullish": "#1B5E20", "bearish": "#7B1010", "neutral": "#8B7355"}
+    FLIP_ARROW = {"bullish": "▲", "bearish": "▼", "neutral": "●"}
+    for flip in _flips:
+        sig_cfg = SIGNALS.get(flip["signal_id"], {})
+        sig_name = sig_cfg.get("name", flip["signal_id"])
+        fc = FLIP_COLOR.get(flip["to_status"], "#8B7355")
+        fa = FLIP_ARROW.get(flip["to_status"], "●")
+        fc_from = FLIP_COLOR.get(flip["from_status"], "#8B7355")
+        st.markdown(
+            f'<div style="background:#F5F1E8;border-left:3px solid {fc};border-radius:4px;'
+            f'padding:8px 14px;margin-bottom:6px;font-family:Georgia,serif;font-size:0.85rem;">'
+            f'<b>{sig_name}</b> &nbsp;'
+            f'<span style="color:{fc_from};">{flip["from_status"]}</span> → '
+            f'<span style="color:{fc};font-weight:700;">{fa} {flip["to_status"]}</span>'
+            f'<span style="color:#8B7355;font-size:0.75rem;float:right;">'
+            f'{flip["from_date"]} → {flip["to_date"]}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+st.divider()
+
+# ── Section 3: Score Movers ───────────────────────────────────────────────────
 
 st.markdown('<div class="section-header">SCORE MOVERS (LAST 7 DAYS)</div>', unsafe_allow_html=True)
 

@@ -33,6 +33,77 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# ── Today's Brief preview strip ──────────────────────────────────────────────
+# Show a live signal pulse summary so users land on something immediately
+# actionable, not just navigation buttons. Uses the same cached
+# compute_all_signal_scores() call Today's Brief uses (2h TTL), so this
+# adds zero extra network cost when both pages have been visited recently.
+try:
+    from utils.fetchers import fetch_signal_series
+    from utils.analysis import score_signal
+    from utils.config import SIGNALS as _SIGNALS_HP
+    import streamlit as st
+    from datetime import datetime as _dt, timedelta as _td
+
+    @st.cache_data(ttl=7200, show_spinner=False)
+    def _home_signal_pulse(_v: int = 1) -> dict:
+        _end = _dt.now().strftime("%Y-%m-%d")
+        _start = (_dt.now() - _td(days=730)).strftime("%Y-%m-%d")
+        _bull, _bear, _neut = [], [], []
+        for _sid, _cfg in _SIGNALS_HP.items():
+            try:
+                _s = fetch_signal_series(_cfg, _start, _end)
+                _scored = score_signal(_s, inverse=_cfg.get("inverse", False))
+                _status = _scored.get("status", "neutral")
+                _score  = _scored.get("score", 50)
+                if _status == "bullish":
+                    _bull.append((_cfg["name"], _score))
+                elif _status == "bearish":
+                    _bear.append((_cfg["name"], _score))
+                else:
+                    _neut.append((_cfg["name"], _score))
+            except Exception:
+                pass
+        return {
+            "bull": sorted(_bull, key=lambda x: -x[1]),
+            "bear": sorted(_bear, key=lambda x:  x[1]),
+            "neut": _neut,
+        }
+
+    with st.spinner("Loading signal pulse…"):
+        _pulse = _home_signal_pulse()
+
+    _nb, _nr, _nn = len(_pulse["bull"]), len(_pulse["bear"]), len(_pulse["neut"])
+    _total_hp = _nb + _nr + _nn or 1
+    _bias_color = "#1B5E20" if _nb > _nr + _nn * 0.5 else ("#7B1010" if _nr > _nb + _nn * 0.5 else "#8B7355")
+    _bias_label = "Bullish Leaning" if _nb > _nr + _nn * 0.5 else ("Bearish Leaning" if _nr > _nb + _nn * 0.5 else "Mixed")
+
+    st.markdown(
+        f'<div style="background:#F0EBE1;border:1px solid #D4C9B0;border-left:4px solid {_bias_color};'
+        f'border-radius:6px;padding:14px 18px;margin-bottom:16px;font-family:Georgia,serif;">'
+        f'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'
+        f'<div>'
+        f'<span style="font-size:0.70rem;text-transform:uppercase;letter-spacing:0.08em;color:#8B7355;">Signal Pulse — Now</span><br>'
+        f'<span style="font-size:1.05rem;font-weight:700;color:{_bias_color};">{_bias_label}</span>'
+        f'<span style="font-size:0.82rem;color:#8B7355;margin-left:10px;">'
+        f'▲ {_nb} bullish &nbsp; ▼ {_nr} bearish &nbsp; ● {_nn} neutral</span>'
+        f'</div>'
+        f'<div style="font-size:0.80rem;color:#1A1612;">'
+        + (f'<b style="color:#1B5E20;">Strongest bull:</b> {_pulse["bull"][0][0]} ({_pulse["bull"][0][1]:.0f})' if _pulse["bull"] else '')
+        + ('&nbsp;&nbsp;' if _pulse["bull"] and _pulse["bear"] else '')
+        + (f'<b style="color:#7B1010;">Strongest bear:</b> {_pulse["bear"][0][0]} ({_pulse["bear"][0][1]:.0f})' if _pulse["bear"] else '')
+        + f'</div>'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+    _hp1, _hp2 = st.columns([3, 1])
+    with _hp2:
+        if st.button("Full Today's Brief →", use_container_width=True, key="cta_today"):
+            st.switch_page("pages/2_Today_Digest.py")
+except Exception:
+    pass  # Never crash the home page over a signal pulse preview failure
+
 # ── 3 Big Start Buttons ───────────────────────────────────────────────────────
 btn1, btn2, btn3 = st.columns(3)
 

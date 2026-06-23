@@ -20,12 +20,12 @@
 # real, honest limitation worth stating plainly wherever this data is
 # displayed, not glossed over.
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 
 from utils import db
-from utils.db import score_snapshots, upsert_stmt
+from utils.db import score_snapshots, signal_snapshots, upsert_stmt
 from utils.lead_time_research import get_sector_peers
 
 
@@ -71,6 +71,72 @@ def get_score_history(ticker: str, days: int = 180) -> list[dict]:
             .limit(days)
         ).mappings().all()
     return [dict(r) for r in reversed(rows)]
+
+
+def record_signal_snapshot(signal_id: str, score: float, status: str) -> None:
+    """
+    Upsert today's snapshot for a single signal. Safe to call on every
+    Today's Brief page visit -- same upsert-on-conflict pattern as
+    record_score_snapshot(), one row per (signal_id, day).
+    """
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    stmt = upsert_stmt(signal_snapshots, ["signal_id", "snapshot_date"]).values(
+        signal_id=signal_id, snapshot_date=today,
+        score=score, status=status, created_at=now_iso,
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["signal_id", "snapshot_date"],
+        set_={"score": score, "status": status, "created_at": now_iso},
+    )
+    with db.engine.begin() as conn:
+        conn.execute(stmt)
+
+
+def get_signal_flips(days_back: int = 1) -> list[dict]:
+    """
+    Return signals whose status CHANGED between their most recent snapshot
+    and the snapshot from `days_back` days ago. Used by Today's Brief to
+    show "X signals flipped since yesterday."
+
+    Only signals with at least 2 snapshots in the window are considered.
+    Returns a list of dicts with signal_id, from_status, to_status, from_date, to_date.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
+    try:
+        with db.engine.begin() as conn:
+            rows = conn.execute(
+                select(signal_snapshots)
+                .where(signal_snapshots.c.snapshot_date >= cutoff)
+                .order_by(signal_snapshots.c.signal_id, signal_snapshots.c.snapshot_date)
+            ).mappings().all()
+    except Exception:
+        return []
+
+    if not rows:
+        return []
+
+    from collections import defaultdict
+    by_sig = defaultdict(list)
+    for r in rows:
+        by_sig[r["signal_id"]].append(dict(r))
+
+    flips = []
+    for sig_id, snaps in by_sig.items():
+        if len(snaps) < 2:
+            continue
+        earliest = snaps[0]
+        latest = snaps[-1]
+        if earliest["status"] != latest["status"]:
+            flips.append({
+                "signal_id":   sig_id,
+                "from_status": earliest["status"],
+                "to_status":   latest["status"],
+                "from_date":   earliest["snapshot_date"],
+                "to_date":     latest["snapshot_date"],
+                "to_score":    latest["score"],
+            })
+    return flips
 
 
 def compute_sector_percentile(ticker: str, score: float, max_peers: int = 6) -> dict:
