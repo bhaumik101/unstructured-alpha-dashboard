@@ -12,7 +12,7 @@ import streamlit as st
 
 from utils.config import CATEGORIES, SIGNALS, TICKERS
 from utils.header import render_header, render_sidebar_base, ticker_chips, render_synthetic_data_banner
-from utils.score_history import get_signal_flips
+from utils.score_history import get_signal_flips, get_signal_trends
 from utils.signals_cache import get_all_signal_scores
 
 st.set_page_config(page_title="Signal Dashboard — UA", layout="wide")
@@ -214,6 +214,13 @@ try:
 except Exception:
     pass
 
+# 7-day trend lookup: signal_id → {"trend": "up"|"down"|"flat"|"new", "delta": float}
+_trend_lookup: dict[str, dict] = {}
+try:
+    _trend_lookup = get_signal_trends(days_back=7)
+except Exception:
+    pass
+
 # ── Theme Context Banner ──────────────────────────────────────────────────────
 st.markdown("""
 <div style="background:#EEF3FA;border-radius:8px;padding:14px 20px;
@@ -327,6 +334,19 @@ for row_start in range(0, len(visible_signals), COLS):
         else:
             _flip_note = None
 
+        # 7-day trend badge
+        _trend_data  = _trend_lookup.get(sig_id, {})
+        _trend_dir   = _trend_data.get("trend", "new")
+        _trend_delta = _trend_data.get("delta", 0.0)
+        if _trend_dir == "up":
+            _trend_badge = f'<span style="color:#1B5E20;font-size:0.68rem;font-weight:700;" title="Score up {_trend_delta:+.1f} pts vs 7 days ago">▲ +{_trend_delta:.0f}</span>'
+        elif _trend_dir == "down":
+            _trend_badge = f'<span style="color:#7B1010;font-size:0.68rem;font-weight:700;" title="Score down {_trend_delta:.1f} pts vs 7 days ago">▼ {_trend_delta:.0f}</span>'
+        elif _trend_dir == "flat":
+            _trend_badge = f'<span style="color:#8B7355;font-size:0.68rem;" title="Score unchanged vs 7 days ago">→ flat</span>'
+        else:
+            _trend_badge = ""  # "new" — no prior history yet
+
         with col:
             try:
                 if mode == "Simple":
@@ -371,7 +391,10 @@ for row_start in range(0, len(visible_signals), COLS):
                         f'<div style="font-size:0.78rem;color:#4A4440;line-height:1.5;margin-bottom:6px;">'
                         f'{_bottom_note}{_lag_html}'
                         f'</div>'
+                        f'<div style="display:flex;justify-content:space-between;align-items:center;">'
                         f'<div style="font-size:0.68rem;color:#8B7355;">{_cat_icon} {_cat_name}</div>'
+                        f'<div style="font-size:0.68rem;">{_trend_badge}</div>'
+                        f'</div>'
                         f'{_flip_html}'
                         f'</div>',
                         unsafe_allow_html=True,
@@ -401,8 +424,8 @@ for row_start in range(0, len(visible_signals), COLS):
                         f'<div style="font-weight:700;font-size:0.88rem;color:#1A1612;margin-bottom:8px;line-height:1.3;">'
                         f'{cfg["name"][:50]}</div>'
                         f'<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">'
-                        f'<div><div style="font-size:1.6rem;font-weight:700;color:{border};">{sym} {score:.0f}</div>'
-                        f'<div style="font-size:0.65rem;color:#9E9E8E;">score/100</div></div>'
+                        f'<div><div style="font-size:1.6rem;font-weight:700;color:{border};">{sym} {score:.0f} <span style="font-size:0.75rem;">{_trend_badge}</span></div>'
+                        f'<div style="font-size:0.65rem;color:#9E9E8E;">score/100 · 7d trend</div></div>'
                         f'<div style="font-size:0.76rem;color:#6B6560;line-height:1.7;">'
                         f'<div>Dev: <b>{_dev_fmt}%</b> vs 52w</div>'
                         f'<div>Z-score: <b>{_z_fmt}σ</b> · P{pct_rank:.0f}</div>'

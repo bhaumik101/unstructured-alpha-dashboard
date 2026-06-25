@@ -22,6 +22,8 @@ import pandas as pd
 from utils.header import render_header, render_sidebar_base
 from utils.signals_cache import get_all_signal_scores
 from utils.config import SIGNALS, CATEGORIES
+from utils.narrative import generate_narrative
+from utils.top_tickers import get_top_tickers
 
 render_header("Home")
 render_sidebar_base()
@@ -53,22 +55,29 @@ def _build_home_data() -> dict:
 
 try:
     with st.spinner(""):
+        _raw_scores = get_all_signal_scores()
         _hd = _build_home_data()
+        _narrative  = generate_narrative(_raw_scores)
+        _top_tkrs   = get_top_tickers(len(_raw_scores))
     _nb, _nr, _nn = len(_hd["bull"]), len(_hd["bear"]), len(_hd["neut"])
     _total = max(1, _nb + _nr + _nn)
     _bull_pct = _nb / _total
     _bear_pct = _nr / _total
-    _bias_bullish = _bull_pct >= 0.50
-    _bias_bearish = _bear_pct >= 0.50
-    _bias_label  = "BULLISH LEANING" if _bias_bullish else ("BEARISH LEANING" if _bias_bearish else "MIXED SIGNALS")
-    _bias_color  = "#1B5E20" if _bias_bullish else ("#7B1010" if _bias_bearish else "#8B7355")
-    _bias_bg     = "#EDF7ED" if _bias_bullish else ("#FDF0F0" if _bias_bearish else "#FAF7F0")
+    _bias_label  = _narrative["regime"]
+    _bias_color  = _narrative["regime_color"]
+    _bias_bg     = "#EDF7ED" if "BULL" in _bias_label else ("#FDF0F0" if "BEAR" in _bias_label else "#FAF7F0")
     _top_bull    = _hd["bull"][0][0] if _hd["bull"] else None
     _top_bear    = _hd["bear"][0][0] if _hd["bear"] else None
     _data_loaded = True
 except Exception:
     _hd = {"bull": [], "bear": [], "neut": [], "sectors": {}}
+    _raw_scores = {}
+    _narrative  = {"regime": "LOADING…", "regime_color": "#8B7355", "summary": "",
+                   "top_bull": [], "top_bear": [], "watch_note": "", "sector_bias": {},
+                   "bull_count": 0, "bear_count": 0, "neut_count": 0, "total": 0}
+    _top_tkrs   = {"bullish": [], "bearish": [], "by_sector": {}, "all": []}
     _nb = _nr = _nn = _total = 0
+    _bull_pct = _bear_pct = 0.0
     _bias_label = "LOADING…"
     _bias_color = "#8B7355"
     _bias_bg    = "#FAF7F0"
@@ -199,6 +208,90 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ── MACHINE INTELLIGENCE SECTION ─────────────────────────────────────────────
+# Narrative + top tickers: makes the site feel like it INTERPRETS data
+if _data_loaded:
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    _nar = _narrative
+    _nar_col1, _nar_col2 = st.columns([3, 2])
+
+    with _nar_col1:
+        _rc  = _nar["regime_color"]
+        _rgb_bg = "#EDF7ED" if ("BULL" in _nar["regime"] or "ON" in _nar["regime"]) else \
+                  ("#FDF0F0" if ("BEAR" in _nar["regime"] or "OFF" in _nar["regime"]) else "#FAF7F0")
+        _sect_items = "".join(
+            f'<span style="display:inline-block;margin:2px 4px;padding:2px 8px;border-radius:12px;'
+            f'font-size:0.67rem;background:{"#EDF7ED" if v == "BULLISH" else ("#FDF0F0" if v == "BEARISH" else "#F4F0E8")};'
+            f'color:{"#1B5E20" if v == "BULLISH" else ("#7B1010" if v == "BEARISH" else "#6B6055")};'
+            f'font-weight:600;">{k.split("/")[0].strip()}: {v}</span>'
+            for k, v in _nar["sector_bias"].items()
+        )
+        _watch_html = (
+            f'<div style="margin-top:10px;padding:8px 12px;background:#FFF8E7;'
+            f'border-left:3px solid #B8860B;border-radius:4px;font-size:0.74rem;color:#5C4A1A;">'
+            f'👁 {_nar["watch_note"]}</div>'
+            if _nar.get("watch_note") else ""
+        )
+        st.markdown(
+            f'<div style="background:{_rgb_bg};border-radius:10px;padding:20px 22px;'
+            f'border-left:5px solid {_rc};font-family:Georgia,serif;">'
+            f'<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;color:{_rc};'
+            f'text-transform:uppercase;margin-bottom:6px;">MACHINE READS THE MARKET</div>'
+            f'<div style="font-size:1.3rem;font-weight:800;color:#1C2B4A;margin-bottom:10px;">'
+            f'{_nar["headline"]}</div>'
+            f'<div style="font-size:0.82rem;color:#4A4440;line-height:1.65;margin-bottom:12px;">'
+            f'{_nar["summary"]}</div>'
+            f'<div style="margin-bottom:8px;">{_sect_items}</div>'
+            f'{_watch_html}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    with _nar_col2:
+        _bull_tkrs = _top_tkrs.get("bullish", [])[:5]
+        _bear_tkrs = _top_tkrs.get("bearish", [])[:3]
+        if _bull_tkrs or _bear_tkrs:
+            _bull_rows = "".join(
+                f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                f'padding:4px 0;border-bottom:1px solid #E8E0CE;">'
+                f'<span style="font-weight:700;font-size:0.82rem;color:#1A1612;">{r["ticker"]}</span>'
+                f'<span style="font-size:0.74rem;color:#4A4440;flex:1;padding-left:8px;'
+                f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'
+                f'{r["name"][:22]}</span>'
+                f'<span style="font-size:0.78rem;font-weight:700;color:#1B5E20;">'
+                f'▲ {r["score"]:.0f}</span>'
+                f'</div>'
+                for r in _bull_tkrs
+            )
+            _bear_rows = "".join(
+                f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                f'padding:4px 0;border-bottom:1px solid #E8E0CE;">'
+                f'<span style="font-weight:700;font-size:0.82rem;color:#1A1612;">{r["ticker"]}</span>'
+                f'<span style="font-size:0.74rem;color:#4A4440;flex:1;padding-left:8px;'
+                f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'
+                f'{r["name"][:22]}</span>'
+                f'<span style="font-size:0.78rem;font-weight:700;color:#7B1010;">'
+                f'▼ {r["score"]:.0f}</span>'
+                f'</div>'
+                for r in _bear_tkrs
+            )
+            st.markdown(
+                f'<div style="background:#FAFAF7;border-radius:10px;padding:18px 20px;'
+                f'border:1px solid #D4C9B0;font-family:Georgia,serif;">'
+                f'<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;color:#B8860B;'
+                f'text-transform:uppercase;margin-bottom:10px;">WHAT THE MACHINE FAVORS NOW</div>'
+                f'<div style="font-size:0.7rem;color:#9E9E8E;margin-bottom:6px;">MACRO TAILWIND ▲</div>'
+                f'{_bull_rows}'
+                f'<div style="font-size:0.7rem;color:#9E9E8E;margin:10px 0 6px;">MACRO HEADWIND ▼</div>'
+                f'{_bear_rows}'
+                f'<div style="font-size:0.65rem;color:#9E9E8E;margin-top:10px;">'
+                f'38 macro signals · no price charts · pure fundamentals</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
 # ── 3 CORE FEATURE SPOTLIGHTS ─────────────────────────────────────────────────
 # Psychology: 3 = digestible. 6 = paralysis. Show the 3 things that differentiate.

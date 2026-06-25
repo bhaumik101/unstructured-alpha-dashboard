@@ -183,6 +183,56 @@ def get_signal_flips(days_back: int = 1) -> list[dict]:
     return flips
 
 
+def get_signal_trends(days_back: int = 7) -> dict[str, dict]:
+    """
+    Compare each signal's current snapshot to its snapshot from `days_back`
+    days ago. Returns a dict keyed by signal_id:
+
+        {signal_id: {"trend": "up"|"down"|"flat"|"new", "delta": float}}
+
+    "new"  = no prior snapshot exists (signal is new or never seen before).
+    "up"   = score increased by >2 points.
+    "down" = score decreased by >2 points.
+    "flat" = score changed by ≤2 points.
+
+    Used by the Signal Dashboard to show ▲▼ trend indicators next to
+    each signal score — tells users whether momentum is building or fading.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
+    try:
+        with db.engine.begin() as conn:
+            rows = conn.execute(
+                select(signal_snapshots)
+                .where(signal_snapshots.c.snapshot_date >= cutoff)
+                .order_by(signal_snapshots.c.signal_id, signal_snapshots.c.snapshot_date)
+            ).mappings().all()
+    except Exception:
+        return {}
+
+    from collections import defaultdict
+    by_sig: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        by_sig[str(r["signal_id"])].append(dict(r))
+
+    result: dict[str, dict] = {}
+    for sig_id, snaps in by_sig.items():
+        if len(snaps) < 2:
+            result[sig_id] = {"trend": "new", "delta": 0.0}
+            continue
+        earliest_score = float(snaps[0].get("score", 50) or 50)
+        latest_score   = float(snaps[-1].get("score", 50) or 50)
+        delta = latest_score - earliest_score
+        if delta > 2:
+            trend = "up"
+        elif delta < -2:
+            trend = "down"
+        else:
+            trend = "flat"
+        result[sig_id] = {"trend": trend, "delta": round(delta, 1)}
+
+    return result
+
+
 def compute_sector_percentile(ticker: str, score: float, max_peers: int = 6) -> dict:
     """
     Where `score` (the ticker's CURRENT, just-computed score) ranks

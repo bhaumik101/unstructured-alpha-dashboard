@@ -28,6 +28,7 @@ from utils.header import render_header, render_sidebar_base, go_to_ticker
 from utils.quotes import get_batch_quotes
 from utils.score_history import record_all_signal_snapshots, get_signal_flips
 from utils.signals_cache import get_all_signal_scores
+from utils.narrative import generate_narrative
 
 st.set_page_config(page_title="Today's Brief — UA", layout="wide")
 render_header("Today's Brief")
@@ -167,6 +168,35 @@ st.markdown(
     f'</div>',
     unsafe_allow_html=True,
 )
+
+# ── Auto Macro Narrative (above the 3-column pulse view) ─────────────────────
+try:
+    _nar = generate_narrative(_all_scores)
+    _nar_rc  = _nar["regime_color"]
+    _nar_bg  = "#EDF7ED" if ("BULL" in _nar["regime"] or "ON" in _nar["regime"]) else \
+               ("#FDF0F0" if ("BEAR" in _nar["regime"] or "OFF" in _nar["regime"]) else "#FAF7F0")
+    _nar_watch_html = (
+        f'<div style="margin-top:8px;padding:7px 10px;background:#FFF8E7;'
+        f'border-left:3px solid #B8860B;border-radius:4px;font-size:0.73rem;color:#5C4A1A;">'
+        f'👁 {_nar["watch_note"]}</div>'
+        if _nar.get("watch_note") else ""
+    )
+    st.markdown(
+        f'<div style="background:{_nar_bg};border-radius:10px;padding:16px 20px;'
+        f'border-left:5px solid {_nar_rc};font-family:Georgia,serif;margin-bottom:18px;">'
+        f'<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px;">'
+        f'<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;color:{_nar_rc};'
+        f'text-transform:uppercase;">TODAY\'S MACRO CALL</div>'
+        f'<div style="font-size:1.1rem;font-weight:800;color:#1C2B4A;">{_nar["headline"]}</div>'
+        f'</div>'
+        f'<div style="font-size:0.80rem;color:#4A4440;line-height:1.65;">'
+        f'{_nar["summary"]}</div>'
+        f'{_nar_watch_html}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+except Exception:
+    pass
 
 _bull_sigs = sorted(
     [(sid, d) for sid, d in _all_scores.items() if d["status"] == "bullish" and not d.get("error")],
