@@ -233,6 +233,181 @@ def get_signal_trends(days_back: int = 7) -> dict[str, dict]:
     return result
 
 
+def get_signal_streaks(days_back: int = 90) -> dict[str, dict]:
+    """
+    For each signal, count how many consecutive days it has held its
+    CURRENT status (bullish/bearish/neutral) by scanning recent snapshots
+    backwards from today.
+
+    Returns:
+        {signal_id: {"status": str, "days": int, "weeks": int, "label": str}}
+
+    Where label is the human-readable fatigue indicator:
+        "🟢 Fresh"      → ≤7 days in current status
+        "📊 Established" → 8–21 days
+        "⏳ Extended"   → 22–56 days
+        "🔴 Exhausted"  → >56 days (8+ weeks, fading edge)
+
+    Rationale: signals that just flipped carry the most forward-looking
+    information. A signal bullish for 12 weeks has already been priced in
+    by anyone watching. Fresh flips are where the real edge lives.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
+    try:
+        with db.engine.begin() as conn:
+            rows = conn.execute(
+                select(signal_snapshots)
+                .where(signal_snapshots.c.snapshot_date >= cutoff)
+                .order_by(signal_snapshots.c.signal_id, signal_snapshots.c.snapshot_date.desc())
+            ).mappings().all()
+    except Exception:
+        return {}
+
+    from collections import defaultdict
+    by_sig: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        by_sig[str(r["signal_id"])].append(dict(r))
+
+    result: dict[str, dict] = {}
+    for sig_id, snaps in by_sig.items():
+        if not snaps:
+            continue
+        current_status = snaps[0].get("status", "neutral")
+        # Walk backwards through snapshots (already desc-ordered) counting
+        # consecutive days with the same status
+        streak_days = 0
+        for snap in snaps:
+            if snap.get("status") == current_status:
+                streak_days += 1
+            else:
+                break  # streak broken — stop counting
+        # streak_days here is the number of snapshot records, not calendar days.
+        # Each snapshot is one per day (from record_all_signal_snapshots), so
+        # this approximates calendar days accurately for active signals.
+        weeks = streak_days // 7
+        if streak_days <= 7:
+            label = "🟢 Fresh"
+        elif streak_days <= 21:
+            label = "📊 Established"
+        elif streak_days <= 56:
+            label = f"⏳ Extended {weeks}w"
+        else:
+            label = f"🔴 Exhausted {weeks}w"
+
+        result[sig_id] = {
+            "status": current_status,
+            "days":   streak_days,
+            "weeks":  weeks,
+            "label":  label,
+        }
+
+    return result
+
+
+def get_signal_diff(days_back: int = 7) -> dict:
+    """
+    Compare current signal states to their states from `days_back` days ago.
+    Returns a structured diff used by Today's Brief "What Changed" section.
+
+    Returns:
+        {
+            "flipped_bullish": [{"signal_id", "name", "from_score", "to_score"}],
+            "flipped_bearish": [{"signal_id", "name", "from_score", "to_score"}],
+            "biggest_movers":  [{"signal_id", "name", "delta", "direction"}],
+            "total_flips":     int,
+            "regime_shift":    str | None,  # "RISK-ON → MIXED" if regime changed
+        }
+    """
+    from utils.signals_cache import get_all_signal_scores
+    from utils.config import SIGNALS
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
+    try:
+        with db.engine.begin() as conn:
+            rows = conn.execute(
+                select(signal_snapshots)
+                .where(signal_snapshots.c.snapshot_date >= cutoff)
+                .order_by(signal_snapshots.c.signal_id, signal_snapshots.c.snapshot_date)
+            ).mappings().all()
+    except Exception:
+        return {"flipped_bullish": [], "flipped_bearish": [], "biggest_movers": [],
+                "total_flips": 0, "regime_shift": None}
+
+    from collections import defaultdict
+    by_sig: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        by_sig[str(r["signal_id"])].append(dict(r))
+
+    current_scores = get_all_signal_scores()
+
+    flipped_bull, flipped_bear, movers = [], [], []
+
+    for sig_id, snaps in by_sig.items():
+        if len(snaps) < 2:
+            continue
+        old_snap  = snaps[0]
+        curr      = current_scores.get(sig_id, {})
+        if curr.get("error"):
+            continue
+        old_status  = old_snap.get("status", "neutral")
+        new_status  = curr.get("status", "neutral")
+        old_score   = float(old_snap.get("score", 50) or 50)
+        new_score   = float(curr.get("score", 50) or 50)
+        delta       = new_score - old_score
+        name        = curr.get("name") or SIGNALS.get(sig_id, {}).get("name", sig_id)
+
+        if old_status != new_status:
+            entry = {"signal_id": sig_id, "name": name,
+                     "from_score": old_score, "to_score": new_score,
+                     "from_status": old_status, "to_status": new_status}
+            if new_status == "bullish":
+                flipped_bull.append(entry)
+            elif new_status == "bearish":
+                flipped_bear.append(entry)
+
+        if abs(delta) >= 5:
+            movers.append({"signal_id": sig_id, "name": name, "delta": round(delta, 1),
+                           "direction": "up" if delta > 0 else "down"})
+
+    movers.sort(key=lambda x: -abs(x["delta"]))
+
+    # Regime shift: compare bull% then vs now
+    old_counts = defaultdict(int)
+    for sig_id, snaps in by_sig.items():
+        if snaps:
+            old_counts[snaps[0].get("status", "neutral")] += 1
+    old_total = max(1, sum(old_counts.values()))
+
+    curr_bull  = sum(1 for v in current_scores.values()
+                     if not v.get("error") and v.get("status") == "bullish")
+    curr_bear  = sum(1 for v in current_scores.values()
+                     if not v.get("error") and v.get("status") == "bearish")
+    curr_total = max(1, curr_bull + curr_bear +
+                     sum(1 for v in current_scores.values()
+                         if not v.get("error") and v.get("status") == "neutral"))
+
+    def _regime(bull, bear, total):
+        bp = bull / total
+        brp = bear / total
+        if bp >= 0.58: return "RISK-ON"
+        if brp >= 0.52: return "RISK-OFF"
+        if bp >= 0.48: return "LEANING BULLISH"
+        if brp >= 0.44: return "LEANING BEARISH"
+        return "MIXED"
+
+    old_regime = _regime(old_counts["bullish"], old_counts["bearish"], old_total)
+    new_regime = _regime(curr_bull, curr_bear, curr_total)
+    regime_shift = f"{old_regime} → {new_regime}" if old_regime != new_regime else None
+
+    return {
+        "flipped_bullish": sorted(flipped_bull, key=lambda x: -x["to_score"]),
+        "flipped_bearish": sorted(flipped_bear, key=lambda x:  x["to_score"]),
+        "biggest_movers":  movers[:5],
+        "total_flips":     len(flipped_bull) + len(flipped_bear),
+        "regime_shift":    regime_shift,
+        "days_back":       days_back,
+    }
+
 def compute_sector_percentile(ticker: str, score: float, max_peers: int = 6) -> dict:
     """
     Where `score` (the ticker's CURRENT, just-computed score) ranks

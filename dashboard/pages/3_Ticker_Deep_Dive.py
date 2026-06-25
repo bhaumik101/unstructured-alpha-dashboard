@@ -1152,6 +1152,171 @@ if section == "Overview":
             st.markdown("*No bearish signals currently flashing for this ticker.*")
         st.markdown("</div>", unsafe_allow_html=True)
 
+    # ── What Would Change My Mind ─────────────────────────────────────────────────
+    # Goldman-style conditional reasoning: identify the tripwires that would
+    # invalidate the current bull or bear case. Built from live signal data —
+    # find the weakest bullish signals (most likely to flip) and the neutral
+    # signals closest to going bearish, then express them as clear conditions.
+    try:
+        _case = confluence.get("case", "NEUTRAL")
+        _all_ticker_sigs = _full.get("signal_scores", {})
+
+        # Weakest bulls: bullish signals with the lowest score (closest to flipping)
+        _weak_bulls = sorted(
+            [(sid, sv) for sid, sv in _all_ticker_sigs.items()
+             if sv.get("status") == "bullish" and not sv.get("error")],
+            key=lambda x: x[1].get("score", 50)
+        )[:2]
+        # Closest bears: neutral signals closest to going bearish (score nearest to 35)
+        _near_bears = sorted(
+            [(sid, sv) for sid, sv in _all_ticker_sigs.items()
+             if sv.get("status") == "neutral" and not sv.get("error")
+             and sv.get("score", 50) < 50],
+            key=lambda x: x[1].get("score", 50)
+        )[:2]
+        # Mirror for bear case
+        _weak_bears = sorted(
+            [(sid, sv) for sid, sv in _all_ticker_sigs.items()
+             if sv.get("status") == "bearish" and not sv.get("error")],
+            key=lambda x: -x[1].get("score", 50)
+        )[:2]
+        _near_bulls = sorted(
+            [(sid, sv) for sid, sv in _all_ticker_sigs.items()
+             if sv.get("status") == "neutral" and not sv.get("error")
+             and sv.get("score", 50) > 50],
+            key=lambda x: -x[1].get("score", 50)
+        )[:2]
+
+        _tripwire_lines = []
+        if _case == "BULL" or confluence.get("bull_count", 0) >= confluence.get("bear_count", 0):
+            _header = "🔁 What Would Change the Bull Case"
+            for sid, sv in _weak_bulls:
+                nm = sv.get("name", sid)
+                sc = sv.get("score", 50)
+                _tripwire_lines.append(
+                    f"<b>{nm}</b> is the weakest bullish signal at {sc:.0f}/100 — "
+                    f"a drop below ~35 would flip it bearish and weaken this setup."
+                )
+            for sid, sv in _near_bears:
+                nm = sv.get("name", sid)
+                sc = sv.get("score", 50)
+                _tripwire_lines.append(
+                    f"<b>{nm}</b> is neutral at {sc:.0f}/100 and trending lower — "
+                    f"watch for a break below 35, which would add a bearish headwind."
+                )
+        else:
+            _header = "🔁 What Would Change the Bear Case"
+            for sid, sv in _weak_bears:
+                nm = sv.get("name", sid)
+                sc = sv.get("score", 50)
+                _tripwire_lines.append(
+                    f"<b>{nm}</b> is the weakest bearish signal at {sc:.0f}/100 — "
+                    f"a recovery above ~65 would flip it bullish and soften the headwinds."
+                )
+            for sid, sv in _near_bulls:
+                nm = sv.get("name", sid)
+                sc = sv.get("score", 50)
+                _tripwire_lines.append(
+                    f"<b>{nm}</b> is neutral at {sc:.0f}/100 but leaning higher — "
+                    f"a break above 65 would add a meaningful tailwind for the bull case."
+                )
+
+        if _tripwire_lines:
+            _items_html = "".join(
+                f'<div style="display:flex;gap:10px;margin-bottom:8px;">'
+                f'<span style="color:#B8860B;font-size:1.0rem;flex-shrink:0;">◈</span>'
+                f'<div style="font-size:0.80rem;color:#4A4440;line-height:1.6;">{line}</div>'
+                f'</div>'
+                for line in _tripwire_lines
+            )
+            st.markdown(
+                f'<div style="background:#FFF8E7;border-radius:8px;padding:16px 18px;'
+                f'margin:14px 0;border-left:4px solid #B8860B;font-family:Georgia,serif;">'
+                f'<div style="font-size:0.72rem;font-weight:700;color:#B8860B;'
+                f'text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">'
+                f'{_header}</div>'
+                f'{_items_html}'
+                f'<div style="font-size:0.65rem;color:#9E9E8E;margin-top:8px;">'
+                f'Conditions based on current signal readings · thresholds are directional, not precise price targets</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+    except Exception:
+        pass
+
+    # ── Playbook Mode ─────────────────────────────────────────────────────────────
+    # The last N times this ticker's confluence score crossed 70+ (or dropped
+    # below 35), what happened to the stock price 4, 8, 12 weeks later?
+    # Turns the score history into a miniature per-ticker track record.
+    with st.expander("📖 Playbook — historical setups at this score level"):
+        try:
+            _ph = get_score_history(ticker_input, days=365)
+            if len(_ph) < 5:
+                st.info("Not enough score history yet for a playbook. Come back after this ticker has been viewed a few more times over the coming weeks.")
+            else:
+                import yfinance as yf
+                import pandas as pd
+                _crossing_threshold = 70 if confluence["case"] == "BULL" else 35
+                _direction          = "above" if confluence["case"] == "BULL" else "below"
+                _color              = "#1B5E20" if confluence["case"] == "BULL" else "#7B1010"
+
+                # Find dates where score crossed the threshold
+                _crossings = []
+                for i in range(1, len(_ph)):
+                    prev_s = float(_ph[i-1]["score"] or 50)
+                    curr_s = float(_ph[i]["score"]   or 50)
+                    if confluence["case"] == "BULL" and prev_s < _crossing_threshold <= curr_s:
+                        _crossings.append(_ph[i]["snapshot_date"])
+                    elif confluence["case"] != "BULL" and prev_s > _crossing_threshold >= curr_s:
+                        _crossings.append(_ph[i]["snapshot_date"])
+
+                if not _crossings:
+                    st.info(f"Score hasn't crossed {_crossing_threshold} {_direction} yet in recorded history. The playbook will populate as history accumulates.")
+                else:
+                    # Fetch 1 year of price history once
+                    _px = yf.download(ticker_input, period="2y", auto_adjust=True, progress=False)
+                    if _px.empty:
+                        st.info("Price data unavailable for playbook calculations.")
+                    else:
+                        _px_close = _px["Close"].squeeze()
+                        _playbook_rows = []
+                        for dt_str in _crossings[-5:]:  # last 5 crossings max
+                            try:
+                                _dt = pd.Timestamp(dt_str)
+                                _entry_price = float(_px_close.asof(_dt))
+                                _row = {"Setup Date": dt_str, "Score at Crossing": None}
+                                for snap in _ph:
+                                    if snap["snapshot_date"] == dt_str:
+                                        _row["Score at Crossing"] = f"{float(snap['score']):.0f}"
+                                        break
+                                for weeks, label in [(4, "+4w"), (8, "+8w"), (12, "+12w")]:
+                                    _fwd = _dt + pd.Timedelta(weeks=weeks)
+                                    if _fwd <= _px_close.index[-1]:
+                                        _fwd_price = float(_px_close.asof(_fwd))
+                                        _ret = (_fwd_price / _entry_price - 1) * 100
+                                        _row[label] = f"{_ret:+.1f}%"
+                                    else:
+                                        _row[label] = "pending"
+                                _playbook_rows.append(_row)
+                            except Exception:
+                                continue
+
+                        if _playbook_rows:
+                            st.markdown(
+                                f'<div style="font-size:0.78rem;color:#4A4440;margin-bottom:10px;">'
+                                f'The last <b>{len(_playbook_rows)}</b> time(s) '
+                                f'<b style="color:{_color}">{ticker_input}</b> scored '
+                                f'{_crossing_threshold}+ {_direction}, forward returns were:</div>',
+                                unsafe_allow_html=True,
+                            )
+                            _pb_df = pd.DataFrame(_playbook_rows)
+                            st.dataframe(_pb_df, use_container_width=True, hide_index=True)
+                            st.caption("⚠️ Small sample — treat as illustrative context, not statistical proof. Score history only accumulates when this page is visited.")
+                        else:
+                            st.info("Could not compute forward returns for the crossing dates found.")
+        except Exception as _pb_err:
+            st.caption(f"Playbook unavailable: {_pb_err}")
+
     st.divider()
 
     # ── Signal Detail Table ───────────────────────────────────────────────────────
@@ -1497,8 +1662,37 @@ elif section == "Insider & Short Interest":
         i2.metric("Distinct Buyers", _insider_score["distinct_buyers"])
         i3.metric("Distinct Sellers", _insider_score["distinct_sellers"])
         i4.metric("Net Value", f"${_insider_score['net_value']:,.0f}")
+        # Insider Cluster Badge — detect 2+ purchases within 21 days
+        # (21-day window is tighter and more actionable than the 180-day scoring window)
+        try:
+            import pandas as pd
+            _tx_buys = _insider_tx_early[_insider_tx_early.get("code", pd.Series()) == "P"].copy() \
+                if hasattr(_insider_tx_early, "get") else \
+                _insider_tx_early[_insider_tx_early["code"] == "P"].copy()
+            if not _tx_buys.empty and "date" in _tx_buys.columns:
+                from datetime import datetime, timedelta
+                _cutoff_21 = pd.Timestamp.now() - pd.Timedelta(days=21)
+                _recent_buys = _tx_buys[_tx_buys["date"] >= _cutoff_21]
+                _n_cluster = _recent_buys["insider"].nunique() if "insider" in _recent_buys.columns \
+                    else len(_recent_buys)
+                if _n_cluster >= 2:
+                    st.markdown(
+                        f'<div style="background:#EDF7ED;border-radius:7px;padding:10px 14px;'
+                        f'margin-bottom:10px;border-left:4px solid #1B5E20;font-family:Georgia,serif;">'
+                        f'<span style="font-size:1.1rem;">🔥</span> '
+                        f'<b style="color:#1B5E20;font-size:0.88rem;">INSIDER CLUSTER BUY</b> — '
+                        f'<span style="font-size:0.82rem;color:#4A4440;">'
+                        f'{_n_cluster} distinct insiders made open-market purchases in the last 21 days. '
+                        f'Cluster buying (multiple independent insiders, no offsetting sales) is '
+                        f'among the strongest signals in academic insider-trading research.</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+        except Exception:
+            pass
+
         if _insider_score["cluster_bonus_applied"]:
-            st.markdown(f'<span style="color:{ins_color};font-weight:700;">Cluster pattern detected</span> — 3+ insiders moved the same direction with no one going the other way.', unsafe_allow_html=True)
+            st.markdown(f'<span style="color:{ins_color};font-weight:700;">Cluster pattern detected (180d)</span> — 3+ insiders moved the same direction with no one going the other way.', unsafe_allow_html=True)
 
         tx_display = _insider_tx_early[["date", "insider", "role", "code", "shares", "price", "value"]].copy()
         tx_display["date"] = tx_display["date"].dt.strftime("%Y-%m-%d")

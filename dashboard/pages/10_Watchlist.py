@@ -30,6 +30,7 @@ from utils.header import render_header, render_sidebar_base
 from utils.auth_ui import require_login
 from utils.quotes import get_batch_quotes, mini_sparkline
 from utils.auth import set_digest_optin, get_digest_optin
+from utils.score_history import get_score_history
 
 # ── Pre/post market batch fetch ────────────────────────────────────────────────
 # Separate from get_batch_quotes (which uses yf.download for speed) because
@@ -169,6 +170,39 @@ else:
                 f"Bear ≤ {row['score_bear_threshold']:.0f} · "
                 f"Move ≥ {row['price_move_pct_threshold']:.1f}%"
             )
+            # Score history sparkline — shows 30-day confluence score trend.
+            # Rising score while price is flat = early warning that macro
+            # conditions are improving before the stock reacts.
+            try:
+                _score_hist = get_score_history(ticker, days=30)
+                if len(_score_hist) >= 3:
+                    import plotly.graph_objects as go
+                    _sh_scores = [h["score"] for h in _score_hist]
+                    _sh_dates  = [h["snapshot_date"] for h in _score_hist]
+                    _sh_color  = "#1B5E20" if _sh_scores[-1] >= _sh_scores[0] else "#7B1010"
+                    _sh_fig = go.Figure(go.Scatter(
+                        x=_sh_dates, y=_sh_scores, mode="lines",
+                        line=dict(color=_sh_color, width=1.5),
+                        fill="tozeroy", fillcolor=f"{_sh_color}18",
+                    ))
+                    _sh_fig.update_layout(
+                        margin=dict(l=0, r=0, t=0, b=0), height=38,
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                        xaxis=dict(visible=False), yaxis=dict(visible=False, range=[0, 100]),
+                        showlegend=False,
+                    )
+                    st.markdown(
+                        f'<div style="font-size:0.60rem;color:#9E9E8E;margin-top:2px;">'
+                        f'Signal score 30d · latest: <b style="color:{_sh_color}">{_sh_scores[-1]:.0f}/100</b></div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.plotly_chart(_sh_fig, use_container_width=True,
+                                    config={"displayModeBar": False},
+                                    key=f"score_spark_{ticker}")
+                else:
+                    st.caption("Signal score: building history…")
+            except Exception:
+                pass
 
         with wc2:
             # Regular-session price + daily change

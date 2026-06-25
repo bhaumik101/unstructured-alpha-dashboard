@@ -12,7 +12,7 @@ import streamlit as st
 
 from utils.config import CATEGORIES, SIGNALS, TICKERS
 from utils.header import render_header, render_sidebar_base, ticker_chips, render_synthetic_data_banner
-from utils.score_history import get_signal_flips, get_signal_trends
+from utils.score_history import get_signal_flips, get_signal_trends, get_signal_streaks
 from utils.signals_cache import get_all_signal_scores
 
 st.set_page_config(page_title="Signal Dashboard — UA", layout="wide")
@@ -221,6 +221,13 @@ try:
 except Exception:
     pass
 
+# Signal fatigue streaks: signal_id → {"label": str, "days": int, ...}
+_streak_lookup: dict[str, dict] = {}
+try:
+    _streak_lookup = get_signal_streaks(days_back=90)
+except Exception:
+    pass
+
 # ── Theme Context Banner ──────────────────────────────────────────────────────
 st.markdown("""
 <div style="background:#EEF3FA;border-radius:8px;padding:14px 20px;
@@ -347,6 +354,20 @@ for row_start in range(0, len(visible_signals), COLS):
         else:
             _trend_badge = ""  # "new" — no prior history yet
 
+        # Signal fatigue streak badge
+        _streak = _streak_lookup.get(sid, {})
+        _streak_label = _streak.get("label", "")
+        _streak_days  = _streak.get("days", 0)
+        # Only show fatigue for Extended/Exhausted — Fresh/Established add noise
+        _fatigue_html = (
+            f'<span style="font-size:0.64rem;color:#8B7355;margin-left:6px;" '
+            f'title="{_streak_days} days in current status">{_streak_label}</span>'
+            if _streak_label.startswith(("⏳", "🔴")) else
+            f'<span style="font-size:0.64rem;color:#4A7A4A;margin-left:6px;" '
+            f'title="{_streak_days} days in current status">{_streak_label}</span>'
+            if _streak_label.startswith("🟢") else ""
+        )
+
         with col:
             try:
                 if mode == "Simple":
@@ -392,7 +413,7 @@ for row_start in range(0, len(visible_signals), COLS):
                         f'{_bottom_note}{_lag_html}'
                         f'</div>'
                         f'<div style="display:flex;justify-content:space-between;align-items:center;">'
-                        f'<div style="font-size:0.68rem;color:#8B7355;">{_cat_icon} {_cat_name}</div>'
+                        f'<div style="font-size:0.68rem;color:#8B7355;">{_cat_icon} {_cat_name}{_fatigue_html}</div>'
                         f'<div style="font-size:0.68rem;">{_trend_badge}</div>'
                         f'</div>'
                         f'{_flip_html}'
@@ -429,7 +450,7 @@ for row_start in range(0, len(visible_signals), COLS):
                         f'<div style="font-size:0.76rem;color:#6B6560;line-height:1.7;">'
                         f'<div>Dev: <b>{_dev_fmt}%</b> vs 52w</div>'
                         f'<div>Z-score: <b>{_z_fmt}σ</b> · P{pct_rank:.0f}</div>'
-                        f'<div>Trend: {trend_arrow} {_trend_fmt}% / 4w · Lead ~{cfg.get("lag_weeks", 0)}w</div>'
+                        f'<div>Trend: {trend_arrow} {_trend_fmt}% / 4w · Lead ~{cfg.get("lag_weeks", 0)}w{("  " + _streak_label) if _streak_label else ""}</div>'
                         f'</div></div>'
                         f'{_pro_flip_html}'
                         f'</div>',

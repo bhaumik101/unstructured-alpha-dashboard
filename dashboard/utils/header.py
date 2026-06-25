@@ -254,6 +254,113 @@ hr { border-color: #D4C9B0 !important; opacity: 0.6; }
 """
 
 
+_DARK_CSS = """
+<style>
+/* ── Dark Mode Overrides ──────────────────────────────────────────────────── */
+/* Activated when data-theme="dark" is set via JS on <html> or via class injection.
+   We use a body class approach here: inject .ua-dark on the stApp root. */
+body.ua-dark, body.ua-dark [class*="css"] {
+    background-color: #0F1217 !important;
+    color: #E8E0CE !important;
+}
+body.ua-dark .main { background-color: #0F1217 !important; }
+body.ua-dark .block-container { background-color: #0F1217 !important; }
+
+/* Cards */
+body.ua-dark .metric-card { background: #1A1F2E !important; border-color: #2C3347 !important; color: #E8E0CE !important; }
+body.ua-dark .page-card   { background: #1A1F2E !important; border-color: #2C3347 !important; }
+body.ua-dark .page-card .page-title { color: #E8E0CE !important; }
+body.ua-dark .page-card .page-desc  { color: #9A9080 !important; }
+
+/* Text */
+body.ua-dark h1, body.ua-dark h2, body.ua-dark h3 { color: #E8E0CE !important; }
+body.ua-dark p, body.ua-dark li { color: #BDB5A0 !important; }
+
+/* Inputs */
+body.ua-dark .stTextInput > div > div > input { background: #1A1F2E !important; color: #E8E0CE !important; border-color: #3C4357 !important; }
+body.ua-dark .stSelectbox > div > div        { background: #1A1F2E !important; color: #E8E0CE !important; border-color: #3C4357 !important; }
+
+/* Tables */
+body.ua-dark .ua-data-table th { background: #1C2B4A !important; }
+body.ua-dark .ua-data-table td { border-color: #2C3347 !important; color: #E8E0CE !important; }
+body.ua-dark .ua-data-table tr:nth-child(even) td { background: #151A26 !important; }
+body.ua-dark .ua-data-table tr:hover td { background: #1F2A3E !important; }
+
+/* Tabs */
+body.ua-dark .stTabs [data-baseweb="tab-list"] { border-color: #2C3347 !important; }
+body.ua-dark .stTabs [data-baseweb="tab"]      { color: #8B7355 !important; }
+body.ua-dark .stTabs [aria-selected="true"]    { color: #C9A84C !important; }
+
+/* Expanders */
+body.ua-dark div[data-testid="stExpander"] { background: #1A1F2E !important; border-color: #2C3347 !important; }
+
+/* Metrics */
+body.ua-dark .stMetric [data-testid="stMetricValue"] { color: #E8E0CE !important; }
+body.ua-dark .stMetric label { color: #8B7355 !important; }
+
+/* Dividers */
+body.ua-dark hr { border-color: #2C3347 !important; }
+
+/* Info/disclaimer boxes */
+body.ua-dark .disclaimer { background: #1A1F2E !important; border-color: #2C3347 !important; color: #8B7355 !important; }
+body.ua-dark .info-box   { background: #1A2030 !important; border-color: #2C3A5A !important; color: #A8BCD0 !important; }
+
+/* Stat boxes */
+body.ua-dark .stat-box { background: #1A1F2E !important; border-color: #2C3347 !important; }
+body.ua-dark .stat-box .stat-value { color: #E8E0CE !important; }
+
+/* Section headers */
+body.ua-dark .section-header { color: #8B7355 !important; border-color: #2C3347 !important; }
+
+/* Streamlit native dark fills */
+body.ua-dark [data-testid="stDataFrame"] { background: #1A1F2E !important; }
+body.ua-dark [data-testid="stDataFrame"] div { background: #1A1F2E !important; color: #E8E0CE !important; }
+</style>
+"""
+
+_DARK_JS = """
+<script>
+(function() {
+    function applyDark(on) {
+        document.body.classList[on ? 'add' : 'remove']('ua-dark');
+    }
+    // Read preference from localStorage (set by the Streamlit toggle)
+    try {
+        var pref = localStorage.getItem('ua_dark_mode');
+        if (pref === 'true') applyDark(true);
+    } catch(e) {}
+
+    // Poll for toggle changes (Streamlit re-injects the page, so we poll)
+    setInterval(function() {
+        try {
+            var pref = localStorage.getItem('ua_dark_mode');
+            applyDark(pref === 'true');
+        } catch(e) {}
+    }, 500);
+})();
+</script>
+"""
+
+
+def render_dark_mode_toggle() -> None:
+    """
+    Render a dark mode toggle in the sidebar. Stores preference in
+    st.session_state and localStorage so it persists across pages.
+    Called by render_sidebar_base().
+    """
+    _dark = st.session_state.get("ua_dark_mode", False)
+    _new  = st.toggle("🌙 Dark mode", value=_dark, key="_dm_toggle")
+    if _new != _dark:
+        st.session_state["ua_dark_mode"] = _new
+        # Write to localStorage via injected JS
+        _val = "true" if _new else "false"
+        st.markdown(
+            f'<script>try{{localStorage.setItem("ua_dark_mode","{_val}")}}catch(e){{}}</script>',
+            unsafe_allow_html=True,
+        )
+        st.rerun()
+
+
 def render_synthetic_data_banner(n_synthetic: int, n_total: int) -> None:
     """
     Render an unmissable banner when any FRED-sourced data on the page is
@@ -358,6 +465,8 @@ def render_header(page_subtitle: str = "") -> None:
     from datetime import datetime
 
     st.markdown(_CSS, unsafe_allow_html=True)
+    # Dark mode CSS + JS persistence (always inject — harmless when dark is off)
+    st.markdown(_DARK_CSS + _DARK_JS, unsafe_allow_html=True)
 
     # Market open/closed status — NYSE regular hours, Mon-Fri 9:30-16:00 ET.
     # Best-effort only (no holiday calendar) — falls back to local time if
@@ -396,6 +505,46 @@ def render_header(page_subtitle: str = "") -> None:
     </div>
     <div class="gold-rule"></div>
     """, unsafe_allow_html=True)
+
+    # ── Sticky Macro Regime Bar ────────────────────────────────────────────────
+    # One slim line visible on every page so users never lose macro context.
+    # Uses the shared 2h cache — zero extra API cost.
+    try:
+        from utils.signals_cache import get_all_signal_scores as _gss
+        _rs = _gss()
+        _rb  = sum(1 for v in _rs.values() if not v.get("error") and v.get("status") == "bullish")
+        _rr  = sum(1 for v in _rs.values() if not v.get("error") and v.get("status") == "bearish")
+        _rn  = sum(1 for v in _rs.values() if not v.get("error") and v.get("status") == "neutral")
+        _rto = max(1, _rb + _rr + _rn)
+        _rbp = _rb / _rto
+        _rrp = _rr / _rto
+        if _rbp >= 0.58:
+            _regime_lbl, _regime_col, _regime_bg = "RISK-ON", "#1B5E20", "rgba(27,94,32,0.08)"
+        elif _rrp >= 0.52:
+            _regime_lbl, _regime_col, _regime_bg = "RISK-OFF", "#7B1010", "rgba(123,16,16,0.08)"
+        elif _rbp >= 0.48:
+            _regime_lbl, _regime_col, _regime_bg = "LEANING BULLISH", "#2E6B35", "rgba(46,107,53,0.07)"
+        elif _rrp >= 0.44:
+            _regime_lbl, _regime_col, _regime_bg = "LEANING BEARISH", "#8B2020", "rgba(139,32,32,0.07)"
+        else:
+            _regime_lbl, _regime_col, _regime_bg = "MIXED SIGNALS", "#8B7355", "rgba(139,115,85,0.07)"
+        st.markdown(
+            f'<div style="background:{_regime_bg};border:1px solid {_regime_col}22;'
+            f'border-radius:5px;padding:5px 14px;margin-bottom:10px;'
+            f'display:flex;align-items:center;gap:16px;font-family:Georgia,serif;">'
+            f'<span style="font-size:0.65rem;color:#8B7355;text-transform:uppercase;letter-spacing:0.08em;">MACRO REGIME</span>'
+            f'<span style="font-size:0.78rem;font-weight:700;color:{_regime_col};">● {_regime_lbl}</span>'
+            f'<span style="font-size:0.70rem;color:#6B6560;">'
+            f'<span style="color:#1B5E20;">▲ {_rb} bull</span>'
+            f' · <span style="color:#7B1010;">▼ {_rr} bear</span>'
+            f' · <span style="color:#8B7355;">→ {_rn} neutral</span>'
+            f'</span>'
+            f'<span style="font-size:0.65rem;color:#9E9E8E;margin-left:auto;">38 signals · 2h cache</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        pass  # never crash the header for a cosmetic bar
 
     # Global ticker search -- same reasoning as the account widget below:
     # a real Streamlit widget can't live inside the markdown block above,
@@ -438,6 +587,10 @@ def render_sidebar_base() -> None:
                 logout()
                 st.rerun()
             st.divider()
+
+        # Dark mode toggle — persists preference in localStorage
+        render_dark_mode_toggle()
+        st.divider()
 
         # AI Assistant quick-access
         st.markdown(

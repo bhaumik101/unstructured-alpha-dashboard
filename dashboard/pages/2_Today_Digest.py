@@ -26,9 +26,10 @@ from utils.config import SIGNALS, TICKERS
 from utils.db import engine, score_snapshots, init_db
 from utils.header import render_header, render_sidebar_base, go_to_ticker
 from utils.quotes import get_batch_quotes
-from utils.score_history import record_all_signal_snapshots, get_signal_flips
+from utils.score_history import record_all_signal_snapshots, get_signal_flips, get_signal_diff
 from utils.signals_cache import get_all_signal_scores
 from utils.narrative import generate_narrative
+from utils.convergence import get_convergence_events, render_convergence_events
 
 st.set_page_config(page_title="Today's Brief — UA", layout="wide")
 render_header("Today's Brief")
@@ -195,6 +196,72 @@ try:
         f'</div>',
         unsafe_allow_html=True,
     )
+except Exception:
+    pass
+
+# ── What Changed Since Last Week ──────────────────────────────────────────────
+try:
+    _diff = get_signal_diff(days_back=7)
+    _d_bull = _diff.get("flipped_bullish", [])
+    _d_bear = _diff.get("flipped_bearish", [])
+    _d_movers = _diff.get("biggest_movers", [])
+    _d_flip_total = _diff.get("total_flips", 0)
+    _d_regime = _diff.get("regime_shift")
+
+    if _d_flip_total > 0 or _d_movers or _d_regime:
+        _regime_shift_html = (
+            f'<div style="background:#FFF8E7;border-left:3px solid #B8860B;padding:5px 10px;'
+            f'border-radius:4px;font-size:0.76rem;color:#5C4A1A;margin-bottom:8px;">'
+            f'⚡ Regime shift: <b>{_d_regime}</b></div>'
+            if _d_regime else ""
+        )
+        def _flip_pill(entry, direction):
+            col = "#1B5E20" if direction == "bull" else "#7B1010"
+            arrow = "▲" if direction == "bull" else "▼"
+            return (
+                f'<span style="display:inline-block;margin:2px 3px;padding:2px 8px;'
+                f'border-radius:10px;font-size:0.70rem;background:{col}18;color:{col};font-weight:600;">'
+                f'{arrow} {entry["name"][:28]}</span>'
+            )
+        _bull_pills = "".join(_flip_pill(e, "bull") for e in _d_bull)
+        _bear_pills = "".join(_flip_pill(e, "bear") for e in _d_bear)
+        _mover_pills = "".join(
+            f'<span style="display:inline-block;margin:2px 3px;padding:2px 8px;'
+            f'border-radius:10px;font-size:0.70rem;'
+            f'background:{"#1B5E2018" if m["direction"]=="up" else "#7B101018"};'
+            f'color:{"#1B5E20" if m["direction"]=="up" else "#7B1010"};font-weight:600;">'
+            f'{"▲" if m["direction"]=="up" else "▼"} {m["name"][:24]} ({m["delta"]:+.0f}pts)</span>'
+            for m in _d_movers
+        )
+        st.markdown(
+            f'<div style="background:#F5F1E8;border-radius:8px;padding:14px 18px;'
+            f'margin-bottom:18px;border:1px solid #D4C9B0;font-family:Georgia,serif;">'
+            f'<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.10em;color:#8B7355;'
+            f'text-transform:uppercase;margin-bottom:8px;">WHAT CHANGED SINCE LAST WEEK</div>'
+            f'{_regime_shift_html}'
+            f'{"<div style=\\"font-size:0.72rem;color:#4A4440;margin-bottom:4px\\">Flipped bullish</div>" + _bull_pills if _bull_pills else ""}'
+            f'{"<div style=\\"font-size:0.72rem;color:#4A4440;margin:6px 0 4px\\">Flipped bearish</div>" + _bear_pills if _bear_pills else ""}'
+            f'{"<div style=\\"font-size:0.72rem;color:#4A4440;margin:6px 0 4px\\">Biggest score movers</div>" + _mover_pills if _mover_pills else ""}'
+            f'<div style="font-size:0.65rem;color:#9E9E8E;margin-top:8px;">'
+            f'vs 7 days ago · {_d_flip_total} signal{"s" if _d_flip_total != 1 else ""} flipped direction</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+except Exception:
+    pass
+
+# ── Signal Convergence Events ─────────────────────────────────────────────────
+try:
+    _conv = get_convergence_events(days_back=7, min_signals=3)
+    if _conv:
+        st.markdown(
+            '<div style="font-size:0.68rem;font-weight:700;color:#8B7355;letter-spacing:0.10em;'
+            'text-transform:uppercase;border-bottom:1px solid #D4C9B0;padding-bottom:6px;margin-bottom:10px;">'
+            '⚡ SIGNAL CONVERGENCE EVENTS — 3+ signals aligned this week</div>',
+            unsafe_allow_html=True,
+        )
+        render_convergence_events(_conv, max_bull=3, max_bear=2)
+        st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 except Exception:
     pass
 

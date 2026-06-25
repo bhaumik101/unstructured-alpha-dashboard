@@ -24,6 +24,7 @@ from utils.signals_cache import get_all_signal_scores
 from utils.config import SIGNALS, CATEGORIES
 from utils.narrative import generate_narrative
 from utils.top_tickers import get_top_tickers
+from utils.convergence import get_convergence_events, render_convergence_events
 
 render_header("Home")
 render_sidebar_base()
@@ -291,7 +292,29 @@ if _data_loaded:
                 unsafe_allow_html=True,
             )
 
-st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+# ── SIGNAL CONVERGENCE EVENTS ────────────────────────────────────────────────
+# The real edge: not one signal going bullish, but 3+ independent signals
+# all telling the same story about the same ticker simultaneously.
+_conv_events = get_convergence_events(days_back=7, min_signals=3)
+if _conv_events:
+    st.markdown("""
+    <div style="font-size:1.1rem;font-weight:800;color:#1C2B4A;margin-bottom:6px;
+                font-family:Georgia,serif;">
+        ⚡ Signal Convergence Events
+        <span style="font-size:0.72rem;font-weight:400;color:#8B7355;margin-left:10px;">
+        3+ independent signals aligned on the same ticker in the last 7 days</span>
+    </div>
+    """, unsafe_allow_html=True)
+    _conv_col1, _conv_col2 = st.columns(2)
+    _bull_ev = [e for e in _conv_events if e["direction"] == "bullish"][:4]
+    _bear_ev = [e for e in _conv_events if e["direction"] == "bearish"][:2]
+    with _conv_col1:
+        render_convergence_events(_bull_ev + _bear_ev[:1], max_bull=4, max_bear=1)
+    with _conv_col2:
+        if len(_bear_ev) > 1:
+            render_convergence_events([], max_bull=0)
+            render_convergence_events(_bear_ev[1:], max_bull=0, max_bear=2)
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
 # ── 3 CORE FEATURE SPOTLIGHTS ─────────────────────────────────────────────────
 # Psychology: 3 = digestible. 6 = paralysis. Show the 3 things that differentiate.
