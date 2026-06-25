@@ -56,9 +56,10 @@ pg = st.navigation(
             st.Page("pages/14_Stock_Chart.py",      title="Stock Viewer"),
         ],
         "Daily Intel": [
-            st.Page("pages/2_Today_Digest.py",      title="Today's Brief"),
-            st.Page("pages/18_Weekly_Brief.py",     title="Weekly Brief"),
-            st.Page("pages/12_Sector_Map.py",       title="Sector Map"),
+            st.Page("pages/2_Today_Digest.py",       title="Today's Brief"),
+            st.Page("pages/18_Weekly_Brief.py",      title="Weekly Brief"),
+            st.Page("pages/12_Sector_Map.py",        title="Sector Map"),
+            st.Page("pages/20_Congress_Tracker.py",  title="Congress Tracker"),
         ],
         "Signals": [
             st.Page("pages/1_Signal_Dashboard.py",  title="Signal Dashboard"),

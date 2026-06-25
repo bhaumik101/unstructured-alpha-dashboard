@@ -1,11 +1,15 @@
 """
 Page 9 — AI Research Assistant
-Conversational assistant with deep knowledge of the Unstructured Alpha platform.
-Answers questions about signals, methodology, pages, tickers, and walkthroughs.
-Optionally integrates with Claude API for advanced Q&A.
+Live signal-aware conversational analyst. Injects today's real signal state
+into every Claude API call so answers reflect the actual current macro read,
+not a static knowledge base.
 """
 
+import os
+from datetime import datetime
+
 import streamlit as st
+
 from utils.header import render_header, render_sidebar_base
 
 st.set_page_config(page_title="AI Assistant — UA", layout="wide")
@@ -14,171 +18,175 @@ render_sidebar_base()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Knowledge base — comprehensive app context injected into every AI response
+# Live signal context builder — injected into every API call
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _build_live_signal_context() -> str:
+    """
+    Call get_all_signal_scores() (shared 2-hour cache — no extra HTTP hit)
+    and format the result into a compact live-context block for the system
+    prompt. Returns an empty string on any failure so the assistant still
+    works if signal scoring is unavailable.
+    """
+    try:
+        from utils.signals_cache import get_all_signal_scores
+        all_sv = get_all_signal_scores()
+    except Exception:
+        return ""
+
+    if not all_sv:
+        return ""
+
+    bulls = [(k, v) for k, v in all_sv.items() if v.get("status") == "bullish" and not v.get("error")]
+    bears = [(k, v) for k, v in all_sv.items() if v.get("status") == "bearish" and not v.get("error")]
+    neutrals = [(k, v) for k, v in all_sv.items() if v.get("status") == "neutral" and not v.get("error")]
+    total = len(all_sv)
+
+    nb, nr, nn = len(bulls), len(bears), len(neutrals)
+    ratio = nb / max(nb + nr, 1)
+    if ratio >= 0.60:
+        regime = "BULLISH"
+    elif ratio <= 0.35:
+        regime = "BEARISH"
+    else:
+        regime = "MIXED / NEUTRAL"
+
+    avg_score = sum(v.get("score", 50) for v in all_sv.values()) / max(total, 1)
+
+    # Sort by score for top-5 each direction
+    bulls_sorted = sorted(bulls, key=lambda x: x[1].get("score", 50), reverse=True)[:5]
+    bears_sorted = sorted(bears, key=lambda x: x[1].get("score", 50))[:5]
+
+    def _fmt_signal(k, v) -> str:
+        score = v.get("score", 50)
+        z = v.get("z_score", 0.0)
+        cur = v.get("current", float("nan"))
+        name = v.get("name", k)
+        cur_str = f"{cur:.2f}" if cur == cur else "N/A"  # nan check
+        return f"  • {name}: score={score:.0f}/100, z={z:+.2f}, current={cur_str}"
+
+    top_bull_block = "\n".join(_fmt_signal(k, v) for k, v in bulls_sorted) or "  (none)"
+    top_bear_block = "\n".join(_fmt_signal(k, v) for k, v in bears_sorted) or "  (none)"
+
+    # Spot-check key signals the user is most likely to ask about
+    key_ids = [
+        "yield_curve", "hy_spread", "vix", "trucking", "jobless_claims",
+        "crude_inventories", "nat_gas", "hyperscaler_capex", "copper", "uranium_proxy",
+    ]
+    spot_lines = []
+    for sid in key_ids:
+        v = all_sv.get(sid)
+        if v and not v.get("error"):
+            score = v.get("score", 50)
+            status = v.get("status", "neutral").upper()
+            z = v.get("z_score", 0.0)
+            name = v.get("name", sid)
+            spot_lines.append(f"  {name}: {status} (score={score:.0f}, z={z:+.2f})")
+    spot_block = "\n".join(spot_lines) or "  (key signals unavailable)"
+
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
+
+    return f"""
+══════════════════════════════════════════════════════════
+LIVE SIGNAL STATE — {ts}
+══════════════════════════════════════════════════════════
+MACRO REGIME:   {regime}
+SIGNAL COUNTS:  {nb} BULLISH  |  {nr} BEARISH  |  {nn} NEUTRAL  (of {total} total)
+AVG MACRO SCORE: {avg_score:.1f}/100
+
+TOP BULLISH SIGNALS (highest scores):
+{top_bull_block}
+
+TOP BEARISH SIGNALS (lowest scores):
+{top_bear_block}
+
+KEY SIGNAL SPOT-CHECK:
+{spot_block}
+══════════════════════════════════════════════════════════
+When users ask about current market conditions, today's macro read, or specific signals,
+use the LIVE DATA above — do NOT defer to general historical knowledge alone. The numbers
+above are the actual scores computed from live FRED/EIA/yfinance data right now.
+"""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Static knowledge base — platform context (injected alongside live state)
 # ─────────────────────────────────────────────────────────────────────────────
 APP_CONTEXT = """
-You are the Unstructured Alpha Research Assistant — an expert on the Unstructured Alpha
-alternative data intelligence platform. You help users understand the platform's methodology,
-interpret signals, navigate pages, and think through investment theses.
+You are the Unstructured Alpha Research Assistant — an expert analyst on the
+Unstructured Alpha alternative data intelligence platform. You help users understand
+the platform's methodology, interpret signals, navigate pages, and think through
+investment theses.
+
+IMPORTANT: You have access to LIVE signal data in this system prompt (see the
+LIVE SIGNAL STATE block). When users ask "what is the market saying right now",
+"what does [signal] look like today", or any present-tense question about macro
+conditions — answer using the live data, not generic commentary.
 
 PLATFORM OVERVIEW:
 Unstructured Alpha uses non-traditional, "alternative" data sources to give investors a
 forward-looking edge over conventional financial data. The core idea: alternative data
 leads price by weeks or months, while earnings reports and consensus estimates lag reality.
 
-THE PAGES (Signal Analysis and Macro Monitor were consolidated into Ticker Deep
-Dive and Market Overview respectively in 2026 to cut down on redundant pages —
-if you remember those as separate pages, the same tools are now inside the
-pages below):
+THE SIGNAL SCORING SYSTEM:
+- Each signal is scored 0–100 based on recent trend vs. historical distribution (Z-score → percentile)
+- Scores below 35 = BEARISH, 35–65 = NEUTRAL, above 65 = BULLISH
+- Confluence Score = weighted average across relevant signals for a ticker
+- Weights = max(0.15, |Pearson r|) × (PCS/10)
+- Statistical significance: signals are tested at p<0.05 against each ticker's price history
+- PCS (Predictive Capability Score) 1-10: our assessment of historical signal reliability
+- Backtested honestly: walk-forward over 6 tickers, 19 monthly checkpoints showed no
+  statistically significant relationship with 1/2/3-month forward returns (|r| < 0.07).
+  Treat the score as a real-time read of signal AGREEMENT, not a validated forecast.
 
-1. Signal Dashboard — Real-time overview of every tracked macro signal, sorted
-   by significance, showing bull/bear/neutral status for each. Simple mode
-   (plain-English, traffic-light style) and Pro mode (z-scores, percentiles,
-   correlation) toggle. Color-coded, with a banner that flags when any signal
-   is showing synthetic demo data instead of real values.
+THE PAGES:
+1. Signal Dashboard — Real-time overview of every tracked macro signal with bull/bear/neutral
+   status, sparklines, z-scores, percentiles. Simple mode (traffic-light) and Pro mode (stats).
 
-2. Ticker Deep Dive — The flagship page. Enter any ticker for:
-   - Confluence Score (0-100) weighted by per-signal correlation with that ticker's price
-   - A 30/60/90-day forward probability model (bull/bear/neutral %, price ranges)
-   - Bull & Bear Case narrative
-   - Signal breakdown table — now filtered to statistically significant signals
-     (p<0.05) only, with a separate "Not Statistically Significant" section
-     showing what was excluded and why, instead of mixing noise into the score
-   - "TOP SIGNAL DRIVERS" cards showing the highest-impact signals
-   - Deep Correlation Scan — Lead Time Optimizer: pick one signal and see the
-     optimal lag (0-16 week scan), rolling 26-week correlation stability, and
-     a signal+price overlay chart (this absorbed the old standalone Signal
-     Analysis page)
-   - Federal contract award velocity (government revenue visibility)
-   - SEC Form 4 insider transaction overlay
+2. Ticker Deep Dive — Flagship page: Confluence Score, forward probability model, signal
+   breakdown filtered to p<0.05 significance, Deep Correlation Scan (optimal lag, rolling
+   correlation stability), federal contract overlay, insider transaction overlay, earnings overlay,
+   news, radar chart, "What Would Change My Mind" block, Playbook Mode.
 
-3. Power Supercycle — Five-leg thesis tracker (nuclear fuel, grid & copper, gas
-   bridge, AI demand, macro backdrop) for the AI infrastructure / nuclear power
-   / commodity supercycle. Signal trends shown as small-multiple charts (one
-   panel per leg, not all signals crammed onto one unreadable chart), with a
-   1H-to-ALL time window selector. Includes real federal contract award data
-   and arXiv quantum-paper publication velocity as genuine alternative data —
-   not equity-ETF prices repackaged as "signals."
+3. Power Supercycle — Five-leg thesis: nuclear fuel, grid & copper, gas bridge, AI demand,
+   macro backdrop. Small-multiple signal charts per leg.
 
-4. Market Overview — Daily snapshot: major indices with sparklines, sector
-   performance, rates & fixed income, commodities, normalized performance
-   chart, and a Signal Snapshot (VIX, yield curve, HY credit, 10Y yield trend,
-   risk appetite). Also now includes the former Macro Monitor content: Growth
-   Indicators (ATA Trucking, ISM PMI, Durable Goods), Labor Market (Jobless
-   Claims, JOLTS, Rail Traffic), Consumer & Inflation (Consumer Sentiment,
-   Retail Sales, Food CPI), the official FRED 10Y-2Y yield curve, and an
-   Economic Releases calendar.
+4. Market Overview — Daily macro snapshot: major indices, sector performance, rates, commodities,
+   Signal Snapshot (VIX, yield curve, HY credit, 10Y trend, risk appetite).
 
-5. Stock Screener — Rank all tracked tickers by alternative data confluence
-   score. Filters: sector, signal bias, min PCS, score range, text search.
-   Click any row for inline preview. "Quick Analyze Any Ticker" box for custom
-   tickers outside the universe.
+5. Stock Screener — All 80+ tickers ranked by confluence score. Filters by sector, signal bias,
+   PCS, score range. Quick-analyze any ticker outside the universe.
 
-6. About & Methodology — Signal library reference with a "Run Live Backtest"
-   button that computes a REAL Predictive Confidence Score from actual
-   correlation + significance testing against live data, rather than relying
-   only on the hand-assigned static PCS every signal starts with.
+6. Watchlist — Personal ticker tracking with price alerts and 30-day confluence sparklines.
 
-7. AI Assistant (this page) — You are here.
+7. Weekly Brief — AI-generated macro research note, published automatically each Sunday.
 
-KEY SIGNALS EXPLAINED:
-- ATA Trucking Tonnage (PCS 9/10): Monthly index of freight weight moved by US trucks.
-  Covers ~70% of all domestic freight. Precedes ISM PMI by 6-8 weeks. A drop = early
-  warning of inventory drawdowns and spending slowdowns. Source: FRED TRUCKD11.
+8. Signal Backtester — Build custom signal combinations and backtest against any ticker.
 
-- Rail Traffic / Intermodal (PCS 9/10): Weekly AAR intermodal container volume.
-  Signals import demand 4-8 weeks before trade statistics. Source: FRED RAILFRTINTERMODAL.
+9. Short Squeeze Radar — Combines short interest (FINRA), macro signals, and insider clusters
+   to surface potential squeeze candidates.
 
-- Jobless Claims (PCS 9/10): Weekly initial unemployment claims (FRED IC4WSA). Acts as
-  real-time proxy for WARN Act mass layoff activity. INVERSE: rising claims = bearish.
+10. Portfolio Macro Analyzer — Multi-ticker macro exposure analysis.
 
-- Yield Curve 10Y-2Y (PCS 9/10): Spread between 10-year and 2-year Treasury yields.
-  INVERSE: inversion (negative spread) has preceded every recession since 1955, with
-  6-18 month lead time. Source: FRED T10Y2Y (also computed live from ^TNX-^IRX).
+11. Sector Rotation Signal Map — Sector-level alternative data read.
 
-- HY Credit Spread (PCS 9/10): ICE BofA US High Yield OAS. Widens when credit markets
-  price in default risk — hits leveraged companies 4-8 weeks before equity repricing.
-  INVERSE: widening spread = bearish. Source: FRED BAMLH0A0HYM2.
+12. Pre-Earnings Track Record — Historical signal accuracy in the 30/60/90 days before earnings.
 
-- VIX (PCS 8/10): CBOE Volatility Index — "fear gauge." INVERSE: low VIX = calm = bullish.
-  VIX > 25 = elevated stress. VIX > 40 = crisis/potential capitulation low.
-  Source: yfinance ^VIX.
-
-- 10-Year Treasury Yield (PCS 8/10): INVERSE: rising yields = headwind for growth stocks
-  and real estate. Yield > ~4.5% = growth stock multiple compression.
-  Source: yfinance ^TNX.
-
-- ISM PMI (PCS 7/10): Manufacturing PMI above 50 = expansion, below 50 = contraction.
-  Leads manufacturing-adjacent stock earnings by one quarter. Source: FRED
-  GACDFSA066MSFRBPHI (Philly Fed) — the legacy NAPM series was discontinued by
-  FRED in 2016 and has been replaced.
-
-- Crude Oil Inventories (PCS 8/10): Weekly US crude stocks ex-SPR. The single
-  fastest-moving oil price signal, released every Wednesday. INVERSE: draws are
-  bullish for oil, builds are bearish. Source: EIA series PET.WCESTUS1.W.
-
-- US Natural Gas Storage (PCS 7/10): Weekly Lower-48 working gas in underground
-  storage. INVERSE: below the 5-year average is bullish for Henry Hub prices.
-  Source: EIA series NG.NW2_EPG0_SWO_R48_BCF.W.
-
-- Senior Loan Officer Survey / Bank Lending Standards (PCS 8/10): Net % of banks
-  tightening C&I lending standards, from the Fed's quarterly SLOOS. INVERSE:
-  tightening = bearish for credit-sensitive financials. Genuine alt-data
-  differentiator — credit desks watch this closely, retail platforms rarely show it.
-  Source: FRED DRTSCILM.
-
-- Credit Card Delinquency Rate (PCS 7/10): Quarterly delinquency rate across all
-  commercial banks. INVERSE: rising delinquencies = consumer credit stress.
-  Source: FRED DRCCLACBS.
-
-- FDA Drug Approval Velocity (PCS 6/10): Weekly count of FDA drug approvals
-  industry-wide, pulled live from openFDA. Genuine alt-data differentiator for
-  healthcare — the kind of regulatory read analysts normally track by hand.
-  Source: openFDA drugsfda endpoint (api.fda.gov, no key required).
-
-- Retail Trade Job Openings (PCS 6/10): Sector-specific JOLTS openings for
-  retail trade — a real-time read on retailer hiring confidence ahead of demand.
-  Source: FRED JTS4400JOL.
-
-- E-Commerce Share of Retail Sales (PCS 5/10): Structural online-vs-physical
-  retail shift, not a tactical signal. Source: FRED ECOMPCTSA.
-
-- Total US Construction Spending (PCS 6/10): Broad industrials demand gauge for
-  materials, equipment rental, and heavy-construction names. Source: FRED TTLCONS.
-
-- Hyperscaler CapEx (PCS 8/10): Composite CapEx from MSFT, AMZN, GOOGL, META. The cleanest
-  demand signal for power infrastructure. Leads data center power demand by 2-5 years.
-  Source: yfinance quarterly financials basket.
-
-- Uranium Proxy (PCS 8/10): Price of Global X Uranium ETF (URA) as proxy for uranium demand.
-  Nuclear fuel cycle demand precedes utility revenue by 12-24 months.
-  Source: yfinance URA.
-
-- Quantum arXiv Velocity (PCS 5/10 — intentionally low, unbacktested): weekly count of
-  arXiv quant-ph preprints on qubit error correction. Real research-output data, not a
-  stock price. Replaced the old "Quantum Computing Basket" signal, which was IonQ/Rigetti/
-  D-Wave stock prices being used to predict the same IonQ/Rigetti/D-Wave stocks — circular,
-  not alternative data. Several other signals (nuclear enrichment basket, SMR sentiment
-  basket, lithium/rare-earth/defense/biotech/cybersecurity/robotics/water ETF "proxies")
-  were removed for the same reason: an ETF's price is just an aggregate of the stocks it
-  claims to predict. Those tickers are still tracked, just mapped to real macro signals
-  (copper, dollar index, ISM PMI, yield, credit spreads) instead of their own price.
-
-SCORING METHODOLOGY:
-- Each signal is scored 0-100 based on recent trend vs. historical distribution (Z-score percentile)
-- Scores below 35 = BEARISH, 35-65 = NEUTRAL, above 65 = BULLISH
-- Confluence Score = weighted average across all relevant signals for a ticker
-- Weights = max(0.15, |Pearson r|) × (PCS/10) — each signal weighted by its correlation
-  with that specific ticker's price × signal quality score
-- Statistical significance on Ticker Deep Dive: signals are tested for real p<0.05
-  significance against that ticker's price. Only significant signals (plus enough
-  non-significant ones to guarantee at least 3 shown, clearly labeled) appear in the
-  main driver table; the rest are shown separately under "Not Statistically Significant"
-  instead of being silently dropped
-- PCS itself can now be backtested rather than taken on faith: the About page's "Run Live
-  Backtest" button recomputes PCS from real correlation + significance against live data
-- Conviction levels: Extreme Bull/Bear (score >80 or <20), Strong (>70 or <30),
-  Moderate (>60 or <40), Neutral otherwise
+KEY SIGNALS:
+- ATA Trucking (PCS 9): Monthly freight tonnage. Leads ISM PMI by 6-8 weeks. FRED TRUCKD11.
+- Rail Traffic (PCS 9): Weekly intermodal volume. Leads trade data by 4-8 weeks. FRED RAILFRTINTERMODAL.
+- Jobless Claims (PCS 9): Weekly initial claims. INVERSE. FRED IC4WSA.
+- Yield Curve 10Y-2Y (PCS 9): INVERSE — inversion precedes every recession since 1955 (6-18mo lag). FRED T10Y2Y.
+- HY Credit Spread (PCS 9): ICE BofA OAS. INVERSE — widening = bearish. Leads equity repricing 4-8 weeks. FRED BAMLH0A0HYM2.
+- VIX (PCS 8): INVERSE. <15 = calm/bullish, >25 = stress/bearish, >40 = crisis/contrarian buy.
+- 10Y Treasury Yield (PCS 8): INVERSE — rising yields compress growth multiples.
+- Crude Inventories (PCS 8): EIA weekly stocks ex-SPR. INVERSE — draws bullish, builds bearish.
+- Natural Gas Storage (PCS 7): EIA Lower-48 working gas. INVERSE vs 5-year average.
+- Senior Loan Officer Survey (PCS 8): Net % banks tightening C&I standards. INVERSE. FRED DRTSCILM.
+- Hyperscaler CapEx (PCS 8): MSFT+AMZN+GOOGL+META quarterly CapEx. Primary AI infrastructure demand signal.
+- Uranium Proxy (PCS 8): URA ETF. Direct uranium demand. Leads nuclear utility revenue 12-24 months.
+- FDA Approval Velocity (PCS 6): Weekly FDA drug approvals from openFDA. Regulatory tailwind signal for biotech/pharma.
+- Quantum arXiv Velocity (PCS 5): Weekly quant-ph preprint count. Intentionally low PCS — unbacktested.
 
 TICKER CATEGORIES:
 - Nuclear/Uranium: CCJ, LEU, UEC, UUUU, URA, NLR, CEG, VST, SMR
@@ -186,25 +194,15 @@ TICKER CATEGORIES:
 - Macro/Transport: SPY, QQQ, IWM, UNP, CSX, ODFL, JBHT, UPS, FDX, CAT, DE
 - Energy: XOM, CVX, OXY, COP, HAL, SLB, BKR
 - Financials: JPM, BAC, GS, KRE
-- Agriculture: ADM, BG, MOS, NTR, KR
+- Agriculture: ADM, BG, MOS, NTR
 - Homebuilders: DHI, LEN, PHM, TOL
 - Utilities: NEE, D, EXC, DUK, SO
 
-WALKTHROUGH GUIDANCE:
-For new users: Start with Signal Dashboard to see what signals are saying broadly.
-Then go to Market Overview for the macro picture. Use Stock Screener to find which
-tickers have the strongest bull/bear cases right now. Click a row and navigate to
-Ticker Deep Dive for the full breakdown.
-
-For a specific thesis (e.g., nuclear): Go to Ticker Deep Dive, select CCJ. Look at the
-Confluence Score and signal drivers. Then compare with LEU, CEG, VST for differentiation.
-The scores are now differentiated by each ticker's historical price correlation with each signal.
-
 IMPORTANT DISCLAIMERS:
 - All signals are research tools, not buy/sell recommendations
-- Without a FRED API key, macro signals use synthetic/demo data — add a free FRED key
-  in Setup for live data
-- Data is delayed; yfinance data typically delayed 15 minutes for equities
+- Without a FRED/EIA API key, macro signals use synthetic demo data
+- yfinance data is typically 15-minute delayed for equities
+- The confluence score measures signal AGREEMENT, not proven forecasting accuracy
 """
 
 
@@ -212,269 +210,162 @@ IMPORTANT DISCLAIMERS:
 # Rule-based fallback answers (fast, no API needed)
 # ─────────────────────────────────────────────────────────────────────────────
 QUICK_ANSWERS = {
-    # How to use
     ("how do i start", "where do i begin", "getting started", "new user", "first time"): """
 **Welcome to Unstructured Alpha!** Here's how to get started:
 
-1. **Signal Dashboard** — Start here. See all 20+ macro signals color-coded by status.
-2. **Market Overview** — Get the daily macro snapshot: indices, sectors, rates, commodities.
+1. **Signal Dashboard** — Start here. See all macro signals color-coded by status.
+2. **Market Overview** — Daily macro snapshot: indices, sectors, rates, commodities.
 3. **Stock Screener** — Find tickers ranked by alternative data strength. Filter by sector or bias.
 4. **Ticker Deep Dive** — Enter any ticker for a full signal breakdown and confluence score.
 
-Tip: Add a free **FRED API key** in the sidebar Setup section for live macro data instead of demo data.
+Tip: Add free **FRED** and **EIA API keys** in the sidebar Setup section for live macro data.
 """,
 
-    # Signal Dashboard
     ("signal dashboard", "what is signal dashboard", "explain signal dashboard"): """
 **Signal Dashboard** is your real-time macro signal overview.
 
-It shows every tracked alternative data signal with a **bullish/bearish/neutral** status based on recent trend vs. history.
+It shows every tracked alternative data signal with **bullish/bearish/neutral** status based on recent trend vs. history.
 
-- **Green (Bull)**: Signal is pointing positive for equities
-- **Red (Bear)**: Signal is pointing negative — risk-off
+- **Green (Bull)**: Signal pointing positive for equities
+- **Red (Bear)**: Signal pointing negative — risk-off
 - **Gold (Neutral)**: Signal in normal range, no strong directional read
 
-Use it to quickly assess the macro environment before diving into individual tickers. Think of it like a weather dashboard — is the macro backdrop supportive or hostile?
+Simple mode shows plain-English summaries. Pro mode shows z-scores, percentiles, and lag-correlation data.
 """,
 
-    # Ticker Deep Dive
     ("ticker deep dive", "deep dive", "how does the analysis work", "explain the score"): """
-**Ticker Deep Dive** is the flagship page. Here's what it shows:
+**Ticker Deep Dive** is the flagship page. Key features:
 
 **Confluence Score (0–100):**
-- 0–35 = BEAR case
-- 35–65 = NEUTRAL
-- 65–100 = BULL case
+- 0–35 = BEAR case · 35–65 = NEUTRAL · 65–100 = BULL case
 
-The score is a **weighted average** of all signals assigned to that ticker. Weights combine:
-- Signal quality (PCS, 1-10 scale)
-- Historical Pearson correlation of that signal with the ticker's price
+The score is a **weighted average** of all signals assigned to that ticker:
+- Weight = max(0.15, |Pearson r|) × (PCS/10)
+- Only signals with p<0.05 statistical significance against that ticker's price history drive the main score
+- Two tickers in the same sector get *different* scores because weights are calibrated per-ticker
 
-So two tickers in the same sector (e.g. CCJ and LEU, both uranium miners) get **different scores** because each signal's weight is calibrated to how strongly that signal historically moved *that specific stock's price*.
-
-**TOP SIGNAL DRIVERS** shows the 3 signals with the highest impact (|r| × |score-50|).
-
-Below that is the full signal table, sorted by impact, with correlation (r) and status for each.
-
-IMPORTANT: this score describes how many signals currently agree, not a validated forecast.
-See the "confluence score" topic below for the backtest finding.
+**Deep Correlation Scan** — pick any signal and see the optimal lag (0-16 week scan), rolling 26-week correlation stability, and a signal+price overlay chart.
 """,
 
-    # Confluence score
     ("confluence score", "what does score mean", "how is score calculated"): """
-The **Confluence Score** (0-100) measures how many alternative data signals are CURRENTLY aligning bullishly or bearishly for a specific ticker.
+The **Confluence Score** (0-100) measures how many alternative data signals currently align for a ticker.
 
-**Formula:**
-```
-Weight per signal = max(0.15, |Pearson r|) × (PCS / 10)
-Confluence = weighted average of individual signal scores
-```
+**Formula:** Weight = max(0.15, |Pearson r|) × (PCS/10) → Confluence = weighted average
 
-Where:
-- **PCS** = Predictive Capability Score (1-10), our assessment of how reliable this signal is historically
-- **Pearson r** = correlation between the signal's trend and the ticker's price return over the past 2 years
-- **0.15 floor** ensures no signal is completely nullified even with low correlation
+**Thresholds:** >65 = BULL · <35 = BEAR · 35-65 = NEUTRAL/MIXED
+**Conviction levels:** Extreme (>80/<20) · Strong (>70/<30) · Moderate (>60/<40)
 
-**Thresholds:**
-- **> 65** = BULL (positive confluence)
-- **< 35** = BEAR (negative confluence)
-- **35–65** = NEUTRAL or MIXED
-
-**Conviction levels:** Extreme Bull/Bear > 80/<20, Strong > 70/<30, Moderate > 60/<40 — these
-measure AGREEMENT among signals, not proven accuracy.
-
-**Has this been backtested?** Yes, honestly: we walk-forward backtested the real Confluence and
-Power Supercycle scoring functions against 6 tickers (CEG, VST, NEE, ETN, VRT, PWR), ~19 monthly
-checkpoints, no lookahead. Pooled result: no statistically significant relationship with 1/2/3-month
-forward returns (all |r| < 0.07). Two tickers showed a significant negative relationship in
-isolation before pooling washed it out. Conclusion: treat this score as a real-time read of signal
-agreement, not a forecast, until a bigger backtest proves otherwise. Full numbers on the About page.
+**Backtested honestly:** Walk-forward over 6 tickers, 19 monthly checkpoints.
+Result: no statistically significant relationship with 1/2/3-month forward returns (|r| < 0.07).
+Treat this as a real-time signal AGREEMENT read, not a proven forecast.
 """,
 
-    # VIX
     ("vix", "fear index", "volatility index"): """
-**VIX — CBOE Volatility Index** (PCS 8/10)
+**VIX — CBOE Volatility Index** (PCS 8/10) — The "fear gauge."
 
-The "fear gauge." Measures implied 30-day volatility of S&P 500 options. **Inverse signal**: low VIX = calm markets = bullish for equities.
+INVERSE signal: low VIX = calm = bullish for equities.
 
 **Level thresholds:**
 - VIX < 15 = Complacency / Calm → Bullish
 - VIX 15-25 = Normal range → Neutral
 - VIX > 25 = Elevated stress → Bearish
-- VIX > 40 = Crisis / Capitulation (contrarian BUY signal historically)
+- VIX > 40 = Crisis / Capitulation (contrarian buy historically)
 
-**Key history:** VIX hit 66 in March 2020 — the peak marked a generational buying opportunity within 3 trading days.
-
-In the app: VIX is used as an inverse signal for most tickers. It's most impactful for financials (GS, XLF), uranium miners (CCJ, LEU), and levered plays (OXY, SMR).
+**Key history:** VIX hit 66 in March 2020. Peak marked a generational buying opportunity within 3 trading days.
 """,
 
-    # Yield curve
     ("yield curve", "10y 2y", "inversion", "inverted", "spread"): """
-**Yield Curve Spread (10Y–2Y)** (PCS 9/10)
+**Yield Curve Spread (10Y–2Y)** (PCS 9/10) — Most reliable recession predictor in modern history.
 
-The 10-year minus 2-year Treasury yield spread. **The most reliable recession predictor** in modern history.
+- **Positive spread (normal):** Banks earn more lending long → credit expansion → growth
+- **Inverted (negative):** Market expects Fed rate cuts as growth slows → recession watch
 
-- **Positive spread** (normal): Banks earn more lending long than borrowing short → credit expansion → growth
-- **Inverted (negative)**: The market expects the Fed to cut rates as growth slows → credit tightening → recession watch
+**Historical accuracy:** Every U.S. recession since 1955 preceded by inversion, typically 6-18 months early.
 
-**Historical accuracy:** Every U.S. recession since 1955 was preceded by a yield curve inversion, typically 6-18 months in advance.
-
-**In the app:** Scored as INVERSE (inversion = bearish). The lag is ~52 weeks (12 months), the longest of any signal.
-
-**Live in Market Overview:** The "Yield Curve Spread" card shows real-time TNX - IRX spread with color-coded normal/inverted label.
+**In the app:** Scored as INVERSE. Inversion = bearish. Lag ~52 weeks — the longest-leading signal in the library.
 """,
 
-    # ATA trucking
     ("ata trucking", "trucking", "freight", "tonnage"): """
 **ATA Trucking Tonnage Index** (PCS 9/10)
 
-Monthly index of freight weight moved by U.S. Class-8 trucks. Covers approximately 70% of all domestic freight by value. Formally included in the Conference Board Leading Economic Indicators.
+Monthly index of freight weight moved by U.S. Class-8 trucks — covers ~70% of domestic freight by value.
+Officially part of the Conference Board Leading Economic Indicators.
 
-**Why it leads:** Trucks move almost everything. A drop in tonnage precedes inventory drawdowns and consumer spending slowdowns by 6-8 weeks — before the slowdown shows up in ISM or retail sales.
-
-**Key cases:**
-- March 2018 peak → 14 months before manufacturing ISM entered contraction (Aug 2019)
-- Feb 2020 drop of 5.7% → First COVID signal before any official economic data showed it
+**Why it leads:** Trucks move almost everything. A drop precedes inventory drawdowns and spending slowdowns by 6-8 weeks.
 
 **Relevant tickers:** JBHT, ODFL, SAIA, WERN, UPS, FDX, XLI, SPY
-
-**Source:** FRED series TRUCKD11. Requires FRED API key for live data; demo mode uses synthetic data.
+**Source:** FRED series TRUCKD11
 """,
 
-    # Stock screener
-    ("stock screener", "screener", "how do i find stocks", "best tickers"): """
-**Stock Screener** ranks all 80+ tracked tickers by their alternative data confluence score.
-
-**How to use:**
-1. Use the sidebar filters: select sectors, signal bias (bull/bear/neutral), min signal quality (PCS), and score range
-2. Use the **text search box** to filter by ticker symbol or company name
-3. Click any row to see an inline preview with score, case, and bull/bear signal count
-4. Click the Ticker Deep Dive link to go deep on any selected ticker
-
-**"Quick Analyze Any Ticker"** at the top — enter *any* ticker (TSLA, BRK-B, PLTR, etc.) even if it's outside our tracked universe. The app auto-maps signals by sector for a quick confluence score.
-
-**Reading the results:**
-- Sorted by score descending (strongest bull cases first)
-- ProgressColumn bar shows score visually
-- "Bull" and "Bear" columns show how many signals point each direction
-""",
-
-    # Nuclear thesis
-    ("nuclear", "uranium", "nuclear power", "ccj", "leu", "smr"): """
-**Nuclear/Uranium Thesis in Unstructured Alpha**
-
-The app tracks 9 nuclear/uranium tickers across the thesis:
-
-**Miners:** CCJ (Cameco), UEC (Uranium Energy), UUUU (Energy Fuels), LEU (Centrus)
-**ETFs:** URA (Global X Uranium), NLR (VanEck Nuclear)
-**Utilities:** CEG (Constellation), VST (Vistra), SMR (NuScale)
-
-**Key signals for nuclear:**
-- `uranium_proxy` (URA ETF price) — direct demand signal
-- `hyperscaler_capex` — AI data center power demand drives nuclear offtake agreements
-- `natural_gas` — competing power source; gas price affects nuclear economics
-- `ten_year_yield` — rate-sensitive capital projects
-- `hy_spread` — credit conditions for capital-intensive companies
-- `vix` — risk-on/off affects speculative names (UUUU, SMR)
-
-**Score differentiation:** Each nuclear ticker gets a unique score because the signal weights are calibrated by historical price correlation. CCJ (pure uranium miner) responds more to uranium_proxy. VST (power generator) responds more to natural_gas and hyperscaler_capex.
-""",
-
-    # HY spread / credit
     ("hy spread", "credit spread", "high yield", "hyg"): """
 **High-Yield Credit Spread** (PCS 9/10) — The market's forward-looking stress detector.
 
-**What it is:** ICE BofA US High Yield Option-Adjusted Spread (OAS) — the extra yield investors demand to hold junk bonds vs. equivalent-maturity Treasuries.
+ICE BofA US High Yield OAS — extra yield demanded to hold junk bonds vs. Treasuries.
 
-**Why it leads equities:** HY spreads widen when credit markets price in default risk *before* equity analysts downgrade companies. This hits leveraged companies, banks, and growth stocks first — typically 4-8 weeks before the equity repricing.
+**Why it leads:** HY spreads widen when credit markets price in default risk *before* equity analysts react. Hits leveraged companies 4-8 weeks before equity repricing.
 
-**Inverse signal:** Widening spread = bearish for equities. Tightening = bullish.
+INVERSE: widening = bearish, tightening = bullish.
 
-**Current read (in Market Overview):** The HYG ETF price is used as a live yfinance proxy — HYG rising = spreads tightening = bullish.
-
-**Source:** FRED series BAMLH0A0HYM2. Live data requires FRED API key.
+**Source:** FRED series BAMLH0A0HYM2 (requires FRED API key for live data).
 """,
 
-    # FRED API key
     ("fred", "fred api", "api key", "fred key", "live data", "real data"): """
-**FRED API Key Setup**
+**FRED API Key** — Required for live macro signal data.
 
-FRED (Federal Reserve Economic Data) provides the live data for signals like:
-- ATA Trucking Tonnage
-- Yield Curve Spread
-- HY Credit Spread (ICE BofA OAS)
-- Jobless Claims
-- Housing Starts
-- Consumer Sentiment
-- Retail Sales
-- ISM PMI
+FRED (Federal Reserve Economic Data) powers signals like ATA Trucking, Yield Curve, HY Credit Spread, Jobless Claims, Consumer Sentiment, Retail Sales, and more.
 
-**Without a key:** The app runs in "demo mode" with synthetic data that mimics signal patterns. All pages work, but macro signal scores will be neutral/synthetic.
+**Without a key:** App runs in demo mode with synthetic data. All pages work but macro signals are neutral/synthetic.
 
 **To get a free key:**
 1. Go to https://fred.stlouisfed.org/docs/api/api_key.html
 2. Create a free St. Louis Fed account
-3. Request an API key (instant)
-4. Paste it in the **Setup > Configure API Keys** section in the sidebar on any page
-
-Once added, all FRED-sourced signals refresh every hour with live data.
+3. Request API key (instant)
+4. Paste it in the **Setup > Configure API Keys** sidebar section
 """,
 
-    # EIA API key
-    ("eia", "eia api", "eia key", "crude inventories", "gas storage"): """
-**EIA API Key Setup**
+    ("nuclear", "uranium", "nuclear power", "ccj", "leu", "smr"): """
+**Nuclear/Uranium Thesis**
 
-EIA (Energy Information Administration) provides the live data for two signals:
-- US Crude Oil Inventories ex-SPR (series PET.WCESTUS1.W)
-- US Natural Gas Storage, Lower-48 (series NG.NW2_EPG0_SWO_R48_BCF.W)
+Tickers tracked: CCJ, UEC, UUUU, LEU (miners) · URA, NLR (ETFs) · CEG, VST, SMR (utilities)
 
-**Without a key:** these two signals run in "demo mode" with synthetic data, same as FRED signals without a FRED key.
+**Key signals for nuclear:**
+- `uranium_proxy` (URA price) — direct demand signal
+- `hyperscaler_capex` — AI data center power demand drives nuclear offtake agreements
+- `natural_gas` — competing power source affects nuclear economics
+- `ten_year_yield` — rate-sensitive for capital-intensive utilities
+- `hy_spread` — credit conditions for leveraged names
 
-**To get a free key:**
-1. Go to https://www.eia.gov/opendata/register.php
-2. Enter your email — EIA emails the key instantly, no account password needed
-3. Paste it in the **Setup > Configure API Keys** section in the sidebar on any page
-
-Note: EIA does not publish a free, API-queryable Baker Hughes rig count — that figure is licensed data only available inside their static Drilling Productivity Report, so it was removed from the signal library rather than faked.
+**Score differentiation:** CCJ (pure miner) responds more to uranium_proxy. VST (generator) responds more to nat gas and hyperscaler CapEx. Same sector, different weights.
 """,
 
-    # Power supercycle
     ("power supercycle", "supercycle", "ai power", "energy demand"): """
 **Power Supercycle Thesis**
 
-The Power Supercycle page tracks the multi-year thesis that AI infrastructure buildout is driving unprecedented electricity demand growth — the largest grid upgrade since rural electrification in the 1930s.
+Five-leg thesis: AI compute → unprecedented electricity demand → largest grid upgrade since 1930s rural electrification.
 
-**Three linked catalysts:**
-1. **AI Compute Demand** — Hyperscaler CapEx (MSFT+AMZN+GOOGL+META) is at all-time highs. Each AI training cluster requires 50-100MW+ of dedicated power.
-2. **Nuclear Renaissance** — Data center companies (Microsoft, Google, Amazon) are signing direct nuclear offtake agreements. CEG, VST, SMR are benefiting.
-3. **Grid Infrastructure Build** — Copper, transformers, transmission lines, and grid construction (FCX, PWR, GEV) are in multi-year supercycle.
+**Three catalysts:**
+1. AI Compute Demand — Hyperscaler CapEx (MSFT+AMZN+GOOGL+META) at all-time highs
+2. Nuclear Renaissance — Data centers signing direct nuclear offtake deals (CEG, VST, SMR)
+3. Grid Infrastructure — Copper, transformers, transmission (FCX, PWR, GEV) in multi-year supercycle
 
-**Key signals:** hyperscaler_capex (primary), uranium_proxy, copper, natural_gas, ten_year_yield (financing cost).
+**Key signals:** hyperscaler_capex (primary), uranium_proxy, copper, natural_gas, ten_year_yield
 """,
 
-    # Market overview
-    ("market overview", "overview page", "indices", "sector performance"): """
-**Market Overview** — Bloomberg-style daily snapshot.
+    ("stock screener", "screener", "how do i find stocks", "best tickers"): """
+**Stock Screener** ranks 80+ tickers by alternative data confluence score.
 
-**What's on the page:**
+**How to use:**
+1. Sidebar filters: sector, signal bias (bull/bear/neutral), min PCS, score range
+2. Text search: filter by ticker or company name
+3. Click any row for inline preview
+4. Click Ticker Deep Dive link for full analysis
 
-1. **Major Indices** (SPY, QQQ, DIA, IWM, VIX) — Current price, 1-day change, and a 30-day sparkline showing the trend
-
-2. **Sector Performance** — 1-month return for all 11 SPDR sector ETFs in a horizontal bar chart (green = positive, red = negative)
-
-3. **Rates & Fixed Income** — Table showing 10Y, 2Y, TLT, HYG, LQD with 1-day, 1-month, and 1-year returns. Plus a live yield curve spread card.
-
-4. **Commodities & Currencies** — Gold, Silver, Oil (USO), Copper (COPX), Natural Gas (UNG), Dollar Index (DX-Y.NYB), Bitcoin
-
-5. **1-Year Performance Chart** — Normalized return chart (SPY, QQQ, IWM, GLD) showing who's winning the year
-
-6. **Signal Snapshot** — 5 key signals from live yfinance data: VIX level, yield curve spread, HYG credit trend, 10Y yield direction, risk appetite (SPY vs Gold)
+**"Quick Analyze Any Ticker"** at the top: enter any ticker (TSLA, PLTR, etc.) even outside the tracked universe.
 """,
 }
 
 
 def find_quick_answer(query: str) -> str | None:
-    """Match query against known Q&A patterns. Returns answer or None."""
     q = query.lower()
     for triggers, answer in QUICK_ANSWERS.items():
         if any(t in q for t in triggers):
@@ -483,16 +374,19 @@ def find_quick_answer(query: str) -> str | None:
 
 
 def try_claude_api(messages: list, system: str) -> str | None:
-    """Try to call Claude API if anthropic library and key are available."""
+    """
+    Call Claude API using the server-side ANTHROPIC_API_KEY environment variable.
+    The key is a Render env var — never read from session_state or user input.
+    """
     try:
         import anthropic
-        api_key = st.session_state.get("ANTHROPIC_API_KEY", "")
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if not api_key:
             return None
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=1024,
+            max_tokens=1200,
             system=system,
             messages=messages,
         )
@@ -501,78 +395,89 @@ def try_claude_api(messages: list, system: str) -> str | None:
         return None
 
 
+def _get_system_prompt() -> str:
+    """Build the full system prompt: static context + live signal state."""
+    live_ctx = _build_live_signal_context()
+    return APP_CONTEXT + ("\n\n" + live_ctx if live_ctx else "")
+
+
 def get_fallback_response(query: str) -> str:
-    """Generate a helpful fallback response for unrecognized queries."""
     q = query.lower()
 
     if any(w in q for w in ["hello", "hi", "hey", "greetings"]):
-        return "Hello! I'm the Unstructured Alpha research assistant. Ask me about any signal, ticker, page, or methodology — I'm here to help you get the most out of the platform."
+        return "Hello! I'm the Unstructured Alpha research assistant. Ask me about any signal, ticker, page, or what the macro is saying right now."
 
     if any(w in q for w in ["thanks", "thank you", "great", "perfect", "awesome"]):
-        return "You're welcome! Let me know if you have any other questions about the platform."
+        return "You're welcome! Let me know if you have other questions."
 
     if any(w in q for w in ["buy", "sell", "trade", "invest", "position", "recommend"]):
         return (
-            "I can't give personalized investment advice — this platform is a research tool, not a trading advisor. "
+            "I can't give personalized investment advice — this is a research tool, not a trading advisor. "
             "What I can do is explain what the signals are saying and how to interpret confluence scores. "
-            "Always do your own due diligence before any investment decision."
+            "Always do your own due diligence."
         )
 
-    # Generic fallback
     return (
-        "I don't have a specific answer for that yet, but I know the Unstructured Alpha platform well. "
-        "Try asking about:\n"
-        "- A specific signal (VIX, ATA Trucking, Yield Curve, HY Spread...)\n"
-        "- A page (Signal Dashboard, Ticker Deep Dive, Stock Screener...)\n"
-        "- A ticker theme (Nuclear, AI Infrastructure, Energy...)\n"
-        "- The scoring methodology (Confluence Score, PCS weights, correlation...)\n"
-        "- How to get started or use a specific feature\n\n"
-        "Or add a Claude API key in Setup for more open-ended answers."
+        "I don't have a specific answer for that yet. Try asking about:\n"
+        "- **Current conditions**: *What is the macro environment saying right now?*\n"
+        "- **A specific signal**: VIX, ATA Trucking, Yield Curve, HY Spread...\n"
+        "- **A ticker theme**: Nuclear, AI Infrastructure, Energy...\n"
+        "- **Methodology**: Confluence Score, PCS weights, correlation...\n"
+        "- **A page walkthrough**: Signal Dashboard, Ticker Deep Dive, Stock Screener...\n"
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Live regime banner — shown at top of chat
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _render_live_regime_banner() -> str:
+    """Return a greeting suffix with live regime, or empty string on failure."""
+    try:
+        from utils.signals_cache import get_all_signal_scores
+        all_sv = get_all_signal_scores()
+        if not all_sv:
+            return ""
+        bulls = sum(1 for v in all_sv.values() if v.get("status") == "bullish" and not v.get("error"))
+        bears = sum(1 for v in all_sv.values() if v.get("status") == "bearish" and not v.get("error"))
+        total = len(all_sv)
+        ratio = bulls / max(bulls + bears, 1)
+        if ratio >= 0.60:
+            regime, color = "BULLISH", "#4CAF50"
+        elif ratio <= 0.35:
+            regime, color = "BEARISH", "#EF5350"
+        else:
+            regime, color = "MIXED", "#C9A84C"
+        return f"\n\n**Live read right now:** :{color[1:]}[{regime}] — {bulls}/{total} signals positive."
+    except Exception:
+        return ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # UI
 # ─────────────────────────────────────────────────────────────────────────────
 
+has_claude = bool(os.environ.get("ANTHROPIC_API_KEY", ""))
+
 st.markdown("## AI Research Assistant")
 st.caption(
-    "Ask anything about signals, tickers, methodology, or how to use the platform. "
-    "Add a Claude API key in Setup for unrestricted AI-powered answers."
+    "Powered by live signal data — ask what the macro is saying right now, "
+    "interpret a signal, walk through a thesis, or explore any ticker."
 )
 
-# Claude API key setup (separate from FRED key)
-with st.sidebar:
-    st.divider()
-    st.markdown("### AI Assistant Setup")
-    with st.expander("Claude API Key (optional)"):
-        st.markdown("Add a Claude API key for open-ended AI answers. Free tier available at console.anthropic.com.")
-        claude_key = st.text_input(
-            "Claude (Anthropic) API Key",
-            type="password",
-            value=st.session_state.get("ANTHROPIC_API_KEY", ""),
-            key="claude_api_key_input",
-        )
-        if claude_key:
-            st.session_state["ANTHROPIC_API_KEY"] = claude_key
-            st.success("Claude API key saved")
-        st.caption("[Get API key](https://console.anthropic.com)")
-
-    has_claude = bool(st.session_state.get("ANTHROPIC_API_KEY", ""))
-    if has_claude:
-        st.success("Claude API connected")
-    else:
-        st.info("Using built-in knowledge base. Add Claude API key for unrestricted Q&A.")
-
+if has_claude:
+    st.success("Live signal-aware AI active — answers reflect today's real signal state.", icon="🟢")
+else:
+    st.info("Using built-in knowledge base. AI responses available when Claude API key is configured on the server.")
 
 # Quick topic buttons
 st.markdown("**Quick topics:**")
 topic_cols = st.columns(4)
 quick_topics = [
-    ("Getting started", "How do I get started with the platform?"),
+    ("Macro right now", "What is the macro environment telling us right now? Give me the full live read."),
     ("Confluence Score", "How is the confluence score calculated?"),
-    ("Nuclear thesis", "Tell me about the nuclear/uranium thesis"),
-    ("FRED API key", "How do I add a FRED API key for live data?"),
+    ("Nuclear thesis", "Tell me about the nuclear/uranium thesis and which signals matter most"),
+    ("Getting started", "How do I get started with the platform?"),
 ]
 for i, (label, prompt) in enumerate(quick_topics):
     if topic_cols[i % 4].button(label, key=f"qt_{i}", use_container_width=True):
@@ -580,61 +485,57 @@ for i, (label, prompt) in enumerate(quick_topics):
             st.session_state.messages = []
         st.session_state.messages.append({"role": "user", "content": prompt})
         answer = find_quick_answer(prompt) or try_claude_api(
-            [{"role": "user", "content": prompt}], APP_CONTEXT
+            [{"role": "user", "content": prompt}], _get_system_prompt()
         ) or get_fallback_response(prompt)
         st.session_state.messages.append({"role": "assistant", "content": answer})
         st.rerun()
 
 st.divider()
 
-# Initialize chat history
+# Initialize chat history with live-aware greeting
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    # Greeting
+    live_suffix = _render_live_regime_banner()
     st.session_state.messages.append({
         "role": "assistant",
         "content": (
-            "Hello! I'm the Unstructured Alpha research assistant. "
-            "I can explain any signal, walk you through pages, help you interpret confluence scores, "
-            "or discuss the Power Supercycle thesis.\n\n"
-            "**Try asking:**\n"
-            "- *What does the yield curve signal mean?*\n"
-            "- *How is the confluence score calculated?*\n"
+            "Hello! I'm the Unstructured Alpha research assistant — now connected to live signal data."
+            + live_suffix +
+            "\n\n**Try asking:**\n"
+            "- *What is the macro environment saying right now?*\n"
+            "- *What does the yield curve look like today?*\n"
+            "- *Which signals are most bearish right now?*\n"
             "- *Walk me through the Ticker Deep Dive page*\n"
-            "- *Which signals matter most for nuclear tickers?*\n"
-            "- *What does a VIX of 16 mean for my portfolio?*"
+            "- *Which signals matter most for nuclear tickers?*"
         )
     })
 
 # Render chat history
-chat_container = st.container()
-with chat_container:
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
 # Chat input
-if prompt := st.chat_input("Ask about signals, tickers, methodology, or how to use the platform…"):
-    # Add user message
+if prompt := st.chat_input("Ask about current macro conditions, signals, tickers, or methodology…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Generate response
     with st.chat_message("assistant"):
         with st.spinner("Thinking…"):
-            # 1) Try rule-based quick answers first (instant)
+            # 1) Rule-based quick answers (instant, no API)
             answer = find_quick_answer(prompt)
 
-            # 2) If no quick answer, try Claude API
+            # 2) Claude API with live signal context
             if not answer:
+                system_prompt = _get_system_prompt()  # rebuilds live context each call
                 claude_messages = [
                     {"role": m["role"], "content": m["content"]}
-                    for m in st.session_state.messages[:-1]  # exclude latest user msg
+                    for m in st.session_state.messages[:-1]
                 ] + [{"role": "user", "content": prompt}]
-                answer = try_claude_api(claude_messages, APP_CONTEXT)
+                answer = try_claude_api(claude_messages, system_prompt)
 
-            # 3) Fallback to rule-based generic
+            # 3) Rule-based generic fallback
             if not answer:
                 answer = get_fallback_response(prompt)
 
@@ -642,31 +543,33 @@ if prompt := st.chat_input("Ask about signals, tickers, methodology, or how to u
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
 
-# Clear chat button
-if st.session_state.messages and len(st.session_state.messages) > 1:
+# Clear chat
+if len(st.session_state.get("messages", [])) > 1:
     if st.button("Clear conversation", key="clear_chat"):
         st.session_state.messages = []
         st.rerun()
 
-# ── Suggested questions ────────────────────────────────────────────────────────
+# Suggested questions
 with st.expander("More suggested questions"):
     suggestions = [
-        "What signals are most important for energy tickers like XOM and CVX?",
-        "Explain the HY credit spread and why it matters",
-        "What is the ATA Trucking index and why is it a leading indicator?",
-        "How do I find the most bullish tickers in the screener right now?",
+        "What is the macro environment telling us right now?",
+        "Which signals are currently most bearish?",
+        "What does the HY credit spread look like today?",
+        "Explain the ATA Trucking signal and why it matters",
+        "How do I find the most bullish tickers in the screener?",
         "What's the difference between PCS and correlation weight?",
         "Walk me through using the Stock Screener to find AI infrastructure plays",
         "Why might two uranium tickers have different confluence scores?",
         "What does it mean when the yield curve is inverted?",
         "How do federal contract awards relate to stock performance?",
         "What is the Power Supercycle thesis?",
+        "Which signals are the most reliable historically?",
     ]
     for s in suggestions:
         if st.button(s, key=f"sug_{s[:20]}", use_container_width=True):
             st.session_state.messages.append({"role": "user", "content": s})
             answer = find_quick_answer(s) or try_claude_api(
-                [{"role": "user", "content": s}], APP_CONTEXT
+                [{"role": "user", "content": s}], _get_system_prompt()
             ) or get_fallback_response(s)
             st.session_state.messages.append({"role": "assistant", "content": answer})
             st.rerun()
