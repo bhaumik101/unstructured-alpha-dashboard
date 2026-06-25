@@ -316,6 +316,67 @@ if _conv_events:
             render_convergence_events(_bear_ev[1:], max_bull=0, max_bear=2)
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
+# ── LATEST RESEARCH NOTE TEASER ──────────────────────────────────────────────
+# Show a teaser card if a note exists. Zero extra cost — just a DB read.
+try:
+    from utils.narrative_engine import get_latest_note as _get_ln
+    _latest_note = _get_ln()
+    if _latest_note:
+        _note_regime   = _latest_note.get("regime", "")
+        _note_headline = _latest_note.get("headline", "")
+        _note_date     = _latest_note.get("note_date", "")
+        _note_body     = _latest_note.get("body", "")
+        _note_bull_n   = _latest_note.get("bull_count") or 0
+        _note_bear_n   = _latest_note.get("bear_count") or 0
+
+        # Extract first body paragraph (skip headline line) for teaser
+        _note_paras = [p.strip() for p in _note_body.split("\n\n") if p.strip()]
+        _note_hl_clean = _note_headline.strip("*#").strip()
+        if _note_paras and _note_paras[0].strip("*#").strip() == _note_hl_clean:
+            _note_paras = _note_paras[1:]
+        _note_teaser = _note_paras[0][:240] + "…" if _note_paras else ""
+
+        # Regime chip colors
+        _regime_colors = {
+            "RISK-ON":            ("#1B5E20", "#E8F5E9"),
+            "CAUTIOUSLY BULLISH": ("#33691E", "#F1F8E9"),
+            "MIXED / TRANSITION": ("#E65100", "#FFF8E1"),
+            "CAUTIOUSLY BEARISH": ("#BF360C", "#FBE9E7"),
+            "RISK-OFF":           ("#7B1010", "#FFEBEE"),
+        }
+        _rf, _rb = _regime_colors.get(_note_regime, ("#6B5E52", "#F5F5F5"))
+
+        # Format date
+        try:
+            from datetime import datetime as _dtn
+            _nd = _dtn.strptime(_note_date, "%Y-%m-%d")
+            _note_date_str = _nd.strftime("%B %d, %Y")
+        except Exception:
+            _note_date_str = _note_date
+
+        st.markdown(
+            f'<div style="background:#FAF6F0;border:1px solid #E0D5C5;border-top:3px solid #8B6914;'
+            f'border-radius:8px;padding:18px 22px;margin-bottom:24px;font-family:\'Georgia\',serif;">'
+            f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+            f'<span style="font-size:0.62rem;letter-spacing:0.14em;font-weight:700;color:#B8860B;">📰 LATEST RESEARCH NOTE</span>'
+            f'<span style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;padding:2px 8px;'
+            f'border-radius:3px;background:{_rb};color:{_rf};border:1px solid {_rf}33;">{_note_regime}</span>'
+            f'<span style="font-size:0.70rem;color:#8B7355;margin-left:auto;">{_note_date_str}</span>'
+            f'</div>'
+            f'<div style="font-size:1.05rem;font-weight:700;color:#1A1612;line-height:1.3;margin-bottom:8px;">'
+            f'{_note_hl_clean}</div>'
+            f'<div style="font-size:0.82rem;color:#4A4440;line-height:1.65;margin-bottom:10px;">'
+            f'{_note_teaser}</div>'
+            f'<div style="font-size:0.70rem;color:#8B7355;">'
+            f'{_note_bull_n} bullish · {_note_bear_n} bearish signals</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Read Full Note →", key="home_note_cta", use_container_width=False):
+            st.switch_page("pages/18_Weekly_Brief.py")
+except Exception:
+    pass  # Never block the home page
+
 # ── 3 CORE FEATURE SPOTLIGHTS ─────────────────────────────────────────────────
 # Psychology: 3 = digestible. 6 = paralysis. Show the 3 things that differentiate.
 st.markdown("""

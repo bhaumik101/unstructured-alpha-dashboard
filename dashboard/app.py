@@ -57,17 +57,19 @@ pg = st.navigation(
         ],
         "Daily Intel": [
             st.Page("pages/2_Today_Digest.py",      title="Today's Brief"),
+            st.Page("pages/18_Weekly_Brief.py",     title="Weekly Brief"),
             st.Page("pages/12_Sector_Map.py",       title="Sector Map"),
         ],
         "Signals": [
             st.Page("pages/1_Signal_Dashboard.py",  title="Signal Dashboard"),
         ],
         "Research": [
-            st.Page("pages/3_Ticker_Deep_Dive.py",  title="Ticker Deep Dive"),
+            st.Page("pages/3_Ticker_Deep_Dive.py",   title="Ticker Deep Dive"),
+            st.Page("pages/19_Signal_Backtester.py", title="Signal Backtester"),
             st.Page("pages/17_Portfolio_Analyzer.py", title="Portfolio Analyzer"),
             st.Page("pages/16_Short_Squeeze_Radar.py", title="Short Squeeze Radar"),
-            st.Page("pages/13_Track_Record.py",     title="Earnings Track Record"),
-            st.Page("pages/4_Power_Supercycle.py",  title="Power Supercycle"),
+            st.Page("pages/13_Track_Record.py",      title="Earnings Track Record"),
+            st.Page("pages/4_Power_Supercycle.py",   title="Power Supercycle"),
         ],
         "Market": [
             st.Page("pages/5_Market_Overview.py",   title="Market Overview"),
@@ -95,6 +97,17 @@ try:
     run_periodic_maintenance()  # low-probability hygiene pass — see utils/db.py
 except Exception:
     pass  # maintenance is best-effort; never block page render
+
+# ── Sunday auto-generate Weekly Brief (best-effort, non-blocking) ─────────────
+# Fires at most once per Sunday per server restart because should_auto_generate()
+# checks whether today's note already exists before returning True.
+# generate_weekly_note() is ~2s API call — acceptable on cold run startup.
+try:
+    from utils.narrative_engine import should_auto_generate, generate_weekly_note
+    if should_auto_generate():
+        generate_weekly_note(force=False)
+except Exception:
+    pass  # never block the app for a failed note generation
 
 _cookies = init_cookies_for_this_run()
 

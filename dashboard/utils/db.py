@@ -265,6 +265,26 @@ system_notifications = Table(
     Column("created_at", String(64), nullable=False),
 )
 
+# Machine-generated macro research notes (added 2026-06-25).
+# Generated weekly by utils/narrative_engine.py via Anthropic API.
+# One row per note_date (YYYY-MM-DD). The body is the full markdown note;
+# headline and regime are extracted fields for fast home-page teaser display
+# without parsing the full body on every load.
+macro_narratives = Table(
+    "macro_narratives", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("note_date", String(10), nullable=False, unique=True),  # YYYY-MM-DD
+    Column("regime", String(32), nullable=False),                  # RISK-ON / RISK-OFF / MIXED etc.
+    Column("headline", String(255), nullable=False),
+    Column("body", Text, nullable=False),                          # full markdown note
+    Column("bull_count", Integer),
+    Column("bear_count", Integer),
+    Column("model", String(64)),                                   # model string used
+    Column("input_tokens", Integer),
+    Column("output_tokens", Integer),
+    Column("created_at", String(64), nullable=False),
+)
+
 # Per-user read receipts for system notifications
 notification_reads = Table(
     "notification_reads", metadata,
