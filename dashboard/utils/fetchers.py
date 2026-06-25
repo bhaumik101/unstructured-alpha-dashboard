@@ -1121,6 +1121,90 @@ def fetch_ticker_news(ticker: str) -> list[dict]:
         return []
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# yfinance — Options Chain (unusual activity detector)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=1800, show_spinner=False, max_entries=80)
+def fetch_options_chain(ticker: str) -> dict:
+    """
+    Fetch the full options chain for a ticker via yfinance.
+
+    Returns dict with keys:
+        expirations  — list of expiration date strings (closest first)
+        calls        — pd.DataFrame (all expirations concatenated, col "expiration" added)
+        puts         — pd.DataFrame (same)
+        put_call_ratio — float (total put volume / total call volume, NaN on failure)
+        current_price  — float or None
+
+    Columns per DataFrame (from yfinance): contractSymbol, strike, lastPrice, bid, ask,
+        change, percentChange, volume, openInterest, impliedVolatility, inTheMoney,
+        expiration (added).
+
+    "Unusual" contracts are those where volume / max(openInterest, 1) > 1.0 AND
+    volume > 100 — the caller can filter for these. A volume-to-OI ratio > 1
+    means more contracts traded today than existed yesterday, implying fresh
+    positioning rather than exits.
+
+    Returns empty dict on failure — callers must handle gracefully.
+    """
+    try:
+        t = yf.Ticker(ticker)
+        expirations = t.options
+        if not expirations:
+            return {}
+
+        # Pull up to 6 nearest expirations (avoids very far-dated illiquid strikes)
+        exp_subset = expirations[:6]
+
+        all_calls, all_puts = [], []
+        for exp in exp_subset:
+            try:
+                chain = t.option_chain(exp)
+                c = chain.calls.copy()
+                p = chain.puts.copy()
+                c["expiration"] = exp
+                p["expiration"] = exp
+                all_calls.append(c)
+                all_puts.append(p)
+            except Exception:
+                continue
+
+        if not all_calls and not all_puts:
+            return {}
+
+        calls_df = pd.concat(all_calls, ignore_index=True) if all_calls else pd.DataFrame()
+        puts_df  = pd.concat(all_puts,  ignore_index=True) if all_puts  else pd.DataFrame()
+
+        # Clean: fill NA volume/OI with 0
+        for df in (calls_df, puts_df):
+            for col in ("volume", "openInterest", "impliedVolatility"):
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+        total_call_vol = float(calls_df["volume"].sum()) if not calls_df.empty else 0
+        total_put_vol  = float(puts_df["volume"].sum())  if not puts_df.empty  else 0
+        pcr = total_put_vol / total_call_vol if total_call_vol > 0 else float("nan")
+
+        # Current price from fast_info
+        current_price = None
+        try:
+            fi = t.fast_info
+            current_price = fi.get("lastPrice") or fi.get("last_price")
+        except Exception:
+            pass
+
+        return {
+            "expirations":    list(expirations),
+            "calls":          calls_df,
+            "puts":           puts_df,
+            "put_call_ratio": pcr,
+            "current_price":  float(current_price) if current_price else None,
+        }
+    except Exception:
+        return {}
+
+
 def _synthetic_cot(market: str) -> pd.DataFrame:
     """Synthetic COT positioning data for demo mode."""
     np.random.seed(abs(hash(market)) % 2**31)
