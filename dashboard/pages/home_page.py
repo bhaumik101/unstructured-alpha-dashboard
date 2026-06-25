@@ -330,11 +330,12 @@ try:
         _note_bear_n   = _latest_note.get("bear_count") or 0
 
         # Extract first body paragraph (skip headline line) for teaser
+        import html as _html_escape
         _note_paras = [p.strip() for p in _note_body.split("\n\n") if p.strip()]
-        _note_hl_clean = _note_headline.strip("*#").strip()
-        if _note_paras and _note_paras[0].strip("*#").strip() == _note_hl_clean:
+        _note_hl_clean = _html_escape.escape(_note_headline.strip("*#").strip())
+        if _note_paras and _note_paras[0].strip("*#").strip() == _note_headline.strip("*#").strip():
             _note_paras = _note_paras[1:]
-        _note_teaser = _note_paras[0][:240] + "…" if _note_paras else ""
+        _note_teaser = _html_escape.escape(_note_paras[0][:240] + "…") if _note_paras else ""
 
         # Regime chip colors
         _regime_colors = {

@@ -32,6 +32,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+import html as _html_mod  # must be at module level — used in archive section outside else block
+
 from utils.header import render_header
 
 render_header()
@@ -243,22 +245,31 @@ else:
         paragraphs = paragraphs[1:]
 
     # ── Headline ──────────────────────────────────────────────────────────────
-    display_headline = headline.lstrip("#*").strip()
+    display_headline = _html_mod.escape(headline.lstrip("#*").strip())
     st.markdown(
         f'<div class="ua-headline">{display_headline}</div>',
         unsafe_allow_html=True,
     )
 
     # ── Body paragraphs ───────────────────────────────────────────────────────
-    import html as _html_mod
-
     body_html_parts: list[str] = []
     for para in paragraphs:
         safe = _html_mod.escape(para)
-        if safe.startswith("Bottom Line:"):
+        # Handle both "Bottom Line:" and "**Bottom Line:**" (markdown bold variant)
+        _is_bottom_line = (
+            safe.startswith("Bottom Line:")
+            or safe.startswith("**Bottom Line:**")
+            or safe.startswith("**Bottom Line:**")
+        )
+        if _is_bottom_line:
+            # Strip any of the known prefix forms, then render with styled label
+            _rest = safe
+            for _prefix in ("**Bottom Line:**", "**Bottom Line:**", "Bottom Line:"):
+                if _rest.startswith(_prefix):
+                    _rest = _rest[len(_prefix):].strip()
+                    break
             body_html_parts.append(
-                f'<div class="ua-bottom-line"><strong>Bottom Line:</strong>'
-                f'{safe[len("Bottom Line:"):].strip()}</div>'
+                f'<div class="ua-bottom-line"><strong>Bottom Line:</strong> {_rest}</div>'
             )
         else:
             body_html_parts.append(f'<p>{safe}</p>')
@@ -311,7 +322,8 @@ if len(archive) > 1:
                 d_label = _d3.strftime("%B %d, %Y")
             except Exception:
                 d_label = rec["note_date"]
-            with st.expander(f"Read: {rec.get('headline', d_label)[:70]}...", expanded=False):
+            _safe_hl_exp = _html_mod.escape(rec.get("headline", d_label)[:70])
+            with st.expander(f"Read: {rec.get('headline', d_label)[:70]}…", expanded=False):
                 st.caption(f"{d_label} · {rec.get('regime', '')}")
                 raw2 = rec.get("body", "")
                 paras2 = [p.strip() for p in raw2.split("\n\n") if p.strip()]
@@ -320,10 +332,18 @@ if len(archive) > 1:
                     paras2 = paras2[1:]
                 for pa in paras2:
                     safe2 = _html_mod.escape(pa)
-                    if safe2.startswith("Bottom Line:"):
+                    _is_bl2 = (
+                        safe2.startswith("Bottom Line:")
+                        or safe2.startswith("**Bottom Line:**")
+                    )
+                    if _is_bl2:
+                        _rest2 = safe2
+                        for _pfx2 in ("**Bottom Line:**", "Bottom Line:"):
+                            if _rest2.startswith(_pfx2):
+                                _rest2 = _rest2[len(_pfx2):].strip()
+                                break
                         st.markdown(
-                            f'<div class="ua-bottom-line"><strong>Bottom Line:</strong>'
-                            f'{safe2[len("Bottom Line:"):].strip()}</div>',
+                            f'<div class="ua-bottom-line"><strong>Bottom Line:</strong> {_rest2}</div>',
                             unsafe_allow_html=True,
                         )
                     else:

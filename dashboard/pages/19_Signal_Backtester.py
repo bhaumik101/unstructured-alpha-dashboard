@@ -392,7 +392,7 @@ with _right:
             # ── Show rule summary ─────────────────────────────────────────────
             rule_parts = []
             for rule in signal_rules:
-                sig_name = SIGNALS[rule["signal_id"]]["name"][:30]
+                sig_name = _html_mod.escape(SIGNALS[rule["signal_id"]]["name"][:30])
                 rule_parts.append(
                     f'<span style="font-weight:700;">{sig_name}</span> '
                     f'{rule["condition"]} <span style="font-weight:700;">{rule["threshold"]:.0f}</span>'
@@ -404,7 +404,7 @@ with _right:
                 + " &nbsp;AND&nbsp; ".join(rule_parts) +
                 f'</div>'
                 f'<div style="font-size:0.72rem;color:#8B7355;margin-top:6px;">'
-                f'Ticker: <b>{ticker_input}</b> · Direction: <b>{"BULLISH" if direction_key == "bull" else "BEARISH"}</b>'
+                f'Ticker: <b>{_html_mod.escape(ticker_input)}</b> · Direction: <b>{"BULLISH" if direction_key == "bull" else "BEARISH"}</b>'
                 f' · Instances found: <b>{n_instances}</b>'
                 f'</div>'
                 f'</div>',
@@ -506,7 +506,7 @@ with _right:
                         plot_bgcolor="#FAFAF7",
                         font=dict(family="Georgia, serif", size=12, color="#2A2420"),
                         title=dict(
-                            text=f"{ticker_input} forward returns across {n_res} instances",
+                            text=f"{ticker_input.upper()} forward returns across {n_res} instances",
                             font=dict(size=13, color="#1A1612"),
                             x=0,
                         ),

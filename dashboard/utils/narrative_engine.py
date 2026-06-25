@@ -33,7 +33,7 @@ from utils.db import macro_narratives, upsert_stmt
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 _MODEL        = "claude-haiku-4-5-20251001"
-_MAX_TOKENS   = 900
+_MAX_TOKENS   = 1200  # 550-700 words ≈ 800-950 tokens; 1200 gives headroom without waste
 _BULL_THRESH  = 65.0
 _BEAR_THRESH  = 35.0
 
@@ -206,7 +206,6 @@ def generate_weekly_note(force: bool = False) -> Optional[dict]:
     headline = lines[0][:255] if lines else "Unstructured Alpha Weekly Macro Note"
 
     # Store in DB (upsert on note_date — idempotent re-generation)
-    engine = get_engine()
     now_ts = datetime.now(timezone.utc).isoformat()
     try:
         stmt = upsert_stmt(macro_narratives, ["note_date"]).values(
