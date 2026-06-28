@@ -930,6 +930,89 @@ SIGNALS = {
         "source_url": "https://fred.stlouisfed.org/series/TTLCONS",
     },
 
+    # ── Social & Sentiment Signals ────────────────────────────────────────────
+    "retail_fear_gauge": {
+        "name": "Retail Fear Index (Google Trends)",
+        "tier": 2,
+        "pcs": 5,
+        "source": "google_trends",
+        "series_id": "market crash,recession,stock market crash",
+        "frequency": "weekly",
+        "lag_weeks": 0,
+        "inverse": False,
+        "unit": "Search Interest (0-100, relative)",
+        "description": (
+            "Weekly Google Trends search intensity for 'market crash', 'recession', and "
+            "'stock market crash' in the US — a real-time retail fear gauge. Used as a "
+            "CONTRARIAN signal: spikes in fear searches have historically coincided with "
+            "short-term market bottoms rather than tops, because retail investors tend to "
+            "search frantically during selling climaxes. Low fear = complacency = mild "
+            "bearish lean. PCS is deliberately modest — Google Trends can reflect "
+            "media-driven panic that doesn't correspond to actual price turns, and the "
+            "series is only 90 days deep per pull, limiting historical validation."
+        ),
+        "causal_mechanism": (
+            "Retail search panic tends to cluster at capitulation moments — when "
+            "unsophisticated investors are most frightened, institutional buyers are often "
+            "accumulating. The contrarian read is structural: retail sells into fear, "
+            "institutions buy. High fear → more supply absorbed → price floor. "
+            "Note: this is a sentiment-momentum signal, not a fundamental one."
+        ),
+        "documented_cases": [
+            "Google Trends 'stock market crash' searches spiked in March 2020 within days "
+            "of the pandemic low — the S&P 500 bottomed while search volume peaked",
+            "Similar fear-search spikes occurred in Oct 2022 (near the bear-market low) "
+            "and Aug 2024 (yen carry-trade unwind — brief but sharp)",
+        ],
+        "relevant_tickers": ["SPY", "QQQ", "IWM", "VIX"],
+        "category": "macro",
+        "color": "#7B5EA7",
+        "source_url": "https://trends.google.com/trends/",
+    },
+
+    "fedspeaks_hawkishness": {
+        "name": "Fed Policy Hawkishness (FOMC AI Score)",
+        "tier": 1,
+        "pcs": 7,
+        "source": "fedspeaks",
+        "series_id": "fomc_hawkishness",
+        "frequency": "monthly",
+        "lag_weeks": 0,
+        "inverse": True,
+        "unit": "Hawkishness Score (0=Dovish, 100=Very Hawkish)",
+        "description": (
+            "AI-scored hawkishness of the most recent FOMC monetary policy statement, "
+            "fetched from federalreserve.gov and analyzed by Claude Haiku. Scored 0-100 "
+            "where 0 = maximally dovish (rate cuts, accommodation language) and 100 = "
+            "maximally hawkish (rate hike bias, inflation focus, restrictive language). "
+            "Inverse signal: high hawkishness = bearish for equities (rising rates compress "
+            "multiples). Updates after each FOMC meeting (~8×/year). PCS is intentionally "
+            "higher than the social sentiment signals because Fed policy is the single most "
+            "studied equity-return predictor at 0-6 month horizons."
+        ),
+        "causal_mechanism": (
+            "Fed rate policy directly affects the discount rate used in equity valuation. "
+            "Hawkish language reliably forecasts higher short-term rates, which (1) compress "
+            "PE multiples via the Gordon Growth Model, (2) increase the cost of corporate "
+            "debt, and (3) strengthen the dollar which weighs on multinational earnings. "
+            "The language itself is leading because the Fed often signals intentions before "
+            "acting — markets price the signal, not just the rate move."
+        ),
+        "documented_cases": [
+            "FOMC statements in late 2021 shifted from 'transitory' inflation language to "
+            "explicit rate-hike intent 3-4 months before the first hike — equities peaked "
+            "Jan 2022 as the language hardened",
+            "The July 2023 statement's 'data dependent' softening preceded the rate pause "
+            "that coincided with the 2H 2023 equity rally",
+            "March 2024 statement dropped 'further policy firming' language; equities "
+            "continued rallying through the year as rate-cut expectations solidified",
+        ],
+        "relevant_tickers": ["SPY", "QQQ", "TLT", "GLD", "JPM", "BAC", "GS"],
+        "category": "macro",
+        "color": "#1A3A5C",
+        "source_url": "https://www.federalreserve.gov/newsevents/pressreleases.htm",
+    },
+
     # NOTE: lithium_battery_proxy (LIT), rare_earth_proxy (REMX),
     # defense_aerospace_proxy (ITA), biotech_innovation_proxy (XBI),
     # cybersecurity_proxy (CIBR), robotics_automation_proxy (BOTZ), and

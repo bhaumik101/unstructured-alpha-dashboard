@@ -60,12 +60,15 @@ pg = st.navigation(
             st.Page("pages/18_Weekly_Brief.py",      title="Weekly Brief"),
             st.Page("pages/12_Sector_Map.py",        title="Sector Map"),
             st.Page("pages/20_Congress_Tracker.py",  title="Congress Tracker"),
+            st.Page("pages/23_Event_Forecaster.py",  title="Event Forecaster"),
         ],
         "Signals": [
             st.Page("pages/1_Signal_Dashboard.py",  title="Signal Dashboard"),
+            st.Page("pages/22_Regime_Playbook.py",  title="Regime Playbook"),
         ],
         "Research": [
             st.Page("pages/3_Ticker_Deep_Dive.py",    title="Ticker Deep Dive"),
+            st.Page("pages/24_Basket_Builder.py",      title="Basket Builder"),
             st.Page("pages/19_Signal_Backtester.py",  title="Signal Backtester"),
             st.Page("pages/17_Portfolio_Analyzer.py", title="Portfolio Analyzer"),
             st.Page("pages/16_Short_Squeeze_Radar.py", title="Short Squeeze Radar"),

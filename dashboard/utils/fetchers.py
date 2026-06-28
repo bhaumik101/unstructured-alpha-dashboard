@@ -300,6 +300,10 @@ def fetch_signal_series(cfg: dict, start: str, end: str) -> pd.Series:
             return fetch_arxiv_velocity(query=cfg.get("series_id", "quantum computing"))
         elif src == "fda":
             return fetch_fda_approval_velocity()
+        elif src == "google_trends":
+            return fetch_google_trends_fear(terms=cfg.get("series_id", "market crash,recession"))
+        elif src == "fedspeaks":
+            return fetch_fedspeaks_hawkishness(series_id=cfg.get("series_id", "fomc_hawkishness"))
         else:
             return pd.Series(dtype=float)
     except Exception:
@@ -1203,6 +1207,164 @@ def fetch_options_chain(ticker: str) -> dict:
         }
     except Exception:
         return {}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Google Trends — Retail Fear Gauge
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=86400, show_spinner=False, max_entries=3)
+def fetch_google_trends_fear(terms: str = "market crash,recession,stock market crash") -> pd.Series:
+    """
+    Fetch weekly Google Trends search interest for retail fear terms.
+    Returns a pd.Series of weekly values (0–100 relative interest).
+
+    Used as a CONTRARIAN signal: high fear-search intensity has historically
+    coincided with market bottoms (capitulation), not tops. Low fear (complacency)
+    is the mild bearish read.
+
+    Args:
+        terms: comma-separated search terms (from config series_id)
+
+    No API key required — pytrends uses Google Trends' public interface.
+    Rate-limited: one request per 24h cache is well within Google's tolerance.
+    """
+    try:
+        from pytrends.request import TrendReq
+
+        term_list = [t.strip() for t in terms.split(",") if t.strip()][:5]
+
+        pt = TrendReq(hl="en-US", tz=360, timeout=(15, 30), retries=2, backoff_factor=0.5)
+        pt.build_payload(term_list, cat=0, timeframe="today 3-m", geo="US")
+        df = pt.interest_over_time()
+
+        if df.empty:
+            return pd.Series(dtype=float, name="retail_fear_index")
+
+        # Average across all queried terms → composite fear index
+        available = [t for t in term_list if t in df.columns]
+        if not available:
+            return pd.Series(dtype=float, name="retail_fear_index")
+
+        fear = df[available].mean(axis=1)
+        fear.index = pd.to_datetime(fear.index)
+        fear.name = "retail_fear_index"
+        return fear.dropna()
+
+    except ImportError:
+        return pd.Series(dtype=float, name="retail_fear_index")
+    except Exception:
+        return pd.Series(dtype=float, name="retail_fear_index")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FedSpeak — FOMC Statement Hawkishness Score
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Known FOMC statement dates → used to build time series from historical statements
+_FOMC_DATES = [
+    # 2023
+    "20230201", "20230322", "20230503", "20230614", "20230726", "20230920",
+    "20231101", "20231213",
+    # 2024
+    "20240131", "20240320", "20240501", "20240612", "20240731", "20240918",
+    "20241107", "20241218",
+    # 2025
+    "20250129", "20250319", "20250507", "20250618", "20250730", "20250917",
+    "20251029", "20251210",
+]
+
+_FOMC_BASE_URL = "https://www.federalreserve.gov/newsevents/pressreleases/monetary{date}a.htm"
+
+_HAWK_PROMPT = """You are a Federal Reserve analyst. Score the following FOMC monetary policy statement on a hawkishness scale from 0 to 100:
+- 0-20: Very dovish (explicit easing bias, rate cuts imminent, maximum accommodation language)
+- 21-40: Moderately dovish (data-dependent with easing lean, concern about growth/employment)
+- 41-59: Neutral (balanced risks, no clear directional bias, truly data-dependent)
+- 60-79: Moderately hawkish (inflation focus, rate-hike bias, restrictive stance maintained)
+- 80-100: Very hawkish (aggressive tightening language, inflation fight priority, hike imminent)
+
+Respond with ONLY a JSON object: {"score": <integer 0-100>, "rationale": "<one sentence>"}
+
+Statement:
+{text}"""
+
+
+@st.cache_data(ttl=7 * 24 * 3600, show_spinner=False, max_entries=1)
+def fetch_fedspeaks_hawkishness(series_id: str = "fomc_hawkishness") -> pd.Series:
+    """
+    Fetch and AI-score recent FOMC monetary policy statements.
+
+    For each known FOMC meeting date (up to 8 most recent), fetches the
+    official statement from federalreserve.gov and scores its hawkishness
+    0-100 using Claude Haiku (cheap, fast). Returns a pd.Series indexed by
+    meeting date — gives the scoring pipeline a real time series to compute
+    z-scores and trend against.
+
+    Cached for 7 days — FOMC meets ~8×/year so the series only changes
+    after meetings. Haiku API cost: ~$0.002 per statement × 8 = ~$0.016
+    per cold-start cache. Acceptable.
+
+    Falls back gracefully:
+      - If Anthropic API key missing → returns empty series
+      - If a statement fetch fails → skips that date
+      - If fewer than 3 dates scored → empty series (not enough for z-score)
+    """
+    import os, re
+    import anthropic as _anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return pd.Series(dtype=float, name="fedspeaks_hawkishness")
+
+    # Score the most recent 8 FOMC meetings (covers ~1 year of data)
+    recent_dates = sorted(_FOMC_DATES)[-8:]
+    scored: dict[str, float] = {}
+
+    client = _anthropic.Anthropic(api_key=api_key)
+
+    for date_str in recent_dates:
+        url = _FOMC_BASE_URL.format(date=date_str)
+        try:
+            r = requests.get(url, timeout=15, headers={"User-Agent": "UnstructuredAlpha/1.0"})
+            if r.status_code != 200:
+                continue
+
+            # Strip HTML tags
+            raw = re.sub(r"<[^>]+>", " ", r.text)
+            raw = re.sub(r"\s+", " ", raw).strip()
+
+            # Extract the policy statement portion (first ~2000 chars after "Federal Open Market")
+            idx = raw.find("Federal Open Market Committee")
+            if idx == -1:
+                idx = raw.find("Federal Reserve")
+            snippet = raw[max(0, idx):idx + 3000] if idx >= 0 else raw[:3000]
+
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=120,
+                messages=[{"role": "user", "content": _HAWK_PROMPT.format(text=snippet)}],
+            )
+            raw_resp = response.content[0].text.strip()
+
+            import json as _json
+            parsed = _json.loads(raw_resp)
+            score_val = float(parsed.get("score", 50))
+            if 0 <= score_val <= 100:
+                # Parse date string → date object
+                dt = pd.to_datetime(
+                    f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}"
+                )
+                scored[dt] = score_val
+
+        except Exception:
+            continue  # skip failed dates silently
+
+    if len(scored) < 3:
+        return pd.Series(dtype=float, name="fedspeaks_hawkishness")
+
+    series = pd.Series(scored, name="fedspeaks_hawkishness")
+    series.index = pd.to_datetime(series.index)
+    return series.sort_index()
 
 
 def _synthetic_cot(market: str) -> pd.DataFrame:
