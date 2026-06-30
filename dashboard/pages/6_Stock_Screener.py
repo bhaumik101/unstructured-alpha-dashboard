@@ -3,6 +3,13 @@ Page 6 — Stock Screener
 Filter and rank every ticker in the Unstructured Alpha universe by confluence
 score, sector, signal direction, and signal strength. Click any row to jump to
 the Ticker Deep Dive, or enter any ticker symbol for a quick analysis.
+
+Search behaviour:
+  - Sidebar search filters the ~80-ticker tracked universe first.
+  - If the search term matches nothing in the universe, it is automatically
+    treated as a custom ticker symbol and analyzed via yfinance + sector signals.
+    This way you are never dead-ended with "no results."
+  - The "Analyze Any Ticker" block at the top also accepts any yfinance symbol.
 """
 
 from datetime import datetime, timedelta
@@ -22,184 +29,222 @@ from utils.signals_cache import get_all_signal_scores
 
 st.set_page_config(page_title="Stock Screener — UA", layout="wide")
 render_header("Stock Screener")
-
 render_sidebar_base()
 
-st.caption(
-    "Confluence Score ranks tickers by current signal agreement, not a validated return forecast — "
-    "see About → Methodology for the backtest behind that distinction."
+st.markdown(
+    '<div style="font-size:0.76rem;color:#6B7FBF;font-family:Inter,sans-serif;'
+    'margin:-4px 0 12px;">Confluence Score ranks tickers by current signal agreement — '
+    'not a validated return forecast. See About → Methodology for the backtest.</div>',
+    unsafe_allow_html=True,
 )
 
 END   = datetime.now().strftime("%Y-%m-%d")
 START = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
 
-STATUS_COLOR = {"bullish": "#1B5E20", "bearish": "#7B1010", "neutral": "#8B7355", "insufficient_data": "#9E9E8E"}
-STATUS_SYM   = {"bullish": "▲", "bearish": "▼", "neutral": "●", "insufficient_data": "○"}
+# Dark-theme status palette
+STATUS_COLOR = {
+    "bullish":          "#00D566",
+    "bearish":          "#FF4444",
+    "neutral":          "#6B7FBF",
+    "insufficient_data":"#8892AA",
+}
+STATUS_SYM = {
+    "bullish": "▲", "bearish": "▼", "neutral": "●", "insufficient_data": "○",
+}
+
+SECTOR_SIGNAL_MAP = {
+    "Technology":             ["hyperscaler_capex", "semiconductor_etf", "ten_year_yield", "hy_spread", "vix"],
+    "Energy":                 ["crude_oil", "crude_inventories", "natural_gas", "gas_storage", "dollar_index"],
+    "Financial Services":     ["yield_curve", "hy_spread", "ten_year_yield", "vix", "bank_lending_standards", "credit_card_delinquency"],
+    "Healthcare":             ["jobless_claims", "consumer_sentiment", "hy_spread", "ten_year_yield", "fda_approval_velocity"],
+    "Consumer Cyclical":      ["retail_sales", "consumer_sentiment", "jobless_claims", "ata_trucking", "retail_job_openings", "ecommerce_share"],
+    "Consumer Defensive":     ["retail_sales", "food_cpi", "jobless_claims", "consumer_sentiment", "retail_job_openings"],
+    "Industrials":            ["ism_pmi", "ata_trucking", "rail_traffic", "durable_goods", "hy_spread", "construction_spending"],
+    "Basic Materials":        ["copper", "dollar_index", "ism_pmi", "crude_oil", "shipping_index"],
+    "Utilities":              ["ten_year_yield", "natural_gas", "uranium_proxy", "power_demand_growth", "vix"],
+    "Real Estate":            ["ten_year_yield", "housing_starts", "hy_spread", "vix"],
+    "Communication Services": ["hyperscaler_capex", "jobless_claims", "ten_year_yield", "hy_spread"],
+}
+_DEFAULT_SIGS = ["ata_trucking", "hy_spread", "ten_year_yield", "vix", "yield_curve"]
+
+
+def _score_custom_ticker(symbol: str) -> dict | None:
+    """Fetch price data + sector from yfinance and return a scored result dict."""
+    try:
+        t    = yf.Ticker(symbol)
+        info = t.info or {}
+        hist = t.history(period="1y")
+        if hist.empty or "Close" not in hist.columns:
+            return None
+        close      = hist["Close"].dropna()
+        last       = float(close.iloc[-1])
+        prev       = float(close.iloc[-2]) if len(close) > 1 else last
+        yr_start   = float(close.iloc[0])
+        chg_1d     = (last - prev) / prev * 100
+        chg_1y     = (last - yr_start) / yr_start * 100
+        sector_raw = info.get("sector", "Unknown")
+        company    = info.get("longName") or info.get("shortName") or symbol
+        sig_ids    = SECTOR_SIGNAL_MAP.get(sector_raw, _DEFAULT_SIGS)
+        ticker_scores = {}
+        for sid in sig_ids:
+            cfg = SIGNALS.get(sid)
+            if not cfg:
+                continue
+            try:
+                s = fetch_signal_series(cfg, START, END)
+                ticker_scores[sid] = score_signal(s, inverse=cfg.get("inverse", False))
+            except Exception:
+                ticker_scores[sid] = {"score": 50, "status": "neutral"}
+        conf = compute_confluence(ticker_scores)
+        return {
+            "symbol": symbol, "company": company, "sector": sector_raw,
+            "last": last, "chg_1d": chg_1d, "chg_1y": chg_1y,
+            "conf": conf, "sig_count": len(ticker_scores),
+        }
+    except Exception:
+        return None
+
+
+def _render_custom_card(r: dict):
+    """Render the dark-theme quick-analysis card for a custom ticker result."""
+    conf  = r["conf"]
+    score = conf["overall_score"]
+    ac    = "#00D566" if score >= 65 else ("#FF4444" if score <= 35 else "#6B7FBF")
+    ac_bg = f"rgba({','.join(str(int(ac[i:i+2], 16)) for i in (1, 3, 5))},0.07)" if ac.startswith('#') else "rgba(107,127,191,0.07)"
+    chg_c = "#00D566" if r["chg_1d"] >= 0 else "#FF4444"
+    chg_a = "▲" if r["chg_1d"] >= 0 else "▼"
+    yr_c  = "#00D566" if r["chg_1y"] >= 0 else "#FF4444"
+
+    in_universe = r["symbol"] in TICKERS
+    badge = (
+        '<span style="background:rgba(0,213,102,0.1);color:#00D566;border:1px solid rgba(0,213,102,0.25);'
+        'padding:1px 6px;border-radius:4px;font-size:0.60rem;font-weight:700;margin-left:6px;">IN UNIVERSE</span>'
+        if in_universe else
+        '<span style="background:rgba(107,127,191,0.1);color:#6B7FBF;border:1px solid rgba(107,127,191,0.2);'
+        'padding:1px 6px;border-radius:4px;font-size:0.60rem;font-weight:700;margin-left:6px;">QUICK SCORE</span>'
+    )
+
+    st.markdown(f"""
+<div style="background:{ac_bg};border:1px solid {ac}33;border-left:4px solid {ac};
+            border-radius:12px;padding:20px 24px;font-family:Inter,sans-serif;margin:10px 0;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+        <div style="flex:2;min-width:200px;">
+            <div style="font-size:1.1rem;font-weight:700;color:#E8EEFF;letter-spacing:-0.2px;">
+                {r['company']} {badge}
+            </div>
+            <div style="font-size:0.75rem;color:#8892AA;margin-top:3px;letter-spacing:0.04em;">
+                {r['symbol']} &nbsp;·&nbsp; {r['sector']}
+            </div>
+            <div style="margin-top:12px;font-size:0.80rem;color:#8892AA;">
+                Price: <b style="color:#E8EEFF;">${r['last']:,.2f}</b>
+                &nbsp;·&nbsp;
+                1D: <span style="color:{chg_c};">{chg_a}{abs(r['chg_1d']):.2f}%</span>
+                &nbsp;·&nbsp;
+                1Y: <span style="color:{yr_c};">{r['chg_1y']:+.1f}%</span>
+            </div>
+            <div style="margin-top:6px;font-size:0.76rem;color:#6B7FBF;">
+                {r['sig_count']} macro signals mapped · {conf['bull_count']} bullish
+                · {conf['bear_count']} bearish
+                · {r['sig_count'] - conf['bull_count'] - conf['bear_count']} neutral
+            </div>
+        </div>
+        <div style="text-align:center;min-width:120px;">
+            <div style="font-size:0.58rem;letter-spacing:0.14em;color:{ac};font-weight:700;margin-bottom:4px;">CONFLUENCE SCORE</div>
+            <div style="font-size:2.6rem;font-weight:900;color:{ac};letter-spacing:-1px;line-height:1;">{score:.0f}</div>
+            <div style="font-size:0.74rem;color:{ac};margin-top:3px;font-weight:600;">{conf['case']} · {conf['conviction']}</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    if not in_universe:
+        st.markdown(
+            '<div style="font-size:0.72rem;color:#6B7FBF;font-family:Inter,sans-serif;'
+            'margin:-4px 0 8px;padding-left:2px;">'
+            '⚡ Not in tracked universe — score uses sector-mapped signals as a proxy. '
+            'For the deepest analysis, open Ticker Deep Dive with this symbol.</div>',
+            unsafe_allow_html=True,
+        )
+
+    _btn_col, _ = st.columns([1, 3])
+    with _btn_col:
+        if st.button(f"Open {r['symbol']} in Deep Dive →", type="primary",
+                     use_container_width=True, key=f"cust_tdd_{r['symbol']}"):
+            st.session_state["selected_ticker"] = r["symbol"]
+            st.switch_page("pages/3_Ticker_Deep_Dive.py")
 
 
 # ── Quick Analyze Any Ticker ──────────────────────────────────────────────────
-st.markdown('<div class="section-header">QUICK TICKER ANALYSIS</div>', unsafe_allow_html=True)
-st.caption("Analyze any publicly traded stock — not just our universe. Enter a ticker to score it against the macro signals most relevant to its sector.")
+st.markdown("""
+<div style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:#00D566;
+            font-family:Inter,sans-serif;margin-bottom:6px;">ANALYZE ANY TICKER</div>
+<div style="font-size:0.80rem;color:#8892AA;font-family:Inter,sans-serif;margin-bottom:10px;">
+    Any global symbol — US stocks, ETFs, crypto (BTC-USD), indices (^GSPC), international (MC.PA).
+    If it's on Yahoo Finance, it works.
+</div>
+""", unsafe_allow_html=True)
 
-qa_col1, qa_col2 = st.columns([2, 5])
-with qa_col1:
+_qa1, _qa2 = st.columns([2, 1])
+with _qa1:
     custom_ticker = st.text_input(
         "Enter any ticker symbol",
-        placeholder="e.g. TSLA, MSFT, META, BRK-B",
+        placeholder="e.g. HOOD, COIN, MSTR, BTC-USD, ^GSPC, MC.PA …",
         key="quick_ticker",
         label_visibility="collapsed",
     ).strip().upper()
-
-with qa_col2:
-    run_quick = st.button("Analyze Ticker", type="primary", key="run_quick_btn")
+with _qa2:
+    run_quick = st.button("→ Analyze", type="primary", key="run_quick_btn", use_container_width=True)
 
 if custom_ticker and run_quick:
     with st.spinner(f"Analyzing {custom_ticker}…"):
-        try:
-            import yfinance as yf
-            t = yf.Ticker(custom_ticker)
-            info = t.info or {}
-            hist = t.history(period="1y")
+        _res = _score_custom_ticker(custom_ticker)
+    if _res is None:
+        st.error(
+            f"No data found for **{custom_ticker}**. Check the symbol and try again. "
+            "Use Yahoo Finance format: `BTC-USD` for crypto, `^GSPC` for S&P 500, `MC.PA` for LVMH."
+        )
+    else:
+        _render_custom_card(_res)
 
-            if hist.empty or "Close" not in hist.columns:
-                st.error(f"No price data found for **{custom_ticker}**. Check the ticker symbol and try again.")
-            else:
-                close = hist["Close"].dropna()
-                last  = float(close.iloc[-1])
-                prev  = float(close.iloc[-2]) if len(close) > 1 else last
-                yr_start = float(close.iloc[0])
-                chg_1d   = (last - prev) / prev * 100
-                chg_1y   = (last - yr_start) / yr_start * 100
-
-                company_name = info.get("longName") or info.get("shortName") or custom_ticker
-                sector_raw   = info.get("sector", "Unknown")
-
-                # Map yfinance sector to our signal set
-                SECTOR_SIGNAL_MAP = {
-                    "Technology":              ["hyperscaler_capex", "semiconductor_etf", "ten_year_yield", "hy_spread", "vix"],
-                    "Energy":                  ["crude_oil", "crude_inventories", "natural_gas", "gas_storage", "dollar_index"],
-                    "Financial Services":      ["yield_curve", "hy_spread", "ten_year_yield", "vix", "bank_lending_standards", "credit_card_delinquency"],
-                    "Healthcare":              ["jobless_claims", "consumer_sentiment", "hy_spread", "ten_year_yield", "fda_approval_velocity"],
-                    "Consumer Cyclical":       ["retail_sales", "consumer_sentiment", "jobless_claims", "ata_trucking", "retail_job_openings", "ecommerce_share"],
-                    "Consumer Defensive":      ["retail_sales", "food_cpi", "jobless_claims", "consumer_sentiment", "retail_job_openings"],
-                    "Industrials":             ["ism_pmi", "ata_trucking", "rail_traffic", "durable_goods", "hy_spread", "construction_spending"],
-                    "Basic Materials":         ["copper", "dollar_index", "ism_pmi", "crude_oil", "shipping_index"],
-                    "Utilities":               ["ten_year_yield", "natural_gas", "uranium_proxy", "power_demand_growth", "vix"],
-                    "Real Estate":             ["ten_year_yield", "housing_starts", "hy_spread", "vix"],
-                    "Communication Services":  ["hyperscaler_capex", "jobless_claims", "ten_year_yield", "hy_spread"],
-                }
-                sig_ids = SECTOR_SIGNAL_MAP.get(sector_raw, ["ata_trucking", "hy_spread", "ten_year_yield", "vix", "yield_curve"])
-
-                # Score the mapped signals
-                ticker_scores = {}
-                for sid in sig_ids:
-                    cfg = SIGNALS.get(sid)
-                    if not cfg:
-                        continue
-                    try:
-                        s = fetch_signal_series(cfg, START, END)
-                        ticker_scores[sid] = score_signal(s, inverse=cfg.get("inverse", False))
-                    except Exception:
-                        ticker_scores[sid] = {"score": 50, "status": "neutral"}
-
-                conf = compute_confluence(ticker_scores)
-
-                # Display result
-                score_color = "#1B5E20" if conf["overall_score"] >= 65 else ("#7B1010" if conf["overall_score"] <= 35 else "#8B7355")
-                st.markdown(f"""
-                <div style="background:#F0EBE1;border-radius:8px;padding:20px 24px;border:1px solid #D4C9B0;
-                            border-left:5px solid {score_color};font-family:Georgia,serif;margin:10px 0;">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
-                        <div>
-                            <div style="font-size:1.2rem;font-weight:700;color:#1A1612;">{company_name} ({custom_ticker})</div>
-                            <div style="font-size:0.80rem;color:#8B7355;margin-top:2px;">{sector_raw} &nbsp;·&nbsp; ${last:,.2f} &nbsp;·&nbsp; 1D: {chg_1d:+.2f}% &nbsp;·&nbsp; 1Y: {chg_1y:+.1f}%</div>
-                        </div>
-                        <div style="text-align:center;">
-                            <div style="font-size:0.70rem;color:#8B7355;text-transform:uppercase;letter-spacing:0.06em;">Confluence Score</div>
-                            <div style="font-size:2.2rem;font-weight:700;color:{score_color};">{conf['overall_score']:.0f}</div>
-                            <div style="font-size:0.78rem;color:{score_color};">{conf['case']} · {conf['conviction']}</div>
-                        </div>
-                    </div>
-                    <div style="margin-top:14px;font-size:0.80rem;color:#6B6560;">
-                        Based on {len(ticker_scores)} macro signals mapped to {sector_raw} sector.
-                        &nbsp;·&nbsp; {conf['bull_count']} Bullish &nbsp;·&nbsp; {conf['bear_count']} Bearish &nbsp;·&nbsp;
-                        {len(ticker_scores) - conf['bull_count'] - conf['bear_count']} Neutral
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                if custom_ticker in TICKERS:
-                    st.success(f"{custom_ticker} is in our full universe — see the full deep dive on the Ticker Deep Dive page.")
-                else:
-                    st.info(
-                        f"{custom_ticker} is not in our tracked universe. "
-                        "This quick score uses sector-mapped signals as a proxy. "
-                        "For the deepest analysis, use the Ticker Deep Dive page with a custom ticker."
-                    )
-
-        except Exception as ex:
-            st.error(f"Could not analyze {custom_ticker}: {ex}")
-
-st.divider()
-
+st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+st.markdown(
+    '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0 20px;">',
+    unsafe_allow_html=True,
+)
 
 # ── Sidebar filters ───────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### Screener Filters")
-
-    # Text search
+    st.markdown(
+        '<div style="font-size:0.70rem;font-weight:700;letter-spacing:0.12em;'
+        'color:#8892AA;font-family:Inter,sans-serif;margin-bottom:10px;">SCREENER FILTERS</div>',
+        unsafe_allow_html=True,
+    )
     search_text = st.text_input(
-        "Search ticker or company", placeholder="e.g. NVDA, Goldman, Energy",
+        "Search ticker or company",
+        placeholder="NVDA, Goldman, Energy…",
         key="scr_search",
-    ).strip().lower()
+    ).strip()
 
-    # Sector filter
     all_sectors = sorted(set(v.get("sector", "Other") for v in TICKERS.values() if v.get("sector")))
     sel_sectors = st.multiselect("Sectors", all_sectors, default=all_sectors, key="scr_sectors")
 
-    # Bias filter
     bias_opts = ["All", "Bullish only", "Bearish only", "Neutral only"]
     bias_sel  = st.selectbox("Signal Bias", bias_opts, key="scr_bias")
 
-    # Min PCS weight
-    min_pcs = st.slider("Min signal PCS (quality filter)", 1, 10, 5, key="scr_pcs")
-
-    # Score range
+    min_pcs = st.slider("Min signal quality (PCS)", 1, 10, 5, key="scr_pcs")
     score_min, score_max = st.slider("Confluence score range", 0, 100, (0, 100), key="scr_score")
 
     st.divider()
-    st.caption("Scores update hourly. Add a FRED API key in Setup for live macro signals.")
-    st.caption("Click any ticker row, then use the **Ticker Deep Dive** page for full signal breakdown.")
+    st.caption("Scores update every 2h. Click any row then open Ticker Deep Dive for the full breakdown.")
 
 
-# ── Load signals once (shared cross-page cache) ───────────────────────────────
-# load_all_signal_scores() has been replaced by get_all_signal_scores() from
-# utils.signals_cache — same data, shared TTL=2h cache with home page, Signal
-# Dashboard, Today's Brief, and Sector Map.  No local fetch loop needed.
-
-
+# ── Load signals + momentum (shared caches) ──────────────────────────────────
 @st.cache_data(ttl=1800, show_spinner=False)
 def load_all_ticker_momentum() -> dict:
-    """
-    Batch-download 1-year closes for the entire universe and compute a
-    price-momentum score (0-100) for each ticker.
-
-    Blends:
-      - 1-year return  (60% weight)
-      - 1-month return (40% weight)
-    Then maps that blended return to 0-100 via a sigmoid-like clip so that
-    ±30% maps to roughly 75 / 25.
-    """
     tickers_list = list(TICKERS.keys())
     momentum = {}
     try:
-        raw = yf.download(
-            tickers_list,
-            period="1y",
-            auto_adjust=True,
-            progress=False,
-            threads=True,
-        )
+        raw    = yf.download(tickers_list, period="1y", auto_adjust=True, progress=False, threads=True)
         closes = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
         for tkr in tickers_list:
             try:
@@ -208,12 +253,10 @@ def load_all_ticker_momentum() -> dict:
                 if len(col) < 10:
                     momentum[tkr] = 50.0
                     continue
-                ret_1y = (col.iloc[-1] / col.iloc[0]) - 1 if len(col) >= 200 else 0.0
-                ret_1m = (col.iloc[-1] / col.iloc[-22]) - 1 if len(col) >= 22 else 0.0
+                ret_1y  = (col.iloc[-1] / col.iloc[0]) - 1 if len(col) >= 200 else 0.0
+                ret_1m  = (col.iloc[-1] / col.iloc[-22]) - 1 if len(col) >= 22 else 0.0
                 blended = ret_1y * 0.6 + ret_1m * 0.4
-                # Map: +30% → ~75, -30% → ~25, 0% → 50
-                score = float(np.clip(50.0 + blended * 83.3, 5.0, 95.0))
-                momentum[tkr] = round(score, 1)
+                momentum[tkr] = round(float(np.clip(50.0 + blended * 83.3, 5.0, 95.0)), 1)
             except Exception:
                 momentum[tkr] = 50.0
     except Exception:
@@ -222,33 +265,18 @@ def load_all_ticker_momentum() -> dict:
     return momentum
 
 
-def _ticker_confluence(ticker: str, sig_ids: list[str], all_scores: dict, momentum_cache: dict) -> dict:
-    """
-    Build a PCS-weighted macro confluence score for a single ticker,
-    then blend it 70/30 with that ticker's price-momentum score.
-    Returns a dict compatible with compute_confluence output but with
-    an `overall_score` that is genuinely ticker-specific.
-    """
-    # PCS weights — heavier signals carry more influence
-    weights = {sid: SIGNALS[sid].get("pcs", 5) / 10.0 for sid in sig_ids if sid in SIGNALS}
+def _ticker_confluence(ticker: str, sig_ids: list, all_scores: dict, momentum_cache: dict) -> dict:
+    weights       = {sid: SIGNALS[sid].get("pcs", 5) / 10.0 for sid in sig_ids if sid in SIGNALS}
     ticker_scores = {sid: all_scores.get(sid, {"score": 50, "status": "neutral"}) for sid in sig_ids}
-    conf = compute_confluence(ticker_scores, weights=weights)
-
-    macro_score = conf["overall_score"]
-    mom_score   = momentum_cache.get(ticker, 50.0)
-
-    blended = macro_score * 0.70 + mom_score * 0.30
+    conf          = compute_confluence(ticker_scores, weights=weights)
+    macro_score   = conf["overall_score"]
+    mom_score     = momentum_cache.get(ticker, 50.0)
+    blended       = macro_score * 0.70 + mom_score * 0.30
     conf["overall_score"] = round(blended, 1)
-
-    # Recompute case/conviction from blended score
-    if blended >= 65:
-        conf["case"] = "BULL"
-    elif blended <= 35:
-        conf["case"] = "BEAR"
-    else:
-        conf["case"] = "NEUTRAL" if abs(conf["bull_count"] - conf["bear_count"]) <= 1 else "MIXED"
-
-    n = len(ticker_scores)
+    if blended >= 65:   conf["case"] = "BULL"
+    elif blended <= 35: conf["case"] = "BEAR"
+    else:               conf["case"] = "NEUTRAL" if abs(conf["bull_count"] - conf["bear_count"]) <= 1 else "MIXED"
+    n         = len(ticker_scores)
     agreement = max(conf["bull_count"], conf["bear_count"]) / n if n else 0
     conf["conviction"] = (
         "Very High" if agreement >= 0.80 else
@@ -260,91 +288,98 @@ def _ticker_confluence(ticker: str, sig_ids: list[str], all_scores: dict, moment
 
 
 # ── Build screener table ──────────────────────────────────────────────────────
-st.markdown('<div class="section-header">ALTERNATIVE DATA SCREENER</div>', unsafe_allow_html=True)
-st.caption(
-    "Every ticker in the Unstructured Alpha universe ranked by alternative data confluence score. "
-    "Score = 70% macro signal confluence (PCS-weighted) + 30% price momentum. "
-    "Click any row to open Ticker Deep Dive for full signal breakdown."
-)
+st.markdown("""
+<div style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:#00D566;
+            font-family:Inter,sans-serif;margin-bottom:4px;">ALTERNATIVE DATA SCREENER</div>
+<div style="font-size:0.76rem;color:#8892AA;font-family:Inter,sans-serif;margin-bottom:12px;">
+    ~80 tickers ranked by alternative data confluence. Score = 70% macro signal confluence (PCS-weighted) + 30% price momentum.
+    Click any row to preview. Can't find your ticker? Use the search box above or type it in "Analyze Any Ticker."
+</div>
+""", unsafe_allow_html=True)
 
 with st.spinner("Loading signals and price momentum…"):
-    all_scores       = get_all_signal_scores()
-    _momentum_cache  = load_all_ticker_momentum()
+    all_scores      = get_all_signal_scores()
+    _momentum_cache = load_all_ticker_momentum()
 
 render_synthetic_data_banner(
     sum(1 for sv in all_scores.values() if sv.get("is_synthetic")),
     len(all_scores),
 )
 
+# Build rows — apply sidebar filters
+_search_lower = search_text.lower()
 rows = []
 for ticker, tmeta in TICKERS.items():
     sector = tmeta.get("sector", "Other")
-
-    # Text search filter
-    if search_text:
-        company_lower = tmeta.get("name", "").lower()
-        if search_text not in ticker.lower() and search_text not in company_lower:
+    if _search_lower:
+        if _search_lower not in ticker.lower() and _search_lower not in tmeta.get("name", "").lower():
             continue
-
     if sel_sectors and sector not in sel_sectors:
         continue
-
-    sig_ids = tmeta.get("signals", list(SIGNALS.keys()))
-    sig_ids = [s for s in sig_ids if SIGNALS.get(s, {}).get("pcs", 0) >= min_pcs]
-
-    conf = _ticker_confluence(ticker, sig_ids, all_scores, _momentum_cache)
-
+    sig_ids = [s for s in tmeta.get("signals", list(SIGNALS.keys()))
+               if SIGNALS.get(s, {}).get("pcs", 0) >= min_pcs]
+    conf    = _ticker_confluence(ticker, sig_ids, all_scores, _momentum_cache)
     overall = conf["overall_score"]
     case    = conf["case"]
     conv    = conf["conviction"]
-
     if bias_sel == "Bullish only"  and case != "BULL":  continue
     if bias_sel == "Bearish only"  and case != "BEAR":  continue
     if bias_sel == "Neutral only"  and case not in ("NEUTRAL", "MIXED"): continue
-    if not (score_min <= overall <= score_max):         continue
-
+    if not (score_min <= overall <= score_max):          continue
     rows.append({
-        "Ticker":      ticker,
-        "Company":     tmeta.get("name", ticker),
-        "Sector":      sector,
-        "Score":       round(overall, 1),
-        "Case":        case,
-        "Conviction":  conv,
-        "Bull Sigs":   conf["bull_count"],
-        "Bear Sigs":   conf["bear_count"],
-        "Signals":     len(sig_ids),
+        "Ticker":    ticker,
+        "Company":   tmeta.get("name", ticker),
+        "Sector":    sector,
+        "Score":     round(overall, 1),
+        "Case":      case,
+        "Conviction":conv,
+        "Bull Sigs": conf["bull_count"],
+        "Bear Sigs": conf["bear_count"],
+        "Signals":   len(sig_ids),
     })
 
+# ── No results? Try to auto-analyze search term as a custom symbol ────────────
 if not rows:
-    st.info("No tickers match the current filters. Try broadening your selection.")
+    _candidate = search_text.strip().upper()
+    if _candidate:
+        st.markdown(
+            f'<div style="background:rgba(107,127,191,0.06);border:1px solid rgba(107,127,191,0.15);'
+            f'border-left:3px solid #6B7FBF;border-radius:8px;padding:14px 18px;'
+            f'font-family:Inter,sans-serif;margin-bottom:16px;">'
+            f'<div style="font-size:0.84rem;color:#E8EEFF;font-weight:600;margin-bottom:4px;">'
+            f'"{_candidate}" not found in our tracked universe</div>'
+            f'<div style="font-size:0.76rem;color:#8892AA;">'
+            f'Analyzing it as a custom symbol using sector-mapped macro signals…</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        with st.spinner(f"Fetching data for {_candidate}…"):
+            _auto_res = _score_custom_ticker(_candidate)
+        if _auto_res:
+            _render_custom_card(_auto_res)
+        else:
+            st.info(
+                f"Could not find price data for **{_candidate}**. "
+                "Double-check the ticker format (e.g. `BTC-USD`, `^GSPC`, `9984.T`) "
+                "or use the 'Analyze Any Ticker' box above."
+            )
+    else:
+        st.info("No tickers match the current filters. Try broadening your selection.")
     st.stop()
 
 screen_df = pd.DataFrame(rows).sort_values("Score", ascending=False).reset_index(drop=True)
 
-# ── Price + daily % change ───────────────────────────────────────────────────
-# Fetched AFTER filtering, not for the full ~80-ticker universe up front --
-# get_batch_quotes() is cached (utils/quotes.py, 15 min), but there's no
-# reason to pay for quotes on tickers the current filters already excluded.
 with st.spinner(f"Loading live prices for {len(screen_df)} ticker(s)…"):
     _quotes = get_batch_quotes(list(screen_df["Ticker"]))
 
-
-def _quote_price(ticker: str) -> float | None:
-    return _quotes.get(ticker, {}).get("last")
-
-
-def _quote_chg_1d(ticker: str) -> float | None:
-    return _quotes.get(ticker, {}).get("chg_1d_pct")
-
-
-screen_df["Price"] = screen_df["Ticker"].map(_quote_price)
-screen_df["1D %"] = screen_df["Ticker"].map(_quote_chg_1d)
+screen_df["Price"] = screen_df["Ticker"].map(lambda t: _quotes.get(t, {}).get("last"))
+screen_df["1D %"]  = screen_df["Ticker"].map(lambda t: _quotes.get(t, {}).get("chg_1d_pct"))
 
 # ── Summary stats ─────────────────────────────────────────────────────────────
-tot    = len(screen_df)
-n_bull = (screen_df["Case"] == "BULL").sum()
-n_bear = (screen_df["Case"] == "BEAR").sum()
-n_neut = tot - n_bull - n_bear
+tot     = len(screen_df)
+n_bull  = (screen_df["Case"] == "BULL").sum()
+n_bear  = (screen_df["Case"] == "BEAR").sum()
+n_neut  = tot - n_bull - n_bear
 avg_scr = screen_df["Score"].mean()
 
 s1, s2, s3, s4, s5 = st.columns(5)
@@ -354,30 +389,49 @@ s3.metric("Bearish", n_bear, delta=f"-{n_bear/tot*100:.0f}%")
 s4.metric("Neutral", n_neut)
 s5.metric("Avg Score", f"{avg_scr:.1f}/100")
 
-st.markdown("")
+st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
-# ── Distribution chart ────────────────────────────────────────────────────────
+# ── Distribution chart — dark theme ──────────────────────────────────────────
 fig_dist = go.Figure(go.Histogram(
     x=screen_df["Score"], nbinsx=20,
-    marker_color="#1C2B4A", marker_line=dict(color="#FAF7F0", width=0.5),
+    marker_color="rgba(0,213,102,0.55)",
+    marker_line=dict(color="rgba(0,213,102,0.8)", width=0.5),
     hovertemplate="Score %{x:.0f}: %{y} tickers<extra></extra>",
 ))
-fig_dist.add_vline(x=65, line=dict(color="#1B5E20", dash="dot", width=1.5),
-                   annotation_text="Bull threshold", annotation_font_color="#1B5E20")
-fig_dist.add_vline(x=35, line=dict(color="#7B1010", dash="dot", width=1.5),
-                   annotation_text="Bear threshold", annotation_font_color="#7B1010")
-fig_dist.update_layout(
-    height=160, paper_bgcolor="#FAF7F0", plot_bgcolor="#FFFFFF",
-    xaxis=dict(showgrid=False, tickfont=dict(color="#6B6560"), title="Confluence Score"),
-    yaxis=dict(showgrid=True, gridcolor="#E8E0CE", tickfont=dict(color="#6B6560"), title="# Tickers"),
-    margin=dict(l=0, r=0, t=10, b=0),
+fig_dist.add_vline(
+    x=65, line=dict(color="#00D566", dash="dot", width=1.5),
+    annotation_text="Bull", annotation_font_color="#00D566",
+    annotation_font_size=10,
 )
-st.plotly_chart(fig_dist, use_container_width=True)
+fig_dist.add_vline(
+    x=35, line=dict(color="#FF4444", dash="dot", width=1.5),
+    annotation_text="Bear", annotation_font_color="#FF4444",
+    annotation_font_size=10,
+)
+fig_dist.update_layout(
+    height=140,
+    paper_bgcolor="#0B0D12",
+    plot_bgcolor="#0F1118",
+    xaxis=dict(
+        showgrid=False,
+        tickfont=dict(color="#8892AA", size=10, family="Inter, sans-serif"),
+        title=dict(text="Confluence Score", font=dict(color="#6B7FBF", size=10)),
+        linecolor="rgba(255,255,255,0.08)",
+    ),
+    yaxis=dict(
+        showgrid=True, gridcolor="rgba(255,255,255,0.05)",
+        tickfont=dict(color="#8892AA", size=10, family="Inter, sans-serif"),
+        title=dict(text="# Tickers", font=dict(color="#6B7FBF", size=10)),
+    ),
+    margin=dict(l=8, r=8, t=10, b=8),
+    font=dict(family="Inter, sans-serif", color="#8892AA"),
+)
+st.plotly_chart(fig_dist, use_container_width=True, config={"displayModeBar": False})
 
 # ── Main screener table ───────────────────────────────────────────────────────
-st.markdown('<div class="section-header">SCREENER RESULTS</div>', unsafe_allow_html=True)
-
-screen_df["Signal"] = screen_df["Case"].map({"BULL": "▲ BULL", "BEAR": "▼ BEAR"}).fillna("● " + screen_df["Case"])
+screen_df["Signal"] = screen_df["Case"].map(
+    {"BULL": "▲ BULL", "BEAR": "▼ BEAR"}
+).fillna("● " + screen_df["Case"])
 
 display_df = screen_df[[
     "Ticker", "Company", "Sector", "Price", "1D %", "Score", "Signal",
@@ -420,97 +474,125 @@ if selected_rows:
     sel_conv   = sel_row["Conviction"]
     sel_sector = sel_row["Sector"]
 
-    score_col = "#1B5E20" if sel_score >= 65 else ("#7B1010" if sel_score <= 35 else "#8B7355")
+    ac     = "#00D566" if sel_score >= 65 else ("#FF4444" if sel_score <= 35 else "#6B7FBF")
+    ac_bg  = f"rgba({','.join(str(int(ac[i:i+2],16)) for i in (1,3,5))},0.07)"
 
-    # Live quote + pre/post market (cached 60s — negligible cost)
-    _sel_q = fetch_live_quote(sel_ticker)
-    _sel_price_str = f"${_sel_q['price']:.2f}" if _sel_q.get("price") else "—"
-    _sel_chg_str   = (f"{_sel_q['pct_change']:+.2f}%" if _sel_q.get("pct_change") is not None else "")
-    _sel_chg_col   = "#1B5E20" if (_sel_q.get("pct_change") or 0) >= 0 else "#7B1010"
+    # Live quote
+    _sel_q      = fetch_live_quote(sel_ticker)
+    _price      = _sel_q.get("price")
+    _chg        = _sel_q.get("pct_change")
+    _price_str  = f"${_price:.2f}" if _price else "—"
+    _chg_str    = f"{_chg:+.2f}%" if _chg is not None else ""
+    _chg_c      = "#00D566" if (_chg or 0) >= 0 else "#FF4444"
 
     # Extended hours badge
-    _sel_ext_html = ""
-    _sel_mst = _sel_q.get("market_state")
-    if _sel_mst == "PRE" and _sel_q.get("pre_price"):
-        _ec = "#1B5E20" if (_sel_q.get("pre_change_pct") or 0) >= 0 else "#7B1010"
-        _es = "▲" if (_sel_q.get("pre_change_pct") or 0) >= 0 else "▼"
-        _sel_ext_html = (
-            f'<span style="background:#EEF3FA;border-radius:3px;padding:2px 7px;'
-            f'font-size:0.70rem;color:{_ec};font-weight:700;margin-left:8px;">'
-            f'PRE {_es} ${_sel_q["pre_price"]:.2f} ({abs(_sel_q["pre_change_pct"]):.2f}%)</span>'
+    _ext_html = ""
+    _mst = _sel_q.get("market_state")
+    if _mst == "PRE" and _sel_q.get("pre_price"):
+        _pc = _sel_q.get("pre_change_pct") or 0
+        _ec = "#00D566" if _pc >= 0 else "#FF4444"
+        _ext_html = (
+            f'<span style="background:rgba({",".join(str(int(_ec[i:i+2],16)) for i in (1,3,5))},0.10);'
+            f'color:{_ec};border:1px solid {_ec}33;padding:2px 7px;border-radius:5px;'
+            f'font-size:0.68rem;font-weight:700;margin-left:8px;">'
+            f'PRE {"▲" if _pc>=0 else "▼"} ${_sel_q["pre_price"]:.2f} ({abs(_pc):.2f}%)</span>'
         )
-    elif _sel_mst == "POST" and _sel_q.get("post_price"):
-        _ec = "#1B5E20" if (_sel_q.get("post_change_pct") or 0) >= 0 else "#7B1010"
-        _es = "▲" if (_sel_q.get("post_change_pct") or 0) >= 0 else "▼"
-        _sel_ext_html = (
-            f'<span style="background:#FBF8F0;border-radius:3px;padding:2px 7px;'
-            f'font-size:0.70rem;color:{_ec};font-weight:700;margin-left:8px;">'
-            f'AH {_es} ${_sel_q["post_price"]:.2f} ({abs(_sel_q["post_change_pct"]):.2f}%)</span>'
+    elif _mst == "POST" and _sel_q.get("post_price"):
+        _pc = _sel_q.get("post_change_pct") or 0
+        _ec = "#00D566" if _pc >= 0 else "#FF4444"
+        _ext_html = (
+            f'<span style="background:rgba({",".join(str(int(_ec[i:i+2],16)) for i in (1,3,5))},0.10);'
+            f'color:{_ec};border:1px solid {_ec}33;padding:2px 7px;border-radius:5px;'
+            f'font-size:0.68rem;font-weight:700;margin-left:8px;">'
+            f'AH {"▲" if _pc>=0 else "▼"} ${_sel_q["post_price"]:.2f} ({abs(_pc):.2f}%)</span>'
         )
 
-    # Find top driving signals from the pre-computed all_scores dict
-    # all_scores has {sig_id: {score, status, is_synthetic}} — no "config" key,
-    # so we join back to SIGNALS for the display name.
+    # Top driving signals
     _top_bull_sigs = sorted(
-        [(sig_id, sv) for sig_id, sv in all_scores.items() if sv.get("status") == "bullish"],
+        [(sid, sv) for sid, sv in all_scores.items() if sv.get("status") == "bullish"],
         key=lambda x: -x[1].get("score", 50),
-    )[:3]
+    )[:4]
     _top_bear_sigs = sorted(
-        [(sig_id, sv) for sig_id, sv in all_scores.items() if sv.get("status") == "bearish"],
+        [(sid, sv) for sid, sv in all_scores.items() if sv.get("status") == "bearish"],
         key=lambda x: x[1].get("score", 50),
     )[:3]
-    _top_sig_lines = ""
+    _sig_rows = ""
     for _tsid, _tsv in _top_bull_sigs:
-        _tname = SIGNALS.get(_tsid, {}).get("name", _tsid)[:32]
-        _top_sig_lines += f'<div style="color:#1B5E20;font-size:0.75rem;">▲ {_tname} ({_tsv["score"]:.0f})</div>'
+        _tn = SIGNALS.get(_tsid, {}).get("name", _tsid)[:36]
+        _sig_rows += (
+            f'<div style="font-size:0.72rem;color:#00D566;padding:2px 0;">'
+            f'▲ {_tn} <span style="color:#6B7FBF;">({_tsv["score"]:.0f})</span></div>'
+        )
     for _tsid, _tsv in _top_bear_sigs:
-        _tname = SIGNALS.get(_tsid, {}).get("name", _tsid)[:32]
-        _top_sig_lines += f'<div style="color:#7B1010;font-size:0.75rem;">▼ {_tname} ({_tsv["score"]:.0f})</div>'
+        _tn = SIGNALS.get(_tsid, {}).get("name", _tsid)[:36]
+        _sig_rows += (
+            f'<div style="font-size:0.72rem;color:#FF4444;padding:2px 0;">'
+            f'▼ {_tn} <span style="color:#6B7FBF;">({_tsv["score"]:.0f})</span></div>'
+        )
 
     st.markdown(f"""
-    <div style="background:#F0EBE1;border-radius:8px;padding:18px 24px;border:1px solid #D4C9B0;
-                border-left:5px solid {score_col};font-family:Georgia,serif;margin:12px 0;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
-            <div style="flex:2;min-width:220px;">
-                <div style="font-size:1.1rem;font-weight:700;color:#1A1612;">{sel_name}
-                    <span style="font-size:0.85rem;color:#8B7355;font-weight:400;"> ({sel_ticker})</span>
-                </div>
-                <div style="font-size:0.80rem;color:#8B7355;margin-top:3px;">{sel_sector}</div>
-                <div style="margin-top:10px;font-size:0.80rem;color:#6B6560;line-height:1.7;">
-                    Bull signals: <b>{int(sel_row['Bull Sigs'])}</b> &nbsp;·&nbsp;
-                    Bear signals: <b>{int(sel_row['Bear Sigs'])}</b> &nbsp;·&nbsp;
-                    Total: <b>{int(sel_row['Signals'])}</b>
-                </div>
-                <div style="margin-top:8px;">{_top_sig_lines}</div>
+<div style="background:{ac_bg};border:1px solid {ac}33;border-left:4px solid {ac};
+            border-radius:12px;padding:20px 24px;font-family:Inter,sans-serif;margin:14px 0;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;">
+        <div style="flex:2;min-width:220px;">
+            <div style="font-size:1.05rem;font-weight:700;color:#E8EEFF;letter-spacing:-0.2px;">
+                {sel_name}
+                <span style="font-size:0.80rem;color:#8892AA;font-weight:400;margin-left:6px;">
+                    ({sel_ticker})
+                </span>
             </div>
-            <div style="text-align:right;min-width:160px;">
-                <div style="font-size:2rem;font-weight:700;color:{score_col};">{sel_score:.0f}<span style="font-size:1rem;color:#8B7355;">/100</span></div>
-                <div style="font-size:0.80rem;color:{score_col};margin-bottom:8px;">{sel_case} — {sel_conv}</div>
-                <div style="font-size:1.1rem;font-weight:700;color:#1A1612;">{_sel_price_str}
-                    <span style="color:{_sel_chg_col};font-size:0.85rem;"> {_sel_chg_str}</span>
-                    {_sel_ext_html}
+            <div style="font-size:0.72rem;color:#6B7FBF;margin-top:2px;">{sel_sector}</div>
+            <div style="margin-top:10px;font-size:0.78rem;color:#8892AA;">
+                {int(sel_row['Bull Sigs'])} bullish signals &nbsp;·&nbsp;
+                {int(sel_row['Bear Sigs'])} bearish signals &nbsp;·&nbsp;
+                {int(sel_row['Signals'])} total
+            </div>
+            <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;">
+                {_sig_rows}
+            </div>
+        </div>
+        <div style="text-align:right;min-width:160px;">
+            <div style="font-size:0.56rem;letter-spacing:0.14em;color:{ac};font-weight:700;margin-bottom:3px;">CONFLUENCE SCORE</div>
+            <div style="font-size:2.6rem;font-weight:900;color:{ac};letter-spacing:-1px;line-height:1;">
+                {sel_score:.0f}
+            </div>
+            <div style="font-size:0.74rem;color:{ac};font-weight:600;margin-top:3px;">
+                {sel_case} · {sel_conv}
+            </div>
+            <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;">
+                <div style="font-size:1.3rem;font-weight:700;color:#E8EEFF;letter-spacing:-0.3px;">
+                    {_price_str}
+                    <span style="font-size:0.85rem;color:{_chg_c};"> {_chg_str}</span>
+                    {_ext_html}
                 </div>
-                <div style="font-size:0.68rem;color:#8B7355;margin-top:2px;">live · 60s</div>
+                <div style="font-size:0.62rem;color:#6B7FBF;margin-top:2px;">live · 60s cache</div>
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
-    _prev_col, _tdd_col = st.columns([1, 1])
-    with _tdd_col:
-        if st.button(f"Open {sel_ticker} in Ticker Deep Dive →", type="primary", use_container_width=True, key="scr_tdd_btn"):
+    _btn_l, _btn_r, _ = st.columns([1, 1, 2])
+    with _btn_l:
+        if st.button(f"Ticker Deep Dive: {sel_ticker} →", type="primary",
+                     use_container_width=True, key="scr_tdd_btn"):
             st.query_params["ticker"] = sel_ticker
             st.switch_page("pages/3_Ticker_Deep_Dive.py")
+    with _btn_r:
+        if st.button(f"Chart: {sel_ticker} →", use_container_width=True, key="scr_chart_btn"):
+            st.session_state["chart_ticker"] = sel_ticker
+            st.switch_page("pages/14_Stock_Chart.py")
 
-    # Store selection in session state so Ticker Deep Dive can auto-load it
     if "selected_ticker" not in st.session_state or st.session_state.selected_ticker != sel_ticker:
-        st.session_state.selected_ticker = sel_ticker
+        st.session_state.selected_ticker      = sel_ticker
         st.session_state.selected_ticker_name = sel_name
 
-st.markdown("")
-st.caption(
-    "Click any row to preview. For full analysis: go to Ticker Deep Dive. "
-    "Scores recalculate hourly."
+st.markdown(
+    '<div style="font-size:0.68rem;color:#6B7FBF;font-family:Inter,sans-serif;margin-top:8px;">'
+    'Click any row to preview. Scores recalculate every 2 hours. '
+    'Ticker not listed? Use "Analyze Any Ticker" above or type it in the sidebar search — '
+    'it will automatically fall through to a custom analysis.</div>',
+    unsafe_allow_html=True,
 )
 
 # ── Export ─────────────────────────────────────────────────────────────────────
