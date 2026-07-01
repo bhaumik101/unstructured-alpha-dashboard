@@ -23,8 +23,150 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-from utils.billing import require_pro
-require_pro("Signal Backtester")
+# ── Contextual Pro gate ────────────────────────────────────────────────────────
+# Replaces the plain require_pro() gate with a rich teaser that shows what
+# the backtester does before asking for an upgrade — converts better than a
+# blank purple box.
+try:
+    from utils.auth_ui import get_cookies, try_restore_session
+    from utils.billing import get_user_tier, check_and_sync_subscription
+
+    _bt_cookies  = get_cookies()
+    _bt_user     = try_restore_session(_bt_cookies)
+    _bt_is_pro   = False
+
+    if _bt_user:
+        _bt_tier_key = f"_tier_{_bt_user['id']}"
+        if _bt_tier_key not in st.session_state:
+            st.session_state[_bt_tier_key] = get_user_tier(_bt_user["id"])
+        # Sync Stripe status once per session
+        _bt_sync_key = f"_sync_done_{_bt_user['id']}"
+        if not st.session_state.get(_bt_sync_key):
+            st.session_state[_bt_sync_key] = True
+            try:
+                st.session_state[_bt_tier_key] = check_and_sync_subscription(_bt_user["id"])
+            except Exception:
+                pass
+        _bt_is_pro = st.session_state.get(_bt_tier_key) == "pro"
+
+    if not _bt_is_pro:
+        _PURPLE = "#7C3AED"
+        _GREEN  = "#00D566"
+        _RED    = "#FF4444"
+        _AMBER  = "#F59E0B"
+
+        st.markdown(f"""
+        <div style="font-family:Inter,sans-serif;max-width:860px;margin:0 auto;">
+
+          <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.25);
+                      border-radius:14px;padding:28px 32px;margin-bottom:24px;">
+            <div style="font-size:0.60rem;letter-spacing:0.18em;font-weight:700;
+                        color:{_PURPLE};margin-bottom:10px;">⚗️ PRO FEATURE — SIGNAL BACKTESTER</div>
+            <div style="font-size:1.55rem;font-weight:800;color:#E8EEFF;margin-bottom:10px;line-height:1.3;">
+              Build a signal rule. Test it against history. See if it actually worked.
+            </div>
+            <div style="font-size:0.88rem;color:#B8C0D4;line-height:1.65;margin-bottom:18px;">
+              The Backtester lets you write custom signal rules — like <em>"when HY Credit Spreads
+              score &lt; 40 AND Insider Buy Cluster fires"</em> — and instantly see every historical
+              instance since tracking began, with 4 / 8 / 12-week forward returns for any ticker you pick.
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;">
+            <div style="background:#0F1118;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;">
+              <div style="font-size:1.5rem;margin-bottom:8px;">⚙️</div>
+              <div style="font-weight:700;color:#E8EEFF;font-size:0.82rem;margin-bottom:5px;">Build Custom Rules</div>
+              <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
+                Combine any of the 43 signals with AND/OR logic.
+                Set score thresholds and look for specific signal states.
+              </div>
+            </div>
+            <div style="background:#0F1118;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;">
+              <div style="font-size:1.5rem;margin-bottom:8px;">📅</div>
+              <div style="font-weight:700;color:#E8EEFF;font-size:0.82rem;margin-bottom:5px;">Historical Instances</div>
+              <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
+                Every date your rule fired in our history is shown — with the exact
+                signal readings at that moment.
+              </div>
+            </div>
+            <div style="background:#0F1118;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;">
+              <div style="font-size:1.5rem;margin-bottom:8px;">📈</div>
+              <div style="font-weight:700;color:#E8EEFF;font-size:0.82rem;margin-bottom:5px;">Forward Returns</div>
+              <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
+                See +4w / +8w / +12w returns for any ticker at each instance.
+                Averages + win rates computed automatically.
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#0F1118;border:1px solid rgba(255,255,255,0.06);border-radius:10px;
+                      padding:18px 22px;margin-bottom:24px;">
+            <div style="font-size:0.62rem;letter-spacing:0.12em;font-weight:700;color:#6B7FBF;
+                        margin-bottom:12px;">EXAMPLE BACKTEST OUTPUT — CCJ (Cameco)</div>
+            <div style="font-size:0.75rem;color:#8892AA;margin-bottom:10px;">
+              Rule: <span style="color:#E8EEFF;font-style:italic;">
+              "Yield Curve score &gt; 65 AND HY Credit Spread score &lt; 40"</span> &nbsp;·&nbsp; 7 instances found
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;
+                        font-size:0.72rem;border-bottom:1px solid rgba(255,255,255,0.06);
+                        padding-bottom:6px;color:#6B7FBF;font-weight:700;letter-spacing:0.04em;">
+              <div>Date</div><div>Score</div><div style="color:{_GREEN}">+4w</div>
+              <div style="color:{_GREEN}">+8w</div><div style="color:{_GREEN}">+12w</div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;
+                        font-size:0.72rem;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);color:#B8C0D4;">
+              <div>2024-03-12</div><div>74</div>
+              <div style="color:{_GREEN}">+8.4%</div><div style="color:{_GREEN}">+14.2%</div><div style="color:{_GREEN}">+19.1%</div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;
+                        font-size:0.72rem;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);color:#B8C0D4;">
+              <div>2023-10-28</div><div>71</div>
+              <div style="color:{_RED}">-2.1%</div><div style="color:{_GREEN}">+6.8%</div><div style="color:{_GREEN}">+11.3%</div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:0;
+                        font-size:0.72rem;padding:5px 0;color:#B8C0D4;">
+              <div style="color:#6B7FBF;font-style:italic;">…5 more instances</div><div></div>
+              <div style="color:{_AMBER}">avg +4.2%</div>
+              <div style="color:{_AMBER}">avg +9.7%</div>
+              <div style="color:{_AMBER}">avg +14.5%</div>
+            </div>
+            <div style="font-size:0.67rem;color:#6B7FBF;margin-top:8px;">
+              ⚠️ Illustrative sample only — actual results vary by rule, ticker, and data window.
+            </div>
+          </div>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+        # CTA buttons
+        if _bt_user:
+            # Logged-in free user
+            _btc1, _btc2, _ = st.columns([1.4, 1.4, 3])
+            with _btc1:
+                if st.button("🔓 Start 7-Day Free Trial →", type="primary",
+                             key="bt_gate_upgrade", use_container_width=True):
+                    st.switch_page("pages/29_Upgrade.py")
+            with _btc2:
+                if st.button("See all Pro features →", key="bt_gate_pro_list",
+                             use_container_width=True):
+                    st.switch_page("pages/29_Upgrade.py")
+        else:
+            # Anonymous — offer signup first
+            _btc1, _btc2, _ = st.columns([1.4, 1.4, 3])
+            with _btc1:
+                if st.button("📬 Create Free Account", type="primary",
+                             key="bt_gate_signup", use_container_width=True):
+                    st.switch_page("pages/home_page.py")
+            with _btc2:
+                if st.button("View Pro pricing →", key="bt_gate_pricing",
+                             use_container_width=True):
+                    st.switch_page("pages/29_Upgrade.py")
+        st.stop()
+
+except Exception:
+    # Fallback: if our custom gate crashes, use the standard gate
+    from utils.billing import require_pro
+    require_pro("Signal Backtester")
 
 from utils.header import render_header, render_sidebar_base, render_page_header
 

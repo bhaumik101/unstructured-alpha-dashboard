@@ -1533,6 +1533,97 @@ if section == "Overview":
 
     st.divider()
 
+    # ── Contextual Pro Upgrade Nudge ───────────────────────────────────────────────
+    # Shown after the user has seen real signal value — reciprocity principle.
+    # Anonymous → push to signup. Logged-in free → push to upgrade.
+    # Pro users see nothing here.
+    try:
+        _tdd_user = st.session_state.get("user")
+        _tdd_is_pro = False
+        if _tdd_user:
+            _tdd_tier_key = f"_tier_{_tdd_user['id']}"
+            if _tdd_tier_key not in st.session_state:
+                from utils.billing import get_user_tier
+                st.session_state[_tdd_tier_key] = get_user_tier(_tdd_user["id"])
+            _tdd_is_pro = st.session_state.get(_tdd_tier_key) == "pro"
+
+        if not _tdd_is_pro:
+            _PURPLE = "#7C3AED"
+            if _tdd_user:
+                # Logged-in free user → upgrade nudge
+                st.markdown(f"""
+                <div style="background:rgba(124,58,237,0.07);border:1px solid rgba(124,58,237,0.22);
+                            border-radius:12px;padding:20px 24px;font-family:Inter,sans-serif;margin:12px 0;">
+                    <div style="font-size:0.60rem;letter-spacing:0.16em;font-weight:700;
+                                color:{_PURPLE};margin-bottom:10px;">⚡ UNLOCK THE FULL PICTURE — PRO</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+                        <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
+                                    border:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">📬 7 AM Digest</div>
+                            <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
+                                Today's top setups from all 43 signals, in your inbox before market open.
+                            </div>
+                        </div>
+                        <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
+                                    border:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">🔔 Price + Signal Alerts</div>
+                            <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
+                                Get notified the moment a signal flips for a ticker in your watchlist.
+                            </div>
+                        </div>
+                        <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
+                                    border:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">⚗️ Signal Backtester</div>
+                            <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
+                                Build custom signal rules and backtest them against historical prices.
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size:0.72rem;color:#8892AA;">
+                        7-day free trial · cancel any time · from $20/mo
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                _gu_c1, _gu_c2, _ = st.columns([1.2, 1.2, 3])
+                with _gu_c1:
+                    if st.button("🔓 Start Free Trial →", type="primary", key="tdd_upgrade_cta",
+                                 use_container_width=True):
+                        st.switch_page("pages/29_Upgrade.py")
+                with _gu_c2:
+                    if st.button("⭐ Add to Watchlist", key="tdd_wl_cta2",
+                                 use_container_width=True):
+                        st.session_state["chart_ticker"] = ticker_input
+                        st.switch_page("pages/10_Watchlist.py")
+            else:
+                # Anonymous user → signup nudge
+                st.markdown(f"""
+                <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.18);
+                            border-radius:12px;padding:18px 22px;font-family:Inter,sans-serif;margin:12px 0;">
+                    <div style="font-size:0.60rem;letter-spacing:0.16em;font-weight:700;
+                                color:{_PURPLE};margin-bottom:8px;">FREE ACCOUNT — SAVE &amp; TRACK</div>
+                    <div style="font-size:0.85rem;color:#E8EEFF;font-weight:600;margin-bottom:6px;">
+                        Save {ticker_input} to your watchlist and get alerts when signals flip.
+                    </div>
+                    <div style="font-size:0.75rem;color:#8892AA;">
+                        Free accounts include watchlist tracking + signal flip alerts.
+                        Pro ($20/mo) adds the 7 AM digest, email alerts, and Signal Backtester.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                _au_c1, _au_c2, _ = st.columns([1.2, 1.2, 3])
+                with _au_c1:
+                    if st.button("📬 Create Free Account", type="primary", key="tdd_signup_cta",
+                                 use_container_width=True):
+                        st.switch_page("pages/home_page.py")
+                with _au_c2:
+                    if st.button("See Pro features →", key="tdd_pro_peek_cta",
+                                 use_container_width=True):
+                        st.switch_page("pages/29_Upgrade.py")
+    except Exception:
+        pass  # Never let this crash the page
+
+    st.divider()
+
     # ── Forward Prediction Model ───────────────────────────────────────────────────
     from utils.analysis import predict_ticker_forward  # noqa: E402 (deferred import keeps page fast)
 
