@@ -122,13 +122,18 @@ def _get_score_movers(days_back: int = 7) -> list[dict]:
 
 
 def _get_opted_in_emails() -> list[tuple[str, str]]:
-    """Return [(email, display_name_or_email)] for every opted-in user."""
+    """
+    Return [(email, display_name_or_email)] for Pro users who have opted in.
+    Digest is a Pro-only feature — free-tier users are excluded even if they
+    set the opt-in flag before upgrading.
+    """
     try:
         with engine.begin() as conn:
             rows = conn.execute(
                 select(users.c.email)
-                .where(users.c.digest_opted_in == True)  # noqa: E712 — SQLAlchemy needs == True
+                .where(users.c.digest_opted_in == True)   # noqa: E712
                 .where(users.c.email_verified == True)
+                .where(users.c.subscription_tier == "pro")  # Pro-only
             ).fetchall()
         return [(row[0], row[0]) for row in rows]
     except Exception as exc:

@@ -14,9 +14,10 @@
 # by a 24-hour TTL cache so it doesn't hit Stripe on every render.
 #
 # Environment variables required (set in Render dashboard, never in code):
-#   STRIPE_SECRET_KEY      — sk_live_... or sk_test_...
-#   STRIPE_PRICE_ID        — price_... for the Pro monthly price
-#   STRIPE_PUBLISHABLE_KEY — pk_live_... (used only for display/meta)
+#   STRIPE_SECRET_KEY         — sk_live_... or sk_test_...
+#   STRIPE_PRICE_ID           — price_... for the Pro monthly price ($20/mo)
+#   STRIPE_ANNUAL_PRICE_ID    — price_... for the Pro annual price ($192/yr)
+#   STRIPE_PUBLISHABLE_KEY    — pk_live_... (used only for display/meta)
 #
 # Optional:
 #   STRIPE_WEBHOOK_SECRET  — whsec_... if a separate webhook service is added later
@@ -46,7 +47,13 @@ def _stripe_client():
     return stripe
 
 
-def get_stripe_price_id() -> str:
+def get_stripe_price_id(plan: str = "monthly") -> str:
+    """Return the Stripe Price ID for the given plan ('monthly' or 'annual')."""
+    if plan == "annual":
+        pid = os.environ.get("STRIPE_ANNUAL_PRICE_ID", "")
+        if not pid:
+            raise RuntimeError("STRIPE_ANNUAL_PRICE_ID is not set. Add it as a Render environment variable.")
+        return pid
     pid = os.environ.get("STRIPE_PRICE_ID", "")
     if not pid:
         raise RuntimeError("STRIPE_PRICE_ID is not set. Add it as a Render environment variable.")
@@ -115,11 +122,18 @@ def get_stripe_ids(user_id: int) -> tuple[str, str]:
 
 # ── Stripe Checkout ───────────────────────────────────────────────────────────
 
-def create_checkout_session(user_id: int, user_email: str, success_url: str, cancel_url: str) -> str:
+def create_checkout_session(
+    user_id: int,
+    user_email: str,
+    success_url: str,
+    cancel_url: str,
+    plan: str = "monthly",
+) -> str:
     """
     Create a Stripe Checkout Session for the Pro subscription and return the
     hosted checkout URL. The caller redirects the user there.
 
+    plan: "monthly" ($20/mo) or "annual" ($192/yr)
     success_url must contain {CHECKOUT_SESSION_ID} which Stripe substitutes
     with the actual session ID on redirect (used by handle_checkout_success).
     """
@@ -127,7 +141,7 @@ def create_checkout_session(user_id: int, user_email: str, success_url: str, can
     session = stripe.checkout.Session.create(
         mode="subscription",
         customer_email=user_email,
-        line_items=[{"price": get_stripe_price_id(), "quantity": 1}],
+        line_items=[{"price": get_stripe_price_id(plan), "quantity": 1}],
         success_url=success_url,
         cancel_url=cancel_url,
         metadata={"ua_user_id": str(user_id)},
@@ -228,6 +242,66 @@ def check_and_sync_subscription(user_id: int) -> str:
         return get_user_tier(user_id)
 
 
+# ── Admin utilities ───────────────────────────────────────────────────────────
+
+def admin_grant_pro(email: str) -> dict:
+    """
+    Manually grant Pro tier to a user by email address.
+    Used for gifting access, comps, and beta testers.
+    Returns {"ok": bool, "message": str}.
+
+    This bypasses Stripe entirely — it simply sets subscription_tier = 'pro'
+    in the DB. The user will not have a Stripe subscription_id, so
+    check_and_sync_subscription() will leave them on Pro (it only downgrades
+    when there IS a subscription_id that's cancelled/lapsed).
+    """
+    from sqlalchemy import select, update
+    from utils.db import engine, users
+
+    try:
+        with engine.connect() as conn:
+            row = conn.execute(
+                select(users.c.id, users.c.subscription_tier).where(users.c.email == email)
+            ).fetchone()
+
+        if row is None:
+            return {"ok": False, "message": f"No account found for {email!r}"}
+
+        user_id, current_tier = row[0], row[1]
+        if current_tier == "pro":
+            return {"ok": True, "message": f"{email} already has Pro access."}
+
+        set_user_tier(user_id, "pro")
+        logger.info("Admin granted Pro to user %s (%s)", user_id, email)
+        return {"ok": True, "message": f"✅ Pro granted to {email}"}
+
+    except Exception as exc:
+        logger.error("admin_grant_pro failed for %s: %s", email, exc)
+        return {"ok": False, "message": f"DB error: {exc}"}
+
+
+def admin_revoke_pro(email: str) -> dict:
+    """Revoke Pro and return user to free tier by email."""
+    from sqlalchemy import select
+    from utils.db import engine, users
+
+    try:
+        with engine.connect() as conn:
+            row = conn.execute(
+                select(users.c.id).where(users.c.email == email)
+            ).fetchone()
+
+        if row is None:
+            return {"ok": False, "message": f"No account found for {email!r}"}
+
+        set_user_tier(row[0], "free")
+        logger.info("Admin revoked Pro from user %s (%s)", row[0], email)
+        return {"ok": True, "message": f"✅ Revoked Pro from {email}"}
+
+    except Exception as exc:
+        return {"ok": False, "message": f"DB error: {exc}"}
+
+
 # ── Pro gating utility ────────────────────────────────────────────────────────
 
 PRO_FEATURES = [
@@ -319,7 +393,7 @@ def require_pro(page_name: str = "this page") -> None:
 
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        if st.button("🔓 Upgrade to Pro — $15/mo", type="primary", use_container_width=True, key="pro_gate_upgrade_btn"):
+        if st.button("🔓 Upgrade to Pro — from $16/mo", type="primary", use_container_width=True, key="pro_gate_upgrade_btn"):
             st.switch_page("pages/29_Upgrade.py")
 
     with st.expander("What's included in Pro?"):
