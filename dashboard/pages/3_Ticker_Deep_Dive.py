@@ -55,6 +55,7 @@ from utils.analysis import (
 from utils.ticker_score import compute_full_ticker_score, resolve_ticker_meta
 from utils.header import render_header, render_sidebar_base, render_page_header, go_to_ticker, ticker_chips, ticker_label, render_synthetic_data_banner
 from utils.theme import confluence_gauge_svg, style_area_chart, source_badge, inject_premium_css, inject_skeleton_css, section_label
+from utils.card_generator import generate_signal_card
 from utils.audit_ui import render_evidence_expander
 from utils.lead_time_research import (
     build_insider_intensity_series, build_short_interest_change_series,
@@ -323,18 +324,65 @@ if section == "Overview":
     """, unsafe_allow_html=True)
 
     # ── Share strip ───────────────────────────────────────────────────────────
-    _share_c1, _share_c2, _ = st.columns([1, 1, 3])
+    # Build top-signal list for the card (up to 4 highest-confidence signals
+    # in their dominant direction, formatted as "▲ Signal Name")
+    _card_sigs: list[str] = []
+    for _sid, _sv in sorted(
+        signal_scores.items(),
+        key=lambda kv: -abs(kv[1].get("score", 50) - 50)
+    ):
+        if len(_card_sigs) >= 4:
+            break
+        _s_status = _sv.get("status", "neutral")
+        _s_name   = SIGNALS.get(_sid, {}).get("name", _sid)
+        if _s_status == "bullish":
+            _card_sigs.append(f"▲ {_s_name}")
+        elif _s_status == "bearish":
+            _card_sigs.append(f"▼ {_s_name}")
+
+    _co_name = TICKERS.get(ticker_input, {}).get("name", ticker_input)
+
+    _share_c1, _share_c2, _share_c3, _ = st.columns([1.2, 1.2, 1, 2.6])
     with _share_c1:
-        if st.button("📤 Share this analysis", key="share_btn", help="Copy a link to this ticker's analysis"):
-            st.session_state["_tdd_show_share"] = True
+        # Generate PNG card on demand — cached in session_state so re-renders
+        # don't regenerate; only regenerates when ticker/score changes.
+        _card_cache_key = f"_card_{ticker_input}_{score_val:.0f}_{case}"
+        if _card_cache_key not in st.session_state:
+            st.session_state[_card_cache_key] = generate_signal_card(
+                ticker=ticker_input,
+                company_name=_co_name,
+                score=score_val,
+                case=case,
+                conviction=conviction,
+                bull_count=confluence["bull_count"],
+                bear_count=confluence["bear_count"],
+                neutral_count=confluence["neutral_count"],
+                top_signals=_card_sigs,
+            )
+        st.download_button(
+            label="🖼 Download Signal Card",
+            data=st.session_state[_card_cache_key],
+            file_name=f"UA_{ticker_input}_{case}_{score_val:.0f}.png",
+            mime="image/png",
+            key="card_dl_btn",
+            help="Download a shareable PNG card to post on Twitter, Reddit, or Discord",
+            use_container_width=True,
+        )
     with _share_c2:
-        if st.button("⭐ Add to Watchlist", key="add_wl_btn", help="Track this ticker with alerts"):
+        if st.button("📤 Share Link", key="share_btn",
+                     help="Copy a direct link to this ticker's analysis",
+                     use_container_width=True):
+            st.session_state["_tdd_show_share"] = True
+    with _share_c3:
+        if st.button("⭐ Watchlist", key="add_wl_btn",
+                     help="Track this ticker with score + price alerts",
+                     use_container_width=True):
             st.session_state["chart_ticker"] = ticker_input
             st.switch_page("pages/10_Watchlist.py")
     if st.session_state.get("_tdd_show_share"):
         _share_url = f"https://unstructuredalpha.com/Ticker_Deep_Dive?ticker={ticker_input}"
         st.code(_share_url, language=None)
-        st.caption("Copy the link above and share it. The page loads directly to this ticker's analysis.")
+        st.caption("Share this link — it loads directly to this ticker's full analysis.")
         if st.button("✕ Dismiss", key="share_dismiss"):
             st.session_state.pop("_tdd_show_share", None)
             st.rerun()

@@ -13,3 +13,4 @@ anthropic>=0.25.0
 pytrends>=4.9.2
 fpdf2>=2.7.0
 stripe>=7.0.0
+Pillow>=10.0.0
