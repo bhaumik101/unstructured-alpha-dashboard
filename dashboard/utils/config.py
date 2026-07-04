@@ -1115,6 +1115,140 @@ SIGNALS = {
         "color": "#00C8E0",
         "source_url": "https://finance.yahoo.com/quote/%5EVIX9D",
     },
+
+    # ── SUPPLY CHAIN SIGNALS ──────────────────────────────────────────────────
+    # Three genuinely independent supply-chain reads that complement the
+    # existing ata_trucking / rail_traffic / shipping_index signals without
+    # duplicating them. Each covers a different node in the supply chain:
+    # GSCPI = global pressure (upstream), inventory/sales = domestic inventory
+    # cycle (midstream), new orders = demand signal (downstream).
+
+    "ny_fed_gscpi": {
+        "name": "NY Fed Global Supply Chain Pressure Index",
+        "tier": 1,
+        "pcs": 7,
+        "source": "ny_fed_gscpi",
+        "series_id": "gscpi",
+        "frequency": "monthly",
+        "lag_weeks": 4,
+        "inverse": True,
+        "unit": "Standard Deviations from Mean",
+        "description": (
+            "The NY Fed's Global Supply Chain Pressure Index (GSCPI) — a "
+            "composite of global shipping costs, manufacturing lead times, "
+            "airfreight rates, and PMI backlogs, expressed as standard "
+            "deviations from historical mean (0 = normal, +2 = severely "
+            "stressed). INVERSE: higher = worse supply conditions = "
+            "bearish for manufacturers and consumer goods companies. "
+            "Data sourced directly from the NY Fed's published Excel file "
+            "(federalreserve.gov-adjacent research). Goes back to 1997."
+        ),
+        "causal_mechanism": (
+            "Supply chain stress propagates to corporate margins with a "
+            "4–8 week lag: constrained input availability forces production "
+            "cuts or higher input costs, compressing earnings for "
+            "manufacturers and retailers alike. The GSCPI's composite "
+            "structure captures shipping bottlenecks (Drewry, Freightos), "
+            "PMI supplier delivery delays (manufacturing backlogs), and "
+            "airfreight rates — all of which precede reported earnings "
+            "impact by one to two quarters."
+        ),
+        "documented_cases": [
+            "GSCPI peaked at +4.3 std dev in Dec 2021 — six months before "
+            "supply-chain-exposed companies (WHR, GNRC, AMAT) reported "
+            "margin compression in 2022 earnings",
+            "GSCPI dropped back to near-zero by late 2022 — freight rates "
+            "normalized ahead of consumer goods inflation peaking in H1 2023",
+        ],
+        "relevant_tickers": ["AAPL", "WHR", "CAT", "DE", "XLI", "FDX", "UPS", "AMZN", "WMT"],
+        "category": "supply_chain",
+        "color": "#0D7A5F",
+        "source_url": "https://www.newyorkfed.org/research/policy/gscpi",
+    },
+
+    "inventory_sales_ratio": {
+        "name": "Total Business Inventory/Sales Ratio",
+        "tier": 1,
+        "pcs": 7,
+        "source": "fred",
+        "series_id": "ISRATIO",
+        "frequency": "monthly",
+        "lag_weeks": 8,
+        "inverse": True,
+        "unit": "Ratio (Months of Supply)",
+        "description": (
+            "Total business inventories divided by total business sales "
+            "(Census Bureau, FRED ISRATIO). When this ratio rises, businesses "
+            "have more inventory relative to sales — they will reduce new "
+            "orders and production to work down the surplus. INVERSE: a "
+            "rising ratio is bearish for industrials, manufacturers, and "
+            "retailers because it signals production cuts and order "
+            "cancellations are coming. Historical average: ~1.25–1.35x."
+        ),
+        "causal_mechanism": (
+            "Excess inventory forces production cutbacks within 4–8 weeks "
+            "as companies stop placing new orders until shelves clear. "
+            "The inventory cycle is one of the most reliable short-cycle "
+            "predictors of industrial earnings revisions: a rising I/S ratio "
+            "precedes downward earnings revisions for manufacturers and "
+            "distributors, while a falling ratio signals restocking demand "
+            "is about to pick up."
+        ),
+        "documented_cases": [
+            "I/S ratio spiked to 1.67 in April 2020 as sales collapsed — "
+            "industrial production cuts followed in May–June 2020, preceding "
+            "Q2 earnings misses across the industrial sector",
+            "I/S ratio elevated at 1.47–1.50 through 2022–2023 as retailers "
+            "over-ordered during COVID normalization — preceded the 'inventory "
+            "correction' narrative that weighed on WMT, TGT, and XLY in 2022",
+        ],
+        "relevant_tickers": ["XLI", "XLY", "WMT", "TGT", "COST", "HD", "LOW", "CAT", "DE"],
+        "category": "supply_chain",
+        "color": "#1A6B8A",
+        "source_url": "https://fred.stlouisfed.org/series/ISRATIO",
+    },
+
+    "manufacturers_new_orders": {
+        "name": "Manufacturers' New Orders: Capital Goods ex-Defense & Aircraft",
+        "tier": 1,
+        "pcs": 7,
+        "source": "fred",
+        "series_id": "AMTMNO",
+        "frequency": "monthly",
+        "lag_weeks": 8,
+        "inverse": False,
+        "unit": "Millions of USD (SAAR)",
+        "description": (
+            "Monthly new orders for manufactured capital goods excluding "
+            "defense and aircraft (Census Bureau, FRED AMTMNO). Known as "
+            "'core capex orders' — the cleanest leading indicator for "
+            "business investment spending. Rising orders signal expanding "
+            "corporate capex intentions 2–3 months before the spending "
+            "shows up in GDP. Bullish for industrials, equipment makers, "
+            "and technology hardware when rising."
+        ),
+        "causal_mechanism": (
+            "New orders represent firm purchase commitments — companies place "
+            "equipment orders 2–3 months before delivery and payment. A "
+            "rising trend in core capex orders reliably precedes stronger "
+            "industrial production and equipment-maker revenues by 6–10 weeks. "
+            "The ex-defense, ex-aircraft filter removes lumpy government "
+            "contracts and Boeing order volatility to isolate genuine "
+            "business investment demand."
+        ),
+        "documented_cases": [
+            "Core capex orders turned negative YoY in late 2015 — preceded "
+            "the 2015–2016 industrial recession and CAT/DE earnings declines "
+            "by roughly one quarter",
+            "Orders surged 20%+ in 2021 as capex unleashed post-COVID — "
+            "industrial equipment makers outperformed through mid-2022 "
+            "before supply constraints capped production",
+        ],
+        "relevant_tickers": ["CAT", "DE", "HON", "ETN", "EMR", "ROK", "ITW", "PH", "XLI", "PCAR"],
+        "category": "supply_chain",
+        "color": "#2C6E49",
+        "source_url": "https://fred.stlouisfed.org/series/AMTMNO",
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -175,6 +175,59 @@ def fetch_eia(series_id: str, start: str, end: str, api_key: str = "") -> pd.Ser
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# NY Fed Global Supply Chain Pressure Index (GSCPI)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=86400, show_spinner=False, max_entries=1)
+def fetch_ny_fed_gscpi(start: str, end: str) -> pd.Series:
+    """
+    Fetch the NY Fed Global Supply Chain Pressure Index (GSCPI).
+
+    The GSCPI is published monthly as an Excel file at:
+      https://www.newyorkfed.org/medialibrary/research/interactives/gscpi/downloads/gscpi_data.xlsx
+
+    The file has a sheet called 'Monthly' with two columns:
+      - Column 0: date (e.g. "Jan-1997")
+      - Column 1: GSCPI value (standard deviations from zero)
+
+    Positive values = above-average global supply chain stress.
+    Negative values = below-average stress (smooth conditions).
+
+    Falls back to synthetic data with the same attrs contract as fetch_fred()
+    if the download fails or openpyxl is not available.
+    """
+    _URL = (
+        "https://www.newyorkfed.org/medialibrary/research/"
+        "interactives/gscpi/downloads/gscpi_data.xlsx"
+    )
+    try:
+        r = requests.get(_URL, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+        r.raise_for_status()
+        raw = io.BytesIO(r.content)
+        # openpyxl is required for .xlsx; if absent this raises ImportError
+        # which falls through to synthetic below.
+        df = pd.read_excel(raw, sheet_name="Monthly", header=0, engine="openpyxl")
+        # Column layout: first col = date string, second col = GSCPI value.
+        df.columns = ["date", "gscpi"]
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        df["gscpi"] = pd.to_numeric(df["gscpi"], errors="coerce")
+        df = df.dropna(subset=["date", "gscpi"]).set_index("date")
+        s = df["gscpi"].sort_index()
+        # Filter to requested window
+        s = s.loc[
+            (s.index >= pd.to_datetime(start))
+            & (s.index <= pd.to_datetime(end))
+        ]
+        s.name = "gscpi"
+        s.attrs["synthetic"] = False
+        return s
+    except Exception:
+        pass  # Fall through to synthetic
+
+    return _synthetic_signal("gscpi", start, end)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # yfinance — Stock & Commodity Prices
 # ─────────────────────────────────────────────────────────────────────────────
 

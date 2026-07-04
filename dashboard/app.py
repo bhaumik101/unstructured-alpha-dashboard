@@ -65,6 +65,7 @@ pg = st.navigation(
         "Signals": [
             st.Page("pages/1_Signal_Dashboard.py",  title="Signal Dashboard"),
             st.Page("pages/22_Regime_Playbook.py",  title="Regime Playbook"),
+            st.Page("pages/31_Supply_Chain.py",      title="Supply Chain"),
         ],
         "Research": [
             st.Page("pages/30_Track_Record_Live.py",    title="Signal Call Log"),
