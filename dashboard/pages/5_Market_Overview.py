@@ -322,6 +322,7 @@ if section == "Markets":
         margin=dict(l=0, r=60, t=10, b=0),
     )
     st.plotly_chart(fig_sectors, use_container_width=True)
+    st.markdown(f"&nbsp; {source_badge('yfinance', 'Sector ETF returns')}", unsafe_allow_html=True)
 
     # ── Section 3: Rates & Fixed Income + Commodities ─────────────────────────────
     st.divider()
@@ -502,6 +503,7 @@ if section == "Markets":
             margin=dict(l=0, r=0, t=30, b=0),
         )
         st.plotly_chart(fig_perf, use_container_width=True)
+        st.markdown(f"&nbsp; {source_badge('yfinance', 'Daily OHLCV')}", unsafe_allow_html=True)
     else:
         st.info("Performance chart unavailable — yfinance data not loading.")
 

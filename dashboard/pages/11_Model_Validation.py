@@ -22,10 +22,12 @@ import streamlit as st
 from utils.header import render_header, render_sidebar_base, render_page_header
 from utils.config import SIGNALS, CATEGORIES
 from utils.validation_status import validate_all_macro_signals, get_static_validation_summary
+from utils.theme import inject_premium_css, source_badge
 
 st.set_page_config(page_title="Model Validation — UA", layout="wide")
 render_header("Model Validation Dashboard")
 render_sidebar_base()
+inject_premium_css()
 
 render_page_header(
     "Model Validation",
@@ -45,6 +47,62 @@ including for the cases where the honest answer is "this hasn't held up" — tha
 an embarrassment to hide.
 </div>
 """, unsafe_allow_html=True)
+
+# ── Methodology Callout Cards ─────────────────────────────────────────────────
+with st.expander("ℹ️ How this validation works", expanded=False):
+    _v_css = (
+        "background:rgba(18,21,30,0.8);border:1px solid rgba(255,255,255,0.07);"
+        "border-radius:10px;padding:14px 16px;height:100%;"
+    )
+    _v_title = (
+        "font-weight:700;font-size:0.82rem;letter-spacing:0.04em;"
+        "color:#E8EEFF;margin-bottom:6px;font-family:Inter,sans-serif;"
+    )
+    _v_body = (
+        "font-size:0.78rem;color:#8892AA;line-height:1.55;font-family:Inter,sans-serif;"
+    )
+    _vc1, _vc2, _vc3, _vc4 = st.columns(4)
+    with _vc1:
+        st.markdown(f"""
+<div style="{_v_css}">
+  <div style="{_v_title}">🔍 LAG SCAN</div>
+  <div style="{_v_body}">
+    For each signal, we test 1–26 week lags against a ticker's forward price return using
+    Pearson correlation. A signal at lag <em>k</em> is "significant" if its p-value clears
+    the Bonferroni-corrected threshold — meaning we divide alpha (0.05) by the number of
+    lags tested, not just check p &lt; 0.05 once.
+  </div>
+</div>""", unsafe_allow_html=True)
+    with _vc2:
+        st.markdown(f"""
+<div style="{_v_css}">
+  <div style="{_v_title}">🔬 OUT-OF-SAMPLE SPLIT</div>
+  <div style="{_v_body}">
+    The best lag found in-sample is re-tested on the held-out ~30% of history it was never
+    fit to. A signal only "holds out-of-sample" if it's still significant on that unseen slice.
+    Without this step, signals can look good by chance on the in-sample window.
+  </div>
+</div>""", unsafe_allow_html=True)
+    with _vc3:
+        st.markdown(f"""
+<div style="{_v_css}">
+  <div style="{_v_title}">📊 CROSS-TICKER POOLING</div>
+  <div style="{_v_body}">
+    Each signal is tested against multiple tickers (up to 5 relevant peers). A pooled
+    pass counts how many show significance — a signal that looks good against one ticker
+    but not others is scored lower than one that holds across all of them.
+  </div>
+</div>""", unsafe_allow_html=True)
+    with _vc4:
+        st.markdown(f"""
+<div style="{_v_css}">
+  <div style="{_v_title}">🏆 RELIABILITY SCORE</div>
+  <div style="{_v_body}">
+    A 0–100 composite of: corrected in-sample significance, out-of-sample hold-up, sample
+    size adequacy, and cross-ticker consistency. 70+ = "Reasonably well-supported".
+    Below 50 = weak or unvalidated — shown as-is, not hidden, because that's the point.
+  </div>
+</div>""", unsafe_allow_html=True)
 
 # ── Composite scores + differentiator signals ──────────────────────────────────
 st.markdown('<div class="section-header">COMPOSITE SCORES & DIFFERENTIATOR SIGNALS</div>', unsafe_allow_html=True)
@@ -141,8 +199,9 @@ for sig_id, cfg in SIGNALS.items():
         "Best Lag (in-sample)": best_lag_str,
     })
 
+_val_df = pd.DataFrame(rows)
 st.dataframe(
-    pd.DataFrame(rows), use_container_width=True, hide_index=True,
+    _val_df, use_container_width=True, hide_index=True,
     column_config={
         "Reliability Score": st.column_config.TextColumn(
             "Reliability Score",
@@ -157,6 +216,14 @@ st.dataframe(
             help="That same lag, re-tested on the held-out ~30% of history it was never fit to.",
         ),
     },
+)
+
+st.markdown(
+    source_badge("fred") + "&nbsp;&nbsp;" +
+    source_badge("yfinance", "price history") + "&nbsp;&nbsp;" +
+    '<span style="font-size:0.70rem;color:#6B7FBF;font-family:Inter,sans-serif;">'
+    "· Lag scan via <code>utils/lead_time_research.py</code></span>",
+    unsafe_allow_html=True,
 )
 
 with st.expander("How is this different from the simpler backtest on the About page?"):
