@@ -1260,3 +1260,153 @@ def send_pro_welcome_email(to_email: str) -> None:
     except requests.RequestException as e:
         print(f"[pro-welcome] send FAILED to={to_email!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send Pro welcome email to {to_email}: {e}") from e
+
+
+def send_referral_welcome_email(to_email: str) -> None:
+    """
+    Send a welcome email to a user who signed up via a referral link.
+    Tells them they have a 14-day free trial (double the normal 7 days)
+    and links to the Upgrade page to start it.
+
+    Called best-effort from utils/referral.record_referral_signup() after
+    the referral row is committed. Never raises externally — callers wrap
+    in try/except; if Resend is not configured this is silently a no-op.
+    """
+    api_key, from_email = _get_resend_config()
+    print(f"[referral-welcome] sending to={to_email!r}", flush=True)
+    if not api_key:
+        raise EmailSendError("No RESEND_API_KEY configured.")
+
+    html = """<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#0B0D12;">
+<div style="max-width:560px;margin:0 auto;background:#12151E;
+            font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;">
+
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#00C8E0 0%,#0B0D12 100%);
+              padding:32px 32px 28px;border-radius:12px 12px 0 0;">
+    <div style="font-size:0.62rem;color:#67E8F9;letter-spacing:0.14em;
+                text-transform:uppercase;margin-bottom:8px;">
+      Unstructured Alpha
+    </div>
+    <div style="font-size:1.6rem;font-weight:800;color:#FFFFFF;line-height:1.2;">
+      A friend invited you.
+    </div>
+    <div style="font-size:0.92rem;color:#A5F3FC;margin-top:10px;">
+      You have a 14-day free trial waiting — double the normal 7 days.
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div style="background:#12151E;padding:28px 32px 8px;">
+    <p style="font-size:0.95rem;color:#B8C0D4;line-height:1.75;margin:0 0 20px;">
+      Someone who uses Unstructured Alpha thought you'd find it useful, so they sent
+      you a link. Because of that, your free trial is <strong style="color:#E8EEFF;">14 days</strong> —
+      twice what a direct signup gets.
+    </p>
+
+    <!-- Trial callout -->
+    <div style="background:rgba(0,200,224,0.08);border:1px solid rgba(0,200,224,0.25);
+                border-radius:8px;padding:16px 20px;margin-bottom:24px;">
+      <div style="font-size:0.62rem;font-weight:700;color:#00C8E0;letter-spacing:0.12em;
+                  text-transform:uppercase;margin-bottom:8px;">Your trial</div>
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <div style="font-size:2rem;font-weight:900;color:#00C8E0;line-height:1;">14</div>
+        <div style="font-size:0.88rem;color:#8892AA;">days free · full Pro access</div>
+      </div>
+      <div style="font-size:0.78rem;color:#6B7A95;margin-top:6px;">
+        Normal trial is 7 days. No extra charge — this is your referral benefit.
+      </div>
+    </div>
+
+    <!-- What you can do -->
+    <div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;
+                text-transform:uppercase;margin-bottom:14px;">What's included</div>
+
+    <table style="border-collapse:collapse;width:100%;margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 12px 8px 0;vertical-align:top;width:28px;">
+          <span style="color:#00D566;font-size:1rem;">▲</span>
+        </td>
+        <td style="padding:8px 0;">
+          <div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;">
+            Ticker Deep Dive
+          </div>
+          <div style="font-size:0.80rem;color:#8892AA;margin-top:2px;line-height:1.5;">
+            Confluence Score for any stock — 28 macro + alt-data signals scored and explained
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px 8px 0;vertical-align:top;">
+          <span style="color:#7C3AED;font-size:1rem;">◈</span>
+        </td>
+        <td style="padding:8px 0;">
+          <div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;">
+            Morning Digest
+          </div>
+          <div style="font-size:0.80rem;color:#8892AA;margin-top:2px;line-height:1.5;">
+            Daily macro briefing in your inbox — what flipped overnight and what it means
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px 8px 0;vertical-align:top;">
+          <span style="color:#F59E0B;font-size:1rem;">⚡</span>
+        </td>
+        <td style="padding:8px 0;">
+          <div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;">
+            Short Squeeze Radar + PDF Reports
+          </div>
+          <div style="font-size:0.80rem;color:#8892AA;margin-top:2px;line-height:1.5;">
+            Screen for macro-backed squeeze setups · export institutional-grade PDF research
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- CTA -->
+  <div style="background:#0f1119;padding:24px 32px;text-align:center;">
+    <a href="https://unstructuredalpha.com/Upgrade"
+       style="display:inline-block;background:linear-gradient(135deg,#00C8E0,#7C3AED);
+              color:#FFFFFF;padding:14px 36px;border-radius:8px;
+              text-decoration:none;font-size:0.95rem;font-weight:700;
+              letter-spacing:0.02em;">
+      Start Your 14-Day Free Trial →
+    </a>
+    <div style="font-size:0.75rem;color:#6B7A95;margin-top:10px;">
+      Full Pro access · No charge for 14 days
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#0B0D12;padding:16px 32px;border-radius:0 0 12px 12px;
+              border-top:1px solid rgba(255,255,255,0.06);
+              font-size:0.70rem;color:#4A5280;text-align:center;line-height:1.6;">
+    Unstructured Alpha · unstructuredalpha.com<br>
+    Not financial advice. All signals are statistical correlations from public data sources.
+  </div>
+
+</div>
+</body>
+</html>"""
+
+    try:
+        resp = requests.post(
+            _RESEND_API_URL,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "from": from_email,
+                "to": [to_email],
+                "subject": "You've been invited — your 14-day free trial is waiting",
+                "html": html,
+            },
+            timeout=15,
+        )
+        print(f"[referral-welcome] Resend responded: status={resp.status_code}", flush=True)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        print(f"[referral-welcome] send FAILED to={to_email!r}: {e}", flush=True)
+        raise EmailSendError(f"Failed to send referral welcome email to {to_email}: {e}") from e

@@ -587,6 +587,34 @@ else:
 
     CASE_COLOR = {"BULL": "#00D566", "BEAR": "#FF4444", "NEUTRAL": "#8892AA"}
 
+    # ── Watchlist-aware ordering ───────────────────────────────────────────
+    # If there's a logged-in user, bubble their watched tickers to the top of
+    # the list. Gracefully falls back to an empty set for anonymous visitors
+    # or if the watchlist fetch fails.
+    _digest_user = st.session_state.get("user")
+    _watch_set: set = set()
+    if _digest_user:
+        try:
+            from utils import alerts_db as _alerts_db_digest
+            _wl_rows = _alerts_db_digest.get_watchlist(_digest_user["id"])
+            _watch_set = {r["ticker"] for r in _wl_rows}
+        except Exception:
+            pass
+    if _watch_set:
+        _movers_df = _movers_df.copy()
+        _movers_df["_w"] = _movers_df["ticker"].isin(_watch_set).astype(int)
+        _movers_df = (
+            _movers_df
+            .sort_values(["_w", "abs_delta"], ascending=[False, False])
+            .drop(columns=["_w"])
+            .reset_index(drop=True)
+        )
+        _n_watching = int(_movers_df["ticker"].isin(_watch_set).sum())
+        if _n_watching:
+            st.caption(
+                f"📌 {_n_watching} of your watched ticker(s) appear below — shown first."
+            )
+
     for _, row in _movers_df.iterrows():
         ticker = row["ticker"]
         delta = row["delta"]
@@ -606,6 +634,13 @@ else:
             go_to_ticker(ticker, key=f"digest_mover_{ticker}")
             if company:
                 st.caption(company)
+            if ticker in _watch_set:
+                st.markdown(
+                    '<span style="font-size:0.68rem;font-weight:700;color:#00C8E0;'
+                    'background:rgba(0,200,224,0.12);border-radius:3px;'
+                    'padding:1px 6px;letter-spacing:0.02em;">👁 Watching</span>',
+                    unsafe_allow_html=True,
+                )
         with mc2:
             st.markdown(
                 f'<div style="font-family:Inter,sans-serif;font-size:0.85rem;padding-top:4px;">'

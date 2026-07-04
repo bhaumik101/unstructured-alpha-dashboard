@@ -153,6 +153,14 @@ def record_referral_signup(referee_email: str, code: str) -> bool:
                     created_at=_now_iso(),
                 )
             )
+        # Transaction committed. Now send the welcome email best-effort —
+        # wrapped in its own try/except so an email failure never prevents
+        # the referral from being recorded or the signup from completing.
+        try:
+            from utils.email import send_referral_welcome_email
+            send_referral_welcome_email(referee_email)
+        except Exception:
+            pass
         return True
     except Exception:
         return False
