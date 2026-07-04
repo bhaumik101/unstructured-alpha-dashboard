@@ -33,6 +33,13 @@ from utils.db import engine, users, init_db
 from utils.score_history import get_signal_flips
 from utils.config import SIGNALS
 
+# ── Admin override ────────────────────────────────────────────────────────────
+# Admins always receive the morning digest regardless of their DB subscription
+# tier or digest_opted_in flag. Add any admin email here.
+_ADMIN_EMAILS: list[str] = [
+    "bpgiri2005@gmail.com",
+]
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -123,22 +130,41 @@ def _get_score_movers(days_back: int = 7) -> list[dict]:
 
 def _get_opted_in_emails() -> list[tuple[str, str]]:
     """
-    Return [(email, display_name_or_email)] for Pro users who have opted in.
-    Digest is a Pro-only feature — free-tier users are excluded even if they
-    set the opt-in flag before upgrading.
+    Return [(email, display_name_or_email)] for:
+      - Pro users who have opted in (digest_opted_in=True, subscription_tier='pro')
+      - Admin emails from _ADMIN_EMAILS (always included, no DB check required)
+    Deduplication is applied so an admin who is also a Pro subscriber only
+    receives one copy.
     """
+    seen: set[str] = set()
+    result: list[tuple[str, str]] = []
+
+    # 1. Pro opted-in users from DB
     try:
         with engine.begin() as conn:
             rows = conn.execute(
                 select(users.c.email)
                 .where(users.c.digest_opted_in == True)   # noqa: E712
                 .where(users.c.email_verified == True)
-                .where(users.c.subscription_tier == "pro")  # Pro-only
+                .where(users.c.subscription_tier == "pro")
             ).fetchall()
-        return [(row[0], row[0]) for row in rows]
+        for row in rows:
+            email = row[0].strip().lower()
+            if email not in seen:
+                seen.add(email)
+                result.append((row[0], row[0]))
     except Exception as exc:
         print(f"[digest] DB query for opted-in users failed: {exc}", flush=True)
-        return []
+
+    # 2. Admin override — always included
+    for admin_email in _ADMIN_EMAILS:
+        normalized = admin_email.strip().lower()
+        if normalized not in seen:
+            seen.add(normalized)
+            result.append((admin_email, admin_email))
+            print(f"[digest] admin override added: {admin_email!r}", flush=True)
+
+    return result
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
