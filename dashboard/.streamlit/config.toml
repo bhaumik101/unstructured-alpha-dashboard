@@ -9,6 +9,7 @@ font = "sans serif"
 headless = true
 enableXsrfProtection = false
 port = 8501
+enableStaticServing = true   # serves files from ./static/ at /_stapp/static/<filename>
 
 [browser]
 gatherUsageStats = false
