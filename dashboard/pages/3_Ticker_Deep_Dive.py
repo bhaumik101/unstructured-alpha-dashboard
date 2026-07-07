@@ -325,6 +325,67 @@ if section == "Overview":
     </div>
     """, unsafe_allow_html=True)
 
+    # ── Signal Attribution Breakdown ──────────────────────────────────────────
+    # Shows which subsystems are driving the score (per Reddit feedback: the
+    # score is a black box without this; a breakdown card builds trust).
+    # Weights: each active optional signal gets 12%; remainder split 80/20
+    # macro/momentum. We show the weight % alongside each subsystem's score.
+    _n_opt_active = sum([_has_contract_signal, _has_insider_signal, _has_short_interest_signal, _has_13f_signal])
+    _opt_slice    = 0.12
+    _remaining    = 1.0 - _opt_slice * _n_opt_active
+    _macro_wt     = round(_remaining * 0.80 * 100)
+    _mom_wt       = round(_remaining * 0.20 * 100)
+
+    def _score_color(s):
+        return "#00D566" if s >= 60 else ("#FF4444" if s <= 40 else "#6B7FBF")
+
+    def _attr_card(label, value_html, weight_pct, active=True):
+        opacity = "1" if active else "0.35"
+        return f"""
+        <div style="flex:1;min-width:90px;background:rgba(255,255,255,0.03);
+                    border:1px solid rgba(255,255,255,0.07);border-radius:8px;
+                    padding:10px 12px;opacity:{opacity};">
+          <div style="font-size:0.58rem;color:#8892AA;text-transform:uppercase;
+                      letter-spacing:0.10em;margin-bottom:5px;white-space:nowrap;">{label}</div>
+          <div style="font-size:0.90rem;font-weight:700;line-height:1.1;">{value_html}</div>
+          <div style="font-size:0.55rem;color:#4A5568;margin-top:4px;">{weight_pct}% of score</div>
+        </div>"""
+
+    _macro_net  = confluence.get("bull_count", 0) - confluence.get("bear_count", 0)
+    _mac_c      = _score_color(score_val if _macro_net >= 0 else 100 - score_val)
+    _mac_label  = (f'<span style="color:#00D566;">▲{confluence["bull_count"]}</span>'
+                   f' <span style="color:#FF4444;">▼{confluence["bear_count"]}</span>'
+                   f' <span style="color:#6B7FBF;">●{confluence["neutral_count"]}</span>')
+
+    _mom_c = _score_color(_mom_score)
+    _mom_label = f'<span style="color:{_mom_c};">{_mom_score:.0f}/100</span>'
+
+    _ins_label  = (f'<span style="color:{_score_color(_insider_score["score"])}">{_insider_score["score"]:.0f}/100</span>'
+                   if _has_insider_signal else '<span style="color:#4A5568;">no data</span>')
+    _si_label   = (f'<span style="color:{_score_color(_short_interest_score["score"])}">{_short_interest_score["score"]:.0f}/100</span>'
+                   if _has_short_interest_signal else '<span style="color:#4A5568;">no data</span>')
+    _tf_label   = (f'<span style="color:{_score_color(_thirteenf_score["score"])}">{_thirteenf_score["score"]:.0f}/100</span>'
+                   if _has_13f_signal else '<span style="color:#4A5568;">no data</span>')
+    _cv_label   = (f'<span style="color:{_score_color(_contract_vel["score"])}">{_contract_vel["score"]:.0f}/100</span>'
+                   if _has_contract_signal else '<span style="color:#4A5568;">no data</span>')
+
+    _opt_wt_display = f"{round(_opt_slice * 100)}%"
+
+    st.markdown(f"""
+    <div style="margin-bottom:14px;">
+      <div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;
+                  text-transform:uppercase;margin-bottom:8px;">Score Attribution</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        {_attr_card("📊 Macro Signals", _mac_label, _macro_wt)}
+        {_attr_card("⚡ Momentum", _mom_label, _mom_wt)}
+        {_attr_card("🏛 Insiders", _ins_label, _opt_wt_display if _has_insider_signal else "—", _has_insider_signal)}
+        {_attr_card("📉 Short Int.", _si_label, _opt_wt_display if _has_short_interest_signal else "—", _has_short_interest_signal)}
+        {_attr_card("🏦 13F Funds", _tf_label, _opt_wt_display if _has_13f_signal else "—", _has_13f_signal)}
+        {_attr_card("📋 Contracts", _cv_label, _opt_wt_display if _has_contract_signal else "—", _has_contract_signal)}
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # ── Score Velocity Banner ─────────────────────────────────────────────────
     # Shows when the score is moving at an unusual rate-of-change compared to
     # this ticker's own history — top 10% velocity triggers the banner.
@@ -2715,12 +2776,23 @@ elif section == "Insider & Short Interest":
         if _insider_score["cluster_bonus_applied"]:
             st.markdown(f'<span style="color:{ins_color};font-weight:700;">Cluster pattern detected (180d)</span> — 3+ insiders moved the same direction with no one going the other way.', unsafe_allow_html=True)
 
-        tx_display = _insider_tx_early[["date", "insider", "role", "code", "shares", "price", "value"]].copy()
+        _tx_cols = ["date", "insider", "role", "code", "shares", "price", "value"]
+        if "filed_date" in _insider_tx_early.columns:
+            _tx_cols = ["date", "filed_date"] + [c for c in _tx_cols if c != "date"]
+        tx_display = _insider_tx_early[[c for c in _tx_cols if c in _insider_tx_early.columns]].copy()
         tx_display["date"] = tx_display["date"].dt.strftime("%Y-%m-%d")
+        if "filed_date" in tx_display.columns:
+            tx_display["filed_date"] = tx_display["filed_date"].fillna("—")
         tx_display["code"] = tx_display["code"].map({"P": "Purchase", "S": "Sale"})
         tx_display["price"] = tx_display["price"].map(lambda v: f"${v:,.2f}")
         tx_display["value"] = tx_display["value"].map(lambda v: f"${v:,.0f}")
+        tx_display = tx_display.rename(columns={
+            "date": "Trade Date", "filed_date": "Filed (Known As Of)",
+            "insider": "Insider", "role": "Role", "code": "Type",
+            "shares": "Shares", "price": "Price", "value": "Value",
+        })
         st.dataframe(tx_display, use_container_width=True, hide_index=True)
+        st.caption("**Trade Date** = when the transaction occurred. **Filed (Known As Of)** = when SEC received the disclosure — the earliest a market participant could have acted on this. STOCK Act requires filing within 45 days of the trade; late filers are common.")
         render_evidence_expander(_insider_score.get("evidence", []))
     else:
         st.info(f"No genuine open-market purchases or sales (transaction code P/S) found for {ticker_input} in the last 180 days — most Form 4 activity in this window, if any, was grants, vesting, or option exercises, not a buy/sell decision.")

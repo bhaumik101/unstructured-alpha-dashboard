@@ -441,6 +441,13 @@ display = display.rename(columns={
 })
 
 st.dataframe(display.head(300), use_container_width=True, hide_index=True)
+st.caption(
+    "**Trade Date** = when the transaction actually occurred. "
+    "**Filed** = when the disclosure was received by the system — the earliest a market participant "
+    "could have acted on this information. STOCK Act requires filing within 45 days of the trade; "
+    "late filers are common. UA's signal engine uses the Filed date as the 'known as of' timestamp "
+    "to prevent the congressional signal from appearing more predictive than it actually is."
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NET SENTIMENT PER TICKER

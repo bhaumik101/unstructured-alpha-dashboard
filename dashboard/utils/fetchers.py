@@ -645,6 +645,13 @@ def fetch_insider_transactions_detail(ticker: str, days: int = 180, max_filings:
         filer_cik = ciks[0].lstrip("0") or "0"
         accession_nodash = accession.replace("-", "")
         xml_url = f"https://www.sec.gov/Archives/edgar/data/{filer_cik}/{accession_nodash}/{filename}"
+        # filed_date: when SEC received the filing — this is the "known as of" date,
+        # i.e., the earliest point a market participant could have acted on this
+        # information. The transaction_date (below) is when the trade occurred,
+        # which is typically weeks earlier. Using filed_date for lead-time scoring
+        # prevents the signal from appearing more predictive than it actually is.
+        filed_date_raw = src.get("file_date") or src.get("filedAt", "")
+        filed_date = filed_date_raw[:10] if filed_date_raw else ""
 
         try:
             xr = requests.get(xml_url, headers=headers, timeout=12)
@@ -699,6 +706,7 @@ def fetch_insider_transactions_detail(ticker: str, days: int = 180, max_filings:
                 "accession":  accession,
                 "filer_cik":  filer_cik,
                 "source_url": xml_url,
+                "filed_date": filed_date,
             })
 
     if not records:
