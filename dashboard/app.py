@@ -72,6 +72,8 @@ pg = st.navigation(
             st.Page("pages/31_Supply_Chain.py",      title="Supply Chain"),
         ],
         "Research": [
+            st.Page("pages/40_Stock_Recommender.py",    title="⚡ Stock Recommender"),
+            st.Page("pages/39_Portfolio_Backtest.py",   title="⚡ Portfolio Backtest"),
             st.Page("pages/30_Track_Record_Live.py",    title="Signal Call Log"),
             st.Page("pages/3_Ticker_Deep_Dive.py",     title="Ticker Deep Dive"),
             st.Page("pages/27_Factor_Exposure.py",     title="Factor Exposure"),
