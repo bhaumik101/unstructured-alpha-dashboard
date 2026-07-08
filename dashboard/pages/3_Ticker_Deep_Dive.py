@@ -40,6 +40,7 @@ from plotly.subplots import make_subplots
 import streamlit as st
 
 from utils.config import SIGNALS, TICKERS, CATEGORIES, CURATED_FUNDS, THIRTEENF_CUSIP_TO_TICKER
+from utils.conviction import get_conviction_context
 from utils.fetchers import (
     fetch_price, fetch_signal_series, is_synthetic, fetch_volume,
     fetch_federal_contracts, fetch_insider_trades, fetch_live_quote,
@@ -292,6 +293,13 @@ if section == "Overview":
 
     score_color = "#00D566" if case == "BULL" else ("#FF4444" if case == "BEAR" else "#6B7FBF")
 
+    # Conviction context: signal alignment + historical forward return
+    try:
+        _conv_ctx = get_conviction_context(ticker_input, score_val, signal_scores)
+        _conv_ctx_sentence = _conv_ctx["sentence"]
+    except Exception:
+        _conv_ctx_sentence = "Conviction context unavailable."
+
     st.markdown(f"""
     <div class="ua-gradient-border" style="margin-bottom:20px;">
       <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:18px 22px;">
@@ -304,6 +312,10 @@ if section == "Overview":
           <div style="font-size:0.80rem;color:#B8C0D4;margin-top:4px;">Conviction: <b style="color:{score_color};">{conviction}</b></div>
           <div style="font-size:0.70rem;color:#8892AA;margin-top:6px;line-height:1.5;">
             {len(relevant_sig_ids)} signals + momentum{" + contracts" if _has_contract_signal else ""}{" + insiders" if _has_insider_signal else ""}{" + short interest" if _has_short_interest_signal else ""}{" + 13F" if _has_13f_signal else ""}
+          </div>
+          <div style="font-size:0.70rem;color:#6B7FBF;margin-top:8px;line-height:1.6;
+                      border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
+            {_conv_ctx_sentence}
           </div>
         </div>
         <div style="width:1px;height:72px;background:rgba(255,255,255,0.08);flex-shrink:0;"></div>

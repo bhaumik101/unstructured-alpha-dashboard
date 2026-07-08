@@ -295,6 +295,23 @@ signal_snapshots = Table(
     UniqueConstraint("signal_id", "snapshot_date", name="uq_signal_snapshot_sig_date"),
 )
 
+# Signal Flip Alert Log (added 2026-07-07). One row per (signal_id, flip_date)
+# — deduplicates the signal_flip_alerts cron so users receive at most one email
+# per signal flip per calendar day, even if the cron runs every 2 hours.
+# from_status/to_status are stored for debugging; alerted_at is the UTC ISO
+# timestamp of when the alert emails were dispatched.
+signal_flip_log = Table(
+    "signal_flip_log", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("signal_id", String(64), nullable=False),
+    Column("flip_date", String(10), nullable=False),    # YYYY-MM-DD
+    Column("from_status", String(16), nullable=False),  # bullish / neutral / bearish
+    Column("to_status", String(16), nullable=False),
+    Column("n_users_alerted", Integer, nullable=False, server_default="0"),
+    Column("alerted_at", String(64), nullable=False),   # ISO timestamp
+    UniqueConstraint("signal_id", "flip_date", name="uq_flip_log_sig_date"),
+)
+
 
 # Prediction Log (added 2026-06-25). Every time the machine fires a
 # convergence event or a ticker's confluence score crosses 70+ / 35-,

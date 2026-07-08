@@ -365,3 +365,30 @@ services:
         sync: false
       - key: TWITTER_ACCESS_TOKEN_SECRET
         sync: false
+
+  # Signal flip email alert cron — runs every 2 hours at :15 past the hour.
+  # Detects macro signal status changes (bullish ↔ neutral ↔ bearish) via
+  # signal_snapshots table, then emails opted-in watchlist users whose tickers
+  # are exposed to the flipped signals. De-duplicated via signal_flip_log table
+  # (one alert per signal per calendar day max). Offset at :15 to avoid
+  # contention with the hourly watchlist-alerts cron that runs at :30.
+  - type: cron
+    name: unstructured-alpha-signal-flip-alerts
+    runtime: python
+    rootDir: dashboard
+    schedule: "15 */2 * * *"   # every 2 hours at :15 past the hour
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m cron.signal_flip_alerts
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: FRED_API_KEY
+        sync: false
+      - key: EIA_API_KEY
+        sync: false
+      - key: RENDER_EXTERNAL_URL
+        sync: false

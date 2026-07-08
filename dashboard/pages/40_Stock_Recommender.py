@@ -32,6 +32,7 @@ from utils.header import render_header, render_sidebar_base, render_page_header
 from utils.theme import inject_premium_css, source_badge
 from utils.config import SIGNALS, TICKERS
 from utils.billing import require_pro
+from utils.conviction import get_signal_alignment
 
 render_header("Stock Recommender")
 render_sidebar_base()
@@ -130,6 +131,7 @@ def _macro_rank_all(min_lag: int, max_lag: int) -> list[dict]:
             for sid in ticker_scores if ticker_scores[sid].get("status") == "bearish"
         ]
 
+        _aligned, _total = get_signal_alignment(ticker, conf["overall_score"], all_scores)
         rows.append({
             "ticker":        ticker,
             "name":          meta.get("name", ticker),
@@ -148,6 +150,8 @@ def _macro_rank_all(min_lag: int, max_lag: int) -> list[dict]:
             "has_short_int": False,
             "has_contracts": False,
             "momentum_score": 50.0,
+            "aligned":       _aligned,
+            "total_relevant": _total,
         })
 
     rows.sort(key=lambda r: -r["score"])
@@ -340,6 +344,20 @@ def _score_bar(score: float, color: str) -> str:
     )
 
 
+def _alignment_badge(row: dict, color: str) -> str:
+    """Small 'X/Y aligned' conviction badge for rec cards."""
+    aligned = row.get("aligned", 0)
+    total   = row.get("total_relevant", 0)
+    if total == 0:
+        return ""
+    pct = aligned / total
+    opacity = "1.0" if pct >= 0.65 else "0.7"
+    return (
+        f'<span style="font-size:0.58rem;color:{color};opacity:{opacity};">'
+        f'⬡ {aligned}/{total} signals aligned</span>'
+    )
+
+
 def _rec_card(row: dict, side: str) -> str:
     if side == "long":
         border = "#00D566"; glow = "#00D56618"; badge = "BUY"
@@ -387,9 +405,10 @@ def _rec_card(row: dict, side: str) -> str:
   <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
     {opt_badges}
   </div>
-  <div style="margin-top:6px;display:flex;gap:14px;">
+  <div style="margin-top:6px;display:flex;gap:14px;flex-wrap:wrap;">
     <span style="font-size:0.58rem;color:#8892AA;">Conviction: <b style="color:{border};">{conv}</b></span>
     <span style="font-size:0.58rem;color:#8892AA;">{row["n_signals"]} signals scored</span>
+    {_alignment_badge(row, border)}
   </div>
 </div>"""
 
