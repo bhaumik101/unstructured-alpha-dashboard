@@ -452,10 +452,11 @@ if "upgrade_plan" not in st.session_state:
 st.markdown("""
 <div style="height:8px"></div>
 <div class="hero-eyebrow">Unstructured Alpha Pro</div>
-<div class="hero-headline">The edge most investors<br>don't know exists.</div>
+<div class="hero-headline">Know what the market knows<br>before price reflects it.</div>
 <div class="hero-sub">
-    43 alternative data signals. Insider cluster detection. Congressional trade tracking.
-    Factor exposure. Daily intelligence digest. All in one place.
+    Most investors react to price. Pro members see the signals that move price —
+    from SEC insider filings to Congressional trades to EIA inventory draws —
+    up to 12 weeks before mainstream coverage catches up.
 </div>
 """, unsafe_allow_html=True)
 
@@ -491,6 +492,45 @@ st.markdown(f"""
          border-color:rgba(124,58,237,0.22);">
         ✦ No long-term commitment
     </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── "Why not just use Bloomberg/Reddit" objection block ──────────────────────
+st.markdown(f"""
+<div style="background:rgba(18,21,30,0.72);border:1px solid rgba(255,255,255,0.07);
+            border-radius:14px;padding:22px 28px;margin:8px 0 28px;
+            font-family:Inter,sans-serif;">
+  <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.16em;color:#6B7FBF;
+              text-transform:uppercase;margin-bottom:14px;">
+    How this is different from what you already use
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;flex-wrap:wrap;">
+    <div>
+      <div style="font-size:0.78rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">vs. Bloomberg Terminal</div>
+      <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
+        Bloomberg shows you the same data every other institutional player sees.
+        Unstructured Alpha aggregates <em>signals from that data</em> — pre-scored,
+        correlated to specific tickers, validated against forward returns.
+        At 1% of the cost.
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.78rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">vs. Reddit / StockTwits</div>
+      <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
+        Those surfaces amplify narrative. This surface shows primary-source data:
+        what insiders are filing with the SEC, what the FOMC minutes say, how
+        EIA crude inventory draws compare to the 52-week trend. No sentiment noise.
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.78rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">vs. any stock screener</div>
+      <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
+        Screeners filter on price and fundamentals — things already priced in.
+        The Confluence Score measures the macro environment <em>before</em> it
+        hits earnings. The lead time on validated signals averages 4–12 weeks.
+      </div>
+    </div>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -929,8 +969,8 @@ st.markdown(f"""
 
 faqs = [
     (
-        "What happens after the 7-day free trial?",
-        f"You'll be charged {monthly_price}/month (or $192/year if on annual) starting on day 8. "
+        f"What happens after the {_trial_days}-day free trial?",
+        f"You'll be charged {monthly_price}/month (or $192/year if on annual) starting on day {_trial_days + 1}. "
         "Cancel any time before that — zero charge. No dark patterns, no 'turn off 5 things to cancel.'"
     ),
     (

@@ -18,7 +18,7 @@ from utils.analysis import compute_signal_confidence
 from utils.theme import (
     inject_skeleton_css, skeleton_cards, source_badge, inject_premium_css,
     PLOTLY_CONFIG, render_disclaimer, render_signal_legend, render_data_freshness,
-    signal_confidence_badge,
+    signal_confidence_badge, chart_insight_caption,
 )
 
 st.set_page_config(page_title="Signal Dashboard — UA", layout="wide")
@@ -630,6 +630,8 @@ with tab_signals:
                         _trend_fmt = f"{trend:+.1f}" if trend == trend else "n/a"
                         _cat_icon  = cat.get("icon", "")
                         _cat_name  = cat.get("name", "").upper()
+                        _pro_conf  = compute_signal_confidence(sv, pcs=sv.get("pcs"))
+                        _pro_conf_badge = signal_confidence_badge(_pro_conf["level"])
 
                         _pro_flip_html = (
                             f'<div style="font-size:0.67rem;color:#6B7FBF;margin-top:6px;'
@@ -655,8 +657,14 @@ with tab_signals:
                             f'<div style="font-weight:700;font-size:0.88rem;color:#E8EEFF;margin-bottom:8px;line-height:1.3;">'
                             f'{_pulse_dot}{cfg["name"][:50]}</div>'
                             f'<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">'
-                            f'<div><div style="font-size:1.6rem;font-weight:700;color:{border};">{sym} {score:.0f} <span style="font-size:0.75rem;">{_trend_badge}</span></div>'
-                            f'<div style="font-size:0.65rem;color:#8892AA;">score/100 · 7d trend</div></div>'
+                            f'<div><div style="display:flex;align-items:center;gap:8px;">'
+                            f'<div style="font-size:1.6rem;font-weight:700;color:{border};">{sym} {score:.0f}</div>'
+                            f'<div style="display:flex;flex-direction:column;gap:3px;">'
+                            f'<span style="font-size:0.75rem;">{_trend_badge}</span>'
+                            f'{_pro_conf_badge}'
+                            f'</div>'
+                            f'</div>'
+                            f'<div style="font-size:0.65rem;color:#8892AA;">score/100 · 7d trend · confidence</div></div>'
                             f'<div style="font-size:0.76rem;color:#B8C0D4;line-height:1.7;">'
                             f'<div>Dev: <b>{_dev_fmt}%</b> vs 52w</div>'
                             f'<div>Z-score: <b>{_z_fmt}σ</b> · P{pct_rank:.0f}</div>'
@@ -730,6 +738,34 @@ with tab_signals:
                             showlegend=False,
                         )
                         st.plotly_chart(spark, use_container_width=True, key=f"spark_{sig_id}_{mode}")
+
+                        # Insight caption below the sparkline
+                        _cur_val  = sv.get("current", float("nan"))
+                        _mean_val = sv.get("mean_52w", float("nan"))
+                        _unit     = cfg.get("unit", "")
+                        _cur_str  = f"{_cur_val:.3g} {_unit}".strip() if _cur_val == _cur_val else "n/a"
+                        _mean_str = f"{_mean_val:.3g} {_unit}".strip() if _mean_val == _mean_val else "n/a"
+                        if status == "bullish":
+                            _spark_caption = (
+                                f"Current: <b>{_cur_str}</b> vs 52w avg {_mean_str} — "
+                                f"elevated reading supports the bullish read. "
+                                f"Trend is {trend_arrow} over 4 weeks."
+                            )
+                        elif status == "bearish":
+                            _spark_caption = (
+                                f"Current: <b>{_cur_str}</b> vs 52w avg {_mean_str} — "
+                                f"depressed reading supports the bearish read. "
+                                f"Trend is {trend_arrow} over 4 weeks."
+                            )
+                        else:
+                            _spark_caption = (
+                                f"Current: <b>{_cur_str}</b> vs 52w avg {_mean_str} — "
+                                f"within normal range. No strong directional signal yet."
+                            )
+                        st.markdown(
+                            chart_insight_caption(_spark_caption, icon="📊", muted=True),
+                            unsafe_allow_html=True,
+                        )
 
                     # Ticker chips
                     rel_tickers = cfg.get("relevant_tickers", [])[:6]

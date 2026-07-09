@@ -55,7 +55,8 @@ from utils.analysis import (
 )
 from utils.ticker_score import compute_full_ticker_score, resolve_ticker_meta
 from utils.header import render_header, render_sidebar_base, render_page_header, go_to_ticker, ticker_chips, ticker_label, render_synthetic_data_banner, render_footer
-from utils.theme import confluence_gauge_svg, style_area_chart, source_badge, inject_premium_css, inject_skeleton_css, section_label, PLOTLY_CONFIG, PLOTLY_CONFIG_INTERACTIVE, render_disclaimer, render_educational_callout
+from utils.analysis import compute_signal_confidence
+from utils.theme import confluence_gauge_svg, style_area_chart, source_badge, inject_premium_css, inject_skeleton_css, section_label, PLOTLY_CONFIG, PLOTLY_CONFIG_INTERACTIVE, render_disclaimer, render_educational_callout, signal_confidence_badge, chart_insight_caption
 from utils.card_generator import generate_signal_card
 from utils.audit_ui import render_evidence_expander
 from utils.lead_time_research import (
@@ -185,22 +186,41 @@ if ticker_input not in TICKERS:
 
 # ── First-visit onboarding callout ──────────────────────────────────────────
 if not st.session_state.get("_tdd_onboarded"):
-    st.markdown(
-        render_educational_callout(
-            title="How to read this page",
-            body=(
-                "The <strong>Confluence Score</strong> (0–100) measures how aligned the current macro "
-                "environment is with conditions that have historically preceded strength in this sector. "
-                "It is <em>not</em> a price target — it is a macro posture indicator. "
-                "Use the tabs below to explore signals, price charts, factor exposure, "
-                "insider activity, and earnings track record. "
-                "Scores ≥65 = macro tailwind · ≤35 = macro headwind · 36–64 = mixed regime."
-            ),
-            icon="🧭",
-            accent="#00C8E0",
-        ),
-        unsafe_allow_html=True,
-    )
+    st.markdown("""
+<div style="background:rgba(0,200,224,0.05);border:1px solid rgba(0,200,224,0.18);
+            border-radius:12px;padding:16px 22px;margin-bottom:16px;font-family:Inter,sans-serif;">
+  <div style="font-size:0.60rem;font-weight:700;letter-spacing:0.14em;color:#00C8E0;
+              text-transform:uppercase;margin-bottom:10px;">🧭 How to use this page</div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:160px;">
+      <div style="font-size:0.70rem;font-weight:700;color:#E8EEFF;margin-bottom:3px;">1 · Read the score</div>
+      <div style="font-size:0.74rem;color:#8892AA;line-height:1.5;">
+        The <b style="color:#B8C0D4;">Confluence Score (0–100)</b> tells you how many macro signals
+        are aligned with historical conditions that preceded strength in this sector.
+        ≥65 = tailwind · ≤35 = headwind · 36–64 = mixed.
+      </div>
+    </div>
+    <div style="width:1px;background:rgba(255,255,255,0.06);flex-shrink:0;"></div>
+    <div style="flex:1;min-width:160px;">
+      <div style="font-size:0.70rem;font-weight:700;color:#E8EEFF;margin-bottom:3px;">2 · Check confidence</div>
+      <div style="font-size:0.74rem;color:#8892AA;line-height:1.5;">
+        Below the score you'll see a confidence summary — High ◆ means the score is driven by
+        strong z-score deviations with confirming momentum. Low ○ means signals are within
+        normal ranges and the read is weaker.
+      </div>
+    </div>
+    <div style="width:1px;background:rgba(255,255,255,0.06);flex-shrink:0;"></div>
+    <div style="flex:1;min-width:160px;">
+      <div style="font-size:0.70rem;font-weight:700;color:#E8EEFF;margin-bottom:3px;">3 · Dig into signals</div>
+      <div style="font-size:0.74rem;color:#8892AA;line-height:1.5;">
+        Scroll to <b style="color:#B8C0D4;">Signal Table</b> to see every contributing signal, or switch
+        to <b style="color:#B8C0D4;">Deep Correlation Scan</b> to see which signals historically lead
+        this ticker's price.
+      </div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
     st.session_state["_tdd_onboarded"] = True
 
 st.markdown(f"### Analyzing: **{ticker_input}** — {company_name_hint}")
@@ -385,6 +405,40 @@ if section == "Overview":
       </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # ── Signal Confidence Summary ─────────────────────────────────────────────
+    # Aggregate across active signal scores: how many are High / Medium / Low
+    # confidence? Gives users an immediate gut-check on whether the score is
+    # based on strong z-score deviations or weak within-normal-range readings.
+    try:
+        from utils.signals_cache import get_all_signal_scores as _get_all_sc
+        _all_sc = _get_all_sc()
+        _rel_sc = {sid: _all_sc[sid] for sid in relevant_sig_ids if sid in _all_sc}
+        _conf_counts = {"High": 0, "Medium": 0, "Low": 0}
+        for _sc_sid, _sc_sv in _rel_sc.items():
+            _sc_pcs = SIGNALS.get(_sc_sid, {}).get("pcs", 5)
+            _sc_conf = compute_signal_confidence(_sc_sv, pcs=_sc_pcs)
+            _conf_counts[_sc_conf["level"]] += 1
+        _total_conf = sum(_conf_counts.values())
+        if _total_conf > 0:
+            _conf_caption = (
+                f"Signal confidence breakdown across {_total_conf} active signals: "
+                f"<b style='color:#00D566;'>◆ {_conf_counts['High']} High</b> · "
+                f"<b style='color:#F59E0B;'>◇ {_conf_counts['Medium']} Medium</b> · "
+                f"<b style='color:#6B7FBF;'>○ {_conf_counts['Low']} Low</b>. "
+            )
+            if _conf_counts["High"] >= _conf_counts["Medium"] + _conf_counts["Low"]:
+                _conf_caption += "Majority of signals show strong conviction — score is well-supported."
+            elif _conf_counts["Low"] > _conf_counts["High"] + _conf_counts["Medium"]:
+                _conf_caption += "Most signals are within normal ranges — score reflects mild alignment, not extreme readings."
+            else:
+                _conf_caption += "Mixed confidence — check individual signal cards for the strongest drivers."
+            st.markdown(
+                chart_insight_caption(_conf_caption, icon="◆", muted=False),
+                unsafe_allow_html=True,
+            )
+    except Exception:
+        pass
 
     # ── Signal Attribution Breakdown ──────────────────────────────────────────
     # Shows which subsystems are driving the score (per Reddit feedback: the
