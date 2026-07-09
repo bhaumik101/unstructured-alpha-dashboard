@@ -397,8 +397,8 @@ def render_account_widget() -> None:
     _, widget_col = st.columns([5, 1.4])
     with widget_col:
         if user:
-            with st.popover(f"{user['email'].split('@')[0]}", use_container_width=True):
-                st.caption(f"Logged in as **{user['email']}**")
+            # Email is already shown in the header pill — just expose Log Out here
+            with st.popover("⚙ Account", use_container_width=True):
                 if st.button("Log Out", key="topright_logout", use_container_width=True):
                     logout()
                     st.rerun()

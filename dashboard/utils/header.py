@@ -1411,15 +1411,11 @@ def render_header(page_subtitle: str = "") -> None:
         )
         _uid = (st.session_state.get("user") or {}).get("id")
         _unread = get_unread_notification_count(_uid)
-        _badge_html = (
-            f'<sup style="background:#FF4444;color:#fff;font-size:0.55rem;'
-            f'padding:1px 4px;border-radius:6px;margin-left:1px;">{min(_unread, 99)}</sup>'
-            if _unread > 0 else ""
-        )
+        _badge_text = f" ({min(_unread, 99)})" if _unread > 0 else ""
         # Render bell using a popover (Streamlit ≥1.32)
         _bell_col, _pad = st.columns([0.12, 0.88])
         with _bell_col:
-            with st.popover(f"🔔{_badge_html if _unread else ''}", use_container_width=True):
+            with st.popover(f"🔔{_badge_text}", use_container_width=True):
                 st.markdown(
                     '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;'
                     'text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);'
