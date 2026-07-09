@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const APP_URL = "https://app.unstructuredalpha.com";
 
@@ -179,6 +179,23 @@ export default function Home() {
   const [openFaq,    setOpenFaq]    = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Scroll-reveal: IntersectionObserver watches every [data-reveal] element
+  // and adds .revealed once it enters the viewport. Unobserved after first trigger.
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('revealed');
+            obs.unobserve(e.target);
+          }
+        }),
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    );
+    document.querySelectorAll('[data-reveal]').forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
   const proPrice    = annual ? 16 : 20;
   const annualTotal = proPrice * 12;
 
@@ -186,10 +203,19 @@ export default function Home() {
     <div style={{ minHeight: "100vh", background: T.bg, color: T.bright,
                   fontFamily: "var(--font-geist), Inter, system-ui, sans-serif" }}>
 
-      {/* ── Ambient glow ── */}
-      <div aria-hidden style={{ position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
-                                 width: 900, height: 500, pointerEvents: "none", zIndex: 0,
-                                 background: "radial-gradient(ellipse at top, rgba(0,213,102,0.06) 0%, transparent 70%)" }} />
+      {/* ── Ambient background glows (fixed so they don't scroll) ── */}
+      <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+        <div aria-hidden style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)",
+                                   width: 900, height: 600,
+                                   background: "radial-gradient(ellipse at center, rgba(0,213,102,0.07) 0%, transparent 65%)",
+                                   filter: "blur(40px)" }} />
+        <div aria-hidden style={{ position: "absolute", top: 200, right: -100, width: 500, height: 400,
+                                   background: "radial-gradient(ellipse at center, rgba(124,58,237,0.06) 0%, transparent 65%)",
+                                   filter: "blur(60px)" }} />
+        <div aria-hidden style={{ position: "absolute", bottom: "20%", left: -80, width: 400, height: 300,
+                                   background: "radial-gradient(ellipse at center, rgba(0,200,224,0.05) 0%, transparent 65%)",
+                                   filter: "blur(60px)" }} />
+      </div>
 
       {/* ──────────────────────────── NAV ──────────────────────────────────── */}
       <nav style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, zIndex: 50,
@@ -244,8 +270,12 @@ export default function Home() {
       <section style={{ maxWidth: 1100, margin: "0 auto", padding: "96px 24px 52px",
                         textAlign: "center", position: "relative", zIndex: 1 }}>
 
+        {/* Grid overlay — subtle depth layer */}
+        <div className="hero-grid" aria-hidden />
+
         {/* Trust pill */}
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 7,
+        <div data-reveal
+             style={{ display: "inline-flex", alignItems: "center", gap: 7,
                       background: "rgba(0,213,102,0.08)", border: "1px solid rgba(0,213,102,0.25)",
                       borderRadius: 100, padding: "5px 14px", fontSize: 12, color: T.green,
                       fontWeight: 600, marginBottom: 28, letterSpacing: "0.04em" }}>
@@ -253,48 +283,60 @@ export default function Home() {
           Data from FRED · SEC EDGAR · FINRA · EIA · CBOE
         </div>
 
-        <h1 className="hero-h1" style={{ fontSize: "clamp(38px, 5.5vw, 64px)", fontWeight: 800,
-                                          lineHeight: 1.07, letterSpacing: "-0.04em", marginBottom: 22 }}>
+        <h1 data-reveal data-delay="1"
+            className="hero-h1"
+            style={{ fontSize: "clamp(38px, 5.5vw, 64px)", fontWeight: 800,
+                     lineHeight: 1.07, letterSpacing: "-0.04em", marginBottom: 22 }}>
           Know what the macro<br />
-          <span style={{ background: "linear-gradient(90deg, #00d566 0%, #00c8e0 100%)",
+          <span style={{ background: "linear-gradient(90deg, #00d566 0%, #00c8e0 60%, #7c3aed 100%)",
                          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             is doing to your stocks.
           </span>
         </h1>
 
-        <p style={{ fontSize: 18, color: T.muted, maxWidth: 560, margin: "0 auto 16px", lineHeight: 1.75 }}>
+        <p data-reveal data-delay="2"
+           style={{ fontSize: 18, color: T.muted, maxWidth: 560, margin: "0 auto 16px", lineHeight: 1.75 }}>
           43 macro signals — credit spreads, insider flows, energy positioning, Fed indicators —
           scored daily from public data. Free dashboard for active investors.
         </p>
 
         {/* Objection-killer subline */}
-        <p style={{ fontSize: 14, color: T.dimmer, marginBottom: 44 }}>
+        <p data-reveal data-delay="3"
+           style={{ fontSize: 14, color: T.dimmer, marginBottom: 44 }}>
           Not financial advice. No trade signals. No guaranteed returns. Just context.
         </p>
 
         {/* CTA row */}
-        <div className="hero-cta-row" style={{ display: "flex", gap: 12, justifyContent: "center",
-                                               flexWrap: "wrap", marginBottom: 52 }}>
-          <a href={APP_URL} className="btn-primary">
+        <div data-reveal data-delay="3"
+             className="hero-cta-row"
+             style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 52 }}>
+          <a href={APP_URL} className="btn-primary"
+             style={{ background: T.green, color: "#000", padding: "14px 36px",
+                      borderRadius: 10, fontSize: 15, fontWeight: 700, display: "inline-block" }}>
             Start Free — No Card Required
           </a>
-          <a href="#how-it-works" className="btn-secondary">
+          <a href="#how-it-works" className="btn-secondary"
+             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                      color: T.bright, padding: "13px 28px", borderRadius: 10, fontSize: 15,
+                      fontWeight: 600, display: "inline-block" }}>
             See How It Works
           </a>
         </div>
 
         {/* Stat strip */}
-        <div className="stat-strip" style={{ display: "flex", justifyContent: "center", flexWrap: "wrap",
-                                             borderTop: "1px solid rgba(255,255,255,0.06)",
-                                             borderBottom: "1px solid rgba(255,255,255,0.06)",
-                                             padding: "20px 0" }}>
+        <div data-reveal data-delay="4"
+             className="stat-strip"
+             style={{ display: "flex", justifyContent: "center", flexWrap: "wrap",
+                      borderTop: "1px solid rgba(255,255,255,0.06)",
+                      borderBottom: "1px solid rgba(255,255,255,0.06)",
+                      padding: "20px 0" }}>
           {STATS.map((s, i) => (
             <div key={s.label} className="stat-item"
                  style={{ display: "flex", alignItems: "center", padding: "0 28px",
                           borderRight: i < STATS.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: T.bright, letterSpacing: "-0.03em" }}>{s.value}</div>
-                <div style={{ fontSize: 12, color: T.dimmer, marginTop: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: T.bright, letterSpacing: "-0.04em" }}>{s.value}</div>
+                <div style={{ fontSize: 12, color: T.dimmer, marginTop: 3 }}>{s.label}</div>
               </div>
             </div>
           ))}
@@ -305,7 +347,7 @@ export default function Home() {
       <div style={{ borderTop: "1px solid rgba(0,213,102,0.14)",
                     background: "linear-gradient(180deg, rgba(0,213,102,0.035) 0%, transparent 100%)",
                     padding: "60px 24px" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto" }} data-reveal>
 
           {/* Section label with explicit "example" disclaimer */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -332,9 +374,10 @@ export default function Home() {
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {PREVIEW_SIGNALS.map((sig) => (
                 <div key={sig.name}
+                     className="sig-row"
                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
                               borderRadius: 8, background: "rgba(255,255,255,0.02)" }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: T.dimmer, letterSpacing: "0.08em",
@@ -342,13 +385,17 @@ export default function Home() {
                     {sig.cat}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, color: T.mid }}>{sig.name}</div>
+                    <div style={{ fontSize: 13, color: T.mid, fontWeight: 500 }}>{sig.name}</div>
                     <div style={{ fontSize: 11, color: T.dimmer, marginTop: 2 }}>{sig.note}</div>
                   </div>
-                  <div style={{ width: 120, height: 4, background: "rgba(255,255,255,0.06)",
-                                borderRadius: 2, flexShrink: 0 }}>
-                    <div style={{ width: `${sig.score}%`, height: "100%", borderRadius: 2,
-                                  background: sig.status === "bull" ? T.green : sig.status === "bear" ? "#ff4444" : T.muted }} />
+                  <div className="score-track" style={{ width: 110, height: 4, flexShrink: 0 }}>
+                    <div className="score-fill"
+                         style={{ width: `${sig.score}%`, height: "100%",
+                                  background: sig.status === "bull"
+                                    ? "linear-gradient(90deg, #00d566, #00c8e0)"
+                                    : sig.status === "bear"
+                                    ? "linear-gradient(90deg, #ff4444, #ff7777)"
+                                    : T.muted }} />
                   </div>
                   <ScoreCell score={sig.score} status={sig.status} />
                 </div>
@@ -389,41 +436,46 @@ export default function Home() {
       {/* ─────────────────── HOW IT WORKS ───────────────────────────────────── */}
       <div id="how-it-works" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
-          <p className="eyebrow">How it works</p>
-          <h2 className="section-title">From public filings to macro context</h2>
-          <p className="section-body" style={{ marginBottom: 56 }}>
+          <p className="eyebrow" data-reveal>How it works</p>
+          <h2 className="section-title" data-reveal data-delay="1">From public filings to macro context</h2>
+          <p className="section-body" data-reveal data-delay="2" style={{ marginBottom: 56 }}>
             Three steps from raw government data to a clear read on whether the macro environment
             supports the stocks you hold.
           </p>
 
-          <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 28 }}>
+          <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
             {[
               {
                 n: "01", title: "43 signals scored daily",
                 body: "We pull from FRED, SEC EDGAR, FINRA, EIA, and CBOE. Each signal gets a 0–100 percentile score against its trailing 1-year history. A score of 72 means the current reading is more bullish than 72% of the past year's readings — no arbitrary thresholds.",
                 src: "Source: FRED, SEC EDGAR, FINRA, EIA, CBOE",
+                delay: "3",
               },
               {
                 n: "02", title: "Confluence Score per ticker",
                 body: "For each stock in your watchlist, we weight the signals most relevant to its sector into a single Confluence Score. Energy stocks weight crude inventory and rig count differently than a semiconductor company weights hyperscaler capex. Sector-aware, not one-size-fits-all.",
                 src: "Updated every ~2 hours",
+                delay: "4",
               },
               {
                 n: "03", title: "Plain-English regime summary",
                 body: "Every day, Today's Brief tells you exactly which signals changed, by how much, and what it means for the macro backdrop — not raw numbers you have to interpret, but actual context. What changed. Why it matters. What to watch next.",
                 src: "Available free · No account for Signal Dashboard",
+                delay: "5",
               },
             ].map((step) => (
-              <div key={step.n} style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-                <div style={{ flexShrink: 0, width: 36, height: 36, background: "rgba(0,213,102,0.1)",
-                              border: "1px solid rgba(0,213,102,0.25)", borderRadius: 10, display: "flex",
-                              alignItems: "center", justifyContent: "center", fontSize: 13,
-                              fontWeight: 700, color: T.green }}>
+              <div key={step.n} className="hiw-card" data-reveal data-delay={step.delay}>
+                <div className="step-num"
+                     style={{ width: 38, height: 38, background: "rgba(0,213,102,0.1)",
+                              border: "1px solid rgba(0,213,102,0.25)", borderRadius: 10,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 13, fontWeight: 800, color: T.green, letterSpacing: "-0.03em",
+                              flexShrink: 0 }}>
                   {step.n}
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: T.bright }}>{step.title}</div>
-                  <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.7, marginBottom: 8 }}>{step.body}</div>
+                  <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.72, marginBottom: 10 }}>{step.body}</div>
                   <div style={{ fontSize: 11, color: T.dimmer, fontStyle: "italic" }}>{step.src}</div>
                 </div>
               </div>
@@ -435,15 +487,17 @@ export default function Home() {
       {/* ─────────────────── SOURCE STRIP ────────────────────────────────────── */}
       <div style={{ background: "rgba(255,255,255,0.015)", borderBottom: "1px solid rgba(255,255,255,0.04)",
                     padding: "18px 24px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center",
+        <div data-reveal
+             style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center",
                       gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
           <span style={{ fontSize: 11, color: T.dimmer, fontWeight: 700, letterSpacing: "0.08em",
                          textTransform: "uppercase", flexShrink: 0 }}>Primary sources:</span>
           {SOURCES.map((src) => (
-            <span key={src}
+            <span key={src} className="source-chip"
                   style={{ fontSize: 12, fontWeight: 600, color: T.label,
                            background: "rgba(107,127,187,0.07)", border: "1px solid rgba(107,127,187,0.13)",
-                           borderRadius: 6, padding: "3px 10px", letterSpacing: "0.02em" }}>
+                           borderRadius: 6, padding: "3px 10px", letterSpacing: "0.02em",
+                           display: "inline-block" }}>
               {src}
             </span>
           ))}
@@ -453,29 +507,47 @@ export default function Home() {
       {/* ─────────────────── FEATURES ────────────────────────────────────────── */}
       <div id="features" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
-          <p className="eyebrow">Features</p>
-          <h2 className="section-title">The macro layer your portfolio is missing</h2>
-          <p className="section-body" style={{ marginBottom: 56 }}>
+          <p className="eyebrow" data-reveal>Features</p>
+          <h2 className="section-title" data-reveal data-delay="1">The macro layer your portfolio is missing</h2>
+          <p className="section-body" data-reveal data-delay="2" style={{ marginBottom: 56 }}>
             One dashboard. No Bloomberg required. Free for the core features.
           </p>
           <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 20 }}>
-            {FEATURES.map((f) => (
-              <div key={f.title} className="card"
-                   style={{ background: T.card, border: "1px solid rgba(255,255,255,0.07)",
-                            borderRadius: 14, padding: "28px", position: "relative" }}>
+            {FEATURES.map((f, idx) => (
+              <div key={f.title}
+                   className="feat-card card"
+                   data-reveal
+                   data-delay={String((idx % 3) + 1)}
+                   style={{
+                     background: T.card,
+                     border: "1px solid rgba(255,255,255,0.07)",
+                     borderRadius: 14,
+                     padding: "28px",
+                     position: "relative",
+                     // CSS custom property for per-card accent glow
+                     ["--feat-accent" as string]: `${f.accent}18`,
+                     ["--feat-accent-border" as string]: `${f.accent}40`,
+                   }}>
                 {f.pro && (
                   <span className="badge badge-purple" style={{ position: "absolute", top: 16, right: 16 }}>
-                    Pro
+                    Pro ⚡
                   </span>
                 )}
-                <div style={{ fontSize: 28, marginBottom: 14 }}>{f.icon}</div>
+                {/* Icon with accent tint bg */}
+                <div style={{ width: 48, height: 48, borderRadius: 12,
+                              background: `${f.accent}12`,
+                              border: `1px solid ${f.accent}28`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 22, marginBottom: 16 }}>
+                  {f.icon}
+                </div>
                 <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, letterSpacing: "-0.02em",
-                              background: `linear-gradient(90deg, ${T.bright}, ${f.accent})`,
+                              background: `linear-gradient(90deg, ${T.bright} 0%, ${f.accent} 100%)`,
                               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                               display: "inline-block" }}>
                   {f.title}
                 </div>
-                <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.7, marginBottom: 10 }}>{f.body}</div>
+                <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.72, marginBottom: 12 }}>{f.body}</div>
                 <div style={{ fontSize: 11, color: T.dimmer, borderTop: "1px solid rgba(255,255,255,0.05)",
                               paddingTop: 10, marginTop: 4 }}>
                   {f.detail}
@@ -545,25 +617,29 @@ export default function Home() {
       {/* ─────────────────── PRICING ─────────────────────────────────────────── */}
       <div id="pricing" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
-          <p className="eyebrow" style={{ textAlign: "center" }}>Pricing</p>
-          <h2 className="section-title" style={{ textAlign: "center", maxWidth: "100%", marginBottom: 12 }}>
+          <p className="eyebrow" style={{ textAlign: "center" }} data-reveal>Pricing</p>
+          <h2 className="section-title" data-reveal data-delay="1"
+              style={{ textAlign: "center", maxWidth: "100%", marginBottom: 12 }}>
             Start free. Go deeper with Pro.
           </h2>
-          <p className="section-body" style={{ textAlign: "center", margin: "0 auto 36px" }}>
+          <p className="section-body" data-reveal data-delay="2"
+             style={{ textAlign: "center", margin: "0 auto 36px" }}>
             The core signal dashboard is free with an account. Pro adds alerts, history, and delivery.
           </p>
 
           {/* Billing toggle */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 44 }}>
+          <div data-reveal data-delay="3"
+               style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 44 }}>
             <span style={{ fontSize: 14, color: annual ? T.dimmer : T.bright, fontWeight: annual ? 400 : 600 }}>
               Monthly
             </span>
             <button
               onClick={() => setAnnual(!annual)}
               aria-label="Toggle annual billing"
+              className="billing-toggle"
               style={{ width: 44, height: 24, background: annual ? T.purple : "rgba(255,255,255,0.12)",
                        borderRadius: 100, border: "none", cursor: "pointer", position: "relative",
-                       transition: "background 0.2s", flexShrink: 0 }}
+                       flexShrink: 0 }}
             >
               <span style={{ position: "absolute", top: 2, left: annual ? 22 : 2, width: 20, height: 20,
                              background: "#fff", borderRadius: "50%", transition: "left 0.2s", display: "block" }} />
@@ -581,74 +657,79 @@ export default function Home() {
                         gap: 20, maxWidth: 780, margin: "0 auto" }}>
 
             {/* Free */}
-            <div style={{ background: T.card, border: "1px solid rgba(255,255,255,0.08)",
+            <div className="price-card-free"
+                 data-reveal data-delay="3"
+                 style={{ background: T.card, border: "1px solid rgba(255,255,255,0.08)",
                           borderRadius: 16, padding: "32px" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, letterSpacing: "0.1em",
                             textTransform: "uppercase" as const, marginBottom: 12 }}>
                 Free
               </div>
-              <div style={{ fontSize: 42, fontWeight: 800, letterSpacing: "-0.04em", marginBottom: 4 }}>$0</div>
-              <div style={{ fontSize: 13, color: T.dimmer, marginBottom: 28 }}>Free forever · No card</div>
+              <div style={{ fontSize: 44, fontWeight: 800, letterSpacing: "-0.05em", marginBottom: 4 }}>$0</div>
+              <div style={{ fontSize: 13, color: T.dimmer, marginBottom: 28 }}>Free forever · No card required</div>
               <ul className="checklist" style={{ marginBottom: 28 }}>
                 {FREE_FEATURES.map((f) => (
                   <li key={f}><span className="check">✓</span><span>{f}</span></li>
                 ))}
                 {FREE_LOCKED.map((f) => (
-                  <li key={f} style={{ opacity: 0.55 }}><span className="locked">—</span><span>{f}</span></li>
+                  <li key={f} style={{ opacity: 0.45 }}><span className="locked">—</span><span>{f}</span></li>
                 ))}
               </ul>
-              <a href={APP_URL}
-                 style={{ display: "block", textAlign: "center", padding: "12px", borderRadius: 10,
+              <a href={APP_URL} className="btn-secondary"
+                 style={{ display: "block", textAlign: "center", padding: "13px", borderRadius: 10,
                           border: "1px solid rgba(255,255,255,0.12)", color: T.bright, fontSize: 14,
                           fontWeight: 600 }}>
                 Start for free →
               </a>
             </div>
 
-            {/* Pro */}
-            <div style={{ background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.38)",
-                          borderRadius: 16, padding: "32px", position: "relative" }}>
+            {/* Pro — animated gradient border wrapper */}
+            <div className="pro-card-wrap" data-reveal data-delay="4" style={{ position: "relative" }}>
+              {/* "Most popular" pill floats above the gradient border */}
               <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
                             background: T.purple, color: "#fff", fontSize: 11, fontWeight: 700,
                             padding: "3px 14px", borderRadius: 100, letterSpacing: "0.08em",
-                            textTransform: "uppercase" as const, whiteSpace: "nowrap" as const }}>
+                            textTransform: "uppercase" as const, whiteSpace: "nowrap" as const, zIndex: 10 }}>
                 Most popular
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, letterSpacing: "0.1em",
-                            textTransform: "uppercase" as const, marginBottom: 12 }}>
-                Pro
+              <div className="pro-card-inner" style={{ padding: "32px", position: "relative" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, letterSpacing: "0.1em",
+                              textTransform: "uppercase" as const, marginBottom: 12 }}>
+                  Pro
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+                  <div style={{ fontSize: 44, fontWeight: 800, letterSpacing: "-0.05em" }}>${proPrice}</div>
+                  <span style={{ fontSize: 14, color: T.dimmer }}>/ month</span>
+                </div>
+                <div style={{ fontSize: 13, color: T.dimmer, marginBottom: 28 }}>
+                  {annual
+                    ? `Billed $${annualTotal}/year · cancel anytime`
+                    : "Per month · cancel anytime · 7-day free trial"}
+                </div>
+                <ul className="checklist" style={{ marginBottom: 28 }}>
+                  {PRO_FEATURES.map((f) => (
+                    <li key={f} style={{ color: "#c4c9e0" }}>
+                      <span style={{ color: "#a78bfa", flexShrink: 0, marginTop: 1, fontSize: 13 }}>✓</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a href={`${APP_URL}/pages/29_Upgrade`}
+                   style={{ display: "block", textAlign: "center", padding: "13px", borderRadius: 10,
+                            background: T.purple, color: "#fff", fontSize: 14, fontWeight: 700,
+                            transition: "all 0.2s ease", boxShadow: "0 4px 20px rgba(124,58,237,0.35)" }}>
+                  Start 7-Day Free Trial ⚡
+                </a>
+                <p style={{ fontSize: 11, color: T.dimmer, textAlign: "center", marginTop: 10 }}>
+                  No charge until trial ends · Cancel anytime
+                </p>
               </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-                <div style={{ fontSize: 42, fontWeight: 800, letterSpacing: "-0.04em" }}>${proPrice}</div>
-                <span style={{ fontSize: 14, color: T.dimmer }}>/ month</span>
-              </div>
-              <div style={{ fontSize: 13, color: T.dimmer, marginBottom: 28 }}>
-                {annual
-                  ? `Billed $${annualTotal}/year · cancel anytime`
-                  : "Per month · cancel anytime · 7-day free trial"}
-              </div>
-              <ul className="checklist" style={{ marginBottom: 28 }}>
-                {PRO_FEATURES.map((f) => (
-                  <li key={f} style={{ color: "#c4c9e0" }}>
-                    <span style={{ color: T.purple, flexShrink: 0, marginTop: 1, fontSize: 13 }}>✓</span>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <a href={`${APP_URL}/pages/29_Upgrade`}
-                 style={{ display: "block", textAlign: "center", padding: "12px", borderRadius: 10,
-                          background: T.purple, color: "#fff", fontSize: 14, fontWeight: 700 }}>
-                Start 7-Day Free Trial ⚡
-              </a>
-              <p style={{ fontSize: 11, color: T.dimmer, textAlign: "center", marginTop: 10 }}>
-                No charge until trial ends · Cancel anytime
-              </p>
             </div>
 
           </div>
 
           {/* Bloomberg comparison anchor */}
-          <p style={{ textAlign: "center", fontSize: 13, color: T.dimmer, marginTop: 28 }}>
+          <p data-reveal style={{ textAlign: "center", fontSize: 13, color: T.dimmer, marginTop: 28 }}>
             Bloomberg Terminal costs ~$27,000/year for similar raw data.
             Unstructured Alpha focuses it into what active investors actually need, at $20/month.
           </p>
@@ -658,11 +739,12 @@ export default function Home() {
       {/* ─────────────────── FAQ ─────────────────────────────────────────────── */}
       <div id="faq" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "80px 24px" }}>
-          <p className="eyebrow" style={{ textAlign: "center" }}>FAQ</p>
-          <h2 className="section-title" style={{ textAlign: "center", maxWidth: "100%", marginBottom: 48 }}>
+          <p className="eyebrow" style={{ textAlign: "center" }} data-reveal>FAQ</p>
+          <h2 className="section-title" data-reveal data-delay="1"
+              style={{ textAlign: "center", maxWidth: "100%", marginBottom: 48 }}>
             Questions we get asked
           </h2>
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div data-reveal data-delay="2" style={{ display: "flex", flexDirection: "column" }}>
             {FAQ_ITEMS.map((item, i) => (
               <div key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                 <button
@@ -671,18 +753,23 @@ export default function Home() {
                            border: "none", cursor: "pointer", display: "flex",
                            justifyContent: "space-between", alignItems: "center", gap: 16 }}
                 >
-                  <span style={{ fontSize: 15, fontWeight: 600, color: T.bright }}>{item.q}</span>
-                  <span style={{ color: T.dimmer, fontSize: 20, flexShrink: 0, lineHeight: 1,
+                  <span style={{ fontSize: 15, fontWeight: 600, color: openFaq === i ? T.bright : T.mid,
+                                 transition: "color 0.2s ease" }}>
+                    {item.q}
+                  </span>
+                  <span style={{ color: openFaq === i ? T.green : T.dimmer,
+                                 fontSize: 20, flexShrink: 0, lineHeight: 1,
                                  transform: openFaq === i ? "rotate(45deg)" : "none",
-                                 transition: "transform 0.2s", display: "inline-block" }}>
+                                 transition: "transform 0.25s ease, color 0.2s ease",
+                                 display: "inline-block", fontWeight: 300 }}>
                     +
                   </span>
                 </button>
-                {openFaq === i && (
-                  <div style={{ paddingBottom: 20, fontSize: 14, color: T.muted, lineHeight: 1.78 }}>
-                    {item.a}
-                  </div>
-                )}
+                {/* CSS-animated answer — always rendered, height animated via class */}
+                <div className={`faq-answer${openFaq === i ? " open" : ""}`}
+                     style={{ fontSize: 14, color: T.muted, lineHeight: 1.8 }}>
+                  {item.a}
+                </div>
               </div>
             ))}
           </div>
@@ -693,30 +780,35 @@ export default function Home() {
       <div style={{ background: "linear-gradient(180deg, rgba(0,213,102,0.04) 0%, transparent 60%)",
                     borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "96px 24px", textAlign: "center" }}>
-          <h2 style={{ fontSize: "clamp(28px, 4vw, 46px)", fontWeight: 800,
-                       letterSpacing: "-0.04em", marginBottom: 18, lineHeight: 1.1 }}>
+          <h2 data-reveal
+              style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 800,
+                       letterSpacing: "-0.04em", marginBottom: 18, lineHeight: 1.08 }}>
             Start understanding<br />
-            <span style={{ background: "linear-gradient(90deg, #00d566, #00c8e0)",
+            <span style={{ background: "linear-gradient(90deg, #00d566, #00c8e0, #7c3aed)",
                            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               your macro environment.
             </span>
           </h2>
-          <p style={{ fontSize: 17, color: T.muted, marginBottom: 40, lineHeight: 1.7,
+          <p data-reveal data-delay="1"
+             style={{ fontSize: 17, color: T.muted, marginBottom: 40, lineHeight: 1.7,
                       maxWidth: 460, margin: "0 auto 40px" }}>
             Free to start. No credit card. 43 live signals, updated every ~2 hours,
             from the same public data sources institutional desks use.
           </p>
-          <a href={APP_URL}
-             style={{ background: T.green, color: "#000", padding: "16px 44px", borderRadius: 12,
-                      fontSize: 16, fontWeight: 800, display: "inline-block", letterSpacing: "-0.01em" }}>
-            Open the Dashboard — Free →
-          </a>
-          <div style={{ marginTop: 20, fontSize: 13, color: T.dimmer }}>
-            Free · No card · 43 signals · Updated every ~2h · Cancel Pro anytime
+          <div data-reveal data-delay="2">
+            <a href={APP_URL} className="btn-primary"
+               style={{ background: T.green, color: "#000", padding: "16px 44px", borderRadius: 12,
+                        fontSize: 16, fontWeight: 800, display: "inline-block", letterSpacing: "-0.01em" }}>
+              Open the Dashboard — Free →
+            </a>
+            <div style={{ marginTop: 16, fontSize: 13, color: T.dimmer }}>
+              Free · No card · 43 signals · Updated every ~2h · Cancel Pro anytime
+            </div>
           </div>
 
           {/* Disclaimer */}
-          <div style={{ marginTop: 32, padding: "16px 20px", background: "rgba(255,255,255,0.02)",
+          <div data-reveal data-delay="3"
+               style={{ marginTop: 32, padding: "16px 20px", background: "rgba(255,255,255,0.02)",
                         border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, textAlign: "left" }}>
             <p style={{ fontSize: 11, color: T.dimmer, lineHeight: 1.7 }}>
               <strong style={{ color: T.label }}>Educational use only:</strong> Macro signal scores
