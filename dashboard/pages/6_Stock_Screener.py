@@ -23,14 +23,15 @@ import yfinance as yf
 from utils.config import SIGNALS, TICKERS
 from utils.fetchers import fetch_live_quote, fetch_signal_series
 from utils.analysis import compute_confluence, score_signal
-from utils.header import render_header, render_sidebar_base, render_page_header, render_synthetic_data_banner
-from utils.theme import source_badge, PLOTLY_CONFIG
+from utils.header import render_header, render_sidebar_base, render_page_header, render_synthetic_data_banner, render_footer
+from utils.theme import source_badge, inject_premium_css, section_label, PLOTLY_CONFIG
 from utils.quotes import get_batch_quotes
 from utils.signals_cache import get_all_signal_scores
 
 st.set_page_config(page_title="Stock Screener — UA", layout="wide")
 render_header("Stock Screener")
 render_sidebar_base()
+inject_premium_css()
 
 render_page_header(
     "Stock Screener",
@@ -757,4 +758,6 @@ with tab_squeeze:
         _src_badge("FINRA · yfinance · EDGAR")
     else:
         st.info("Short interest data loading — try again in a moment.")
+
+render_footer()
     st.caption("Insider bonus requires opening Ticker Deep Dive for the specific ticker (EDGAR Form 4 fetch).")

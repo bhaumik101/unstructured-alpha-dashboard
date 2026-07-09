@@ -12,7 +12,7 @@ import streamlit.components.v1 as components
 import yfinance as yf
 
 from utils.config import TICKERS
-from utils.header import render_header, render_sidebar_base, render_page_header
+from utils.header import render_header, render_sidebar_base, render_page_header, render_footer
 
 st.set_page_config(page_title="Stock Viewer — UA", layout="wide")
 render_header("Stock Viewer")
@@ -298,3 +298,5 @@ st.markdown(
     f'For macro signal analysis, use <b style="color:#8892AA">Ticker Deep Dive</b>.</div>',
     unsafe_allow_html=True,
 )
+
+render_footer()

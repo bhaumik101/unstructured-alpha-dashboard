@@ -26,7 +26,7 @@ import yfinance as yf
 from utils.config import TICKERS
 from utils import alerts_db
 from utils.alerts import evaluate_watchlist
-from utils.header import render_header, render_sidebar_base, render_page_header
+from utils.header import render_header, render_sidebar_base, render_page_header, render_footer
 from utils.theme import inject_premium_css, inject_skeleton_css, section_label, PLOTLY_CONFIG
 from utils.auth_ui import require_login
 from utils.quotes import get_batch_quotes, mini_sparkline
@@ -753,9 +753,4 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="disclaimer">
-<b>Not financial advice.</b> Alerts reflect signal and price changes in publicly available data,
-not a recommendation to buy or sell. Do your own research before making any investment decision.
-</div>
-""", unsafe_allow_html=True)
+render_footer()

@@ -26,7 +26,7 @@ from utils.fetchers import (
 from utils.analysis import (
     score_signal, score_cot, compute_supercycle_score, score_contract_velocity,
 )
-from utils.header import render_header, render_sidebar_base, render_page_header, ticker_chips, render_synthetic_data_banner
+from utils.header import render_header, render_sidebar_base, render_page_header, ticker_chips, render_synthetic_data_banner, render_footer
 from utils.theme import source_badge, inject_premium_css, inject_skeleton_css, section_label
 
 st.set_page_config(page_title="Power Supercycle — UA", layout="wide")
@@ -637,3 +637,5 @@ elif section == "Confluence":
                 "Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.0f"),
             },
         )
+
+render_footer()

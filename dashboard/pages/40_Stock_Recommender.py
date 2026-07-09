@@ -28,7 +28,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from utils.header import render_header, render_sidebar_base, render_page_header
+from utils.header import render_header, render_sidebar_base, render_page_header, render_footer
 from utils.theme import inject_premium_css, source_badge
 from utils.config import SIGNALS, TICKERS
 from utils.billing import require_pro
@@ -645,10 +645,4 @@ if all_rows:
     )
     st.plotly_chart(fig2, use_container_width=True)
 
-st.markdown("---")
-st.caption(
-    "Recommendations are based on UA's macro, momentum, and alternative data confluence scores. "
-    "This is not investment advice — UA is not a registered investment adviser. "
-    "Signal lead times are estimated from historical lag scans and may not persist in future regimes. "
-    "Track record data is retrospective; past performance does not imply future results."
-)
+render_footer()

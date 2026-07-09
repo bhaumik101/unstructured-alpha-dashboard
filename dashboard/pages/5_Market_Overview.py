@@ -28,7 +28,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import yfinance as yf
 
-from utils.header import render_header, render_sidebar_base, render_page_header
+from utils.header import render_header, render_sidebar_base, render_page_header, render_footer
 from utils.fetchers import fetch_live_quote
 from utils.theme import source_badge, inject_premium_css, inject_skeleton_css, section_label, PLOTLY_CONFIG
 
@@ -888,3 +888,5 @@ elif section == "Macro Indicators":
     <tbody>{cal_rows}</tbody>
     </table>
     """, unsafe_allow_html=True)
+
+render_footer()
