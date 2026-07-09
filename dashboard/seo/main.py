@@ -87,6 +87,7 @@ def _html_head(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google-site-verification" content="yo8oBRWmMzqG-7dqyFvVGvlR2XzmeofREFA3__o4ZLQ">
   <title>{title}</title>
   <meta name="description" content="{description}">
   <link rel="canonical" href="{canonical}">
