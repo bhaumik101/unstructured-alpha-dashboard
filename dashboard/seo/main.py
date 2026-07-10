@@ -411,9 +411,17 @@ def _signal_history_30d(engine, signal_snapshots, signal_id: str) -> list[dict]:
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
-@app.get("/", response_class=PlainTextResponse)
+@app.get("/", response_class=HTMLResponse)
 def health() -> str:
-    return "OK"
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="google-site-verification" content="yo8oBRWmMzqG-7dqyFvVGvlR2XzmeofREFA3__o4ZLQ">
+  <title>Unstructured Alpha SEO</title>
+</head>
+<body>OK</body>
+</html>"""
 
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
