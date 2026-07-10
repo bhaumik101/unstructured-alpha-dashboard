@@ -32,10 +32,13 @@ now: the sidebar should never depend on auth state to render correctly.
 
 import streamlit as st
 
-from utils.db import init_db, run_periodic_maintenance
-from utils.auth_ui import init_cookies_for_this_run, try_restore_session
-
 # ── Navigation registered FIRST ───────────────────────────────────────────────
+# IMPORTANT: st.navigation() must be the ABSOLUTE first Streamlit call, and
+# the module-level imports of utils.db / utils.auth_ui must come AFTER it.
+# If those imports throw at cold-start (DB timeout, SQLAlchemy issue, etc.),
+# st.navigation() would never be called and Streamlit falls back to automatic
+# page discovery — a flat, ungrouped list of raw filenames. Moving imports
+# below st.navigation() eliminates that race entirely.
 # st.navigation() MUST be the first Streamlit call in app.py. Every run of
 # app.py — including reruns triggered by the CookieManager component loading
 # its data, or by any downstream st.rerun() — must establish the sidebar
@@ -108,6 +111,13 @@ pg = st.navigation(
     },
     position="sidebar",
 )
+
+# ── Deferred imports (MUST come after st.navigation()) ────────────────────────
+# These imports are placed here — never before st.navigation() — so that any
+# cold-start DB timeout or SQLAlchemy error can't prevent st.navigation() from
+# running and establishing the grouped sidebar. See docstring above for details.
+from utils.db import init_db, run_periodic_maintenance
+from utils.auth_ui import init_cookies_for_this_run, try_restore_session
 
 # ── DB init + session restore — best-effort, never block the nav ──────────────
 # Wrapped in try/except so a transient DB error or slow cold-start connection

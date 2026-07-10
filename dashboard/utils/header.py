@@ -1393,71 +1393,80 @@ def render_header(page_subtitle: str = "") -> None:
     # that calls render_header() (all of them).
     render_global_ticker_search()
 
-    # Top-right Sign In / account widget -- a real Streamlit popover, not
-    # raw HTML, so it can't live inside the markdown block above (Streamlit
-    # widgets don't render inside injected HTML). Rendered here so every
-    # page gets it automatically just by calling render_header(), which
-    # they all already do -- no per-page wiring needed, and no risk of a
-    # page forgetting to add it.
-    from utils.auth_ui import render_account_widget
-    render_account_widget()
+    # ── Top-right widget row: bell (logged-in only) + account ─────────────────
+    # Single st.columns() call so both widgets share one horizontal row.
+    # Bell is only rendered for logged-in users (no point showing notifications
+    # to a guest who has no account-linked data).
+    from utils.auth_ui import get_cookies, try_restore_session, render_auth_forms, logout
+    _cookies = get_cookies()
+    _hdr_user = try_restore_session(_cookies)
+    _uid = (_hdr_user or {}).get("id")
 
-    # ── Notification Bell ──────────────────────────────────────────────────────
-    # Shows unread system notification count + popover feed.
-    # Best-effort — never crashes the header if DB is unavailable.
-    try:
-        from utils.prediction_log import (
-            get_unread_notification_count, get_recent_notifications, mark_all_read
-        )
-        _uid = (st.session_state.get("user") or {}).get("id")
-        _unread = get_unread_notification_count(_uid)
-        _badge_text = f" ({min(_unread, 99)})" if _unread > 0 else ""
-        # Render bell using a popover (Streamlit ≥1.32)
-        _bell_col, _pad = st.columns([0.12, 0.88])
-        with _bell_col:
-            with st.popover(f"🔔{_badge_text}", use_container_width=True):
-                st.markdown(
-                    '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;'
-                    'text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);'
-                    'padding-bottom:6px;font-family:Inter,sans-serif;">System Notifications</div>',
-                    unsafe_allow_html=True,
-                )
-                _notifs = get_recent_notifications(limit=15)
-                if not _notifs:
-                    st.caption("No notifications yet. Convergence events and prediction resolutions will appear here.")
-                else:
-                    _NOTIF_ICONS = {
-                        "convergence":          "⚡",
-                        "regime_change":        "📈",
-                        "near_flip":            "⏳",
-                        "prediction_resolved":  "📊",
-                    }
-                    for _n in _notifs:
-                        _icon = _NOTIF_ICONS.get(_n.get("notif_type", ""), "●")
-                        _n_bg = "rgba(0,213,102,0.06)" if _n.get("direction") == "bull" else (
-                                "rgba(255,68,68,0.06)" if _n.get("direction") == "bear" else "rgba(18,21,30,0.6)"
-                        )
-                        _n_border = "#00D566" if _n.get("direction") == "bull" else (
-                                    "#FF4444" if _n.get("direction") == "bear" else "rgba(255,255,255,0.07)"
-                        )
-                        _n_ts = _n.get("created_at", "")[:10]
-                        st.markdown(
-                            f'<div style="background:{_n_bg};border-radius:8px;padding:8px 10px;'
-                            f'margin-bottom:6px;border-left:3px solid {_n_border};font-family:Inter,sans-serif;">'
-                            f'<div style="font-size:0.76rem;font-weight:600;color:#E8EEFF;">'
-                            f'{_icon} {_n.get("title","")}</div>'
-                            f'<div style="font-size:0.70rem;color:#8892AA;margin-top:3px;line-height:1.4;">'
-                            f'{_n.get("body","")}</div>'
-                            f'<div style="font-size:0.60rem;color:#8892AA;margin-top:4px;">{_n_ts}</div>'
-                            f'</div>',
-                            unsafe_allow_html=True,
-                        )
-                if _unread > 0 and _uid:
-                    if st.button("Mark all read", key="_notif_mark_read", use_container_width=True):
-                        mark_all_read(_uid)
-                        st.rerun()
-    except Exception:
-        pass  # Never crash the header for a notification badge
+    _space, _bell_col, _acct_col = st.columns([4.2, 0.45, 1.55])
+
+    # Bell — logged-in users only
+    if _uid:
+        try:
+            from utils.prediction_log import (
+                get_unread_notification_count, get_recent_notifications, mark_all_read
+            )
+            _unread = get_unread_notification_count(_uid)
+            _badge_text = f" ({min(_unread, 99)})" if _unread > 0 else ""
+            with _bell_col:
+                with st.popover(f"🔔{_badge_text}", use_container_width=True):
+                    st.markdown(
+                        '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;'
+                        'text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);'
+                        'padding-bottom:6px;font-family:Inter,sans-serif;">System Notifications</div>',
+                        unsafe_allow_html=True,
+                    )
+                    _notifs = get_recent_notifications(limit=15)
+                    if not _notifs:
+                        st.caption("No notifications yet. Convergence events and prediction resolutions will appear here.")
+                    else:
+                        _NOTIF_ICONS = {
+                            "convergence":          "⚡",
+                            "regime_change":        "📈",
+                            "near_flip":            "⏳",
+                            "prediction_resolved":  "📊",
+                        }
+                        for _n in _notifs:
+                            _icon = _NOTIF_ICONS.get(_n.get("notif_type", ""), "●")
+                            _n_bg = "rgba(0,213,102,0.06)" if _n.get("direction") == "bull" else (
+                                    "rgba(255,68,68,0.06)" if _n.get("direction") == "bear" else "rgba(18,21,30,0.6)"
+                            )
+                            _n_border = "#00D566" if _n.get("direction") == "bull" else (
+                                        "#FF4444" if _n.get("direction") == "bear" else "rgba(255,255,255,0.07)"
+                            )
+                            _n_ts = _n.get("created_at", "")[:10]
+                            st.markdown(
+                                f'<div style="background:{_n_bg};border-radius:8px;padding:8px 10px;'
+                                f'margin-bottom:6px;border-left:3px solid {_n_border};font-family:Inter,sans-serif;">'
+                                f'<div style="font-size:0.76rem;font-weight:600;color:#E8EEFF;">'
+                                f'{_icon} {_n.get("title","")}</div>'
+                                f'<div style="font-size:0.70rem;color:#8892AA;margin-top:3px;line-height:1.4;">'
+                                f'{_n.get("body","")}</div>'
+                                f'<div style="font-size:0.60rem;color:#8892AA;margin-top:4px;">{_n_ts}</div>'
+                                f'</div>',
+                                unsafe_allow_html=True,
+                            )
+                    if _unread > 0:
+                        if st.button("Mark all read", key="_notif_mark_read", use_container_width=True):
+                            mark_all_read(_uid)
+                            st.rerun()
+        except Exception:
+            pass  # Never crash the header for a notification badge
+
+    # Account widget — all users
+    with _acct_col:
+        if _hdr_user:
+            with st.popover("⚙ Account", use_container_width=True):
+                if st.button("Log Out", key="topright_logout", use_container_width=True):
+                    logout()
+                    st.rerun()
+        else:
+            with st.popover("Sign In", use_container_width=True):
+                render_auth_forms(_cookies, key_prefix="widget_")
 
 
 @st.cache_data(ttl=60, max_entries=1, show_spinner=False)
