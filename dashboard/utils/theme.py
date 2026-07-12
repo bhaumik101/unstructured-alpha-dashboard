@@ -846,14 +846,450 @@ hr {
 """
 
 
+# ── Modern UI System — Buttons, Tabs, Inputs, Metrics, Sidebar ───────────────
+# Drop-in replacement for every cheap-looking default Streamlit widget.
+# Inject via inject_all_css() (or inject_skeleton_css / inject_premium_css).
+
+_MODERN_UI_CSS = """
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   PILL TABS  — replaces underline tabs with rounded pill containers
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.stTabs [data-baseweb="tab-list"] {
+  background: rgba(13,15,24,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  padding: 3px !important;
+  gap: 2px !important;
+  flex-wrap: wrap !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+  background: transparent !important;
+  border-radius: 7px !important;
+  padding: 7px 14px !important;
+  font-family: Inter, -apple-system, sans-serif !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  color: #6B7FBF !important;
+  border: 1px solid transparent !important;
+  margin: 0 !important;
+  min-height: auto !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+  color: #C8D0E4 !important;
+  background: rgba(255,255,255,0.05) !important;
+}
+
+/* Active pill — green-tinted glass */
+.stTabs [aria-selected="true"][data-baseweb="tab"],
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+  background: linear-gradient(135deg,rgba(0,213,102,0.14) 0%,rgba(0,200,224,0.07) 100%) !important;
+  color: #E8EEFF !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(0,213,102,0.22) !important;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+
+/* Kill underline highlight + divider */
+.stTabs [data-baseweb="tab-highlight"],
+.stTabs [data-baseweb="tab-border"] {
+  display: none !important;
+  height: 0 !important;
+  background: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODERN BUTTONS  — base / secondary / primary / download / form-submit
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes ua_btn_ripple {
+  0%   { transform: translate(-50%,-50%) scale(0); opacity: 0.30; }
+  100% { transform: translate(-50%,-50%) scale(5); opacity: 0; }
+}
+
+.stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button,
+.stLinkButton > a {
+  font-family: Inter, -apple-system, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.83rem !important;
+  letter-spacing: 0.01em !important;
+  padding: 8px 20px !important;
+  border-radius: 8px !important;
+  min-height: 36px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* CSS-only ripple on click */
+.stButton > button::after,
+.stDownloadButton > button::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important; left: 50% !important;
+  width: 120px !important; height: 120px !important;
+  background: rgba(255,255,255,0.14) !important;
+  border-radius: 50% !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  transform: translate(-50%,-50%) scale(0) !important;
+}
+.stButton > button:active::after,
+.stDownloadButton > button:active::after {
+  animation: ua_btn_ripple 0.42s ease-out forwards !important;
+}
+
+/* — Secondary (default) — */
+.stButton > button[data-testid="baseButton-secondary"],
+.stButton > button:not([data-testid="baseButton-primary"]) {
+  background: rgba(22,26,40,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  color: #B8C0D4 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.30),
+              inset 0 1px 0 rgba(255,255,255,0.04) !important;
+}
+.stButton > button[data-testid="baseButton-secondary"]:hover,
+.stButton > button:not([data-testid="baseButton-primary"]):hover {
+  background: rgba(32,38,58,0.95) !important;
+  border-color: rgba(0,213,102,0.38) !important;
+  color: #E8EEFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35),
+              0 0 0 1px rgba(0,213,102,0.10) !important;
+}
+.stButton > button[data-testid="baseButton-secondary"]:active,
+.stButton > button:not([data-testid="baseButton-primary"]):active {
+  transform: translateY(0) scale(0.975) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.30) !important;
+}
+
+/* — Primary — */
+.stButton > button[data-testid="baseButton-primary"] {
+  background: linear-gradient(135deg, #00D566 0%, #00A847 100%) !important;
+  border: 1px solid rgba(0,213,102,0.38) !important;
+  color: #001A0B !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 16px rgba(0,213,102,0.30) !important;
+}
+.stButton > button[data-testid="baseButton-primary"]:hover {
+  filter: brightness(1.08) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 24px rgba(0,213,102,0.42) !important;
+}
+.stButton > button[data-testid="baseButton-primary"]:active {
+  transform: translateY(0) scale(0.975) !important;
+  filter: brightness(0.96) !important;
+  box-shadow: 0 2px 8px rgba(0,213,102,0.20) !important;
+}
+
+/* — Download — */
+.stDownloadButton > button {
+  background: rgba(0,200,224,0.09) !important;
+  border: 1px solid rgba(0,200,224,0.22) !important;
+  color: #00C8E0 !important;
+}
+.stDownloadButton > button:hover {
+  background: rgba(0,200,224,0.16) !important;
+  border-color: rgba(0,200,224,0.42) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(0,200,224,0.20) !important;
+}
+
+/* — Form submit — */
+.stFormSubmitButton > button {
+  background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%) !important;
+  border: 1px solid rgba(124,58,237,0.38) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.28) !important;
+}
+.stFormSubmitButton > button:hover {
+  filter: brightness(1.10) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 24px rgba(124,58,237,0.38) !important;
+}
+
+/* Sidebar buttons stay green-themed */
+section[data-testid="stSidebar"] .stButton > button {
+  background: rgba(0,213,102,0.09) !important;
+  border: 1px solid rgba(0,213,102,0.22) !important;
+  color: #00D566 !important;
+}
+section[data-testid="stSidebar"] .stButton > button:hover {
+  background: rgba(0,213,102,0.16) !important;
+  border-color: rgba(0,213,102,0.42) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SELECTBOX + MULTI-SELECT
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stSelectbox"] [data-baseweb="select"] > div:first-child,
+[data-testid="stMultiSelect"] [data-baseweb="select"] > div:first-child {
+  background: rgba(15,17,24,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 8px !important;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] > div:first-child:hover,
+[data-testid="stMultiSelect"] [data-baseweb="select"] > div:first-child:hover {
+  border-color: rgba(0,213,102,0.38) !important;
+  box-shadow: 0 0 0 1px rgba(0,213,102,0.10) !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] > div:first-child:focus-within,
+[data-testid="stMultiSelect"] [data-baseweb="select"] > div:first-child:focus-within {
+  border-color: rgba(0,213,102,0.55) !important;
+  box-shadow: 0 0 0 2px rgba(0,213,102,0.14) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEXT INPUTS / TEXTAREA / NUMBER INPUT
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-testid="stTextArea"] textarea {
+  background: rgba(15,17,24,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 8px !important;
+  color: #E8EEFF !important;
+  font-family: Inter, -apple-system, sans-serif !important;
+  font-size: 0.85rem !important;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease !important;
+}
+[data-testid="stTextInput"] input:hover,
+[data-testid="stNumberInput"] input:hover,
+[data-testid="stTextArea"] textarea:hover {
+  border-color: rgba(255,255,255,0.18) !important;
+}
+[data-testid="stTextInput"] input:focus,
+[data-testid="stNumberInput"] input:focus,
+[data-testid="stTextArea"] textarea:focus {
+  border-color: rgba(0,213,102,0.55) !important;
+  box-shadow: 0 0 0 2px rgba(0,213,102,0.14) !important;
+  outline: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   METRICS  — glassmorphism cards with hover lift
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stMetric"] {
+  background: rgba(18,21,30,0.88) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+  transition: border-color 0.16s ease, transform 0.16s ease,
+              box-shadow 0.16s ease !important;
+}
+[data-testid="stMetric"]:hover {
+  border-color: rgba(0,213,102,0.22) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.28) !important;
+}
+[data-testid="stMetricValue"] {
+  font-family: Inter, -apple-system, sans-serif !important;
+  font-weight: 800 !important;
+  color: #E8EEFF !important;
+  letter-spacing: -0.5px !important;
+}
+[data-testid="stMetricLabel"] {
+  font-family: Inter, -apple-system, sans-serif !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.09em !important;
+  text-transform: uppercase !important;
+  color: #8892AA !important;
+}
+[data-testid="stMetricDelta"] {
+  font-size: 0.80rem !important;
+  font-weight: 600 !important;
+}
+[data-testid="stMetricDelta"] svg { display: none !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EXPANDERS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stExpander"] {
+  background: rgba(15,17,24,0.80) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease !important;
+}
+[data-testid="stExpander"]:hover {
+  border-color: rgba(0,213,102,0.20) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important;
+}
+.streamlit-expanderHeader,
+[data-testid="stExpander"] summary {
+  font-family: Inter, -apple-system, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  color: #B8C0D4 !important;
+  padding: 12px 14px !important;
+  transition: color 0.14s ease !important;
+}
+.streamlit-expanderHeader:hover,
+[data-testid="stExpander"] summary:hover {
+  color: #E8EEFF !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIDEBAR NAV LINKS  — pill items with active indicator
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stSidebarNavLink"] {
+  border-radius: 7px !important;
+  margin: 1px 6px !important;
+  padding: 7px 10px !important;
+  transition: all 0.14s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+[data-testid="stSidebarNavLink"]:hover:not([aria-selected="true"]) {
+  background: rgba(255,255,255,0.05) !important;
+  padding-left: 14px !important;
+}
+[data-testid="stSidebarNavLink"][aria-selected="true"],
+[data-testid="stSidebarNavLink"][aria-current="page"] {
+  background: rgba(0,213,102,0.09) !important;
+  border-left: 2px solid #00D566 !important;
+  padding-left: 12px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DATAFRAME  — rounded + bordered
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stDataFrame"],
+[data-testid="stDataFrameResizable"] {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CHECKBOX + RADIO
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stCheckbox"] label,
+[data-testid="stRadio"] label {
+  font-family: Inter, -apple-system, sans-serif !important;
+  font-size: 0.85rem !important;
+  color: #B8C0D4 !important;
+  transition: color 0.14s ease !important;
+}
+[data-testid="stCheckbox"] label:hover,
+[data-testid="stRadio"] label:hover {
+  color: #E8EEFF !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SPINNER  — green brand color
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stSpinner"] > div {
+  border-color: rgba(0,213,102,0.15) rgba(0,213,102,0.15)
+                rgba(0,213,102,0.15) #00D566 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ALERTS  — rounded + light border styling
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stAlert"] {
+  border-radius: 10px !important;
+  font-family: Inter, -apple-system, sans-serif !important;
+  font-size: 0.83rem !important;
+  border-width: 1px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HR / DIVIDER
+   ══════════════════════════════════════════════════════════════════════════ */
+
+hr {
+  border: none !important;
+  border-top: 1px solid rgba(255,255,255,0.05) !important;
+  margin: 16px 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PLOTLY CHART CONTAINER  — subtle lift on hover
+   ══════════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stPlotlyChart"] {
+  border-radius: 10px !important;
+  transition: box-shadow 0.20s ease !important;
+}
+[data-testid="stPlotlyChart"]:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.45) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PERFORMANCE  — reduce paint/layout cost
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Only animate elements that need it; avoid global will-change */
+.stButton > button,
+.stTabs [data-baseweb="tab"],
+[data-testid="stMetric"],
+[data-testid="stExpander"],
+[data-testid="stSidebarNavLink"] {
+  will-change: transform !important;
+}
+
+/* contain layout on sidebar so it never triggers full-page reflow */
+section[data-testid="stSidebar"] {
+  contain: layout style !important;
+}
+
+/* contain Plotly chart iframes */
+[data-testid="stPlotlyChart"] iframe {
+  contain: strict !important;
+}
+
+/* Page fade-in */
+@keyframes ua_page_in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.main .block-container,
+[data-testid="stMainBlockContainer"] {
+  animation: ua_page_in 0.22s ease forwards !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(0,213,102,0.20);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(0,213,102,0.42); }
+</style>
+"""
+
+
 def inject_skeleton_css() -> None:
     """
-    Inject the skeleton/shimmer CSS into the page. Call once near the top of
-    any page that uses skeleton placeholders. Safe to call multiple times —
-    Streamlit deduplicates identical markdown injections within a session.
+    Inject the skeleton/shimmer CSS + modern UI overrides into the page.
+    Safe to call multiple times — Streamlit deduplicates identical markdown.
     """
     import streamlit as st
-    st.markdown(_SKELETON_CSS, unsafe_allow_html=True)
+    st.markdown(_SKELETON_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
 
 
 def skeleton_cards(n: int = 3, height: int = 110, cols: int = 1) -> str:
@@ -1291,21 +1727,20 @@ _COUNTER_CSS = """
 
 def inject_premium_css() -> None:
     """
-    Inject the premium animation + component CSS into the page.
+    Inject premium animation + component CSS + modern UI overrides.
     Safe to call multiple times (Streamlit deduplicates identical markdown).
     Covers: animated KPI counters, gradient border cards, testimonial cards,
     spotlight feature cards, step cards, Pro banner, guarantee badge,
-    pulse dot, avatar initials.
+    pulse dot, avatar initials, plus pill tabs, modern buttons, metrics, etc.
     """
     import streamlit as st
-    st.markdown(_COUNTER_CSS, unsafe_allow_html=True)
+    st.markdown(_COUNTER_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
 
 
 def inject_all_css() -> None:
     """
-    Convenience function — inject BOTH skeleton/shimmer CSS and premium
-    animation CSS in a single call. Use this instead of calling
-    inject_skeleton_css() + inject_premium_css() separately.
+    Convenience function — inject ALL CSS in a single call:
+    skeleton/shimmer + premium animations + modern UI overrides.
 
     Safe to call multiple times (Streamlit deduplicates identical markdown
     injections within a session).
@@ -1316,7 +1751,7 @@ def inject_all_css() -> None:
         inject_all_css()  # once near the top of any page
     """
     import streamlit as st
-    st.markdown(_SKELETON_CSS + _COUNTER_CSS, unsafe_allow_html=True)
+    st.markdown(_SKELETON_CSS + _COUNTER_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
 
 
 # ── Polish helpers ────────────────────────────────────────────────────────────
