@@ -737,7 +737,7 @@ with tab_signals:
                                        tickfont=dict(size=8, color="#8892AA")),
                             showlegend=False,
                         )
-                        st.plotly_chart(spark, use_container_width=True, key=f"spark_{sig_id}_{mode}")
+                        st.plotly_chart(spark, use_container_width=True, config=PLOTLY_CONFIG, key=f"spark_{sig_id}_{mode}")
 
                         # Insight caption below the sparkline
                         _cur_val  = sv.get("current", float("nan"))
