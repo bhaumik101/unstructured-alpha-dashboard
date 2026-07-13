@@ -1865,7 +1865,10 @@ def render_footer(page: str = "") -> None:
             '</div>'
         )
 
-    st.markdown(f"""
+    # st.html (not st.markdown) — this footer is multi-line indented HTML, which
+    # the markdown parser would turn into a code block and dump as raw text at the
+    # bottom of the page (same bug that hit the top-nav). st.html skips markdown.
+    st.html(f"""
 <div style="margin-top:48px;padding:28px 0 20px;border-top:1px solid rgba(255,255,255,0.05);
             font-family:Inter,sans-serif;">
     <div style="max-width:900px;margin:0 auto;padding:0 16px;">
@@ -1923,7 +1926,7 @@ def render_footer(page: str = "") -> None:
         </div>
     </div>
 </div>
-""", unsafe_allow_html=True)
+""")
 
 
 def render_sidebar_base() -> None:

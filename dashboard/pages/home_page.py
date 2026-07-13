@@ -403,7 +403,9 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Logged-in users get the full personalized onboarding checklist below instead.
 _anon_user = not st.session_state.get("user")
 if _anon_user:
-    st.markdown("""
+    # st.html (not st.markdown): multi-line indented HTML would be parsed as a
+    # markdown code block and leak as raw text (same bug as nav/footer).
+    st.html("""
 <div style="background:rgba(18,21,30,0.72);border:1px solid rgba(255,255,255,0.09);
      border-radius:16px;padding:24px 28px;margin-bottom:32px;font-family:Inter,sans-serif;
      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">
@@ -452,7 +454,7 @@ if _anon_user:
 
   </div>
 </div>
-""", unsafe_allow_html=True)
+""")
 
 # ── PERSONALIZATION — new user onboarding / return user "what changed" ────────
 try:

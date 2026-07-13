@@ -112,7 +112,7 @@ with tab_track:
     _acc_12w  = _tr["accuracy_12w"]
     _med_12w  = _tr["median_ret_12w"]
 
-    st.markdown(f"""
+    st.html(f"""
     <div class="ua-gradient-border" style="margin-bottom:24px;">
       <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;">
 
@@ -168,7 +168,7 @@ with tab_track:
 
       </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     if _total < 5:
         st.info(
