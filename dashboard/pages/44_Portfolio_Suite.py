@@ -450,6 +450,47 @@ with tab_macro:
         st.rerun()
 
     holdings2 = st.session_state.macro_holdings
+
+    # ── Portfolio Macro X-Ray (Point 2) ───────────────────────────────────────
+    # The flagship portfolio view: aggregate each holding's real per-ticker
+    # Confluence read (correlation-weighted, significant signals only) into a
+    # portfolio-level exposure map — macro score, factor concentration,
+    # tailwinds/risks, most vulnerable/supported holding, and HIDDEN correlations
+    # between holdings that look diversified but share the same macro bet.
+    # Engine + tests: utils/portfolio_xray.py. Additive (the simpler signal
+    # table below stays) and fully defensive. Framed as context, never advice.
+    if holdings2:
+        try:
+            from utils.portfolio_xray import build_portfolio_xray, render_portfolio_xray_html
+            from utils.ticker_score import compute_full_ticker_score as _pf_score
+            from utils.config import TICKERS as _PX_TICKERS
+
+            @st.cache_data(ttl=3600, show_spinner=False, max_entries=128)
+            def _px_holding_read(_ticker: str):
+                r = _pf_score(_ticker)
+                return {
+                    "ticker": _ticker,
+                    "score": r["confluence"]["overall_score"],
+                    "corr_info": {k: {"weight": v.get("weight"), "significant": v.get("significant")}
+                                  for k, v in r["corr_info"].items()},
+                    "signal_scores": {k: {"score": v.get("score"), "status": v.get("status")}
+                                      for k, v in r["signal_scores"].items()},
+                    "sector": (_PX_TICKERS.get(_ticker, {}) or {}).get("sector", ""),
+                }
+
+            _px_inputs = []
+            with st.spinner("Building your Portfolio Macro X-Ray…"):
+                for _h in holdings2:
+                    try:
+                        _px_inputs.append(_px_holding_read(_h["ticker"]))
+                    except Exception:
+                        continue
+            if _px_inputs:
+                st.html(render_portfolio_xray_html(build_portfolio_xray(_px_inputs)))
+                st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        except Exception:
+            pass
+
     if holdings2:
         from utils.ticker_score import SECTOR_SIGNAL_MAP
         from utils.signals_cache import get_all_signal_scores
