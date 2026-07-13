@@ -109,7 +109,7 @@ pg = st.navigation(
             st.Page("pages/38_Admin.py",            title="Admin"),
         ],
     },
-    position="sidebar",
+    position="hidden",  # Nav UI is the custom horizontal topnav in utils/header.py
 )
 
 # ── Deferred imports (MUST come after st.navigation()) ────────────────────────
@@ -134,15 +134,17 @@ except Exception:
     pass  # maintenance is best-effort; never block page render
 
 # ── Sunday auto-generate Weekly Brief (best-effort, non-blocking) ─────────────
-# Fires at most once per Sunday per server restart because should_auto_generate()
-# checks whether today's note already exists before returning True.
-# generate_weekly_note() is ~2s API call — acceptable on cold run startup.
-try:
-    from utils.narrative_engine import should_auto_generate, generate_weekly_note
-    if should_auto_generate():
-        generate_weekly_note(force=False)
-except Exception:
-    pass  # never block the app for a failed note generation
+# Session-state guard prevents a DB round-trip on every Streamlit rerun.
+# should_auto_generate() only returns True on Sundays when no note exists yet,
+# so the actual Anthropic API call (~2s) only fires once per Sunday per session.
+if not st.session_state.get("_narrative_init_done"):
+    st.session_state["_narrative_init_done"] = True
+    try:
+        from utils.narrative_engine import should_auto_generate, generate_weekly_note
+        if should_auto_generate():
+            generate_weekly_note(force=False)
+    except Exception:
+        pass  # never block the app for a failed note generation
 
 _cookies = init_cookies_for_this_run()
 

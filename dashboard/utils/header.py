@@ -1223,6 +1223,226 @@ def render_global_ticker_search() -> None:
         st.switch_page("pages/3_Ticker_Deep_Dive.py")
 
 
+def _render_topnav() -> None:
+    """
+    Inject the sticky 46 px horizontal top-nav that replaces Streamlit's sidebar.
+    Hides the native sidebar + Streamlit chrome via CSS, then renders a fixed bar
+    with CSS-only hover dropdowns that mirror app.py's navigation groups.
+    Called as the very first thing in render_header().
+    """
+    st.markdown("""
+<style>
+/* ── Hide native sidebar + Streamlit chrome ──────────────────────────────── */
+section[data-testid="stSidebar"]          { display: none !important; }
+[data-testid="stSidebarCollapsedControl"] { display: none !important; }
+header[data-testid="stHeader"]            { display: none !important; }
+#MainMenu, footer                         { display: none !important; }
+[data-testid="stMain"]                    { margin-left: 0 !important; }
+[data-testid="stAppViewContainer"] > section { padding-left: 0 !important; }
+/* Push page content below the 46px fixed nav bar */
+.block-container { padding-top: 60px !important; }
+
+/* ── Topnav shell ─────────────────────────────────────────────────────────── */
+.ua-topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+  height: 46px;
+  background: rgba(9,11,17,0.97);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center;
+  padding: 0 16px; gap: 0;
+  font-family: 'Inter', -apple-system, sans-serif;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+}
+
+/* ── Brand ────────────────────────────────────────────────────────────────── */
+.ua-tnav-brand {
+  text-decoration: none !important; margin-right: 18px; flex-shrink: 0;
+}
+.ua-tnav-brand-text {
+  font-size: 0.76rem; font-weight: 800; letter-spacing: -0.2px;
+  color: #E8EEFF; white-space: nowrap;
+}
+.ua-tnav-brand-text em {
+  font-style: normal;
+  background: linear-gradient(135deg, #00D566, #00C8E0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Links row ────────────────────────────────────────────────────────────── */
+.ua-tnav-links { display: flex; align-items: center; gap: 0; flex: 1; overflow: visible; }
+
+/* ── Direct link ──────────────────────────────────────────────────────────── */
+a.ua-tnav-item {
+  display: inline-flex; align-items: center;
+  padding: 4px 9px; border-radius: 6px; height: 30px;
+  font-size: 0.74rem; font-weight: 500; color: #8892AA;
+  text-decoration: none !important; white-space: nowrap;
+  transition: color .12s ease, background .12s ease;
+}
+a.ua-tnav-item:hover { color: #E8EEFF; background: rgba(255,255,255,0.06); }
+a.ua-tnav-item.active { color: #00D566 !important; background: rgba(0,213,102,0.08) !important; }
+
+/* ── Dropdown group ───────────────────────────────────────────────────────── */
+.ua-tnav-group { position: relative; display: inline-flex; align-items: center; }
+.ua-tnav-trigger {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 4px 9px; border-radius: 6px; height: 30px;
+  font-size: 0.74rem; font-weight: 500; color: #8892AA;
+  cursor: default; white-space: nowrap; user-select: none;
+  transition: color .12s ease, background .12s ease;
+}
+.ua-tnav-group:hover > .ua-tnav-trigger { color: #E8EEFF; background: rgba(255,255,255,0.06); }
+.ua-tnav-trigger.active { color: #00D566 !important; background: rgba(0,213,102,0.08) !important; }
+.ua-tnav-caret {
+  font-size: 0.45rem; opacity: .38; line-height: 1;
+  display: inline-block; transition: transform .13s ease;
+}
+.ua-tnav-group:hover .ua-tnav-caret { transform: rotate(180deg); opacity: .72; }
+
+/* ── Dropdown panel ───────────────────────────────────────────────────────── */
+.ua-tnav-drop {
+  visibility: hidden; opacity: 0; pointer-events: none;
+  position: absolute; top: calc(100% + 4px); left: 0;
+  min-width: 172px;
+  background: rgba(12,14,22,0.98);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+  padding: 5px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03);
+  backdrop-filter: blur(24px);
+  display: flex; flex-direction: column; gap: 1px;
+  z-index: 100001;
+  transition: opacity .12s ease, visibility .12s ease;
+}
+.ua-tnav-group:hover .ua-tnav-drop { visibility: visible; opacity: 1; pointer-events: auto; }
+.ua-tnav-drop a {
+  display: block; padding: 7px 10px; border-radius: 6px;
+  font-size: 0.74rem; font-weight: 500; color: #B8C0D4;
+  text-decoration: none !important; white-space: nowrap;
+  transition: color .1s ease, background .1s ease;
+}
+.ua-tnav-drop a:hover { color: #E8EEFF; background: rgba(255,255,255,0.07); }
+.ua-tnav-drop a.active { color: #00D566 !important; background: rgba(0,213,102,0.09) !important; }
+.ua-tnav-drop a.pro-link { color: #A78BFA; }
+.ua-tnav-drop a.pro-link:hover { color: #C4B5FD; background: rgba(124,58,237,0.10); }
+.ua-tnav-drop-rule { height: 1px; background: rgba(255,255,255,0.05); margin: 3px 2px; }
+
+/* ── Right controls ───────────────────────────────────────────────────────── */
+.ua-tnav-right { display: flex; align-items: center; gap: 7px; flex-shrink: 0; margin-left: 8px; }
+.ua-tnav-upgrade {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 5px 12px; height: 30px;
+  background: linear-gradient(135deg, #7C3AED, #6D28D9);
+  color: #fff !important; font-size: 0.72rem; font-weight: 700;
+  border-radius: 6px; text-decoration: none !important; letter-spacing: 0.01em;
+  transition: all .14s ease; white-space: nowrap; flex-shrink: 0;
+}
+.ua-tnav-upgrade:hover {
+  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  box-shadow: 0 0 18px rgba(124,58,237,0.45);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 860px) { .ua-tnav-hide-sm { display: none !important; } }
+@media (max-width: 640px) {
+  .ua-topnav { padding: 0 10px; }
+  .ua-tnav-brand-text { font-size: 0.70rem; }
+}
+</style>
+
+<nav class="ua-topnav" role="navigation" aria-label="Main navigation">
+  <a class="ua-tnav-brand" href="/">
+    <span class="ua-tnav-brand-text">UNSTRUCTURED <em>ALPHA</em></span>
+  </a>
+
+  <div class="ua-tnav-links">
+    <a class="ua-tnav-item" href="/" data-paths="/,/home">Home</a>
+
+    <div class="ua-tnav-group">
+      <span class="ua-tnav-trigger">Daily Intel <span class="ua-tnav-caret">&#9660;</span></span>
+      <div class="ua-tnav-drop">
+        <a href="/today-s-brief">Today&#39;s Brief</a>
+        <a href="/alternative-data">Alternative Data</a>
+        <a href="/events-forecasts">Events &amp; Forecasts</a>
+      </div>
+    </div>
+
+    <div class="ua-tnav-group">
+      <span class="ua-tnav-trigger">Signals <span class="ua-tnav-caret">&#9660;</span></span>
+      <div class="ua-tnav-drop">
+        <a href="/signal-dashboard">Signal Dashboard</a>
+        <a href="/sector-view">Sector View</a>
+      </div>
+    </div>
+
+    <div class="ua-tnav-group">
+      <span class="ua-tnav-trigger">Research <span class="ua-tnav-caret">&#9660;</span></span>
+      <div class="ua-tnav-drop">
+        <a href="/ticker-deep-dive">Ticker Deep Dive</a>
+        <a href="/market-overview">Market Overview</a>
+        <a href="/stock-screener">Stock Screener</a>
+        <a href="/power-supercycle">Power Supercycle</a>
+        <a href="/track-record">Track Record</a>
+        <a href="/signal-strategy" class="ua-tnav-hide-sm">Signal Strategy</a>
+      </div>
+    </div>
+
+    <div class="ua-tnav-group">
+      <span class="ua-tnav-trigger">Watchlist <span class="ua-tnav-caret">&#9660;</span></span>
+      <div class="ua-tnav-drop">
+        <a href="/my-watchlist">My Watchlist</a>
+        <a href="/stock-chart">Stock Chart</a>
+      </div>
+    </div>
+
+    <div class="ua-tnav-group">
+      <span class="ua-tnav-trigger" style="color:#A78BFA;">&#9889; Pro <span class="ua-tnav-caret" style="color:#A78BFA;">&#9660;</span></span>
+      <div class="ua-tnav-drop">
+        <a class="pro-link" href="/stock-recommender">Stock Recommender</a>
+        <a class="pro-link" href="/portfolio-suite">Portfolio Suite</a>
+      </div>
+    </div>
+
+    <div class="ua-tnav-group ua-tnav-hide-sm">
+      <span class="ua-tnav-trigger">More <span class="ua-tnav-caret">&#9660;</span></span>
+      <div class="ua-tnav-drop">
+        <a href="/my-profile">My Profile</a>
+        <a href="/ai-research-assistant">AI Assistant</a>
+        <a href="/about-methodology">About &amp; Methodology</a>
+        <a href="/how-signals-work">How Signals Work</a>
+        <div class="ua-tnav-drop-rule"></div>
+        <a href="/privacy-terms" style="font-size:0.68rem;color:#6B7FBF;">Privacy &amp; Terms</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="ua-tnav-right">
+    <a class="ua-tnav-upgrade" href="/upgrade-to-pro">&#9889; Upgrade</a>
+  </div>
+</nav>
+
+<script>
+(function(){
+  try {
+    var path = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    document.querySelectorAll('.ua-tnav-drop a').forEach(function(a){
+      var hp = (a.getAttribute('href') || '').replace(/\/+$/, '') || '/';
+      if (hp && hp === path) {
+        a.classList.add('active');
+        var grp = a.closest('.ua-tnav-group');
+        if (grp) grp.querySelector('.ua-tnav-trigger').classList.add('active');
+      }
+    });
+    var homeLink = document.querySelector('a.ua-tnav-item');
+    if (homeLink && (path === '/' || path === '/home')) homeLink.classList.add('active');
+  } catch(e){}
+})();
+</script>
+""", unsafe_allow_html=True)
+
+
 def render_header(page_subtitle: str = "") -> None:
     """
     Inject global CSS and render the Unstructured Alpha masthead.
@@ -1234,6 +1454,9 @@ def render_header(page_subtitle: str = "") -> None:
     """
     from datetime import datetime
     from utils.theme import _MODERN_UI_CSS  # deferred to avoid circular import at module level
+
+    # ── Horizontal topnav (replaces sidebar, hides Streamlit chrome) ───────────
+    _render_topnav()
 
     st.markdown(_CSS, unsafe_allow_html=True)
     # Inject modern UI system (pill tabs, glass buttons, metrics, etc.) globally
