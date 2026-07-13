@@ -5,7 +5,7 @@ Call render_header() as the very first Streamlit call after st.set_page_config()
 
 import streamlit as st
 
-from utils.config import TICKERS
+from utils.config import TICKERS, SIGNAL_COUNT
 
 # ── Modern Dark Design System CSS ────────────────────────────────────────────
 _CSS = """
@@ -1475,11 +1475,11 @@ def render_header(page_subtitle: str = "") -> None:
         {property: 'og:type',         content: 'website'},
         {property: 'og:url',          content: 'https://unstructuredalpha.com'},
         {property: 'og:title',        content: 'Unstructured Alpha — 43-Signal Macro Intelligence'},
-        {property: 'og:description',  content: 'Score insider trades, credit spreads, energy inventories and 40 other signals daily. Free to browse. Pro $20/mo.'},
-        {name:     'description',     content: 'Score insider trades, credit spreads, energy inventories and 40 other macro signals daily. Confluence Score for any stock. Free to browse.'},
+        {property: 'og:description',  content: 'Score insider trades, credit spreads, energy inventories and 44 other signals daily. Free to browse. Pro $20/mo.'},
+        {name:     'description',     content: 'Score insider trades, credit spreads, energy inventories and 44 other macro signals daily. Confluence Score for any stock. Free to browse.'},
         {name:     'twitter:card',    content: 'summary'},
         {name:     'twitter:title',   content: 'Unstructured Alpha — Alternative Data Intelligence'},
-        {name:     'twitter:description', content: '43 macro signals scored daily. Free to browse. Insider trades, credit spreads, VIX term structure, copper/gold ratio and more.'},
+        {name:     'twitter:description', content: '47 macro signals scored daily. Free to browse. Insider trades, credit spreads, VIX term structure, copper/gold ratio and more.'},
     ];
     metas.forEach(function(m) {
         var el = document.createElement('meta');
@@ -1607,7 +1607,7 @@ def render_header(page_subtitle: str = "") -> None:
             f' · <span style="color:#FF4444;">▼ {_rr}</span>'
             f' · <span style="color:#6B7FBF;">→ {_rn}</span>'
             f'</span>'
-            f'<span style="font-size:0.60rem;color:#6B7FBF;margin-left:auto;">38 signals · 2h cache</span>'
+            f'<span style="font-size:0.60rem;color:#6B7FBF;margin-left:auto;">{SIGNAL_COUNT} signals · 2h cache</span>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1781,7 +1781,7 @@ def render_page_header(title: str, subtitle: str = "",
         title:     Page title — displayed with gradient text + animated accent.
         subtitle:  One-line description of what the page does.
         icon:      Optional emoji/icon prefix for the title (e.g. "📊").
-        live_stat: Optional right-aligned stat string (e.g. "38 signals active").
+        live_stat: Optional right-aligned stat string (e.g. "47 signals active").
     """
     icon_html = (
         f'<span style="margin-right:9px;font-size:1.55rem;vertical-align:middle;'

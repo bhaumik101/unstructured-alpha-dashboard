@@ -1252,6 +1252,15 @@ SIGNALS = {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# CANONICAL SIGNAL COUNT — single source of truth.
+# Every user-facing "N signals" claim (dashboard, landing page, SEO, emails,
+# marketing copy) MUST derive from this. Do NOT hardcode the number anywhere.
+# In Python: `from utils.config import SIGNAL_COUNT`.
+# In static copy that can't import it, the value is the length of SIGNALS above.
+# ─────────────────────────────────────────────────────────────────────────────
+SIGNAL_COUNT = len(SIGNALS)  # currently 47
+
+# ─────────────────────────────────────────────────────────────────────────────
 # TICKER CONFIGURATIONS
 # Maps tickers to their relevant signals + metadata
 # ─────────────────────────────────────────────────────────────────────────────

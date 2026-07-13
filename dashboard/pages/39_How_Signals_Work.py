@@ -188,7 +188,7 @@ with _tab_cats:
     st.markdown("""
 <div style="max-width:860px;margin:28px auto 0;font-family:Inter,sans-serif;">
   <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
-    Unstructured Alpha's 43 signals are grouped into six categories.
+    Unstructured Alpha's 47 signals are grouped into six categories.
     Each category captures a different dimension of the macro environment.
   </p>
 """, unsafe_allow_html=True)
@@ -455,7 +455,7 @@ st.markdown("""
     See the signals live
   </div>
   <div style="font-size:0.82rem;color:#8892AA;margin-bottom:20px;line-height:1.7;">
-    The Signal Dashboard shows all 43 signals with live scores, trend direction,
+    The Signal Dashboard shows all 47 signals with live scores, trend direction,
     and the regime read. No account required to browse.
   </div>
 """, unsafe_allow_html=True)

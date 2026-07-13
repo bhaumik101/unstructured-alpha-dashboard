@@ -405,6 +405,29 @@ if section == "Overview":
     </div>
     """, unsafe_allow_html=True)
 
+    # ── Confluence Score Explainer (transparency layer) ───────────────────────
+    # Point 3: make the score explain itself in <10s — plain-English band, how
+    # much it moved & WHY (per-signal attribution of the macro-backdrop change),
+    # agreement among the statistically-relevant signals, a data-quality
+    # confidence read, the factor mix, and the known limitations stated plainly.
+    # See utils/score_explainer.py (unit-tested in tests/test_score_explainer.py).
+    # ADDITIVE: the granular confidence/attribution cards below remain as deeper
+    # detail. Fully defensive — a hiccup here must never break the score page.
+    try:
+        from utils.score_explainer import build_explainer, render_explainer_html
+        from utils.score_history import get_signal_trends as _ua_get_signal_trends
+        _expl_hist = get_score_history(ticker_input, days=30)
+        try:
+            _expl_trends = _ua_get_signal_trends(days_back=7)
+        except Exception:
+            _expl_trends = {}
+        _expl_payload = build_explainer(
+            _full, score_history=_expl_hist, signal_trends=_expl_trends, change_days=7,
+        )
+        st.markdown(render_explainer_html(_expl_payload), unsafe_allow_html=True)
+    except Exception:
+        pass
+
     # ── Signal Confidence Summary ─────────────────────────────────────────────
     # Aggregate across active signal scores: how many are High / Medium / Low
     # confidence? Gives users an immediate gut-check on whether the score is

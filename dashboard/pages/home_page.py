@@ -2,7 +2,7 @@
 Home — Unstructured Alpha
 Public-facing landing page. Psychological design goals:
   1. Live signal data IN the hero — not below it. Real data creates immediate credibility.
-  2. Specificity everywhere — "40 signals, 4-16 weeks ahead" not "leading indicators."
+  2. Specificity everywhere — "47 signals, 4-16 weeks ahead" not "leading indicators."
   3. Authority by association — FRED / SEC EDGAR / FINRA = same sources Goldman uses.
   4. Loss aversion framing — "what are you missing" more powerful than "here's what you get."
   5. Anchoring — mention Bloomberg's $50K price before showing this is free.
@@ -192,7 +192,7 @@ st.markdown(f"""
     </div>
     <div class="ua-slide-up-d3" style="font-size:0.97rem;color:#8892AA;margin:0 auto;max-width:560px;
                 line-height:1.75;font-weight:400;">
-        43 macro signals — Fed policy, energy flows, credit spreads, insider buying,
+        47 macro signals — Fed policy, energy flows, credit spreads, insider buying,
         put/call sentiment — scored in real time and mapped to the stocks you actually hold.
     </div>
     <div class="ua-slide-up-d3" style="margin-top:22px;display:flex;justify-content:center;
@@ -431,7 +431,7 @@ if _anon_user:
         2 · Browse the Signal Dashboard
       </div>
       <div style="font-size:0.76rem;color:#8892AA;line-height:1.55;margin-bottom:10px;">
-        See all 43 macro signals sorted by strength. Filter by category.
+        See all 47 macro signals sorted by strength. Filter by category.
         Each card explains what the signal means in plain English.
       </div>
       <div style="font-size:0.70rem;color:#A78BFA;font-weight:600;">→ Free · Signals update every 2 hours</div>
@@ -444,7 +444,7 @@ if _anon_user:
         3 · Look up a stock you own
       </div>
       <div style="font-size:0.76rem;color:#8892AA;line-height:1.55;margin-bottom:10px;">
-        Enter any ticker in Ticker Deep Dive — see which of the 43 signals
+        Enter any ticker in Ticker Deep Dive — see which of the 47 signals
         historically move that stock, and what the confluence score is today.
       </div>
       <div style="font-size:0.70rem;color:#00C8E0;font-weight:600;">→ Free · AAPL, NVDA, XOM and 200+ tickers</div>
@@ -880,7 +880,7 @@ if _data_loaded:
                 f'<div style="font-size:0.62rem;color:#6B7FBF;margin:12px 0 6px;font-weight:700;letter-spacing:0.08em;">MACRO HEADWIND ▼</div>'
                 f'{_bear_rows}'
                 f'<div style="font-size:0.62rem;color:#6B7FBF;margin-top:12px;">'
-                f'43 macro signals · no price charts · pure fundamentals</div>'
+                f'{len(SIGNALS)} macro signals · no price charts · pure fundamentals</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )

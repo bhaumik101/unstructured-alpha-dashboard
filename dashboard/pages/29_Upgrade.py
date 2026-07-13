@@ -253,7 +253,7 @@ if stripe_session_id:
                 Welcome to Pro.
             </div>
             <div style="font-size:0.95rem;color:#8892B0;max-width:480px;margin:0 auto 20px;line-height:1.6;">
-                All 43 signals and every Pro feature are active on your account right now.
+                All 47 signals and every Pro feature are active on your account right now.
                 Your <strong style="color:#E8EEFF;">morning digest</strong> email arrives
                 tomorrow at 7 AM ET — you're already opted in.
             </div>
@@ -295,7 +295,7 @@ if stripe_session_id:
                 <div style="font-size:1.5rem;margin-bottom:6px;">🔍</div>
                 <div style="font-size:0.8rem;font-weight:700;color:#E8EEFF;">Ticker Deep Dive</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
-                    Run any ticker through all 43 signals
+                    Run any ticker through all 47 signals
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -572,7 +572,7 @@ st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 col_free, col_pro = st.columns(2, gap="large")
 
 FREE_FEATS = [
-    ("Signal Dashboard — 43 macro signals scored 0–100", True),
+    ("Signal Dashboard — 47 macro signals scored 0–100", True),
     ("Today's Brief — daily regime + signal flip summary", True),
     ("Ticker Deep Dive — confluence score for any stock", True),
     ("Congress Trade Tracker — recent legislator filings", True),

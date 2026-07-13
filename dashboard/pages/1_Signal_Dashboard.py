@@ -103,7 +103,7 @@ with tab_signals:
     <div style="{_m_css}">
       <div style="{_m_title}">🔗 CONFLUENCE SCORE</div>
       <div style="{_m_body}">
-        The per-ticker Confluence Score is a correlation-weighted average of all 38 signals,
+        The per-ticker Confluence Score is a correlation-weighted average of all {len(SIGNALS)} signals,
         where signals that historically co-move with that ticker's price get more weight.
         It is re-computed every time you load Ticker Deep Dive.
       </div>
@@ -937,7 +937,7 @@ with tab_signals:
             st.info(
                 "Not enough signal history yet to compute correlations. "
                 "This section populates after Today's Brief has been visited daily for 14+ days — "
-                "each visit records a snapshot of all 38 signals."
+                f"each visit records a snapshot of all {len(SIGNALS)} signals."
             )
         else:
             _eff_n      = _corr_data["effective_n"]
