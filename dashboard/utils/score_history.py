@@ -367,7 +367,12 @@ def get_signal_diff(days_back: int = 7) -> dict:
 
         if abs(delta) >= 5:
             movers.append({"signal_id": sig_id, "name": name, "delta": round(delta, 1),
-                           "direction": "up" if delta > 0 else "down"})
+                           "direction": "up" if delta > 0 else "down",
+                           # from/to scores + category added so the "What Changed"
+                           # engine (utils/what_changed.py) can render "41 → 57" and
+                           # map the move to sectors without a second DB round-trip.
+                           "from_score": round(old_score, 1), "to_score": round(new_score, 1),
+                           "category": SIGNALS.get(sig_id, {}).get("category")})
 
     movers.sort(key=lambda x: -abs(x["delta"]))
 

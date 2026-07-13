@@ -1988,7 +1988,7 @@ if section == "Overview":
                                     border:1px solid rgba(255,255,255,0.06);">
                             <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">📬 7 AM Digest</div>
                             <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
-                                Today's top setups from all 43 signals, in your inbox before market open.
+                                Today's top setups from all 47 signals, in your inbox before market open.
                             </div>
                         </div>
                         <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
@@ -3179,7 +3179,7 @@ elif section == "Deep Correlation Scan":
 
     # Sort signals by correlation strength so the selectbox defaults to the
     # MOST correlated signal rather than whichever happened to be listed first
-    # in the config. corr_info is already computed for all ~40 signals above
+    # in the config. corr_info is already computed for all ~47 signals above
     # (via compute_full_ticker_score, which now evaluates the full library
     # thanks to the resolve_ticker_meta fix) -- no extra work here, just
     # reordering the keys before building the options dict.

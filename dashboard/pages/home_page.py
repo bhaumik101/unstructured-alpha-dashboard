@@ -269,7 +269,7 @@ function animateCount(el, target, prefix, suffix, duration) {
   }, 16);
 }
 setTimeout(function() {
-  animateCount(document.getElementById('s1'), 43, '', '', 1000);
+  animateCount(document.getElementById('s1'), 47, '', '', 1000);
   animateCount(document.getElementById('s2'), 8, '', 'w', 1200);
   animateCount(document.getElementById('s3'), 5, '', '', 900);
   animateCount(document.getElementById('s4'), 27000, '$', '', 1400);
@@ -730,7 +730,7 @@ if _data_loaded:
     <div style="font-size:1.0rem;font-weight:800;color:#E8EEFF;margin-bottom:4px;
                 letter-spacing:-0.2px;">What does the macro say about your stocks right now?</div>
     <div style="font-size:0.77rem;color:#8892AA;line-height:1.55;">
-        Enter any tickers below — we score 43 live signals against each one in seconds.
+        Enter any tickers below — we score 47 live signals against each one in seconds.
         Same data, same analysis, zero extra API calls.
     </div>
 </div>
@@ -796,7 +796,7 @@ if _data_loaded:
                     st.switch_page("pages/10_Watchlist.py")
             st.markdown(
                 '<div style="font-size:0.62rem;color:#434E6A;margin-top:5px;font-family:Inter,sans-serif;">'
-                'Score = macro Confluence Score (0–100) from 43 live signals. Not financial advice.</div>',
+                'Score = macro Confluence Score (0–100) from 47 live signals. Not financial advice.</div>',
                 unsafe_allow_html=True,
             )
         else:

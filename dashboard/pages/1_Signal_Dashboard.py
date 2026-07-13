@@ -27,7 +27,7 @@ render_sidebar_base()
 inject_premium_css()
 render_page_header(
     "Signal Dashboard",
-    "38 alternative data signals across macro, commodity, credit, energy, and more.",
+    "47 alternative data signals across macro, commodity, credit, energy, and more.",
     icon="📊",
 )
 

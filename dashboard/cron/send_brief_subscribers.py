@@ -197,7 +197,7 @@ def _build_brief_html(brief: dict, first_name: str = "") -> tuple[str, str]:
       Want the full signal dashboard?
     </div>
     <div style="font-size:13px;color:#8892AA;margin-bottom:16px;line-height:1.5;">
-      38 macro signals scored daily. Ticker Deep Dive. Model validation published in full.
+      47 macro signals scored daily. Ticker Deep Dive. Model validation published in full.
       Free to start — no credit card.
     </div>
     <a href="{_APP_BASE_URL}" style="display:inline-block;background:#7C3AED;color:#fff;

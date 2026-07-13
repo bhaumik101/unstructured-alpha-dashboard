@@ -148,6 +148,31 @@ with tab_today:
     except Exception:
         _today_str = datetime.now().strftime("%A, %B %-d, %Y")
 
+    # ── What Changed (compression hero) ───────────────────────────────────────────
+    # Point 4: lead with the MEANINGFUL changes since yesterday, ranked, mapped to
+    # the user's own holdings, with everything else explicitly bucketed as noise.
+    # This sells decision compression before the full Signal Pulse below. Additive
+    # and fully defensive — a hiccup here must never break the brief.
+    # Engine + ranking/mapping logic: utils/what_changed.py (unit-tested).
+    try:
+        from utils.what_changed import build_what_changed, render_what_changed_html
+        _wc_watchlist = []
+        try:
+            from utils import alerts_db as _wc_alerts_db
+            _wc_user = st.session_state.get("user")
+            if _wc_user:
+                _wc_rows = _wc_alerts_db.get_watchlist(_wc_user["id"])
+                _wc_watchlist = [r["ticker"] for r in (_wc_rows or [])]
+        except Exception:
+            _wc_watchlist = []
+        _wc_diff = get_signal_diff(days_back=1)
+        _wc_payload = build_what_changed(_wc_diff, watchlist=_wc_watchlist)
+        st.markdown(section_label("What Changed", dot="#7C3AED"), unsafe_allow_html=True)
+        st.markdown(render_what_changed_html(_wc_payload), unsafe_allow_html=True)
+        st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    except Exception:
+        pass
+
     # ── Section 1: Signal Pulse ───────────────────────────────────────────────────
 
     st.markdown(section_label("Signal Pulse", dot="#00D566"), unsafe_allow_html=True)
@@ -788,7 +813,7 @@ with tab_today:
                     Get Today's Brief every morning at 7 AM ET
                 </div>
                 <div style="font-size:0.78rem;color:#8892AA;line-height:1.55;">
-                    43 signals distilled into a 2-minute read. Pro feature · 7-day free trial.
+                    47 signals distilled into a 2-minute read. Pro feature · 7-day free trial.
                 </div>
             </div>
         </div>
