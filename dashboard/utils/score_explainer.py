@@ -37,7 +37,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-from utils.config import SIGNALS, CATEGORIES
+from utils.config import SIGNALS, CATEGORIES  # noqa: F401 (CATEGORIES kept for compat)
+from utils import taxonomy
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Small helpers
@@ -50,12 +51,13 @@ def signal_name(sig_id: str) -> str:
 
 
 def signal_category(sig_id: str) -> str:
-    cfg = SIGNALS.get(sig_id) or {}
-    return cfg.get("category", "macro")
+    # Real macro-factor FAMILY (Rates / Credit / Liquidity / …), not the sector
+    # `category` tag — so "where the score comes from" is a factor breakdown.
+    return taxonomy.factor_family_of(sig_id)
 
 
 def category_name(cat_id: str) -> str:
-    return (CATEGORIES.get(cat_id) or {}).get("name", cat_id.replace("_", " ").title())
+    return taxonomy.factor_family_name(cat_id)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -36,6 +36,16 @@ _stub.SIGNALS = {
 }
 sys.modules.setdefault("utils.config", _stub)
 
+# ── Stub utils.taxonomy — score_explainer now groups by macro-factor family ──
+_tax = types.ModuleType("utils.taxonomy")
+_TAXMAP = {"hy_spread": "credit", "semiconductor_etf": "capex_tech",
+           "ten_year_yield": "rates", "crude_oil": "energy", "vix": "volatility"}
+_TAXNAMES = {"credit": "Credit", "capex_tech": "Capex & Technology", "rates": "Rates",
+             "energy": "Energy", "volatility": "Volatility & Positioning", "growth": "Growth"}
+_tax.factor_family_of = lambda s: _TAXMAP.get(s, "growth")
+_tax.factor_family_name = lambda f: _TAXNAMES.get(f, f.replace("_", " ").title())
+sys.modules["utils.taxonomy"] = _tax
+
 from utils import score_explainer as se  # noqa: E402
 
 

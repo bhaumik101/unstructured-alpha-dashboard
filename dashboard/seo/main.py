@@ -33,6 +33,10 @@ _here = Path(__file__).resolve().parent.parent   # dashboard/
 if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
 
+# Canonical category display — fixes the "Ai_Infrastructure" raw-enum leak on
+# public pages (was `category.title()`). taxonomy is dependency-light.
+from utils.taxonomy import category_display  # noqa: E402
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 
@@ -567,7 +571,7 @@ def ticker_page(symbol: str):
         signal_rows += f"""
         <tr>
           <td>{cfg.get("name", sig_id)}</td>
-          <td style="color:#6B7A95;font-size:0.78rem;">{cfg.get("category","").title()}</td>
+          <td style="color:#6B7A95;font-size:0.78rem;">{category_display(cfg.get("category",""))}</td>
           <td>{badge}</td>
         </tr>"""
 
@@ -644,7 +648,7 @@ def signal_page(signal_id: str):
         raise HTTPException(status_code=404, detail=f"Signal {signal_id} not tracked.")
 
     sig_name   = cfg.get("name", signal_id)
-    category   = cfg.get("category", "macro").title()
+    category   = category_display(cfg.get("category", "macro"))
     description= cfg.get("description", "")
     lag_weeks  = cfg.get("lag_weeks", 0)
     relevant_t = cfg.get("relevant_tickers", [])
@@ -805,7 +809,7 @@ def signals_report():
             rows += f"""
             <tr>
               <td><a href="{BASE_URL}/signal/{sid}" style="color:#B8C0D4;">{cfg.get("name", sid)}</a></td>
-              <td style="color:#6B7A95;font-size:0.78rem;">{cfg.get("category","").title()}</td>
+              <td style="color:#6B7A95;font-size:0.78rem;">{category_display(cfg.get("category",""))}</td>
               <td><span class="badge {badge_class}">{sym}</span></td>
             </tr>"""
         return rows
