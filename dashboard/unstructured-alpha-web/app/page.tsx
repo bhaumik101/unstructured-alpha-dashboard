@@ -344,7 +344,7 @@ export default function Home() {
           <a href={APP_URL} className="btn-primary"
              style={{ background: T.green, color: "#000", padding: "14px 36px",
                       borderRadius: 10, fontSize: 15, fontWeight: 700, display: "inline-block" }}>
-            Start Free — No Card Required
+            Analyze my portfolio →
           </a>
           <a href="#how-it-works" className="btn-secondary"
              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
