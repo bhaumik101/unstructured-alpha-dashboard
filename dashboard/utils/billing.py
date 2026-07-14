@@ -354,6 +354,19 @@ PRO_FEATURES = [
     "Morning digest email with top signal moves",
 ]
 
+# Contextual Pro (Phase 16): each gated page names the SPECIFIC value it unlocks,
+# so the gate reads like "here's what you're missing" instead of a generic pitch.
+_PAGE_BENEFIT = {
+    "Portfolio Suite":         "See risk decomposition, factor exposure, and macro concentration across your whole portfolio in one view.",
+    "Options Flow":            "Track live unusual options activity — large, aggressive trades as they print.",
+    "Stock Recommender":       "Get ranked equity ideas screened by the macro signals currently in your favor.",
+    "Factor Exposure":         "Run a Fama-French factor regression on any ticker to see its true style and macro sensitivities.",
+    "Portfolio Analyzer":      "Decompose risk and macro exposure across your full portfolio — not one ticker at a time.",
+    "Export Report":           "Export a clean, one-click PDF research report for any equity.",
+    "Signal Backtester":       "Build and backtest custom signal combinations against historical price moves.",
+    "Signal Portfolio Backtest": "Backtest a signal-driven portfolio and compare it against the benchmark.",
+}
+
 _PRO_GATE_CSS = """
 <style>
 .pro-gate {
@@ -382,7 +395,7 @@ _PRO_GATE_CSS = """
 """
 
 
-def require_pro(page_name: str = "this page") -> None:
+def require_pro(page_name: str = "this page", benefit: str | None = None) -> None:
     """
     Check that the current logged-in user has a Pro subscription.
     If not logged in: shows login prompt + st.stop().
@@ -390,21 +403,26 @@ def require_pro(page_name: str = "this page") -> None:
     If Pro: returns silently so the page can continue.
 
     Call this at the TOP of any Pro-gated page, before rendering any content.
+
+    benefit: one sentence naming the specific value of THIS page. If omitted,
+             falls back to _PAGE_BENEFIT[page_name], then to a generic line.
     """
     from utils.auth_ui import get_cookies, try_restore_session
 
     cookies = get_cookies()
     user = try_restore_session(cookies)
+    benefit = benefit or _PAGE_BENEFIT.get(page_name)
 
     if not user:
         st.markdown(_PRO_GATE_CSS, unsafe_allow_html=True)
-        st.markdown("""
-        <div class="pro-gate">
-            <div class="pro-badge">Pro Feature</div>
-            <h2>Sign in to access this page</h2>
-            <p>Create a free account, then upgrade to Pro to unlock {page}.</p>
-        </div>
-        """.replace("{page}", page_name), unsafe_allow_html=True)
+        _lead = benefit or f"Create a free account, then upgrade to Pro to unlock {page_name}."
+        st.html(
+            '<div class="pro-gate">'
+            '<div class="pro-badge">Pro Feature</div>'
+            f'<h2>Sign in to access {page_name}</h2>'
+            f'<p>{_lead}</p>'
+            '</div>'
+        )
 
         from utils.auth_ui import render_auth_forms
         _, col, _ = st.columns([1, 2, 1])
@@ -438,19 +456,26 @@ def require_pro(page_name: str = "this page") -> None:
         else:
             return  # ✅ already synced this session
 
-    # Free user — show upgrade gate
+    # Free user — show a CONTEXTUAL upgrade gate: name the specific value of THIS
+    # page, and quote the price from the single source of truth (no more $15/$16 drift).
+    from utils.product_metrics import PRO_PRICE_MONTHLY, PRO_PRICE_ANNUAL_PER_MONTH
+
+    _lead = benefit or "This is a Pro tool."
     st.markdown(_PRO_GATE_CSS, unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class="pro-gate">
-        <div class="pro-badge">Pro Feature</div>
-        <h2>Upgrade to unlock {page_name}</h2>
-        <p>You're on the Free plan. Upgrade to Pro for $15/month to access this and all Pro features.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.html(
+        '<div class="pro-gate">'
+        '<div class="pro-badge">Pro Feature</div>'
+        f'<h2>Unlock {page_name}</h2>'
+        f'<p>{_lead}</p>'
+        f'<p style="font-size:0.82rem;color:#6B7280;">Pro — '
+        f'${PRO_PRICE_ANNUAL_PER_MONTH}/mo billed annually · '
+        f'${PRO_PRICE_MONTHLY}/mo month-to-month · 7-day free trial, cancel anytime.</p>'
+        '</div>'
+    )
 
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        if st.button("🔓 Upgrade to Pro — from $16/mo", type="primary", use_container_width=True, key="pro_gate_upgrade_btn"):
+        if st.button(f"Unlock {page_name} with Pro →", type="primary", use_container_width=True, key="pro_gate_upgrade_btn"):
             st.switch_page("pages/29_Upgrade.py")
 
     with st.expander("What's included in Pro?"):
