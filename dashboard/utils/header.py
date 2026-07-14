@@ -1117,6 +1117,24 @@ code, pre {
 .ua-watchlist-row:hover {
     background: rgba(0,213,102,0.04) !important;
 }
+
+/* ── De-neon (2026-07-13) ─────────────────────────────────────────────────────
+   The app leaned heavily on glowing numbers — dozens of inline
+   `text-shadow:0 0 …px <color>` glows that read consumer/gamer rather than
+   institutional. This one !important author rule neutralises every 0-offset
+   GLOW shadow app-wide (an !important author declaration overrides a
+   non-important inline style), without editing ~24 scattered call sites and
+   without touching legibility shadows (which use a vertical offset, not 0 0).
+   Numbers keep their semantic colour; they just sit flat. Reversible: delete
+   this block.
+   NOTE on the selector: browsers RE-SERIALISE inline styles, so the source
+   `text-shadow:0 0 20px <color>` becomes `text-shadow: <color> 0px 0px 20px` in
+   the DOM. The reliable, verified match for a zero-offset GLOW is therefore the
+   substring `0px 0px` (confirmed live on the Signal Dashboard). This also
+   matches 0px-0px box-shadows, but setting text-shadow:none on those is a
+   harmless no-op; legibility text-shadows use a vertical offset and are
+   untouched. */
+[style*="0px 0px"] { text-shadow: none !important; }
 </style>
 """
 
@@ -1869,10 +1887,12 @@ def render_page_header(title: str, subtitle: str = "",
         icon:      Optional emoji/icon prefix for the title (e.g. "📊").
         live_stat: Optional right-aligned stat string (e.g. "47 signals active").
     """
-    icon_html = (
-        f'<span style="margin-right:9px;font-size:1.55rem;vertical-align:middle;'
-        f'line-height:1;">{icon}</span>'
-    ) if icon else ""
+    # De-emoji (2026-07-13): every page title now renders WITHOUT its emoji icon
+    # for a cleaner, institutional look. The `icon` argument is kept for
+    # backwards-compat (call sites still pass it) but is intentionally ignored
+    # here — this single line de-emojis every page header at once. To restore,
+    # put the {icon} span back.
+    icon_html = ""
 
     stat_html = (
         f'<div style="display:inline-flex;align-items:center;gap:6px;'

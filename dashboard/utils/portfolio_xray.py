@@ -35,7 +35,8 @@ from __future__ import annotations
 import math
 from typing import Optional
 
-from utils.config import SIGNALS, CATEGORIES
+from utils.config import SIGNALS, CATEGORIES  # noqa: F401 (kept for compatibility)
+from utils import taxonomy
 
 # A holding is meaningfully "exposed" to a factor when that factor drives at
 # least this share of its (significant) macro read.
@@ -53,11 +54,14 @@ SIMILARITY_THRESHOLD = 0.80
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _factor_of(sig_id: str) -> str:
-    return (SIGNALS.get(sig_id) or {}).get("category", "macro")
+    # Real macro-factor family (Rates / Credit / Liquidity / …), NOT the sector
+    # `category` tag. This is what makes "your largest shared exposure is real
+    # rates" a true statement rather than a sector grouping.
+    return taxonomy.factor_family_of(sig_id)
 
 
 def factor_name(factor_id: str) -> str:
-    return (CATEGORIES.get(factor_id) or {}).get("name", factor_id.replace("_", " ").title())
+    return taxonomy.factor_family_name(factor_id)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
