@@ -218,7 +218,9 @@ def test_empty_inputs_never_crash():
         {"ticker": "X", "confluence": {"overall_score": 50}, "corr_info": {}, "signal_scores": {}},
         [], {},
     )
-    assert empty["confidence"]["level"] == "Limited"
+    # Coverage-dominated confidence (Wave 1): zero signals → "Insufficient",
+    # not "Limited". With no evidence, the honest read is that we can't score it.
+    assert empty["confidence"]["level"] == "Insufficient"
     assert isinstance(se.render_explainer_html(empty), str)
 
 
