@@ -402,6 +402,56 @@ st.markdown("<br>", unsafe_allow_html=True)
 # they don't bounce because they don't know where to click first.
 # Logged-in users get the full personalized onboarding checklist below instead.
 _anon_user = not st.session_state.get("user")
+
+# ── PERSONAL COMMAND CENTER (signed-in + has holdings) — Phase 2 ──────────────
+# The first thing a returning user should see: what needs attention around their
+# holdings, their largest shared macro exposure, and where to look next — one
+# dominant insight, not ten equal cards. Reuses the Portfolio X-Ray + What
+# Changed engines; per-ticker reads cached. Fully defensive; renders nothing if
+# the user has no holdings (the instant-check / onboarding below handles that).
+if not _anon_user:
+    try:
+        from utils import alerts_db as _cc_adb
+        _cc_user = st.session_state.get("user")
+        _cc_wl = [r["ticker"] for r in (_cc_adb.get_watchlist(_cc_user["id"]) or [])] if _cc_user else []
+        if _cc_wl:
+            from utils.command_center import build_command_center, render_command_center_html
+            from utils.portfolio_xray import build_portfolio_xray
+            from utils.what_changed import build_what_changed
+            from utils.ticker_score import compute_full_ticker_score as _cc_score
+            from utils.score_history import get_signal_diff as _cc_diff
+            from utils.config import TICKERS as _CC_TK
+
+            @st.cache_data(ttl=1800, show_spinner=False, max_entries=256)
+            def _cc_read(_t: str):
+                r = _cc_score(_t)
+                return {
+                    "ticker": _t, "score": r["confluence"]["overall_score"],
+                    "corr_info": {k: {"weight": v.get("weight"), "significant": v.get("significant")}
+                                  for k, v in r["corr_info"].items()},
+                    "signal_scores": {k: {"score": v.get("score"), "status": v.get("status")}
+                                      for k, v in r["signal_scores"].items()},
+                    "sector": (_CC_TK.get(_t, {}) or {}).get("sector", ""),
+                }
+
+            _cc_inputs = []
+            with st.spinner("Building your command center…"):
+                for _t in _cc_wl[:12]:
+                    try:
+                        _cc_inputs.append(_cc_read(_t))
+                    except Exception:
+                        continue
+            if _cc_inputs:
+                _cc_xray = build_portfolio_xray(_cc_inputs)
+                try:
+                    _cc_wcp = build_what_changed(_cc_diff(days_back=1), watchlist=_cc_wl)
+                except Exception:
+                    _cc_wcp = {}
+                st.html(render_command_center_html(build_command_center(_cc_xray, _cc_wcp)))
+                st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    except Exception:
+        pass
+
 if _anon_user:
     # st.html (not st.markdown): multi-line indented HTML would be parsed as a
     # markdown code block and leak as raw text (same bug as nav/footer).
