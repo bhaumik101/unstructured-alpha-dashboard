@@ -192,3 +192,27 @@ def test_never_nan_or_inf():
     for r in (sa.attribute_move(_A(), _B()), sa.attribute_move(_B(), _A()),
               sa.attribute_move(_A(), _A())):
         assert _finite({k: v for k, v in r.items() if k != "summary"})
+
+
+def test_what_actually_changed_detail():
+    # Wave 4: per-primary-driver detail carries raw value X→Y, weight %, freshness,
+    # and a factor-level mechanism; all of it surfaces in the rendered HTML.
+    def s2(sid, fac, fn, sc, nw, c, rawv, asof):
+        return {"id": sid, "name": fn, "score": sc, "norm_weight": nw, "contribution": c,
+                "factor": fac, "factor_name": fn, "available": True, "significant": True,
+                "weight": nw, "r": 0.3, "raw_value": rawv, "as_of": asof}
+    a = comp(50.0, [s2("ten_year_yield", "rates", "Real Rates", 60, 0.5, 30.0, 2.34, "2026-07-07"),
+                    s2("hy_spread", "credit", "Credit", 40, 0.5, 20.0, 3.1, "2026-07-07")])
+    b = comp(38.0, [s2("ten_year_yield", "rates", "Real Rates", 31, 0.5, 16.0, 1.98, "2026-07-13"),
+                    s2("hy_spread", "credit", "Credit", 45, 0.5, 22.0, 2.9, "2026-07-13")])
+    r = sa.attribute_move(a, b)
+    assert r["state"] == "ok" and abs(r["reconciliation_delta"]) < 1e-6
+    rates_sig = next(f for f in r["factors"] if f["factor"] == "rates")["signals"][0]
+    assert rates_sig["raw_from"] == 2.34 and rates_sig["raw_to"] == 1.98
+    assert rates_sig["as_of"] == "2026-07-13"
+    h = sa.render_attribution_html(r)
+    assert "Why it matters" in h                    # factor mechanism
+    assert "weight 50%" in h                         # model weight
+    assert "raw 2.34" in h and "1.98" in h           # raw series X→Y
+    assert "updated 2026-07-13" in h                 # freshness
+    assert h.count("<div") == h.count("</div") and "NaN" not in h

@@ -117,6 +117,18 @@ def build_components(result: dict) -> dict:
         fam, fam_name = _factor(sid)
         sig_significant = bool(ci.get("significant", False))
         n_significant += 1 if sig_significant else 0
+        # Raw series value + freshness date — powers the "What actually changed?"
+        # per-signal detail (the raw series moved from X to Y, last updated <date>).
+        raw_value, as_of = None, None
+        try:
+            _raw = (result.get("signal_data") or {}).get(sid)
+            if _raw is not None:
+                _rd = _raw.dropna()
+                if len(_rd):
+                    raw_value = round(float(_rd.iloc[-1]), 4)
+                    as_of = str(_rd.index[-1])[:10]
+        except Exception:
+            pass
         signals.append({
             "id": sid,
             "name": _signal_name(sid),
@@ -129,6 +141,8 @@ def build_components(result: dict) -> dict:
             "significant": sig_significant,
             "available": int(ci.get("n", 0) or 0) > 0,
             "r": round(float(ci.get("r", 0.0) or 0.0), 4),
+            "raw_value": raw_value,
+            "as_of": as_of,
         })
 
     # ── Momentum + optional contributions ──

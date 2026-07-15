@@ -171,6 +171,8 @@ def attribute_move(comp_a: dict | None, comp_b: dict | None,
             "cause": _classify(a, b, model_changed),
             "score_from": (a or {}).get("score"), "score_to": (b or {}).get("score"),
             "weight_from": (a or {}).get("norm_weight"), "weight_to": (b or {}).get("norm_weight"),
+            "raw_from": (a or {}).get("raw_value"), "raw_to": (b or {}).get("raw_value"),
+            "as_of": (b or {}).get("as_of") or (a or {}).get("as_of"),
             "kind": "signal",
         })
     # Momentum + positioning behave as their own single-signal "factors".
@@ -276,6 +278,44 @@ _POS = "#4E9A6B"
 _DIM = "#8892AA"
 _INK = "#E8EEFF"
 
+# Factor-level mechanism copy for "What actually changed? → Why it matters here".
+# Deliberately FACTOR-level and honest (not fabricated ticker-specific claims):
+# the model maps each ticker to these factor families and applies the family's
+# sensitivity. If a ticker-specific mechanism is ever encoded, prefer that.
+_FACTOR_MECHANISM = {
+    "rates":       "The model applies interest-rate sensitivity to long-duration and rate-exposed holdings.",
+    "liquidity":   "Liquidity conditions scale the model's risk-appetite read for this ticker's exposure.",
+    "credit":      "Credit spreads gauge financial stress that flows through to this ticker's risk premium.",
+    "growth":      "Growth/activity data drives the cyclical-demand component of this ticker's backdrop.",
+    "labor":       "Labor-market strength feeds the consumer-demand and rate-path read for this ticker.",
+    "consumer":    "Consumer-demand signals map to this ticker's revenue-cycle sensitivity.",
+    "housing":     "Housing activity maps to this ticker's rate- and construction-linked exposure.",
+    "inflation":   "Inflation expectations move the real-rate and margin backdrop for this ticker.",
+    "energy":      "Energy prices/inventories map to this ticker's input-cost or revenue sensitivity.",
+    "volatility":  "Volatility/positioning gauges the market's risk appetite around this ticker.",
+    "capex_tech":  "Technology-capex signals map to this ticker's AI/hardware demand exposure.",
+    "momentum":    "Price momentum contributes a trend component blended into the score.",
+    "positioning": "Positioning signals (insider / short interest / 13F) adjust the score where available.",
+}
+
+
+def _signal_detail(s: dict) -> str:
+    """Compact 'what actually changed' line for one signal under a primary driver:
+    percentile X→Y · weight N% · raw X→Y · updated <date>. Skips missing pieces."""
+    bits = []
+    if s.get("score_from") is not None and s.get("score_to") is not None:
+        bits.append(f'percentile {s["score_from"]:g}&rarr;{s["score_to"]:g}')
+    w = s.get("weight_to")
+    if w is not None:
+        bits.append(f'weight {round(float(w) * 100):g}%')
+    if s.get("raw_from") is not None and s.get("raw_to") is not None:
+        bits.append(f'raw {s["raw_from"]:g}&rarr;{s["raw_to"]:g}')
+    elif s.get("raw_to") is not None:
+        bits.append(f'raw {s["raw_to"]:g}')
+    if s.get("as_of"):
+        bits.append(f'updated {s["as_of"]}')
+    return " &middot; ".join(bits)
+
 
 def _driver_row(name: str, delta: float, sub: str = "", indent: bool = False) -> str:
     color = _NEG if delta < -_UNCHANGED_EPS else (_POS if delta > _UNCHANGED_EPS else _DIM)
@@ -377,13 +417,20 @@ def render_attribution_html(attr: dict, show_signals: bool = True) -> str:
         sub = f'contribution {f["contribution_from"]:g} &rarr; {f["contribution_to"]:g}'
         rows.append(_driver_row(f["factor_name"], f["delta"], sub))
         if show_signals and f["materiality"] == "primary":
+            _shown = 0
             for s in f["signals"]:
                 if abs(s["delta"]) < _UNCHANGED_EPS:
                     continue
-                ssub = ""
-                if s.get("score_from") is not None and s.get("score_to") is not None:
-                    ssub = f'percentile {s["score_from"]:g} &rarr; {s["score_to"]:g}'
-                rows.append(_driver_row(s["name"], s["delta"], ssub, indent=True))
+                rows.append(_driver_row(s["name"], s["delta"], _signal_detail(s), indent=True))
+                _shown += 1
+            # "Why it matters here" — honest factor-level mechanism for the driver.
+            mech = _FACTOR_MECHANISM.get(f["factor"])
+            if _shown and mech:
+                rows.append(
+                    f'<div style="padding-left:16px;font-size:0.7rem;color:{_DIM};'
+                    f'line-height:1.5;margin:1px 0 6px;"><span style="color:#B79CFF;'
+                    f'font-weight:600;">Why it matters:</span> {mech}</div>'
+                )
     if minor_n:
         rows.append(_driver_row(f"{minor_n} other factor{'s' if minor_n != 1 else ''}", minor_delta,
                                 "combined, immaterial individually"))
