@@ -608,7 +608,7 @@ if section == "Overview":
 
         if _explain_is_pro:
             # Build compact signal context for the prompt
-            @st.cache_data(ttl=3600, show_spinner=False, max_entries=8)
+            @st.cache_data(ttl=86400, show_spinner=False, max_entries=64)  # per-day: cache key is the score-state, so it only regenerates when inputs change; 24h cuts Haiku calls ~24x
             def _generate_score_explanation(
                 _ticker: str,
                 _score: float,
