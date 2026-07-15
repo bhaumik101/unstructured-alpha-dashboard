@@ -240,11 +240,25 @@ def _tweet_multi_flip_summary(
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def _is_no_credits(exc) -> bool:
+    """True if the error is X's paid-plan / no-credits paywall (402) — an expected
+    billing state, not a code bug. Keeps daily logs from looking alarming."""
+    s = str(exc).lower()
+    return "402" in s or "payment required" in s or "credit" in s
+
+
 def main() -> None:
     print(
         f"[tweet] starting at {datetime.now(timezone.utc).isoformat()}",
         flush=True,
     )
+
+    # 0. Global off-switch — set TWITTER_POSTING_ENABLED=false in Render to disable
+    #    posting entirely (e.g. while the X API account has no posting credits), so
+    #    this cron does no work and logs nothing alarming. Auto-resumes if unset.
+    if os.environ.get("TWITTER_POSTING_ENABLED", "true").strip().lower() in ("false", "0", "no", "off"):
+        print("[tweet] SKIPPED — TWITTER_POSTING_ENABLED is off. No work done.", flush=True)
+        return
 
     # 1. Build Twitter client — bail early if credentials are missing
     try:
@@ -284,7 +298,12 @@ def main() -> None:
         else:
             _tweet_multi_flip_summary(client, flips, bull_n, bear_n, bias)
     except Exception as exc:
-        print(f"[tweet] Twitter API error: {type(exc).__name__}: {exc}", flush=True)
+        if _is_no_credits(exc):
+            print("[tweet] SKIPPED — the X API account has no posting credits (paid tier "
+                  "required to post). Set TWITTER_POSTING_ENABLED=false in Render to silence "
+                  "this. Tweet not sent.", flush=True)
+        else:
+            print(f"[tweet] Twitter API error: {type(exc).__name__}: {exc}", flush=True)
         return
 
     print("[tweet] done.", flush=True)

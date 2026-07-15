@@ -148,8 +148,21 @@ def _build_tweet(ideas: list[dict], bias: str) -> str:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def _is_no_credits(exc) -> bool:
+    """True if the error is X's paid-plan / no-credits paywall (402) — expected
+    billing state, not a code bug."""
+    s = str(exc).lower()
+    return "402" in s or "payment required" in s or "credit" in s
+
+
 def main() -> None:
     print(f"[best-ideas-tweet] starting — {datetime.now(timezone.utc).isoformat()}", flush=True)
+
+    # Off-switch — set TWITTER_POSTING_ENABLED=false in Render to disable posting
+    # entirely (e.g. while the X API account has no posting credits).
+    if os.environ.get("TWITTER_POSTING_ENABLED", "true").strip().lower() in ("false", "0", "no", "off"):
+        print("[best-ideas-tweet] SKIPPED — TWITTER_POSTING_ENABLED is off. No work done.", flush=True)
+        return
 
     try:
         client = _get_twitter_client()
@@ -190,7 +203,11 @@ def main() -> None:
         tweet_id = resp.data.get("id")
         print(f"[best-ideas-tweet] posted — id={tweet_id}", flush=True)
     except Exception as exc:
-        print(f"[best-ideas-tweet] Twitter API error: {type(exc).__name__}: {exc}", flush=True)
+        if _is_no_credits(exc):
+            print("[best-ideas-tweet] SKIPPED — X API account has no posting credits (paid tier "
+                  "required). Set TWITTER_POSTING_ENABLED=false in Render to silence this.", flush=True)
+        else:
+            print(f"[best-ideas-tweet] Twitter API error: {type(exc).__name__}: {exc}", flush=True)
 
     print("[best-ideas-tweet] done.", flush=True)
 
