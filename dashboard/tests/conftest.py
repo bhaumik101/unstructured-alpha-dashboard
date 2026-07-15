@@ -106,16 +106,31 @@ os.environ["UNSTRUCTURED_ALPHA_DATABASE_URL"] = f"sqlite:///{_TEST_DB_PATH}"
 # rather than silently testing the wrong set of pages.
 ROUTED_PAGES = [
     "pages/home_page.py",
-    "pages/2_Today_Digest.py",
     "pages/1_Signal_Dashboard.py",
+    "pages/2_Today_Digest.py",
     "pages/3_Ticker_Deep_Dive.py",
     "pages/4_Power_Supercycle.py",
     "pages/5_Market_Overview.py",
     "pages/6_Stock_Screener.py",
     "pages/8_About.py",
-    "pages/11_Model_Validation.py",
     "pages/9_AI_Assistant.py",
     "pages/10_Watchlist.py",
+    "pages/11_Model_Validation.py",
+    "pages/14_Stock_Chart.py",
+    "pages/27_Factor_Exposure.py",
+    "pages/28_Export.py",
+    "pages/29_Upgrade.py",
+    "pages/30_Track_Record_Live.py",
+    "pages/32_Profile.py",
+    "pages/35_Signal_Strategy.py",
+    "pages/37_Legal.py",
+    "pages/38_Admin.py",
+    "pages/39_How_Signals_Work.py",
+    "pages/40_Stock_Recommender.py",
+    "pages/41_Alternative_Data.py",
+    "pages/42_Sector_View.py",
+    "pages/43_Events_Forecasts.py",
+    "pages/44_Portfolio_Suite.py",
 ]
 
 # pages/2_Signal_Analysis.py and pages/7_Macro_Monitor.py used to be kept

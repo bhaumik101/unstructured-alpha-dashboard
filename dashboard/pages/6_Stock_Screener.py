@@ -760,4 +760,3 @@ with tab_squeeze:
         st.info("Short interest data loading — try again in a moment.")
 
 render_footer()
-    st.caption("Insider bonus requires opening Ticker Deep Dive for the specific ticker (EDGAR Form 4 fetch).")
