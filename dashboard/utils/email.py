@@ -510,6 +510,28 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
           </div>
         </td>"""
 
+    # Explain the Move — one deterministic "why" for the biggest watchlist mover,
+    # reusing the shared attribution engine. Full-width so it isn't cramped inside
+    # the narrow score cards; safe/silent if there's no snapshot history yet.
+    why_block = ""
+    try:
+        from utils.score_history import explain_move
+        _mover = max((it for it in items if it.get("delta") is not None),
+                     key=lambda it: abs(it["delta"]), default=None)
+        if _mover and abs(_mover.get("delta", 0)) >= 3.0:
+            _a = explain_move(_mover["ticker"], days_back=7)
+            if _a.get("state") in ("ok", "insufficient_coverage") and _a.get("summary"):
+                why_block = (
+                    '<div style="margin-top:12px;padding:10px 14px;background:#FFFFFF;'
+                    'border:1px solid #E5E7EB;border-radius:6px;font-size:0.78rem;'
+                    "color:#374151;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,"
+                    "'Segoe UI',sans-serif;\">"
+                    f'<span style="font-weight:700;color:#7C3AED;">Why {_mover["ticker"]} moved:</span> '
+                    f'{_a["summary"]}</div>'
+                )
+    except Exception:
+        why_block = ""
+
     return f"""
     <div style="background:#F7F8FA;border-top:3px solid #7C3AED;padding:16px 24px 12px;">
       <div style="font-size:0.60rem;font-weight:700;color:#7C3AED;text-transform:uppercase;
@@ -521,6 +543,7 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
       <table style="border-collapse:collapse;width:100%;">
         <tr>{cards}</tr>
       </table>
+      {why_block}
       <div style="margin-top:10px;text-align:right;">
         <a href="https://unstructuredalpha.com/Watchlist"
            style="font-size:0.72rem;color:#7C3AED;text-decoration:none;
