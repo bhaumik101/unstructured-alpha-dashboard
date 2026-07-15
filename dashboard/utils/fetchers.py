@@ -82,7 +82,7 @@ def is_synthetic(s: pd.Series) -> bool:
     return bool(getattr(s, "attrs", {}).get("synthetic", False))
 
 
-@st.cache_data(ttl=3600, show_spinner=False, max_entries=60)
+@st.cache_data(ttl=21600, show_spinner=False, max_entries=60)  # 6h — FRED series are daily/weekly/monthly, unchanged intraday
 def fetch_fred(series_id: str, start: str, end: str, api_key: str = "") -> pd.Series:
     """
     Fetch a FRED data series.
@@ -133,7 +133,7 @@ def fetch_fred(series_id: str, start: str, end: str, api_key: str = "") -> pd.Se
 # EIA — Energy Information Administration (crude stocks, gas storage)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=3600, show_spinner=False, max_entries=15)
+@st.cache_data(ttl=21600, show_spinner=False, max_entries=15)  # 6h — EIA series are weekly, unchanged intraday
 def fetch_eia(series_id: str, start: str, end: str, api_key: str = "") -> pd.Series:
     """
     Fetch an EIA data series via the API v2 backward-compatibility endpoint
@@ -231,7 +231,7 @@ def fetch_ny_fed_gscpi(start: str, end: str) -> pd.Series:
 # yfinance — Stock & Commodity Prices
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=1800, show_spinner=False, max_entries=150)
+@st.cache_data(ttl=7200, show_spinner=False, max_entries=150)  # 2h — daily close series only gains one bar/day; TradingView is the live chart
 def fetch_price(ticker: str, start: str, end: str) -> pd.Series:
     """Fetch daily closing price. No API key required."""
     try:
@@ -244,7 +244,7 @@ def fetch_price(ticker: str, start: str, end: str) -> pd.Series:
         return pd.Series(dtype=float, name=ticker)
 
 
-@st.cache_data(ttl=1800, show_spinner=False, max_entries=80)
+@st.cache_data(ttl=7200, show_spinner=False, max_entries=80)  # 2h — daily volume series, matches fetch_price
 def fetch_volume(ticker: str, start: str, end: str) -> pd.Series:
     """
     Fetch daily trading volume -- a separate function from fetch_price()
@@ -266,7 +266,7 @@ def fetch_volume(ticker: str, start: str, end: str) -> pd.Series:
         return pd.Series(dtype=float, name=ticker)
 
 
-@st.cache_data(ttl=60, show_spinner=False, max_entries=100)
+@st.cache_data(ttl=300, show_spinner=False, max_entries=100)  # 5min — live-ish quote; ample for a macro product, cuts yfinance quote calls 5x
 def fetch_live_quote(ticker: str) -> dict:
     """
     Fetch current price, day change, and pre/post-market data for a ticker.

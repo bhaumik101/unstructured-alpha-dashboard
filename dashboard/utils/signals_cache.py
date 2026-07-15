@@ -61,7 +61,7 @@ import streamlit as st
 from utils.config import SIGNALS
 
 
-@st.cache_data(ttl=7200, show_spinner=False, max_entries=1)
+@st.cache_data(ttl=21600, show_spinner=False, max_entries=1)  # 6h — signals are daily; the shared score cache backs every page
 def get_all_signal_scores(_v: int = 1) -> dict:
     """
     Fetch and score every signal in the SIGNALS library.
