@@ -1255,7 +1255,13 @@ def _render_topnav() -> None:
     every page. st.html injects raw HTML with no markdown processing, so the
     indentation is harmless.
     """
-    st.html("""
+    # Pro members see a small "PRO" badge in place of the "Upgrade" CTA.
+    _is_pro = (st.session_state.get("user") or {}).get("subscription_tier", "") == "pro"
+    _upgrade_slot = (
+        '<span class="ua-tnav-pro" title="You\'re on Pro">&#9889; PRO</span>' if _is_pro
+        else '<a class="ua-tnav-upgrade" href="/upgrade-to-pro">&#9889; Upgrade</a>'
+    )
+    st.html(("""
 <style>
 /* ── Hide native sidebar + Streamlit chrome ──────────────────────────────── */
 section[data-testid="stSidebar"]          { display: none !important; }
@@ -1379,6 +1385,16 @@ a.ua-tnav-item.active { color: #00D566 !important; background: rgba(0,213,102,0.
 .ua-tnav-upgrade:hover {
   background: linear-gradient(135deg, #8B5CF6, #7C3AED);
   box-shadow: 0 0 18px rgba(124,58,237,0.45);
+}
+/* Pro members: small non-clickable status pill instead of the Upgrade CTA */
+.ua-tnav-pro {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 4px 10px; height: 26px;
+  background: rgba(124,58,237,0.12);
+  color: #C4B5FD; font-size: 0.66rem; font-weight: 700;
+  border: 1px solid rgba(124,58,237,0.35);
+  border-radius: 6px; letter-spacing: 0.05em; white-space: nowrap; flex-shrink: 0;
+  cursor: default;
 }
 
 /* ── Mobile hamburger (JS-free checkbox toggle) ───────────────────────────── */
@@ -1518,7 +1534,7 @@ a.ua-tnav-item.active { color: #00D566 !important; background: rgba(0,213,102,0.
   </div>
 
   <div class="ua-tnav-right">
-    <a class="ua-tnav-upgrade" href="/upgrade-to-pro">&#9889; Upgrade</a>
+    __UPGRADE_SLOT__
   </div>
 </nav>
 
@@ -1539,7 +1555,7 @@ a.ua-tnav-item.active { color: #00D566 !important; background: rgba(0,213,102,0.
   } catch(e){}
 })();
 </script>
-""")
+""").replace("__UPGRADE_SLOT__", _upgrade_slot))
 
 
 def render_header(page_subtitle: str = "") -> None:
@@ -1959,6 +1975,20 @@ def render_footer(page: str = "") -> None:
             '</div>'
         )
 
+    # Pro members: footer shows a quiet "Pro member" tag instead of the Upgrade CTA.
+    _foot_is_pro = (st.session_state.get("user") or {}).get("subscription_tier", "") == "pro"
+    _foot_cta = (
+        '<span style="font-size:0.68rem;color:#C4B5FD;font-weight:700;'
+        'background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);'
+        'padding:5px 12px;border-radius:6px;white-space:nowrap;">&#9889; Pro member</span>'
+        if _foot_is_pro else
+        '<a href="/upgrade-to-pro" style="font-size:0.68rem;color:#fff;text-decoration:none;'
+        'font-weight:700;background:linear-gradient(135deg,#7C3AED,#6D28D9);'
+        'padding:5px 12px;border-radius:6px;white-space:nowrap;" '
+        'onmouseover="this.style.opacity=\'0.88\'" '
+        'onmouseout="this.style.opacity=\'1\'">&#9889; Upgrade to Pro</a>'
+    )
+
     # st.html (not st.markdown) — this footer is multi-line indented HTML, which
     # the markdown parser would turn into a code block and dump as raw text at the
     # bottom of the page (same bug that hit the top-nav). st.html skips markdown.
@@ -2013,12 +2043,8 @@ def render_footer(page: str = "") -> None:
                 <a href="/privacy-terms" style="font-size:0.68rem;color:#6B7FBF;text-decoration:none;
                                                        font-weight:500;" onmouseover="this.style.color='#00C8E0'"
                    onmouseout="this.style.color='#6B7FBF'">Terms</a>
-                <!-- Upgrade: fixed dead /Upgrade slug -> /upgrade-to-pro, and made it a real CTA. -->
-                <a href="/upgrade-to-pro" style="font-size:0.68rem;color:#fff;text-decoration:none;
-                                          font-weight:700;background:linear-gradient(135deg,#7C3AED,#6D28D9);
-                                          padding:5px 12px;border-radius:6px;white-space:nowrap;"
-                   onmouseover="this.style.opacity='0.88'"
-                   onmouseout="this.style.opacity='1'">&#9889; Upgrade to Pro</a>
+                <!-- Pro members see a quiet status tag; everyone else sees the Upgrade CTA. -->
+                {_foot_cta}
             </div>
         </div>
     </div>
