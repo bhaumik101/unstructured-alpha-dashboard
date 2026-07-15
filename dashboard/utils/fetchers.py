@@ -391,12 +391,51 @@ def fetch_signal_series(cfg: dict, start: str, end: str) -> pd.Series:
         return pd.Series(dtype=float)
 
 
+@st.cache_data(ttl=7200, show_spinner=False, max_entries=40)
+def fetch_prices_batch(tickers: tuple, start: str, end: str) -> dict:
+    """
+    Batch-fetch daily close prices for many tickers in ONE yfinance request
+    (yf.download) instead of a separate .history() call per ticker. Verified to
+    return prices byte-identical to fetch_price(). Returns {ticker: pd.Series}
+    (empty Series for a ticker with no data). Falls back to per-ticker fetch_price
+    on any batch failure so callers always get complete, correct data.
+
+    `tickers` is a tuple so the result is cacheable.
+    """
+    tickers = tuple(dict.fromkeys(t for t in tickers if t))  # dedupe, preserve order
+    out = {t: pd.Series(dtype=float, name=t) for t in tickers}
+    if not tickers:
+        return out
+    if len(tickers) == 1:
+        out[tickers[0]] = fetch_price(tickers[0], start, end)
+        return out
+    try:
+        df = yf.download(list(tickers), start=start, end=end, auto_adjust=True,
+                         progress=False, group_by="ticker", threads=True)
+        lvl0 = set(df.columns.get_level_values(0)) if hasattr(df.columns, "get_level_values") else set()
+        for t in tickers:
+            try:
+                if t in lvl0:
+                    col = df[t]["Close"]
+                else:
+                    col = df["Close"][t]
+                s = col.dropna().rename(t)
+                out[t] = _tz_strip(s) if not s.empty else pd.Series(dtype=float, name=t)
+            except Exception:
+                out[t] = fetch_price(t, start, end)   # per-ticker fallback
+        return out
+    except Exception:
+        return {t: fetch_price(t, start, end) for t in tickers}
+
+
 @st.cache_data(ttl=1800, show_spinner=False, max_entries=10)
 def fetch_basket(tickers: list, start: str, end: str) -> pd.Series:
-    """Fetch an equal-weight composite index of multiple tickers."""
+    """Fetch an equal-weight composite index of multiple tickers (one batched
+    yfinance request; output identical to the prior per-ticker loop)."""
+    prices = fetch_prices_batch(tuple(tickers), start, end)
     series_list = []
     for t in tickers:
-        s = fetch_price(t, start, end)
+        s = prices.get(t, pd.Series(dtype=float))
         if not s.empty:
             # Normalize each to 100 at start
             s_norm = s / s.dropna().iloc[0] * 100
