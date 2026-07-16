@@ -239,6 +239,38 @@ with st.expander("Customize which signals to include"):
     if selected_sig_ids:
         relevant_sig_ids = selected_sig_ids
 
+# ── Rate limit: distinct-ticker analyses per user (protects providers) ──────────
+# Only a NEW ticker consumes a token — repeated reruns on the same ticker (widget
+# interactions) don't count, so normal use is never throttled. Over the limit we
+# show a calm message and stop, consistently across reruns for that ticker.
+_rl_blocked, _rl_retry = False, 0
+try:
+    from utils.ratelimit import limit_action as _limit_action
+    _rl_user = (st.session_state.get("user") or {}).get("id")
+    if _rl_user:
+        _rl_actor = f"u{_rl_user}"
+    else:
+        try:
+            from streamlit.runtime.scriptrunner import get_script_run_ctx as _grsc
+            _ctx = _grsc()
+            _rl_actor = f"s{getattr(_ctx, 'session_id', 'anon')}" if _ctx else "anon"
+        except Exception:
+            _rl_actor = "anon"
+    if st.session_state.get("_tdd_rl_ticker") != ticker_input:
+        _ok, _retry = _limit_action(_rl_actor, "ticker_analysis")
+        st.session_state["_tdd_rl_ticker"] = ticker_input
+        st.session_state["_tdd_rl_blocked"] = (not _ok, _retry)
+    _rl_blocked, _rl_retry = st.session_state.get("_tdd_rl_blocked", (False, 0))
+except Exception:
+    _rl_blocked, _rl_retry = False, 0  # limiter must never break a working page
+# st.stop() is OUTSIDE the try so it propagates (it raises a control exception).
+if _rl_blocked:
+    st.warning(
+        f"⏳ You're analyzing tickers very quickly. Please wait ~{_rl_retry}s "
+        "before the next one — this keeps live data fresh and fast for everyone."
+    )
+    st.stop()
+
 # ── Full Score Computation ──────────────────────────────────────────────────────
 # compute_full_ticker_score() is the SAME function the alert engine calls to
 # evaluate watched tickers in the background -- extracted from this page on

@@ -38,6 +38,12 @@ services:
       # RSS low; pairs with utils/memory.release_memory()'s malloc_trim.
       - key: MALLOC_ARENA_MAX
         value: "2"
+      # Distributed rate limiting (utils/ratelimit.py). Internal private-network
+      # URL of the free Render Key Value instance "unstructured-alpha-redis"
+      # (same Oregon region). No credentials — only reachable inside Render's
+      # private network, so safe as a plain value.
+      - key: REDIS_URL
+        value: redis://red-d9cipkeq1p3s73ben9cg:6379
       - key: DATABASE_URL
         sync: false
       - key: RESEND_API_KEY
