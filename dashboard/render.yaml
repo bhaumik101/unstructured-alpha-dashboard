@@ -33,6 +33,11 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
     envVars:
+      # Cap glibc malloc arenas (default 8×nCPU) — threaded scans otherwise hoard
+      # freed heap per-arena and inflate RSS toward the 512MB OOM limit. =2 keeps
+      # RSS low; pairs with utils/memory.release_memory()'s malloc_trim.
+      - key: MALLOC_ARENA_MAX
+        value: "2"
       - key: DATABASE_URL
         sync: false
       - key: RESEND_API_KEY
