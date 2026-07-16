@@ -203,7 +203,7 @@ def fetch_ny_fed_gscpi(start: str, end: str) -> pd.Series:
         "interactives/gscpi/downloads/gscpi_data.xlsx"
     )
     try:
-        r = requests.get(_URL, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+        r = resilient_get(_URL, provider="ny_fed", timeout=20, headers={"User-Agent": "Mozilla/5.0"})
         r.raise_for_status()
         raw = io.BytesIO(r.content)
         # openpyxl is required for .xlsx; if absent this raises ImportError
@@ -484,7 +484,7 @@ def fetch_cot(market: str = "copper") -> pd.DataFrame:
     url = f"https://www.cftc.gov/files/dea/history/fut_disagg_xls_{year}.zip"
 
     try:
-        r = requests.get(url, timeout=30)
+        r = resilient_get(url, provider="cftc", timeout=30)
         r.raise_for_status()
         with zipfile.ZipFile(io.BytesIO(r.content)) as z:
             fname = next(n for n in z.namelist() if n.lower().endswith((".csv", ".txt")))
@@ -569,7 +569,7 @@ def fetch_federal_contracts(company_name: str, years: int = 2) -> pd.DataFrame:
     }
 
     try:
-        r = requests.post(url, json=payload, timeout=20,
+        r = resilient_post(url, provider="usaspending", json=payload, timeout=20,
                           headers={"Content-Type": "application/json"})
         r.raise_for_status()
         results = r.json().get("results", [])
@@ -618,7 +618,7 @@ def fetch_insider_trades(ticker: str, days: int = 180) -> pd.DataFrame:
     headers = {"User-Agent": "UnstructuredAlpha/1.0 research@unstructuredalpha.com"}
 
     try:
-        r = requests.get(url, headers=headers, timeout=12)
+        r = resilient_get(url, provider="sec_edgar", headers=headers, timeout=12)
         r.raise_for_status()
         data = r.json()
         hits = data.get("hits", {}).get("hits", [])
@@ -690,7 +690,7 @@ def fetch_insider_transactions_detail(ticker: str, days: int = 180, max_filings:
     )
 
     try:
-        r = requests.get(search_url, headers=headers, timeout=12)
+        r = resilient_get(search_url, provider="sec_edgar", headers=headers, timeout=12)
         r.raise_for_status()
         hits = r.json().get("hits", {}).get("hits", [])
     except Exception:
@@ -716,7 +716,7 @@ def fetch_insider_transactions_detail(ticker: str, days: int = 180, max_filings:
         filed_date = filed_date_raw[:10] if filed_date_raw else ""
 
         try:
-            xr = requests.get(xml_url, headers=headers, timeout=12)
+            xr = resilient_get(xml_url, provider="sec_edgar", headers=headers, timeout=12)
             xr.raise_for_status()
             root = ET.fromstring(xr.content)
         except Exception:
@@ -820,7 +820,7 @@ def fetch_short_interest(ticker: str, years: float = 1.5) -> pd.DataFrame:
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
     try:
-        r = requests.post(url, json=payload, headers=headers, timeout=15)
+        r = resilient_post(url, provider="finra", json=payload, headers=headers, timeout=15)
         if r.status_code == 204:  # FINRA's "no rows matched" response, not an error
             return pd.DataFrame()
         r.raise_for_status()
@@ -908,7 +908,7 @@ def fetch_13f_holdings(cik: str, fund_name: str, max_filings: int = 2) -> pd.Dat
     rows = []
     try:
         cik_padded = f"{int(cik):010d}"
-        sub_r = requests.get(f"https://data.sec.gov/submissions/CIK{cik_padded}.json", headers=headers, timeout=15)
+        sub_r = resilient_get(f"https://data.sec.gov/submissions/CIK{cik_padded}.json", provider="sec_edgar", headers=headers, timeout=15)
         sub_r.raise_for_status()
         recent = sub_r.json().get("filings", {}).get("recent", {})
         forms = recent.get("form", [])
@@ -927,7 +927,7 @@ def fetch_13f_holdings(cik: str, fund_name: str, max_filings: int = 2) -> pd.Dat
             accession_nodash = accession.replace("-", "")
             base = f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession_nodash}"
 
-            idx_r = requests.get(f"{base}/index.json", headers=headers, timeout=15)
+            idx_r = resilient_get(f"{base}/index.json", provider="sec_edgar", headers=headers, timeout=15)
             idx_r.raise_for_status()
             items = idx_r.json().get("directory", {}).get("item", [])
             info_table_name = next(
@@ -940,7 +940,7 @@ def fetch_13f_holdings(cik: str, fund_name: str, max_filings: int = 2) -> pd.Dat
 
             period = pd.to_datetime(report_date_str, errors="coerce") if report_date_str else None
 
-            tbl_r = requests.get(f"{base}/{info_table_name}", headers=headers, timeout=20)
+            tbl_r = resilient_get(f"{base}/{info_table_name}", provider="sec_edgar", headers=headers, timeout=20)
             tbl_r.raise_for_status()
             tbl_root = ET.fromstring(tbl_r.content)
 
@@ -1019,7 +1019,7 @@ def fetch_arxiv_velocity(
         "sortOrder": "descending",
     }
     try:
-        r = requests.get(url, params=params, timeout=25)
+        r = resilient_get(url, provider="arxiv", params=params, timeout=25)
         r.raise_for_status()
         root = ET.fromstring(r.content)
         ns = {"a": "http://www.w3.org/2005/Atom"}
@@ -1073,7 +1073,7 @@ def fetch_fda_approval_velocity(max_results: int = 1000) -> pd.Series:
         "limit": min(max_results, 1000),
     }
     try:
-        r = requests.get(url, params=params, timeout=25)
+        r = resilient_get(url, provider="fda", params=params, timeout=25)
         r.raise_for_status()
         data = r.json()
         results = data.get("results", [])
@@ -1462,7 +1462,7 @@ def fetch_fedspeaks_hawkishness(series_id: str = "fomc_hawkishness") -> pd.Serie
     for date_str in recent_dates:
         url = _FOMC_BASE_URL.format(date=date_str)
         try:
-            r = requests.get(url, timeout=15, headers={"User-Agent": "UnstructuredAlpha/1.0"})
+            r = resilient_get(url, provider="fed_fomc", timeout=15, headers={"User-Agent": "UnstructuredAlpha/1.0"})
             if r.status_code != 200:
                 continue
 
@@ -1642,9 +1642,9 @@ def fetch_earnings_transcript_sentiment(ticker: str, n_quarters: int = 8) -> pd.
 
     # ── Step 1: CIK lookup ────────────────────────────────────────────────────
     try:
-        r = requests.get(
+        r = resilient_get(
             "https://www.sec.gov/files/company_tickers.json",
-            headers=headers, timeout=15,
+            provider="sec_edgar", headers=headers, timeout=15,
         )
         r.raise_for_status()
         tickers_map = r.json()  # {idx: {"cik_str": int, "ticker": str, "title": str}}
@@ -1664,9 +1664,9 @@ def fetch_earnings_transcript_sentiment(ticker: str, n_quarters: int = 8) -> pd.
 
     # ── Step 2: Submissions feed — filter for 8-K with Item 2.02 ─────────────
     try:
-        sub_r = requests.get(
+        sub_r = resilient_get(
             f"https://data.sec.gov/submissions/CIK{cik_padded}.json",
-            headers=headers, timeout=15,
+            provider="sec_edgar", headers=headers, timeout=15,
         )
         sub_r.raise_for_status()
         sub_data = sub_r.json()
@@ -1714,7 +1714,7 @@ def fetch_earnings_transcript_sentiment(ticker: str, n_quarters: int = 8) -> pd.
             f"{cik_int}/{acc_nodash}/{doc_name}"
         )
         try:
-            doc_r = requests.get(filing_url, headers=headers, timeout=20)
+            doc_r = resilient_get(filing_url, provider="sec_edgar", headers=headers, timeout=20)
             doc_r.raise_for_status()
             raw_text = _strip_html(doc_r.text)
         except Exception:
