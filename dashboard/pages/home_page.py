@@ -313,7 +313,8 @@ st.markdown(
     f'<div style="font-size:2.4rem;font-weight:900;color:{_bias_color};letter-spacing:-1px;'
     f'line-height:1.0;text-shadow:0 0 40px {_bias_color}44;">{_h.escape(_bias_label)}</div>'
     f'<div style="font-size:0.72rem;color:#6B7FBF;margin-top:8px;">'
-    f'across <b style="color:#8892AA;">{_total}</b> tracked signals · 2h cache</div>'
+    f'across <b style="color:#8892AA;">{len(SIGNALS)}</b> tracked signals'
+    f'{f" · {_total} scored" if _total < len(SIGNALS) else ""} · 2h cache</div>'
     f'</div>'
     # Right: counter trio
     f'<div style="display:flex;gap:28px;flex-wrap:wrap;align-items:center;">'
@@ -659,9 +660,9 @@ try:
                     st.markdown(f"""
 <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
      border-radius:10px;padding:12px 14px;">
-  <div style="font-size:0.68rem;color:#8892AA;margin-bottom:4px;font-weight:500;
+  <div title="{_h.escape(_ch["name"])}" style="font-size:0.68rem;color:#8892AA;margin-bottom:4px;font-weight:500;
               white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-    {_h.escape(_ch["name"][:36])}
+    {_h.escape(_ch["name"])}
   </div>
   <div style="display:flex;align-items:center;gap:6px;">
     <span style="font-size:0.65rem;color:{_fc};font-weight:600;text-transform:uppercase;">

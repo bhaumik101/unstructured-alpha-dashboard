@@ -541,7 +541,7 @@ with tab_signals:
                         _lbl_text  = lbl.split(" ", 1)[-1] if " " in lbl else lbl
                         _cat_icon  = cat.get("icon", "")
                         _cat_name  = cat.get("name", "")
-                        _sig_name  = cfg["name"][:44]
+                        _sig_name  = cfg["name"]  # full name; CSS clamps to 2 lines w/ ellipsis
 
                         # Compute confidence level from z-score, momentum, PCS
                         _conf = compute_signal_confidence(sv, pcs=sv.get("pcs"))
@@ -601,8 +601,9 @@ with tab_signals:
                             f'transition:all 0.18s cubic-bezier(0.4,0,0.2,1);">'
                             f'<div style="display:flex;justify-content:space-between;align-items:flex-start;'
                             f'margin-bottom:8px;">'
-                            f'<div style="font-size:0.80rem;font-weight:700;color:#E8EEFF;line-height:1.3;'
-                            f'flex:1;letter-spacing:-0.1px;">{_pulse_dot}{_sig_name}</div>'
+                            f'<div title="{_sig_name}" style="font-size:0.80rem;font-weight:700;color:#E8EEFF;line-height:1.3;'
+                            f'flex:1;letter-spacing:-0.1px;overflow:hidden;display:-webkit-box;'
+                            f'-webkit-line-clamp:2;-webkit-box-orient:vertical;">{_pulse_dot}{_sig_name}</div>'
                             f'<div style="text-align:right;margin-left:8px;flex-shrink:0;">'
                             f'<div style="font-size:0.80rem;font-weight:800;color:{border};'
                             f'background:rgba({_bc_r},{_bc_g},{_bc_b},0.12);'
@@ -672,8 +673,9 @@ with tab_signals:
                             f'border-radius:6px;padding:1px 6px;font-weight:600;">'
                             f'{_cat_icon} {_cat_name}</span>'
                             f'<span style="color:#6B7FBF;margin-left:6px;">PCS {cfg["pcs"]}/10</span></div>'
-                            f'<div style="font-weight:700;font-size:0.88rem;color:#E8EEFF;margin-bottom:8px;line-height:1.3;">'
-                            f'{_pulse_dot}{cfg["name"][:50]}</div>'
+                            f'<div title="{cfg["name"]}" style="font-weight:700;font-size:0.88rem;color:#E8EEFF;margin-bottom:8px;line-height:1.3;'
+                            f'overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">'
+                            f'{_pulse_dot}{cfg["name"]}</div>'
                             f'<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">'
                             f'<div><div style="display:flex;align-items:center;gap:8px;">'
                             f'<div style="font-size:1.6rem;font-weight:700;color:{border};">{sym} {score:.0f}</div>'
