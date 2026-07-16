@@ -60,6 +60,21 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
 
+  # Keep-warm cron — pings the web service every 10 minutes so a free/low-tier
+  # Render instance never spins down. Prevents the cold-start "Page not found"
+  # flash on shared deep-links. Lightweight (a few HTTP GETs); no DB/API keys.
+  # If the web service is already on an always-on paid plan, this is harmless.
+  - type: cron
+    name: unstructured-alpha-keep-warm
+    runtime: python
+    rootDir: dashboard
+    schedule: "*/10 * * * *"   # every 10 minutes
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m cron.keep_warm
+    envVars:
+      - key: APP_URL
+        value: https://app.unstructuredalpha.com
+
   # Morning digest cron job — runs at 07:00 ET (12:00 UTC) daily.
   # Scores all signals, detects flips, emails opted-in users.
   # Uses the same DATABASE_URL / RESEND_* env vars as the web service.
