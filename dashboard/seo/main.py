@@ -40,7 +40,7 @@ from utils.coverage import coverage_tier      # noqa: E402  (honest coverage sta
 from utils.product_metrics import ACTIVE_SIGNAL_COUNT  # noqa: E402  (metrics SSOT)
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response, JSONResponse
 
 # ── lazy imports from utils/ (deferred to avoid heavy Streamlit dep at startup)
 def _get_config():
@@ -429,6 +429,61 @@ def health() -> str:
 </head>
 <body>OK</body>
 </html>"""
+
+
+# ── Health / readiness / version (observability) ──────────────────────────────
+# Liveness ≠ readiness on purpose: /healthz must NEVER depend on the DB or any
+# provider, so a data-store hiccup can't make a healthy process look dead and
+# trigger a restart loop. /readyz reports dependency health (DB required, Redis
+# degraded-not-fatal since the limiter fails open) with STRICT timeouts so the
+# check itself can't hang.
+def _check_db(timeout: float = 3.0) -> bool:
+    import concurrent.futures as _cf
+    from sqlalchemy import text
+
+    def _q() -> bool:
+        engine, _, _ = _get_engine()
+        with engine.connect() as c:
+            c.execute(text("SELECT 1"))
+        return True
+
+    try:
+        with _cf.ThreadPoolExecutor(max_workers=1) as ex:
+            return bool(ex.submit(_q).result(timeout=timeout))
+    except Exception:
+        return False
+
+
+@app.get("/healthz")
+def healthz() -> dict:
+    """Liveness — the process is up. No external dependencies."""
+    return {"status": "ok"}
+
+
+@app.get("/readyz")
+def readyz() -> JSONResponse:
+    """Readiness — can we serve real traffic? DB is required; Redis down is
+    degraded (limiter fails open) but not fatal."""
+    db_ok = _check_db(3.0)
+    try:
+        from utils.ratelimit import redis_ping
+        r = redis_ping(1.5)  # True / False / None
+    except Exception:
+        r = None
+    redis_state = "up" if r else ("not_configured" if r is None else "down")
+    ready = db_ok  # DB is the hard requirement
+    body = {"ready": ready, "db": "up" if db_ok else "down", "redis": redis_state}
+    return JSONResponse(body, status_code=200 if ready else 503)
+
+
+@app.get("/version")
+def version() -> dict:
+    """Deployment diagnostic — current commit SHA (Render injects it)."""
+    return {
+        "service": "unstructured-alpha-seo",
+        "commit": (os.getenv("RENDER_GIT_COMMIT", "") or "unknown")[:12],
+        "signals": ACTIVE_SIGNAL_COUNT,
+    }
 
 
 @app.get("/robots.txt", response_class=PlainTextResponse)

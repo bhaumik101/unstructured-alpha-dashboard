@@ -32,6 +32,10 @@ services:
     rootDir: dashboard
     buildCommand: pip install -r requirements.txt
     startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    # Liveness-only check — Streamlit's built-in health endpoint (returns 200
+    # "ok" when the server is up). Deliberately NOT a DB/provider-dependent path,
+    # so a data-store or provider outage can't trigger a restart loop.
+    healthCheckPath: /_stcore/health
     envVars:
       # Cap glibc malloc arenas (default 8×nCPU) — threaded scans otherwise hoard
       # freed heap per-arena and inflate RSS toward the 512MB OOM limit. =2 keeps
@@ -480,6 +484,7 @@ services:
     rootDir: dashboard
     buildCommand: pip install -r requirements.txt
     startCommand: "sh -c 'PYTHONPATH=/opt/render/project/src/dashboard python -m uvicorn seo.main:app --host 0.0.0.0 --port $PORT'"
+    healthCheckPath: /healthz   # liveness — no deps (readiness is /readyz)
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -487,6 +492,9 @@ services:
         sync: false
       - key: EIA_API_KEY
         sync: false
+      # So /readyz can report Redis health accurately from this service too.
+      - key: REDIS_URL
+        value: redis://red-d9cipkeq1p3s73ben9cg:6379
       - key: SEO_BASE_URL
         value: "https://seo.unstructuredalpha.com"
       - key: APP_URL

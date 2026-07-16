@@ -78,6 +78,25 @@ def backend() -> str:
     return "redis" if _get_client() is not None else "memory"
 
 
+def redis_ping(timeout: float = 1.5) -> "bool | None":
+    """
+    Live Redis PING for readiness checks. Returns:
+      True  — Redis reachable,
+      False — REDIS_URL set but Redis unreachable,
+      None  — REDIS_URL not configured (limiter runs on the in-process fallback).
+    Never raises; bounded by the client's socket timeout.
+    """
+    if not _REDIS_URL:
+        return None
+    cli = _get_client()
+    if cli is None:
+        return False
+    try:
+        return bool(cli.ping())
+    except Exception:
+        return False
+
+
 _fallback: dict[str, tuple[int, float]] = {}
 _fallback_lock = threading.Lock()
 
