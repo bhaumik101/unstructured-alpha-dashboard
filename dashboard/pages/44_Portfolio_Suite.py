@@ -443,6 +443,58 @@ with tab_macro:
             {"ticker": "CAT",  "weight": 15},
         ]
 
+    # ── Paste / import holdings ────────────────────────────────────────────────
+    # Import a real portfolio in one shot instead of adding tickers one by one.
+    # Accepts "TICKER, weight" or "TICKER weight" per line (weight optional →
+    # equal-weighted). Only known tickers are kept; capped at MAX_PORTFOLIO_HOLDINGS
+    # so a huge paste can't drive an unbounded exposure scan on the 2GB box.
+    with st.expander("📋 Paste / import holdings (bulk)"):
+        from utils.guards import MAX_PORTFOLIO_HOLDINGS
+        _paste = st.text_area(
+            "One holding per line — `TICKER, weight%` (weight optional)",
+            placeholder="NVDA, 30\nXOM, 20\nAAPL\nMSFT, 15",
+            key="ma_paste", height=120,
+        )
+        if st.button("Import holdings", key="ma_import_btn"):
+            import re as _re
+            _parsed, _unknown = [], []
+            for _line in (_paste or "").splitlines():
+                _line = _line.strip()
+                if not _line:
+                    continue
+                _parts = _re.split(r"[,\s]+", _line)
+                _sym = _parts[0].upper().lstrip("$")
+                try:
+                    _wt = float(_parts[1].rstrip("%")) if len(_parts) > 1 else 0.0
+                except ValueError:
+                    _wt = 0.0
+                if _sym in TICKER_META2:
+                    _parsed.append({"ticker": _sym, "weight": _wt})
+                else:
+                    _unknown.append(_sym)
+            if _parsed:
+                # de-dupe (keep last), equal-weight any zero-weight rows
+                _seen = {}
+                for _h in _parsed:
+                    _seen[_h["ticker"]] = _h
+                _hold = list(_seen.values())[:MAX_PORTFOLIO_HOLDINGS]
+                if all(h["weight"] <= 0 for h in _hold):
+                    _eq = round(100.0 / max(len(_hold), 1), 2)
+                    for _h in _hold:
+                        _h["weight"] = _eq
+                st.session_state.macro_holdings = _hold
+                st.session_state["ps_macro_analyzed"] = False  # require an explicit re-analyze
+                _msg = f"Imported {len(_hold)} holding(s)."
+                if len(_seen) > MAX_PORTFOLIO_HOLDINGS:
+                    _msg += f" Capped at {MAX_PORTFOLIO_HOLDINGS}."
+                if _unknown:
+                    _msg += f" Skipped unknown: {', '.join(_unknown[:8])}" + ("…" if len(_unknown) > 8 else "")
+                st.success(_msg)
+                st.rerun()
+            else:
+                st.warning("No known tickers found. Use symbols in our tracked universe, "
+                           "one per line.")
+
     ma_c1, ma_c2, ma_c3 = st.columns([2,1,1])
     ma_new_t = ma_c1.selectbox("Add ticker", [""] + list(TICKER_META2.keys()), key="ma_add_t")
     ma_new_w = ma_c2.number_input("Weight %", 1, 100, 10, key="ma_add_w")
