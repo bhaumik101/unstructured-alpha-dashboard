@@ -38,8 +38,9 @@ import streamlit as st
 # Fixes Streamlit's default WARNING-level root logger swallowing our INFO
 # [circuit]/[ratelimit] events, and gives every line a JSON shape + cid.
 try:
-    from utils.observability import configure_logging
+    from utils.observability import configure_logging, log_startup_diagnostics
     configure_logging()
+    log_startup_diagnostics("web")  # once-per-process; logs real cgroup CPU/RAM
 except Exception:  # never let logging setup break the app
     pass
 

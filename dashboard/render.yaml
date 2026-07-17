@@ -47,6 +47,21 @@ services:
       # utils/memory.release_memory()'s malloc_trim.
       - key: MALLOC_ARENA_MAX
         value: "2"
+      # BLAS / numeric thread caps. On a single-CPU (Standard) box, numpy/pandas
+      # and their BLAS backends (OpenBLAS/MKL) otherwise each spin up a thread per
+      # core they *think* exists (host count, not the cgroup limit) — oversubscribing
+      # one core and adding lock/context-switch overhead with zero speedup. Pin to 1.
+      # Must be set as ENV (before Python imports numpy), which is why they live here.
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
+      - key: NUMEXPR_NUM_THREADS
+        value: "1"
+      - key: VECLIB_MAXIMUM_THREADS
+        value: "1"
       # Distributed rate limiting (utils/ratelimit.py). Internal private-network
       # URL of the free Render Key Value instance "unstructured-alpha-redis"
       # (same Oregon region). No credentials — only reachable inside Render's
@@ -497,6 +512,17 @@ services:
         sync: false
       - key: EIA_API_KEY
         sync: false
+      # Single-core box: pin BLAS/numeric threads to 1 (see the web service block).
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
+      - key: NUMEXPR_NUM_THREADS
+        value: "1"
+      - key: VECLIB_MAXIMUM_THREADS
+        value: "1"
       # So /readyz can report Redis health accurately from this service too.
       - key: REDIS_URL
         value: redis://red-d9cipkeq1p3s73ben9cg:6379

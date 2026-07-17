@@ -84,8 +84,10 @@ app = FastAPI(title="Unstructured Alpha SEO", docs_url=None, redoc_url=None)
 try:
     from utils.observability import (
         configure_logging, set_correlation_id, new_correlation_id, log_event,
+        log_startup_diagnostics,
     )
     configure_logging()
+    log_startup_diagnostics("seo")  # once-per-process; logs real cgroup CPU/RAM
 
     @app.middleware("http")
     async def _correlation_and_access_log(request, call_next):

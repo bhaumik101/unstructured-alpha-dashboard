@@ -157,3 +157,94 @@ def log_event(event: str, level: int = logging.INFO, **fields) -> None:
         _event_logger.log(level, event, extra={"event": event, **fields})
     except Exception:  # pragma: no cover - logging must never crash a caller
         pass
+
+
+# ── startup diagnostics (Phase 1) ─────────────────────────────────────────────
+# Confirms the ACTUAL resources the container is given — not the host's. On
+# Render/containers `os.cpu_count()` returns the host core count, which is
+# misleading; the real limit is the cgroup CPU quota. Logged once at boot, to
+# stdout only (never exposed via an HTTP endpoint).
+def _cgroup_cpu_limit() -> float | None:
+    """Effective CPU limit from cgroup (v2 then v1). None if unlimited/unknown."""
+    try:  # cgroup v2
+        with open("/sys/fs/cgroup/cpu.max") as fh:
+            quota, period = fh.read().split()
+        if quota != "max":
+            return round(int(quota) / int(period), 2)
+    except Exception:
+        pass
+    try:  # cgroup v1
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us") as fh:
+            quota = int(fh.read().strip())
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_period_us") as fh:
+            period = int(fh.read().strip())
+        if quota > 0 and period > 0:
+            return round(quota / period, 2)
+    except Exception:
+        pass
+    return None
+
+
+def _cgroup_mem_limit_bytes() -> int | None:
+    """Effective memory limit from cgroup (v2 then v1). None if unlimited."""
+    for path in ("/sys/fs/cgroup/memory.max",
+                 "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+        try:
+            with open(path) as fh:
+                raw = fh.read().strip()
+            if raw and raw != "max":
+                v = int(raw)
+                # v1 uses a huge sentinel for "unlimited"
+                if v < (1 << 62):
+                    return v
+        except Exception:
+            continue
+    return None
+
+
+_startup_logged = False
+
+
+def log_startup_diagnostics(component: str, extra: dict | None = None) -> None:
+    """Emit ONE structured `startup` line with the real runtime shape. Best-effort.
+    Idempotent — only the first call per process logs (Streamlit reruns call it
+    repeatedly)."""
+    global _startup_logged
+    if _startup_logged:
+        return
+    _startup_logged = True
+    try:
+        import os
+        import platform
+        info: dict = {
+            "component": component,
+            "python": platform.python_version(),
+            "commit": (os.getenv("RENDER_GIT_COMMIT") or "")[:12] or None,
+            "env": os.getenv("RENDER_SERVICE_NAME") or os.getenv("ENV") or "local",
+            "host_cpu_count": os.cpu_count(),
+            "cgroup_cpu_limit": _cgroup_cpu_limit(),
+            "log_level": os.getenv("LOG_LEVEL", "INFO"),
+            # BLAS thread caps (should be "1" on a single-core box)
+            "omp_threads": os.getenv("OMP_NUM_THREADS"),
+            "openblas_threads": os.getenv("OPENBLAS_NUM_THREADS"),
+            "mkl_threads": os.getenv("MKL_NUM_THREADS"),
+            "numexpr_threads": os.getenv("NUMEXPR_NUM_THREADS"),
+            # app tuning knobs
+            "signal_score_workers": os.getenv("SIGNAL_SCORE_WORKERS", "8"),
+            "recommender_workers": os.getenv("RECOMMENDER_WORKERS", "5"),
+            "malloc_arena_max": os.getenv("MALLOC_ARENA_MAX"),
+        }
+        mem = _cgroup_mem_limit_bytes()
+        if mem:
+            info["cgroup_mem_limit_mb"] = round(mem / (1024 * 1024))
+        # rate-limiter backend, if importable
+        try:
+            from utils.ratelimit import backend as _rl_backend
+            info["cache_backend"] = _rl_backend()
+        except Exception:
+            pass
+        if extra:
+            info.update(extra)
+        log_event("startup", **info)
+    except Exception:
+        pass
