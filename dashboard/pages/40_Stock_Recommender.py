@@ -260,10 +260,10 @@ def _merge_enriched(macro_rows: list[dict], enriched: dict[str, dict]) -> list[d
     return merged
 
 
-# ─── Run Phase 1 + Phase 2 (single staged progress container) ─────────────────
-# One st.status that steps through both phases, instead of two separate spinners
-# with a blank flash in between — the scan reads as one continuous operation.
-with st.status("Scanning the market…", expanded=False) as _scan_status:
+# ─── Phase 1: fast macro ranking — runs automatically (~1s, cached) ───────────
+# This is cheap (cached macro scores only), so the page shows ranked ideas almost
+# immediately.
+with st.status("Ranking the market…", expanded=False) as _scan_status:
     _scan_status.update(label="Ranking all tickers by macro signals…")
     all_rows = _macro_rank_all(_min_lag, _max_lag)
 
@@ -271,25 +271,48 @@ with st.status("Scanning the market…", expanded=False) as _scan_status:
     if sector_filter:
         all_rows = [r for r in all_rows if r["sector"] in sector_filter]
     all_rows = [r for r in all_rows if r["n_signals"] >= min_signals]
+    _scan_status.update(label="Macro ranking complete", state="complete", expanded=False)
 
-    # Identify candidates for enrichment BEFORE applying show-count filter
-    macro_longs  = [r for r in all_rows if r["score"] >= 60][:n_enrich]
-    macro_shorts = sorted(all_rows, key=lambda r: r["score"])[:n_enrich]
-    macro_shorts = [r for r in macro_shorts if r["score"] <= 40]
+# ─── Phase 2: full enrichment — OPT-IN (heavy) ────────────────────────────────
+# compute_full_ticker_score() per candidate pulls 3yr price history + insider/13F/
+# short-interest data. Running it automatically on EVERY cold page load blocked the
+# render and spiked memory — on the single-core / 2GB box that froze the page and
+# could restart the service (which cleared the cache and repeated the cycle). So the
+# heavy pass is now gated behind an explicit action; results are cached in session
+# so they survive reruns. The page stays responsive and shows the macro ranking
+# regardless.
+macro_longs  = [r for r in all_rows if r["score"] >= 60][:n_enrich]
+macro_shorts = [r for r in sorted(all_rows, key=lambda r: r["score"])[:n_enrich]
+                if r["score"] <= 40]
+enrich_set = tuple(sorted(set(
+    [r["ticker"] for r in macro_longs] + [r["ticker"] for r in macro_shorts]
+)))
 
-    enrich_set = tuple(sorted(set(
-        [r["ticker"] for r in macro_longs] + [r["ticker"] for r in macro_shorts]
-    )))
+# Invalidate stale session enrichment when the candidate set changes (filters moved).
+if st.session_state.get("_rec_enrich_key") != enrich_set:
+    st.session_state["_rec_enriched"] = None
+enriched_data = st.session_state.get("_rec_enriched")
 
-    if enrich_set:
-        _scan_status.update(
-            label=(f"Deep-scoring top {len(enrich_set)} candidates "
-                   f"(insider activity, 13F positioning, short interest)…")
-        )
-        enriched_data = _enrich_tickers(enrich_set)
+if enrich_set:
+    _ec1, _ec2 = st.columns([1, 3])
+    _do_enrich = _ec1.button(
+        f"🔬 Deep-score top {len(enrich_set)}",
+        type="primary", use_container_width=True,
+        help="Adds insider activity, 13F positioning, and short interest to the top "
+             "candidates. Heavier — runs on demand so the page stays fast.",
+    )
+    if _do_enrich:
+        with st.status(f"Deep-scoring {len(enrich_set)} candidates "
+                       "(insider, 13F, short interest)…", expanded=False) as _es:
+            enriched_data = _enrich_tickers(enrich_set)
+            st.session_state["_rec_enriched"]   = enriched_data
+            st.session_state["_rec_enrich_key"] = enrich_set
+            _es.update(label="Deep-score complete", state="complete", expanded=False)
+    if enriched_data:
         all_rows = _merge_enriched(all_rows, enriched_data)
-
-    _scan_status.update(label="Scan complete", state="complete", expanded=False)
+    else:
+        _ec2.caption("Showing the fast macro-only ranking. Deep-score adds insider, "
+                     "13F, and short-interest data to the top candidates.")
 
 longs  = [r for r in all_rows if r["score"] >= 65][:n_show]
 shorts = sorted(all_rows, key=lambda r: r["score"])[:n_show]
