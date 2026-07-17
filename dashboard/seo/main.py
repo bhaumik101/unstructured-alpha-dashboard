@@ -64,6 +64,42 @@ AMBER         = "#D97706"
 app = FastAPI(title="Unstructured Alpha SEO", docs_url=None, redoc_url=None)
 
 
+# ── Structured logging + per-request correlation id ───────────────────────────
+# Installs the JSON stdout handler (idempotent) and tags every request with a
+# short correlation id so all log lines for one HTTP request share a `cid`.
+# The health probes (/healthz, /readyz) are high-frequency and low-value, so
+# their access line is emitted at DEBUG to avoid drowning the logs.
+try:
+    from utils.observability import (
+        configure_logging, set_correlation_id, new_correlation_id, log_event,
+    )
+    configure_logging()
+
+    @app.middleware("http")
+    async def _correlation_and_access_log(request, call_next):
+        import time as _t
+        import logging as _lg
+        cid = request.headers.get("x-request-id") or new_correlation_id()
+        set_correlation_id(cid)
+        _t0 = _t.perf_counter()
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            response.headers["X-Request-ID"] = cid
+            return response
+        finally:
+            path = request.url.path
+            level = _lg.DEBUG if path in ("/healthz", "/readyz") else _lg.INFO
+            log_event(
+                "http_request", level=level,
+                method=request.method, path=path, status=status,
+                ms=round((_t.perf_counter() - _t0) * 1000, 1),
+            )
+except Exception:  # observability must never break the SEO service
+    pass
+
+
 # ── HTML helpers ──────────────────────────────────────────────────────────────
 
 def _score_color(score: float) -> str:

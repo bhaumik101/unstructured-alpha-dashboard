@@ -1618,6 +1618,19 @@ def render_header(page_subtitle: str = "") -> None:
     from datetime import datetime
     from utils.theme import _MODERN_UI_CSS  # deferred to avoid circular import at module level
 
+    # ── Correlation id for this session's log lines ────────────────────────────
+    # Seed a stable per-session id once, then bind it to the current rerun's
+    # log context so every [circuit]/[ratelimit]/event line during this run is
+    # attributable to one browser session. Best-effort; never blocks a render.
+    try:
+        from utils.observability import set_correlation_id, new_correlation_id
+        _cid = st.session_state.get("_cid")
+        if not _cid:
+            _cid = st.session_state["_cid"] = new_correlation_id()
+        set_correlation_id(_cid)
+    except Exception:
+        pass
+
     # ── Horizontal topnav (replaces sidebar, hides Streamlit chrome) ───────────
     _render_topnav()
 

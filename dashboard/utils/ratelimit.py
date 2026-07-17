@@ -154,7 +154,18 @@ def limit_action(actor: str, action: str) -> tuple[bool, int]:
     if not pol:
         return True, 0
     limit, window = pol
-    return check(f"{action}:{actor}", limit, window)
+    allowed, retry_after = check(f"{action}:{actor}", limit, window)
+    if not allowed:
+        # Structured denial event — the key signal for spotting abuse / storms.
+        # Actor is a hashed-ish id (u<id>/s<session>/ip), not PII. Best-effort.
+        try:
+            from utils.observability import log_event
+            log_event("rate_limit_block", action=action, actor=actor,
+                      limit=limit, window=window, retry_after=retry_after,
+                      backend=backend())
+        except Exception:
+            pass
+    return allowed, retry_after
 
 
 # ── Streamlit convenience helpers (lazy streamlit import — keeps this module

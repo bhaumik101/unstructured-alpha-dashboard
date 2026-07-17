@@ -32,6 +32,17 @@ now: the sidebar should never depend on auth state to render correctly.
 
 import streamlit as st
 
+# ── Structured logging (pure-Python, no Streamlit call) ───────────────────────
+# Installed BEFORE st.navigation so it is active for the whole run, but it
+# touches no Streamlit API and cannot break the "st.navigation first" rule.
+# Fixes Streamlit's default WARNING-level root logger swallowing our INFO
+# [circuit]/[ratelimit] events, and gives every line a JSON shape + cid.
+try:
+    from utils.observability import configure_logging
+    configure_logging()
+except Exception:  # never let logging setup break the app
+    pass
+
 # ── Navigation registered FIRST ───────────────────────────────────────────────
 # IMPORTANT: st.navigation() must be the ABSOLUTE first Streamlit call, and
 # the module-level imports of utils.db / utils.auth_ui must come AFTER it.
