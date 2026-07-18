@@ -154,10 +154,15 @@ def _wl_latest_score(_ticker: str):
 _wl_idx = _wl_ticker_index()
 _ac1, _ac2 = st.columns([3, 2])
 with _ac1:
+    # index=None + placeholder (NOT an empty-string sentinel option): with a
+    # sentinel, Streamlit renders its formatted label as the box's actual VALUE,
+    # so anything typed appends to it and the search matches nothing.
     _picked = st.selectbox(
         f"Search {len(_wl_idx)} stocks — symbol, company or sector",
-        [""] + list(_wl_idx.keys()),
-        format_func=lambda t: "Type to search…" if not t else _wl_idx.get(t, t),
+        list(_wl_idx.keys()),
+        index=None,
+        placeholder="Type a symbol, company or sector…",
+        format_func=lambda t: _wl_idx.get(t, t),
         key="wl_pick",
         help="Instant local search — no waiting on the network.",
     )
@@ -168,7 +173,7 @@ with _ac2:
         help="Not in our list yet? Add it anyway — it joins the tracked universe.",
     ).upper().strip()
 
-new_ticker = _typed or _picked
+new_ticker = (_typed or _picked or "").upper().strip()
 
 # ── Live preview of what you're about to add (fast, snapshot-backed) ──────────
 if new_ticker:
