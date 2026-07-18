@@ -108,36 +108,141 @@ user_id = current_user["id"]
 # ── Watchlist management ──────────────────────────────────────────────────────
 st.html(section_label("Watchlist", color="#00C8E0", dot="#00C8E0"))
 
-new_ticker = st.text_input("Add a ticker to watch:", key="new_watch_ticker", max_chars=10).upper().strip()
+# ── Add a ticker — fast LOCAL search across the whole universe ────────────────
+# Was a bare text_input: you had to already know the exact symbol, with no search,
+# no company names and no idea what you were adding. This builds a cached, purely
+# local index (symbol + company + sector) so typing filters instantly with zero
+# network per keystroke, and still accepts ANY symbol we don't track yet — which
+# then joins the dynamic universe on add (alerts_db.add_to_watchlist already calls
+# universe.add_to_universe).
+@st.cache_data(ttl=3600, show_spinner=False)
+def _wl_ticker_index() -> dict:
+    """{ticker: 'AAPL — Apple Inc. · Technology'} over tracked + dynamic universe."""
+    from utils.config import TICKERS as _TK
+    idx = {t: f"{t} — {(m.get('name') or t)[:40]} · {m.get('sector', '—')}"
+           for t, m in _TK.items()}
+    try:  # include anything users already added to the dynamic universe
+        from sqlalchemy import select as _s
+        from utils.db import dynamic_universe as _du, engine as _e
+        with _e.begin() as _c:
+            for _r in _c.execute(_s(_du.c.ticker, _du.c.name, _du.c.sector)).fetchall():
+                if _r[0] and _r[0] not in idx:
+                    idx[_r[0]] = f"{_r[0]} — {(_r[1] or _r[0])[:40]} · {_r[2] or '—'}"
+    except Exception:
+        pass
+    return dict(sorted(idx.items()))
 
-st.caption("Quick add — one click, no threshold tuning required:")
+
+@st.cache_data(ttl=900, show_spinner=False, max_entries=256)
+def _wl_latest_score(_ticker: str):
+    """Latest Confluence Score from score_snapshots — an indexed read, never a
+    live recompute (that's what made adding feel slow)."""
+    try:
+        from sqlalchemy import select as _s
+        from utils.db import score_snapshots as _ss, engine as _e
+        with _e.begin() as _c:
+            _row = _c.execute(
+                _s(_ss.c.score, _ss.c.snapshot_date)
+                .where(_ss.c.ticker == _ticker)
+                .order_by(_ss.c.snapshot_date.desc()).limit(1)
+            ).fetchone()
+        return (float(_row[0]), _row[1]) if _row else (None, None)
+    except Exception:
+        return (None, None)
+
+
+_wl_idx = _wl_ticker_index()
+_ac1, _ac2 = st.columns([3, 2])
+with _ac1:
+    _picked = st.selectbox(
+        f"Search {len(_wl_idx)} stocks — symbol, company or sector",
+        [""] + list(_wl_idx.keys()),
+        format_func=lambda t: "Type to search…" if not t else _wl_idx.get(t, t),
+        key="wl_pick",
+        help="Instant local search — no waiting on the network.",
+    )
+with _ac2:
+    _typed = st.text_input(
+        "…or enter any symbol", key="new_watch_ticker", max_chars=10,
+        placeholder="e.g. PLTR",
+        help="Not in our list yet? Add it anyway — it joins the tracked universe.",
+    ).upper().strip()
+
+new_ticker = _typed or _picked
+
+# ── Live preview of what you're about to add (fast, snapshot-backed) ──────────
+if new_ticker:
+    _pv_score, _pv_asof = _wl_latest_score(new_ticker)
+    _pv_label = _wl_idx.get(new_ticker)
+    _pv_name = _pv_label.split(" — ", 1)[1] if _pv_label and " — " in _pv_label else "Not yet tracked"
+    if _pv_score is not None:
+        _pv_col = "#00D566" if _pv_score >= 65 else ("#FF4444" if _pv_score <= 35 else "#6B7FBF")
+        _pv_right = (f'<div style="font-size:1.6rem;font-weight:900;color:{_pv_col};line-height:1;">'
+                     f'{_pv_score:.0f}</div>'
+                     f'<div style="font-size:0.56rem;color:#6B7FBF;">Confluence · {_pv_asof or "—"}</div>')
+    else:
+        _pv_right = ('<div style="font-size:0.68rem;color:#8892AA;">No score yet</div>'
+                     '<div style="font-size:0.56rem;color:#6B7FBF;">Will be scored on the next run</div>')
+    _pv_new = "" if _pv_label else (
+        '<div style="margin-top:6px;font-size:0.60rem;color:#F59E0B;">'
+        '✦ New to our universe — adding it starts tracking it.</div>')
+    st.html(f"""
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;
+                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+                border-left:3px solid #00C8E0;border-radius:9px;padding:12px 16px;margin:2px 0 12px;">
+      <div>
+        <div style="font-size:1.05rem;font-weight:800;color:#E8EEFF;">{new_ticker}</div>
+        <div style="font-size:0.66rem;color:#8892AA;">{_pv_name}</div>{_pv_new}
+      </div>
+      <div style="text-align:right;flex-shrink:0;">{_pv_right}</div>
+    </div>""")
+
+# ── Alert style presets ───────────────────────────────────────────────────────
+st.caption("**Quick add** — pick how you want to be alerted:")
+_PRESET_BLURB = {
+    "Bullish Watch":        "Alerts early when the macro case turns favourable.",
+    "Bearish Watch":        "Alerts early when the case deteriorates.",
+    "Drastic Changes Only": "Only big moves — least noisy.",
+}
 qa1, qa2, qa3 = st.columns(3)
-_quick_add_cols = {"Bullish Watch": qa1, "Bearish Watch": qa2, "Drastic Changes Only": qa3}
-for _preset_name, _col in _quick_add_cols.items():
+for _preset_name, _col in {"Bullish Watch": qa1, "Bearish Watch": qa2, "Drastic Changes Only": qa3}.items():
     with _col:
+        _p = QUICK_ADD_PRESETS[_preset_name]
         if st.button(_preset_name, key=f"quick_add_{_preset_name.replace(' ', '_')}",
-                      use_container_width=True, disabled=not new_ticker):
-            alerts_db.add_to_watchlist(user_id, new_ticker, **QUICK_ADD_PRESETS[_preset_name])
-            st.success(f"{new_ticker} added to watchlist with the \"{_preset_name}\" preset.")
+                     use_container_width=True, disabled=not new_ticker,
+                     help=f"{_PRESET_BLURB[_preset_name]} Alerts at score ≥{_p['score_bull_threshold']:.0f}, "
+                          f"≤{_p['score_bear_threshold']:.0f}, or a {_p['price_move_pct_threshold']:.0f}% price move."):
+            alerts_db.add_to_watchlist(user_id, new_ticker, **_p)
+            st.success(f"{new_ticker} added with the \"{_preset_name}\" preset.")
             st.rerun()
+        st.caption(f"<span style='font-size:0.60rem;color:#6B7FBF;'>{_PRESET_BLURB[_preset_name]}</span>",
+                   unsafe_allow_html=True)
 
-with st.expander("Or set custom alert thresholds instead"):
+with st.expander("⚙️  Fine-tune alert thresholds instead"):
     t1, t2, t3 = st.columns(3)
     with t1:
-        bull_thresh = st.number_input("Bullish score ≥", min_value=50.0, max_value=99.0, value=65.0, step=1.0, key="add_bull")
+        bull_thresh = st.slider("Alert when score rises to ≥", 50.0, 99.0, 65.0, 1.0, key="add_bull",
+                                help="Higher = only alert on a strong bullish case.")
     with t2:
-        bear_thresh = st.number_input("Bearish score ≤", min_value=1.0, max_value=50.0, value=35.0, step=1.0, key="add_bear")
+        bear_thresh = st.slider("Alert when score falls to ≤", 1.0, 50.0, 35.0, 1.0, key="add_bear",
+                                help="Lower = only alert on a strongly bearish case.")
     with t3:
-        price_thresh = st.number_input("Price move % ≥", min_value=0.5, max_value=50.0, value=5.0, step=0.5, key="add_price")
-
-    if st.button("Add with Custom Thresholds", type="primary", disabled=not new_ticker):
+        price_thresh = st.slider("Alert on price move ≥ (%)", 0.5, 50.0, 5.0, 0.5, key="add_price",
+                                 help="Absolute daily move that triggers an alert.")
+    st.caption(
+        f"You'll be alerted on **{new_ticker or 'this ticker'}** when its Confluence Score "
+        f"reaches **≥{bull_thresh:.0f}** (bullish) or **≤{bear_thresh:.0f}** (bearish), "
+        f"or when price moves **≥{price_thresh:.1f}%** in a day."
+    )
+    if st.button("Add with these thresholds", type="primary", disabled=not new_ticker,
+                 use_container_width=True):
         alerts_db.add_to_watchlist(
             user_id, new_ticker,
             score_bull_threshold=bull_thresh,
             score_bear_threshold=bear_thresh,
             price_move_pct_threshold=price_thresh,
         )
-        st.success(f"{new_ticker} added to watchlist with custom thresholds.")
+        st.success(f"{new_ticker} added with custom thresholds.")
         st.rerun()
 
 watchlist = alerts_db.get_watchlist(user_id)
