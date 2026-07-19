@@ -64,25 +64,66 @@ def _parse(text: str, sym_idx: int, name_idx: int, test_idx: int | None) -> dict
     return out
 
 
-def fetch_symbol_directory() -> dict[str, str]:
-    """{SYMBOL: name} for all US-listed symbols. Empty dict on failure."""
+def _parse_records(text: str, sym_idx: int, name_idx: int,
+                   test_idx: int | None, etf_idx: int | None,
+                   exchange: str) -> dict[str, dict]:
+    """
+    Richer parse keeping the ETF flag — the directory tells us outright whether a
+    symbol is an exchange-traded product, which is far more reliable than trying
+    to infer it from the security name.
+    """
+    out: dict[str, dict] = {}
+    for line in (text or "").splitlines()[1:]:
+        if not line or line.startswith("File Creation Time"):
+            continue
+        parts = line.split("|")
+        if len(parts) <= max(sym_idx, name_idx):
+            continue
+        sym = (parts[sym_idx] or "").strip().upper()
+        if not sym or not sym.replace(".", "").replace("-", "").isalnum():
+            continue
+        if test_idx is not None and len(parts) > test_idx and parts[test_idx].strip() == "Y":
+            continue
+        is_etf = False
+        if etf_idx is not None and len(parts) > etf_idx:
+            is_etf = parts[etf_idx].strip().upper() == "Y"
+        out[sym] = {
+            "symbol": sym,
+            "name": (parts[name_idx] or "").strip(),   # RAW name — classifiers need it
+            "short_name": _clean_name(parts[name_idx]),
+            "etf": is_etf,
+            "exchange": exchange,
+        }
+    return out
+
+
+def fetch_symbol_records() -> dict[str, dict]:
+    """{SYMBOL: {symbol,name,short_name,etf,exchange}} for all US-listed symbols."""
     from utils.resilience import resilient_get
-    merged: dict[str, str] = {}
-    # nasdaqlisted: Symbol|Security Name|Market Category|Test Issue|...
+    merged: dict[str, dict] = {}
+    # nasdaqlisted: Symbol|Security Name|Market Category|Test Issue|Financial Status|Round Lot|ETF|NextShares
     try:
         r = resilient_get(_NASDAQ_URL, provider="nasdaq_symdir", timeout=20)
         if r.status_code == 200:
-            merged.update(_parse(r.text, sym_idx=0, name_idx=1, test_idx=3))
+            merged.update(_parse_records(r.text, 0, 1, test_idx=3, etf_idx=6, exchange="NASDAQ"))
     except Exception:
         pass
     # otherlisted: ACT Symbol|Security Name|Exchange|CQS Symbol|ETF|Round Lot|Test Issue|NASDAQ Symbol
     try:
         r = resilient_get(_OTHER_URL, provider="nasdaq_symdir", timeout=20)
         if r.status_code == 200:
-            merged.update(_parse(r.text, sym_idx=0, name_idx=1, test_idx=6))
+            merged.update(_parse_records(r.text, 0, 1, test_idx=6, etf_idx=4, exchange="NYSE/AMEX"))
     except Exception:
         pass
     return merged
+
+
+def fetch_symbol_directory() -> dict[str, str]:
+    """{SYMBOL: name} for all US-listed symbols. Empty dict on failure."""
+    try:
+        return {s: r["short_name"] for s, r in fetch_symbol_records().items()}
+    except Exception:
+        return {}
 
 
 def _tracked_fallback() -> dict[str, str]:
