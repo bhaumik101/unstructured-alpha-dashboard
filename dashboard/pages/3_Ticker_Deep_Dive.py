@@ -457,6 +457,23 @@ if section == "Overview":
     except Exception:
         _conv_ctx_sentence = "Conviction context unavailable."
 
+    # ── Earnings event risk ───────────────────────────────────────────────────
+    # A macro score reads a backdrop that moves over weeks; an earnings print
+    # moves the stock in one session for reasons these signals can't see. So the
+    # score isn't wrong before a report — it's about to be outweighed. We surface
+    # the date and say so plainly; we deliberately do NOT forecast the result or
+    # adjust the score, which would mean quietly mixing an event model into a
+    # macro one. Any lookup failure yields no badge rather than a wrong badge.
+    _earn_badge, _earn_caveat = "", ""
+    try:
+        from utils.earnings_awareness import next_earnings, badge_html, caveat_text
+        _earn = next_earnings(ticker_input)
+        if _earn:
+            _earn_badge = badge_html(_earn)
+            _earn_caveat = caveat_text(_earn.get("days_until"))
+    except Exception:
+        pass
+
     st.markdown(f"""
     <div class="ua-gradient-border" style="margin-bottom:20px;">
       <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:18px 22px;">
@@ -466,7 +483,8 @@ if section == "Overview":
           <div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;">Signal Case</div>
           <div class="ua-kpi-animate" style="font-size:2.2rem;font-weight:900;color:{score_color};
                text-shadow:0 0 32px {score_color}55,0 0 8px {score_color}35;line-height:1;">{case}</div>
-          <div style="font-size:0.80rem;color:#B8C0D4;margin-top:4px;">Conviction: <b style="color:{score_color};">{conviction}</b></div>
+          <div style="font-size:0.80rem;color:#B8C0D4;margin-top:4px;">Conviction: <b style="color:{score_color};">{conviction}</b>{_earn_badge}</div>
+          {f'<div style="font-size:0.66rem;color:#F59E0B;margin-top:6px;line-height:1.45;">{_earn_caveat}</div>' if _earn_caveat else ''}
           <div style="font-size:0.70rem;color:#8892AA;margin-top:6px;line-height:1.5;">
             {len(relevant_sig_ids)} signals + momentum{" + contracts" if _has_contract_signal else ""}{" + insiders" if _has_insider_signal else ""}{" + short interest" if _has_short_interest_signal else ""}{" + 13F" if _has_13f_signal else ""}
           </div>
