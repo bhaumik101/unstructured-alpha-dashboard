@@ -582,7 +582,21 @@ services:
       # So /readyz can report Redis health accurately from this service too.
       - key: REDIS_URL
         value: redis://red-d9cipkeq1p3s73ben9cg:6379
+      # Canonicals, sitemap entries, robots and internal links all derive from
+      # this. It must be the APEX domain, not seo.*, because Next.js rewrites
+      # (unstructured-alpha-web/next.config.ts) now proxy /ticker/*, /signal/*,
+      # /signals/report, /sitemap.xml and /robots.txt from www to this service.
+      #
+      # Previously these 329 pages were only reachable at seo.unstructuredalpha.com
+      # while www 404'd on the same paths and served no robots.txt or sitemap at
+      # all — /sitemap.xml on www returned the Next.js HTML shell, which Google
+      # rejects outright. Ranking signals accrued to a subdomain nobody links to
+      # instead of compounding on the brand domain.
+      #
+      # If this is left pointing at seo.* while the rewrites are live, every
+      # proxied page would carry a canonical back to the subdomain and the
+      # consolidation would achieve nothing.
       - key: SEO_BASE_URL
-        value: "https://seo.unstructuredalpha.com"
+        value: "https://www.unstructuredalpha.com"
       - key: APP_URL
         value: "https://unstructuredalpha.com"
