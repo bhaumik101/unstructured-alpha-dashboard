@@ -51,6 +51,11 @@ from utils.score_history import get_high_confidence_snapshot_calls
 st.set_page_config(page_title="Signal Call Log — Unstructured Alpha", layout="wide")
 render_header("Signal Call Log")
 render_sidebar_base()
+try:
+    from utils.instrumentation import record_once
+    record_once("track_record_viewed")
+except Exception:
+    pass
 inject_premium_css()
 inject_skeleton_css()
 

@@ -36,6 +36,11 @@ from utils.conviction import get_signal_alignment
 
 render_header("Stock Recommender")
 render_sidebar_base()
+try:
+    from utils.instrumentation import record_once
+    record_once("recommender_viewed")
+except Exception:
+    pass
 inject_premium_css()
 
 require_pro(page_name="Stock Recommender")

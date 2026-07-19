@@ -224,6 +224,17 @@ if not st.session_state.get("_tdd_onboarded"):
 
 st.markdown(f"### Analyzing: **{ticker_input}** — {company_name_hint}")
 
+# Credits the search_ticker onboarding step, which had no call site anywhere and
+# so could never complete. Deduped per ticker rather than per session so that
+# looking up five names records five analyses, but Streamlit's reruns while
+# reading one of them do not.
+try:
+    from utils.instrumentation import record_once
+    record_once("ticker_analyzed", dedupe_key=f"ticker_analyzed::{ticker_input}",
+                ticker=ticker_input)
+except Exception:
+    pass
+
 # ── One-click watchlist toggle for the ticker being viewed ────────────────────
 # Viewing a ticker is exactly when someone decides to track it — so the action
 # lives here rather than making them go to the Watchlist page and re-type it.
@@ -596,9 +607,14 @@ if section == "Overview":
                 if _rp_uid:
                     if save_profile(_rp_uid, _new_prof):
                         st.caption("✅ Saved to your account — applied to Your Score and your alerts.")
-                        try:   # tick the onboarding checklist
-                            from utils.onboarding import mark_step
-                            mark_step(_rp_uid, "set_risk_profile")
+                        # record() both logs the event and ticks the onboarding
+                        # checklist. Keeping those two as separate calls is how
+                        # the other three steps ended up with no call site.
+                        try:
+                            from utils.instrumentation import record
+                            record("risk_profile_set", user_id=_rp_uid,
+                                   tolerance=_new_prof.get("tolerance"),
+                                   horizon=_new_prof.get("horizon"))
                         except Exception:
                             pass
                 else:

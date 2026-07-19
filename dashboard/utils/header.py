@@ -1659,6 +1659,16 @@ def render_header(page_subtitle: str = "") -> None:
     # Traffic tracking (deduped per session+page) — feeds the Admin dashboard.
     _track_page_view(page_subtitle)
 
+    # Session heartbeat. Duration is derived as (last event - first event) per
+    # session, and with one page_view per session that difference was always
+    # zero — which is why every duration percentile in the usage report read 0s.
+    # Firing on each navigation gives multi-page sessions a real span.
+    try:
+        from utils.instrumentation import heartbeat
+        heartbeat()
+    except Exception:
+        pass
+
     st.markdown(_CSS, unsafe_allow_html=True)
     # Inject modern UI system (pill tabs, glass buttons, metrics, etc.) globally
     # so every page that calls render_header() gets it automatically.

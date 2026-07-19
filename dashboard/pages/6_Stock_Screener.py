@@ -31,6 +31,11 @@ from utils.signals_cache import get_all_signal_scores
 st.set_page_config(page_title="Stock Screener — UA", layout="wide")
 render_header("Stock Screener")
 render_sidebar_base()
+try:
+    from utils.instrumentation import record_once
+    record_once("screener_viewed")
+except Exception:
+    pass
 inject_premium_css()
 
 render_page_header(

@@ -7,14 +7,16 @@ are being placed rather than existing positions being closed.
 No API key required. Data from yfinance options endpoints (15-min delayed).
 """
 
-from datetime import datetime, timedelta
-
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 from utils.header import render_header, render_sidebar_base, render_page_header
+from utils.options_metrics import (
+    CONTRACT_MULTIPLIER,
+    days_to_expiration,
+    summarize,
+)
 
 st.set_page_config(page_title="Options Flow — UA", layout="wide")
 
@@ -23,6 +25,11 @@ require_pro("Options Flow")
 
 render_header("Unusual Options Activity")
 render_sidebar_base()
+try:
+    from utils.instrumentation import record_once
+    record_once("options_flow_viewed")
+except Exception:
+    pass
 
 render_page_header(
     "Unusual Options Activity",
@@ -67,15 +74,10 @@ def _fmt_num(x) -> str:
     return f"{x:.0f}"
 
 
-def _itm_pct(df: pd.DataFrame, current_price: float | None, call: bool) -> str:
-    """% of contracts ITM."""
-    if df.empty or not current_price:
-        return "—"
-    if call:
-        itm = (df["strike"] <= current_price).sum()
-    else:
-        itm = (df["strike"] >= current_price).sum()
-    return f"{100 * itm / max(len(df), 1):.0f}%"
+# _itm_pct lived here: defined, never called, and counting rows rather than
+# weighting by open interest — it treated a strike with 4 open contracts the
+# same as one with 40,000. Replaced by options_metrics.itm_fraction, which is
+# OI-weighted and now surfaced in the header metrics.
 
 
 def _pcr_gauge(pcr: float) -> go.Figure:
@@ -123,7 +125,17 @@ def _iv_surface(calls: pd.DataFrame, puts: pd.DataFrame, current_price: float | 
     """IV smile/surface: IV vs strike, coloured by call/put and expiration."""
     fig = go.Figure()
 
-    for exp in calls["expiration"].unique() if not calls.empty else []:
+    # Every expiration previously drew in the same green (calls) or red (puts),
+    # so three expirations produced three indistinguishable curves and a legend
+    # that was the only way to tell them apart. Nearer expiries now draw
+    # brightest, which also matches which curve the user most likely cares about.
+    _CALL_SHADES = ["#4CAF50", "#2E7D46", "#1B5E2A"]
+    _PUT_SHADES = ["#EF5350", "#B03A38", "#7A2725"]
+
+    call_exps = list(calls["expiration"].unique()) if not calls.empty else []
+    put_exps = list(puts["expiration"].unique()) if not puts.empty else []
+
+    for i, exp in enumerate(call_exps):
         c = calls[calls["expiration"] == exp].copy()
         c = c[(c["impliedVolatility"] > 0) & (c["volume"] > 0)].sort_values("strike")
         if len(c) < 3:
@@ -131,12 +143,12 @@ def _iv_surface(calls: pd.DataFrame, puts: pd.DataFrame, current_price: float | 
         fig.add_trace(go.Scatter(
             x=c["strike"], y=(c["impliedVolatility"] * 100).round(1),
             mode="lines+markers", name=f"Calls {exp}",
-            line=dict(color="#4CAF50", width=1.5),
+            line=dict(color=_CALL_SHADES[i % len(_CALL_SHADES)], width=1.5),
             marker=dict(size=4),
             hovertemplate=f"Call {exp} — strike $%{{x:.0f}} IV %{{y:.1f}}%<extra></extra>",
         ))
 
-    for exp in puts["expiration"].unique() if not puts.empty else []:
+    for i, exp in enumerate(put_exps):
         p = puts[puts["expiration"] == exp].copy()
         p = p[(p["impliedVolatility"] > 0) & (p["volume"] > 0)].sort_values("strike")
         if len(p) < 3:
@@ -144,7 +156,7 @@ def _iv_surface(calls: pd.DataFrame, puts: pd.DataFrame, current_price: float | 
         fig.add_trace(go.Scatter(
             x=p["strike"], y=(p["impliedVolatility"] * 100).round(1),
             mode="lines+markers", name=f"Puts {exp}",
-            line=dict(color="#EF5350", width=1.5, dash="dot"),
+            line=dict(color=_PUT_SHADES[i % len(_PUT_SHADES)], width=1.5, dash="dot"),
             marker=dict(size=4),
             hovertemplate=f"Put {exp} — strike $%{{x:.0f}} IV %{{y:.1f}}%<extra></extra>",
         ))
@@ -162,6 +174,53 @@ def _iv_surface(calls: pd.DataFrame, puts: pd.DataFrame, current_price: float | 
         yaxis=dict(title="Implied Volatility (%)", gridcolor="rgba(255,255,255,0.06)"),
         legend=dict(font=dict(size=10), orientation="h", y=1.05),
         showlegend=True,
+    )
+    return fig
+
+
+def _oi_bars(calls: pd.DataFrame, puts: pd.DataFrame, exp: str | None,
+             spot: float | None, max_pain_strike: float | None) -> go.Figure:
+    """Open interest by strike — the standing position.
+
+    The page previously charted volume only. Volume is one day of churn; open
+    interest is what remains held, and the two often peak at different strikes.
+    Without this chart the max-pain figure in the header had nothing to stand on.
+    """
+    c = calls[calls["expiration"] == exp] if exp and not calls.empty else calls
+    p = puts[puts["expiration"] == exp] if exp and not puts.empty else puts
+
+    fig = go.Figure()
+    if c is not None and not c.empty and "openInterest" in c.columns:
+        agg = c.groupby("strike", as_index=False)["openInterest"].sum()
+        fig.add_trace(go.Bar(
+            x=agg["strike"], y=agg["openInterest"], name="Call OI",
+            marker_color="#4CAF50", opacity=0.75,
+            hovertemplate="Call $%{x:.0f} — OI %{y:,.0f}<extra></extra>",
+        ))
+    if p is not None and not p.empty and "openInterest" in p.columns:
+        agg = p.groupby("strike", as_index=False)["openInterest"].sum()
+        fig.add_trace(go.Bar(
+            x=agg["strike"], y=agg["openInterest"], name="Put OI",
+            marker_color="#EF5350", opacity=0.75,
+            hovertemplate="Put $%{x:.0f} — OI %{y:,.0f}<extra></extra>",
+        ))
+
+    if spot:
+        fig.add_vline(x=spot, line_color="rgba(255,255,255,0.45)", line_dash="dash",
+                      annotation_text=f" spot ${spot:,.2f}",
+                      annotation_font_color="#8892AA", annotation_font_size=10)
+    if max_pain_strike:
+        fig.add_vline(x=max_pain_strike, line_color="#C9A84C", line_dash="dot",
+                      annotation_text=f" max pain ${max_pain_strike:,.0f}",
+                      annotation_font_color="#C9A84C", annotation_font_size=10)
+
+    fig.update_layout(
+        barmode="group", height=280, margin=dict(l=0, r=0, t=10, b=40),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#8892AA", size=11),
+        xaxis=dict(title="Strike", gridcolor="rgba(255,255,255,0.06)"),
+        yaxis=dict(title="Open Interest", gridcolor="rgba(255,255,255,0.06)"),
+        legend=dict(font=dict(size=10), orientation="h", y=1.05),
     )
     return fig
 
@@ -279,15 +338,74 @@ unusual_puts  = puts_raw[puts_raw["unusual"]]   if not puts_raw.empty  else pd.D
 # ── Header metrics ────────────────────────────────────────────────────────────
 st.markdown(f"### {ticker}" + (f" — ${spot:,.2f}" if spot else ""))
 
-m1, m2, m3, m4, m5 = st.columns(5)
-m1.metric("Put/Call Ratio", f"{pcr:.2f}x" if pcr == pcr else "—",
-          help="Total put volume / total call volume across all expirations loaded")
-m2.metric("Unusual Calls", f"{len(unusual_calls):,}")
-m3.metric("Unusual Puts",  f"{len(unusual_puts):,}")
-m4.metric("Total Call Vol",
-          _fmt_num(calls_raw["volume"].sum() if not calls_raw.empty else 0))
-m5.metric("Total Put Vol",
-          _fmt_num(puts_raw["volume"].sum() if not puts_raw.empty  else 0))
+_S = summarize(calls_raw, puts_raw, spot,
+               nearest_expiration=expirations[0] if expirations else None)
+
+
+def _pct(x, dp: int = 0) -> str:
+    return f"{x * 100:.{dp}f}%" if x is not None else "—"
+
+
+def _ratio(x) -> str:
+    return f"{x:.2f}x" if x is not None else "—"
+
+
+def _usd(x) -> str:
+    return f"${_fmt_num(x)}" if x else "—"
+
+
+# Row 1 — flow: what traded today, in contracts and in dollars.
+m1, m2, m3, m4, m5, m6 = st.columns(6)
+m1.metric("P/C Ratio · Volume", _ratio(_S["pcr_volume"]),
+          help="Put volume / call volume across loaded expirations — today's flow.")
+m2.metric("P/C Ratio · Open Int", _ratio(_S["pcr_oi"]),
+          help="Put OI / call OI — positions still held, not just today's trades. "
+               "This routinely disagrees with the volume ratio.")
+m3.metric("Call Premium", _usd(_S["call_premium"]),
+          help="Volume x last price x 100. Dollars behind call buying.")
+m4.metric("Put Premium", _usd(_S["put_premium"]),
+          help="Volume x last price x 100. Dollars behind put buying.")
+_bias = _S["net_premium_bias"]
+m5.metric("Net Premium Bias",
+          ("Calls " if _bias > 0 else "Puts ") + _usd(abs(_bias)) if _bias else "—",
+          delta=("bullish tilt" if _bias > 0 else "bearish tilt") if _bias else None,
+          delta_color="normal" if _bias > 0 else "inverse",
+          help="Call premium minus put premium — which side the money is on.")
+m6.metric("Max Pain", f"${_S['max_pain']:,.0f}" if _S["max_pain"] else "—",
+          delta=(f"{(_S['max_pain'] - spot) / spot * 100:+.1f}% vs spot"
+                 if _S["max_pain"] and spot else None),
+          delta_color="off",
+          help="Strike where the most open contracts expire worthless. "
+               "A positioning statistic, not a price target.")
+
+# Row 2 — structure: what is standing open, how it is priced, how tradeable it is.
+n1, n2, n3, n4, n5, n6 = st.columns(6)
+n1.metric("Call Volume", _fmt_num(_S["call_volume"]))
+n2.metric("Put Volume", _fmt_num(_S["put_volume"]))
+n3.metric("Call Open Int", _fmt_num(_S["call_oi"]),
+          help="Contracts still open — the standing position, versus volume's daily churn.")
+n4.metric("Put Open Int", _fmt_num(_S["put_oi"]))
+n5.metric("ATM IV",
+          f"{_S['atm_iv_call']:.1f}%" if _S["atm_iv_call"] is not None else "—",
+          delta=(f"puts {_S['atm_iv_put']:.1f}%" if _S["atm_iv_put"] is not None else None),
+          delta_color="off",
+          help="Implied vol at the strike nearest spot. A chain-wide average would be "
+               "dominated by illiquid far-OTM contracts.")
+n6.metric("Nearest Expiry",
+          f"{_S['dte']}d" if _S["dte"] is not None else "—",
+          delta=(expirations[0] if expirations else None), delta_color="off")
+
+# Row 3 — positioning and liquidity context.
+o1, o2, o3, o4, o5, o6 = st.columns(6)
+o1.metric("Unusual Calls", f"{len(unusual_calls):,}")
+o2.metric("Unusual Puts", f"{len(unusual_puts):,}")
+o3.metric("Calls ITM", _pct(_S["itm_calls"]),
+          help="Share of call open interest currently in the money, OI-weighted.")
+o4.metric("Puts ITM", _pct(_S["itm_puts"]))
+o5.metric("Call Spread", f"{_S['call_spread_pct']:.1f}%" if _S["call_spread_pct"] is not None else "—",
+          help="Median bid-ask as a percent of mid. Wide spreads mean the quoted "
+               "prices are not realistically tradeable.")
+o6.metric("Put Spread", f"{_S['put_spread_pct']:.1f}%" if _S["put_spread_pct"] is not None else "—")
 
 st.divider()
 
@@ -307,11 +425,20 @@ with iv_col:
     st.plotly_chart(_iv_surface(c_sub, p_sub, spot), use_container_width=True)
 
 # ── Volume by strike ──────────────────────────────────────────────────────────
-st.markdown("#### Volume by Strike")
+st.markdown("#### Positioning by Strike")
 exp_options = ["All expirations"] + list(expirations[:6])
 chosen_exp = st.selectbox("Expiration", exp_options, key="opts_exp")
 exp_filter = None if chosen_exp == "All expirations" else chosen_exp
-st.plotly_chart(_volume_bars(calls_raw, puts_raw, exp_filter), use_container_width=True)
+
+vol_col, oi_col = st.columns(2)
+with vol_col:
+    st.caption("**Volume** — contracts traded today (one day of flow).")
+    st.plotly_chart(_volume_bars(calls_raw, puts_raw, exp_filter),
+                    use_container_width=True)
+with oi_col:
+    st.caption("**Open interest** — contracts still held, with spot and max pain marked.")
+    st.plotly_chart(_oi_bars(calls_raw, puts_raw, exp_filter, spot, _S["max_pain"]),
+                    use_container_width=True)
 
 st.divider()
 
@@ -324,20 +451,43 @@ st.caption(
 
 tab_calls, tab_puts, tab_combined = st.tabs(["Unusual Calls", "Unusual Puts", "Combined (all)"])
 
-_DISPLAY_COLS = ["expiration", "strike", "lastPrice", "bid", "ask",
-                 "volume", "openInterest", "vol_oi_ratio", "impliedVolatility", "inTheMoney"]
+_DISPLAY_COLS = ["type", "expiration", "dte", "strike", "lastPrice", "bid", "ask",
+                 "volume", "openInterest", "vol_oi_ratio", "premium",
+                 "impliedVolatility", "inTheMoney"]
 _COL_LABELS = {
-    "expiration": "Expiry", "strike": "Strike", "lastPrice": "Last",
+    "type": "Type", "expiration": "Expiry", "dte": "DTE",
+    "strike": "Strike", "lastPrice": "Last",
     "bid": "Bid", "ask": "Ask", "volume": "Volume", "openInterest": "Open Int",
-    "vol_oi_ratio": "Vol/OI", "impliedVolatility": "IV", "inTheMoney": "ITM",
+    "vol_oi_ratio": "Vol/OI", "premium": "Premium",
+    "impliedVolatility": "IV", "inTheMoney": "ITM",
 }
 
 
 def _prep_display(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
+    df = df.copy()
+
+    # Dollars behind the trade, not just contract count: 10,000 contracts at
+    # $0.05 is $50k, while 200 at $12 is $240k. Sorting an "unusual activity"
+    # table by contract count alone puts the cheap lottery tickets on top.
+    if {"volume", "lastPrice"} <= set(df.columns):
+        df["premium"] = (
+            pd.to_numeric(df["volume"], errors="coerce").fillna(0)
+            * pd.to_numeric(df["lastPrice"], errors="coerce").fillna(0)
+            * CONTRACT_MULTIPLIER
+        )
+    if "expiration" in df.columns:
+        df["dte"] = df["expiration"].map(lambda e: days_to_expiration(e))
+
     cols = [c for c in _DISPLAY_COLS if c in df.columns]
     out = df[cols].copy()
+    if "premium" in out.columns:
+        out["premium"] = out["premium"].apply(
+            lambda x: f"${_fmt_num(x)}" if x == x and x else "—"
+        )
+    if "dte" in out.columns:
+        out["dte"] = out["dte"].apply(lambda x: f"{int(x)}d" if x == x and x is not None else "—")
     if "impliedVolatility" in out.columns:
         out["impliedVolatility"] = (out["impliedVolatility"] * 100).round(1).astype(str) + "%"
     if "vol_oi_ratio" in out.columns:
@@ -381,10 +531,12 @@ with tab_combined:
     if all_unusual.empty:
         st.info("No unusual activity found.")
     else:
-        display_combined = all_unusual.copy()
-        prep = _prep_display(display_combined)
-        if "type" in display_combined.columns:
-            prep.insert(0, "Type", display_combined["type"].values[:len(prep)])
+        # Carry the Call/Put tag THROUGH _prep_display rather than pasting it on
+        # afterwards. _prep_display sorts by Vol/OI, so assigning a positional
+        # array of tags to the sorted frame paired every row with the wrong
+        # label — puts were shown as calls and vice versa, which on a
+        # directional-positioning table inverts the read entirely.
+        prep = _prep_display(all_unusual)
         st.dataframe(prep, use_container_width=True, hide_index=True)
 
 # ── Full chain viewer ─────────────────────────────────────────────────────────
@@ -398,14 +550,11 @@ with st.expander("Full options chain (all contracts)"):
         if sub.empty:
             st.info("No data for this expiration.")
             return
-        cols = [c for c in _DISPLAY_COLS + ["vol_oi_ratio"] if c in sub.columns]
-        out = sub[cols].copy()
-        if "impliedVolatility" in out.columns:
-            out["impliedVolatility"] = (out["impliedVolatility"] * 100).round(1).astype(str) + "%"
-        if "vol_oi_ratio" in out.columns:
-            out["vol_oi_ratio"] = out["vol_oi_ratio"].round(2)
-        out = out.rename(columns=_COL_LABELS)
-        st.dataframe(out, use_container_width=True, hide_index=True)
+        # _DISPLAY_COLS already contains vol_oi_ratio; appending it again
+        # produced a duplicated column, which pandas selects twice and renders
+        # as two identical "Vol/OI" columns. Reuse the shared formatter instead
+        # of maintaining a second, drifting copy of the same logic.
+        st.dataframe(_prep_display(sub), use_container_width=True, hide_index=True)
 
     with fc_tab_c:
         _full_table(calls_raw, exp_chain)

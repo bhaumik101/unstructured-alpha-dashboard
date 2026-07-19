@@ -42,6 +42,15 @@ def _clip(text: str, limit: int = 120) -> str:
 st.set_page_config(page_title="Signal Dashboard — UA", layout="wide")
 render_header("Signal Dashboard")
 render_sidebar_base()
+
+# Credits the view_signals onboarding step, which had no call site anywhere and
+# so could never complete. record_once, not record: Streamlit reruns the whole
+# script on every widget interaction.
+try:
+    from utils.instrumentation import record_once
+    record_once("signal_dashboard_viewed")
+except Exception:
+    pass
 inject_premium_css()
 render_page_header(
     "Signal Dashboard",

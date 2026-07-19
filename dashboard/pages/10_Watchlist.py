@@ -86,6 +86,11 @@ QUICK_ADD_PRESETS = {
 st.set_page_config(page_title="My Watchlist — UA", layout="wide")
 render_header("My Watchlist")
 render_sidebar_base()
+try:
+    from utils.instrumentation import record_once
+    record_once("watchlist_viewed")
+except Exception:
+    pass
 inject_premium_css()
 inject_skeleton_css()
 

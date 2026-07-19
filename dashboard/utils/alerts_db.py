@@ -67,6 +67,17 @@ def add_to_watchlist(
     except Exception:
         pass
 
+    # Instrumented here rather than at the UI buttons because this is the single
+    # choke point every add path goes through — the Watchlist page, the Deep
+    # Dive toggle, and anything added later. Also credits the add_to_watchlist
+    # onboarding step, which previously had no call site anywhere and so could
+    # never complete. Best-effort; record() never raises.
+    try:
+        from utils.instrumentation import record
+        record("watchlist_add", user_id=user_id, ticker=ticker)
+    except Exception:
+        pass
+
 
 def remove_from_watchlist(user_id: int, ticker: str) -> None:
     ticker = ticker.upper().strip()

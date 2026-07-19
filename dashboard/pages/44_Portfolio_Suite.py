@@ -14,6 +14,11 @@ from utils.billing import require_pro
 
 render_header("Portfolio Suite")
 render_sidebar_base()
+try:
+    from utils.instrumentation import record_once
+    record_once("portfolio_suite_viewed")
+except Exception:
+    pass
 inject_premium_css()
 
 require_pro(page_name="Portfolio Suite")
