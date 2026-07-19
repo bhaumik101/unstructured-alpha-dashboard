@@ -491,6 +491,22 @@ if section == "Overview":
     except Exception:
         pass
 
+    # These two are interpolated INLINE (same source line as the conviction div)
+    # on purpose. Streamlit renders this banner through st.markdown, and markdown
+    # ends a raw-HTML block at the first blank line — after which the following
+    # indented lines are parsed as a code block and the rest of the banner leaks
+    # to the page as visible HTML source. A conditional on its own line emits
+    # exactly that blank line whenever the condition is false, so both optional
+    # fragments are pre-rendered here and appended without ever owning a line.
+    _earn_caveat_html = (
+        f'<div style="font-size:0.66rem;color:#F59E0B;margin-top:6px;'
+        f'line-height:1.45;">{" ".join(_earn_caveat.split())}</div>'
+    ) if _earn_caveat else ""
+    _horizon_note_html = (
+        f'<div style="font-size:0.64rem;color:#6B7FBF;margin-top:5px;'
+        f'line-height:1.45;">{" ".join(_horizon_note.split())}</div>'
+    ) if _horizon_note else ""
+
     st.markdown(f"""
     <div class="ua-gradient-border" style="margin-bottom:20px;">
       <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:18px 22px;">
@@ -500,9 +516,7 @@ if section == "Overview":
           <div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;">Signal Case</div>
           <div class="ua-kpi-animate" style="font-size:2.2rem;font-weight:900;color:{score_color};
                text-shadow:0 0 32px {score_color}55,0 0 8px {score_color}35;line-height:1;">{case}</div>
-          <div style="font-size:0.80rem;color:#B8C0D4;margin-top:4px;">Conviction: <b style="color:{score_color};">{conviction}</b>{_earn_badge}{_horizon_badge}</div>
-          {f'<div style="font-size:0.66rem;color:#F59E0B;margin-top:6px;line-height:1.45;">{_earn_caveat}</div>' if _earn_caveat else ''}
-          {f'<div style="font-size:0.64rem;color:#6B7FBF;margin-top:5px;line-height:1.45;">{_horizon_note}</div>' if _horizon_note else ''}
+          <div style="font-size:0.80rem;color:#B8C0D4;margin-top:4px;">Conviction: <b style="color:{score_color};">{conviction}</b>{_earn_badge}{_horizon_badge}</div>{_earn_caveat_html}{_horizon_note_html}
           <div style="font-size:0.70rem;color:#8892AA;margin-top:6px;line-height:1.5;">
             {len(relevant_sig_ids)} signals + momentum{" + contracts" if _has_contract_signal else ""}{" + insiders" if _has_insider_signal else ""}{" + short interest" if _has_short_interest_signal else ""}{" + 13F" if _has_13f_signal else ""}
           </div>
@@ -1285,233 +1299,51 @@ if section == "Overview":
     st.divider()
 
     # ── Price Chart ───────────────────────────────────────────────────────────────
-    _PERIOD_OPTS = ["1D", "5D", "1M", "3M", "6M", "YTD", "1Y", "2Y", "ALL"]
-    _PERIOD_DAYS = {"1D": 2, "5D": 7, "1M": 35, "3M": 100, "6M": 190, "YTD": None, "1Y": 370, "2Y": 730, "ALL": 0}
+    # Windows are sliced by calendar date in utils.price_chart. The previous
+    # implementation kept calendar-day constants but applied them positionally
+    # (`price_series.iloc[-370:]`), and daily bars are trading days, so "1Y"
+    # drew ~17.6 months and "6M" drew ~9. See that module's docstring.
+    from utils.price_chart import (
+        DEFAULT_PERIOD,
+        PERIODS,
+        build_payload,
+        render as render_price_chart,
+        slice_period,
+    )
 
+    _period_opts = list(PERIODS)
     price_period = st.radio(
         "Price chart period",
-        _PERIOD_OPTS,
-        index=6,          # default 1Y
+        _period_opts,
+        index=_period_opts.index(DEFAULT_PERIOD),
         horizontal=True,
         label_visibility="collapsed",
         key="dive_price_period",
     )
-    st.markdown(f"### {ticker_input} Price — {price_period}")
+    st.markdown(f"### {ticker_input} Price \u2014 {price_period}")
+
+    # Downstream volume and RSI charts align to this same window.
+    price_view = slice_period(price_series, price_period) if not price_series.empty else price_series
 
     if not price_series.empty:
         price_chart_box = st.container(border=True)
         with price_chart_box:
-            # Trim to the selected period
-            pd_days = _PERIOD_DAYS[price_period]
-            if pd_days is None:   # YTD
-                _yr_start = pd.Timestamp(datetime.now().year, 1, 1, tz=price_series.index.tz
-                                          if price_series.index.tz else None)
-                price_view = price_series[price_series.index >= _yr_start]
-            elif pd_days == 0:    # ALL
-                price_view = price_series
-            else:
-                price_view = price_series.iloc[-min(pd_days, len(price_series)):]
-
-            if price_view.empty:
-                price_view = price_series
-
-            # A clean, solid, Webull-style line chart -- deliberately NOT a
-            # candlestick. The previous version fabricated fake open/high/low
-            # values as a fixed +/-0.2%-0.5% offset from the single Close
-            # price we actually have (fetch_price() only returns daily Close,
-            # no real OHLC data), which at any real zoom level renders as a
-            # scattered cloud of barely-visible dots, not a clean candle --
-            # confirmed directly against the live site, not assumed. A
-            # smooth, gap-free, solid line plotted from the same real Close
-            # series is both more honest about what data this actually is
-            # AND the more professional-looking choice.
-            fig_price = make_subplots(specs=[[{"secondary_y": True}]])
-            fig_price.add_trace(go.Scatter(
-                x=price_view.index, y=price_view.values,
-                mode="lines", line=dict(color="#00C8E0", width=2.5, shape="spline", smoothing=0.3),
-                fill="tozeroy", fillcolor="rgba(0,200,224,0.08)",
-                name=ticker_input,
-            ), secondary_y=False)
-
-            # 50-day and 200-day MAs (from full series, trimmed to view window).
-            # Solid, thin, distinct colors -- a dashed/dotted overlay reads as
-            # "less real" than the data; Webull-style charts use solid lines
-            # for moving averages too, just thinner and a different color than
-            # the price line itself, which is enough to tell them apart.
-            if len(price_series) >= 50 and price_period not in ("1D", "5D"):
-                ma50 = price_series.rolling(50).mean()
-                ma50_view = ma50[ma50.index >= price_view.index[0]]
-                fig_price.add_trace(go.Scatter(
-                    x=ma50_view.index, y=ma50_view.values, name="50-day MA",
-                    mode="lines", line=dict(color="#7C3AED", width=1.5, shape="spline", smoothing=0.3),
-                ), secondary_y=False)
-            if len(price_series) >= 200 and price_period in ("1Y", "2Y", "YTD", "ALL"):
-                ma200 = price_series.rolling(200).mean()
-                ma200_view = ma200[ma200.index >= price_view.index[0]]
-                fig_price.add_trace(go.Scatter(
-                    x=ma200_view.index, y=ma200_view.values, name="200-day MA",
-                    mode="lines", line=dict(color="#FF4444", width=1.5, shape="spline", smoothing=0.3),
-                ), secondary_y=False)
-
-            # ── Earnings date markers ──────────────────────────────────────
-            # Vertical dashed lines on the price chart for each earnings date
-            # that falls inside the current view window.
-            # Color coding:
-            #   Gold (#F59E0B)  — upcoming / date not yet reported
-            #   Green (#00D566) — reported and beat (surprise > 0)
-            #   Red (#FF4444)   — reported and missed (surprise < 0)
-            #   Grey            — reported with no surprise data
-            # Wrapped in try/except: a failed fetch never breaks the chart.
             try:
                 _earnings_data = fetch_earnings_dates(ticker_input)
-                _view_start = price_view.index[0]
-                _view_end   = price_view.index[-1]
-                # Make view bounds timezone-naive for comparison
-                if hasattr(_view_start, "tzinfo") and _view_start.tzinfo is not None:
-                    _view_start = _view_start.tz_localize(None)
-                    _view_end   = _view_end.tz_localize(None)
-
-                for _e in _earnings_data:
-                    _e_ts = pd.Timestamp(_e["date"])
-                    # Include upcoming dates up to 90 days beyond chart end
-                    if _e_ts < _view_start - pd.Timedelta(days=5):
-                        continue
-                    if _e_ts > _view_end + pd.Timedelta(days=90):
-                        continue
-
-                    if not _e["reported"]:
-                        _ec = "#F59E0B"        # upcoming — gold
-                        _ann = "Earnings ★"
-                    elif _e["surprise_pct"] is None:
-                        _ec = "#6B7FBF"        # reported, no surprise data — tan
-                        _ann = "E"
-                    elif _e["surprise_pct"] >= 0:
-                        _ec = "#00D566"        # beat — green
-                        _ann = f"E +{_e['surprise_pct']:.0f}%"
-                    else:
-                        _ec = "#FF4444"        # miss — red
-                        _ann = f"E {_e['surprise_pct']:.0f}%"
-
-                    fig_price.add_vline(
-                        x=str(_e["date"]),
-                        line_dash="dash",
-                        line_color=_ec,
-                        line_width=1.5,
-                        opacity=0.65,
-                        annotation_text=_ann,
-                        annotation_position="top",
-                        annotation_font_size=9,
-                        annotation_font_color=_ec,
-                    )
             except Exception:
-                pass  # Never let an earnings fetch failure break the price chart
+                _earnings_data = []  # a failed earnings fetch never breaks the chart
 
-            # ── Confluence Score overlay (secondary Y-axis) ────────────────────
-            # Show score history as a thin purple step-line on the right axis
-            # so viewers can directly see when macro tailwinds turned bullish/
-            # bearish relative to the price action. If no history yet, draw
-            # the current score as a dotted horizontal reference instead.
-            _score_color = ("#00D566" if score_val >= 65 else
-                            "#FF4444" if score_val <= 35 else "#7C3AED")
-            if len(_score_hist) >= 2:
-                _sh_dates  = [pd.Timestamp(r["snapshot_date"]) for r in _score_hist]
-                _sh_scores = [float(r["score"]) for r in _score_hist]
-                fig_price.add_trace(go.Scatter(
-                    x=_sh_dates, y=_sh_scores,
-                    name="Confluence Score",
-                    mode="lines+markers",
-                    line=dict(color=_score_color, width=2),
-                    marker=dict(size=5, color="#F59E0B", symbol="circle"),
-                    fill="tozeroy", fillcolor=f"rgba({','.join(str(int(_score_color.lstrip('#')[i:i+2],16)) for i in (0,2,4))},0.06)",
-                    hovertemplate="Score: <b>%{y:.1f}</b><extra>Confluence</extra>",
-                ), secondary_y=True)
-            else:
-                # Single horizontal reference line at current score
-                _x0 = price_view.index[0] if not price_view.empty else pd.Timestamp("today")
-                _x1 = price_view.index[-1] if not price_view.empty else pd.Timestamp("today")
-                fig_price.add_trace(go.Scatter(
-                    x=[_x0, _x1], y=[score_val, score_val],
-                    name=f"Current Score ({score_val:.0f})",
-                    mode="lines",
-                    line=dict(color=_score_color, width=1.5, dash="dot"),
-                    hovertemplate="Score: <b>%{y:.0f}</b><extra>Confluence (current)</extra>",
-                ), secondary_y=True)
-            # Threshold guide lines on score axis
-            fig_price.add_hline(y=65, line_dash="dot", line_color="rgba(0,213,102,0.25)",
-                                line_width=1, yref="y2")
-            fig_price.add_hline(y=35, line_dash="dot", line_color="rgba(255,68,68,0.25)",
-                                line_width=1, yref="y2")
-
-            fig_price.update_layout(
-                height=380, paper_bgcolor="#0B0D12", plot_bgcolor="#0F1118",
-                font=dict(size=13, color="#E8EEFF"),
-                xaxis=dict(
-                    showgrid=True,
-                    gridcolor="rgba(255,255,255,0.05)",
-                    tickfont=dict(color="#8892AA", size=11),
-                    rangeslider=dict(visible=False),
-                    rangeselector=dict(
-                        buttons=[
-                            dict(count=1, label="1M", step="month", stepmode="backward"),
-                            dict(count=3, label="3M", step="month", stepmode="backward"),
-                            dict(count=6, label="6M", step="month", stepmode="backward"),
-                            dict(count=1, label="1Y", step="year",  stepmode="backward"),
-                            dict(count=2, label="2Y", step="year",  stepmode="backward"),
-                            dict(step="all", label="All"),
-                        ],
-                        bgcolor="#12151E",
-                        activecolor="#7C3AED",
-                        font=dict(color="#E8EEFF", size=10),
-                        bordercolor="rgba(255,255,255,0.10)",
-                        borderwidth=1,
-                        x=0, y=1.04,
-                    ),
+            render_price_chart(
+                build_payload(
+                    ticker=ticker_input,
+                    price_series=price_series,
+                    period=price_period,
+                    score_history=_score_hist,
+                    earnings=_earnings_data,
                 ),
-                yaxis=dict(
-                    showgrid=True,
-                    gridcolor="rgba(255,255,255,0.05)",
-                    tickfont=dict(color="#8892AA", size=11),
-                    title=dict(text="Price (USD)", font=dict(color="#8892AA", size=11)),
-                    autorange=True,
-                    fixedrange=False,
-                    tickprefix="$",
-                ),
-                legend=dict(font=dict(color="#E8EEFF"), bgcolor="rgba(18,21,30,0.85)",
-                            bordercolor="rgba(255,255,255,0.07)", borderwidth=1),
-                margin=dict(l=0, r=0, t=40, b=0),
-                dragmode="zoom",
+                height=400,
+                st_module=st,
             )
-            # Configure primary price axis (left)
-            fig_price.update_yaxes(
-                title_text="Price (USD)",
-                secondary_y=False,
-                showgrid=True,
-                gridcolor="rgba(255,255,255,0.05)",
-                tickfont=dict(color="#8892AA", size=11),
-                title_font=dict(color="#8892AA", size=11),
-                tickprefix="$",
-                autorange=True,
-                fixedrange=False,
-            )
-            # Configure Confluence Score axis (right)
-            fig_price.update_yaxes(
-                title_text="Confluence Score",
-                secondary_y=True,
-                range=[0, 100],
-                showgrid=False,
-                tickfont=dict(color=_score_color, size=10, family="Inter, sans-serif"),
-                title_font=dict(color=_score_color, size=11, family="Inter, sans-serif"),
-                fixedrange=True,
-                tickvals=[0, 35, 65, 100],
-                ticktext=["0", "35 Bear", "65 Bull", "100"],
-            )
-            st.plotly_chart(fig_price, use_container_width=True, config={
-                "displayModeBar": True,
-                "displaylogo": False,
-                "scrollZoom": True,
-                "doubleClick": "reset",
-                "modeBarButtonsToRemove": ["lasso2d", "select2d"],
-            })
             st.markdown(
                 source_badge("yfinance", "Daily OHLCV") + "&nbsp;&nbsp;" +
                 source_badge("yfinance", "Confluence Score · UA internal"),
@@ -1674,7 +1506,9 @@ if section == "Overview":
                     _ov_z_shifted = _ov_z_reindexed
 
                 # Restrict to view window (use the price_view period selected above)
-                _ov_price_view = _ov_price_clean.iloc[-min(370, len(_ov_price_clean)):]
+                # Same calendar-date window as the price chart above; this line
+                # previously took 370 rows, i.e. ~17.6 months labelled as 1Y.
+                _ov_price_view = slice_period(_ov_price_clean, price_period)
                 _ov_z_view     = _ov_z_shifted.reindex(_ov_price_view.index)
 
                 # Build dual-axis overlay chart

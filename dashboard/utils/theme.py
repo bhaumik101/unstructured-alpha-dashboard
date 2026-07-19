@@ -354,11 +354,28 @@ def confluence_gauge_svg(score: float, case: str = "") -> str:
     cap = (f'<circle cx="{CX}" cy="{CY}" r="6" fill="#0B0D12"/>'
            f'<circle cx="{CX}" cy="{CY}" r="3.5" fill="#E8EEFF"/>')
 
-    # Score text inside the arc
-    score_txt = (f'<text x="{CX}" y="{CY + 20}" text-anchor="middle" '
-                 f'font-family="Inter,sans-serif" font-size="28" font-weight="900" '
+    # Score readout, placed BELOW the pivot rather than inside the arc.
+    #
+    # Vertical budget along the centre line (x=CX), top to bottom:
+    #   y  -2       CONFLUENCE header  (in the viewBox's top padding)
+    #   y  12       "50" axis label
+    #   y  18..80   the dial itself (outer radius 62 from CY=80)
+    #   y  74..86   needle pivot cap (r=6)
+    #   y  87.5..113.5  score digits (font 26, baseline CY+27)
+    #   y  115..123 case label       (font 8, baseline CY+41)
+    #
+    # The cap and the digits previously both claimed y 79..86: the white cap sat
+    # on top of the number, and at scores near 0 or 100 the needle lies almost
+    # horizontal through the pivot and cut straight across the digits. Anything
+    # centred on CX must clear the cap's bottom edge (CY + 6), so the readout
+    # moved below the pivot entirely, with ~1.5px of air on either side of it.
+    # tests/test_gauge_geometry.py reconstructs these boxes and asserts they are
+    # disjoint — adjust the constants there together with these.
+    _SCORE_FS = 26
+    score_txt = (f'<text x="{CX}" y="{CY + 27}" text-anchor="middle" '
+                 f'font-family="Inter,sans-serif" font-size="{_SCORE_FS}" font-weight="900" '
                  f'fill="{sc}">{score:.0f}</text>')
-    case_lbl  = (f'<text x="{CX}" y="{CY + 33}" text-anchor="middle" '
+    case_lbl  = (f'<text x="{CX}" y="{CY + 41}" text-anchor="middle" '
                  f'font-family="Inter,sans-serif" font-size="8" font-weight="700" '
                  f'letter-spacing="2" fill="{sc}">{cs}</text>')
 
@@ -369,14 +386,19 @@ def confluence_gauge_svg(score: float, case: str = "") -> str:
                 f'font-family="Inter,sans-serif" font-size="8" fill="#6B7FBF">{text}</text>')
     labels = _lbl(180, "0") + _lbl(90, "50") + _lbl(0, "100")
 
-    header = (f'<text x="{CX}" y="10" text-anchor="middle" '
+    # Sits in the viewBox's negative-y top padding. At y=10 it collided with the
+    # "50" axis label, which _lbl places at the same x with a baseline of y=12.
+    header = (f'<text x="{CX}" y="-2" text-anchor="middle" '
               f'font-family="Inter,sans-serif" font-size="7" font-weight="700" '
               f'letter-spacing="2.5" fill="#6B7FBF">CONFLUENCE</text>')
 
     return (
         '<div style="display:flex;justify-content:center;align-items:center;'
         'padding:4px 0;animation:fadeIn 0.5s ease-out;">'
-        '<svg width="196" height="120" viewBox="0 0 196 120" '
+        # viewBox starts at y=-12 to give the CONFLUENCE header its own band above
+        # the dial, and runs 132 tall so the relocated score/case readout below the
+        # pivot (baselines CY+27 and CY+41, i.e. y=107 and y=121) is not clipped.
+        '<svg width="196" height="136" viewBox="0 -12 196 136" '
         'xmlns="http://www.w3.org/2000/svg">'
         f'{bg}{fill}{ticks}{needle}{cap}{header}{score_txt}{case_lbl}{labels}'
         '</svg></div>\n'
