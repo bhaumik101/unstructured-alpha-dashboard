@@ -80,10 +80,10 @@ with _tab_what:
 """, unsafe_allow_html=True)
 
     for _card in [
-        ("📐", "Based on public data", "Every signal uses official government or exchange data sources. No proprietary estimates, no surveys of uncertain reliability."),
-        ("⏱️", "Historically leading", "We only include signals that have shown statistically measurable lead times ahead of market moves — typically 4 to 16 weeks."),
-        ("📊", "Percentile-scored", "Raw data values are converted to 0–100 percentile scores relative to the past 12 months so they are directly comparable across signals."),
-        ("🔄", "Updated every ~2 hours", "Signal data is refreshed approximately every 2 hours from live API feeds. Timestamps are shown on every signal card."),
+        ("", "Based on public data", "Every signal uses official government or exchange data sources. No proprietary estimates, no surveys of uncertain reliability."),
+        ("", "Historically leading", "We only include signals that have shown statistically measurable lead times ahead of market moves — typically 4 to 16 weeks."),
+        ("", "Percentile-scored", "Raw data values are converted to 0–100 percentile scores relative to the past 12 months so they are directly comparable across signals."),
+        ("", "Updated every ~2 hours", "Signal data is refreshed approximately every 2 hours from live API feeds. Timestamps are shown on every signal card."),
     ]:
         st.markdown(f"""
 <div style="background:rgba(18,21,30,0.7);border:1px solid rgba(255,255,255,0.07);
@@ -195,7 +195,7 @@ with _tab_cats:
 
     _categories = [
         {
-            "icon": "💰",
+            "icon": "",
             "name": "Rates & Yield Curve",
             "color": "#00C8E0",
             "desc": "The shape of the Treasury yield curve is one of the most studied macroeconomic indicators. An inverted curve (2Y > 10Y) has preceded every U.S. recession since 1955. We track the 10Y–2Y spread, the 10Y Treasury yield level, and TIPS breakeven inflation expectations.",
@@ -203,7 +203,7 @@ with _tab_cats:
             "sources": ["FRED", "Yahoo Finance"],
         },
         {
-            "icon": "📉",
+            "icon": "",
             "name": "Credit Spreads",
             "color": "#FF6B6B",
             "desc": "Credit markets move before equity markets. When institutional investors become risk-averse, they demand higher yields on corporate debt, widening spreads. We track high-yield and investment-grade spreads as leading risk sentiment indicators.",
@@ -211,7 +211,7 @@ with _tab_cats:
             "sources": ["FRED"],
         },
         {
-            "icon": "⚡",
+            "icon": "",
             "name": "Energy & Commodities",
             "color": "#F59E0B",
             "desc": "Energy markets reflect real economic activity. EIA weekly inventory data for crude oil and natural gas, rig count trends, and the Copper/Gold ratio (an economic vs. safety-asset barometer) are all included.",
@@ -219,7 +219,7 @@ with _tab_cats:
             "sources": ["EIA", "Yahoo Finance"],
         },
         {
-            "icon": "😨",
+            "icon": "",
             "name": "Sentiment & Positioning",
             "color": "#7C3AED",
             "desc": "Fear, greed, and positioning extremes tend to be contrarian or confirming depending on context. We track VIX level and term structure, the CBOE put/call ratio, institutional 13F positioning, and insider buying clusters from SEC Form 4 filings.",
@@ -227,7 +227,7 @@ with _tab_cats:
             "sources": ["CBOE", "SEC EDGAR", "FINRA", "FRED", "Yahoo Finance"],
         },
         {
-            "icon": "🏭",
+            "icon": "",
             "name": "Manufacturing & Growth",
             "color": "#00D566",
             "desc": "Manufacturing PMI, jobless claims, and M2 money supply growth capture the real-economy cycle. Slowing manufacturing and rising claims often precede margin compression and earnings disappointments.",
@@ -235,7 +235,7 @@ with _tab_cats:
             "sources": ["FRED"],
         },
         {
-            "icon": "🛢️",
+            "icon": "",
             "name": "Insider & Alternative",
             "color": "#00C8E0",
             "desc": "SEC-reported insider transactions, congressional trades, and unusual options activity provide a window into informed positioning. These are scored using event-rate methods rather than level percentiles.",

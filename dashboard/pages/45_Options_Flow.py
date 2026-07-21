@@ -34,7 +34,7 @@ except Exception:
 render_page_header(
     "Unusual Options Activity",
     "Detect outsized options positioning as a potential directional signal.",
-    icon="📡",
+    icon="",
 )
 
 
@@ -284,7 +284,7 @@ with col_pick:
         _of_idx = {t: t for t in _POPULAR}
     selected_popular = st.selectbox(
         "Search any stock", list(_of_idx.keys()), index=None,
-        placeholder="🔍 Symbol or company…",
+        placeholder=" Symbol or company…",
         format_func=lambda t: _of_idx.get(t, t), key="opts_popular",
     )
 with col_custom:
@@ -413,7 +413,7 @@ st.divider()
 g_col, iv_col = st.columns([1, 3])
 with g_col:
     if pcr == pcr:
-        st.plotly_chart(_pcr_gauge(pcr), use_container_width=True)
+        st.plotly_chart(_pcr_gauge(pcr), use_container_width=True, theme=None)
     else:
         st.markdown("**Put/Call Ratio:** unavailable")
 
@@ -422,7 +422,7 @@ with iv_col:
     # Show only first 3 expirations for readability
     c_sub = calls_raw[calls_raw["expiration"].isin(expirations[:3])] if not calls_raw.empty else pd.DataFrame()
     p_sub = puts_raw[puts_raw["expiration"].isin(expirations[:3])]   if not puts_raw.empty  else pd.DataFrame()
-    st.plotly_chart(_iv_surface(c_sub, p_sub, spot), use_container_width=True)
+    st.plotly_chart(_iv_surface(c_sub, p_sub, spot), use_container_width=True, theme=None)
 
 # ── Volume by strike ──────────────────────────────────────────────────────────
 st.markdown("#### Positioning by Strike")
@@ -434,16 +434,16 @@ vol_col, oi_col = st.columns(2)
 with vol_col:
     st.caption("**Volume** — contracts traded today (one day of flow).")
     st.plotly_chart(_volume_bars(calls_raw, puts_raw, exp_filter),
-                    use_container_width=True)
+                    use_container_width=True, theme=None)
 with oi_col:
     st.caption("**Open interest** — contracts still held, with spot and max pain marked.")
     st.plotly_chart(_oi_bars(calls_raw, puts_raw, exp_filter, spot, _S["max_pain"]),
-                    use_container_width=True)
+                    use_container_width=True, theme=None)
 
 st.divider()
 
 # ── Unusual contracts table ───────────────────────────────────────────────────
-st.markdown("#### 🔥 Unusual Contracts — Volume > Open Interest")
+st.markdown("####  Unusual Contracts — Volume > Open Interest")
 st.caption(
     f"Contracts where Vol/OI ≥ {_UNUSUAL_VOL_OI_THRESHOLD:.0f}x AND volume ≥ {_UNUSUAL_MIN_VOLUME:,}. "
     "These suggest fresh positioning, not just rolling existing trades."
@@ -501,7 +501,7 @@ def _prep_display(df: pd.DataFrame) -> pd.DataFrame:
     if "strike" in out.columns:
         out["strike"] = out["strike"].apply(lambda x: f"${x:.1f}")
     if "inTheMoney" in out.columns:
-        out["inTheMoney"] = out["inTheMoney"].map({True: "✅ ITM", False: "OTM"})
+        out["inTheMoney"] = out["inTheMoney"].map({True: " ITM", False: "OTM"})
     out = out.rename(columns=_COL_LABELS)
     return out.sort_values("Vol/OI", ascending=False) if "Vol/OI" in out.columns else out
 

@@ -16,10 +16,10 @@ render_sidebar_base()
 render_page_header(
     "About Unstructured Alpha",
     "Methodology, validation results, data sources, and the philosophy behind alternative data intelligence.",
-    icon="📄",
+    icon="",
 )
 
-tab_about, tab_val = st.tabs(["📖 About & Methodology", "🧪 Model Validation"])
+tab_about, tab_val = st.tabs(["About & Methodology", "Model Validation"])
 
 with tab_about:
     # ── Helper ────────────────────────────────────────────────────────────────────

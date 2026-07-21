@@ -17,10 +17,10 @@ inject_premium_css()
 render_page_header(
     "Alternative Data",
     "Congressional stock disclosures and unusual options activity — signals that don't show up in any price chart.",
-    icon="📡",
+    icon="",
 )
 
-tab_congress, tab_options = st.tabs(["🏛️ Congress Trades", "📊 Options Flow"])
+tab_congress, tab_options = st.tabs(["Congress Trades", "Options Flow"])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 1 — CONGRESS TRACKER
@@ -105,7 +105,7 @@ with tab_congress:
         cdf = _load_congress_trades(days_back)
 
     if "DEMO" in cdf.get("source","").values if "source" in cdf.columns else False:
-        st.info("ℹ️ Live data unavailable — showing representative synthetic data.", icon="🔬")
+        st.info("Live data unavailable — showing representative synthetic data.", icon="")
 
     if type_filter and "type" in cdf.columns:
         cdf = cdf[cdf["type"].isin(type_filter)]
@@ -148,7 +148,7 @@ with tab_congress:
                 yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)", color="#4A5568"),
                 margin=dict(t=40, b=40, l=40, r=20), height=280,
             )
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
     else:
         st.info("No trades found for the selected filters.")
 
@@ -226,9 +226,9 @@ with tab_options:
 
         bias = "Neutral"
         if len(unusual_calls) > len(unusual_puts) * 1.5:
-            bias = "🟢 Bullish lean"
+            bias = " Bullish lean"
         elif len(unusual_puts) > len(unusual_calls) * 1.5:
-            bias = "🔴 Bearish lean"
+            bias = " Bearish lean"
 
         st.markdown(
             f'<div style="background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.10);'
@@ -240,7 +240,7 @@ with tab_options:
         )
 
         display_cols = ["expiry","strike","lastPrice","volume","openInterest","vol_oi","impliedVolatility"]
-        for label, df in [("🟢 Unusual Calls", unusual_calls), ("🔴 Unusual Puts", unusual_puts)]:
+        for label, df in [(" Unusual Calls", unusual_calls), (" Unusual Puts", unusual_puts)]:
             if not df.empty:
                 st.markdown(f"**{label}** — {len(df)} contracts")
                 show = df[[c for c in display_cols if c in df.columns]].copy()

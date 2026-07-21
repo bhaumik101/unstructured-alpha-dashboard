@@ -38,7 +38,7 @@ inject_skeleton_css()
 render_page_header(
     "Power Supercycle",
     "Tracking the multi-year bull thesis in energy infrastructure, nuclear, and AI.",
-    icon="⚡",
+    icon="",
 )
 
 END   = datetime.now().strftime("%Y-%m-%d")
@@ -353,7 +353,7 @@ if section == "Signal Trends":
     fig_legs.update_xaxes(showgrid=True, gridcolor="rgba(255,255,255,0.04)", tickfont=dict(size=9, color="#8892AA"))
     fig_legs.update_yaxes(showgrid=True, gridcolor="rgba(255,255,255,0.04)", tickfont=dict(size=9, color="#8892AA"))
     fig_legs.update_annotations(font=dict(size=11, color="#7C3AED"))
-    st.plotly_chart(fig_legs, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig_legs, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
     st.markdown(
         f"&nbsp; {source_badge('fred')} &nbsp; {source_badge('yfinance')}",
         unsafe_allow_html=True,
@@ -399,7 +399,7 @@ elif section == "Ticker Performance":
         legend=dict(font=dict(size=10, color="#E8EEFF"), bgcolor="rgba(18,21,30,0.90)"),
         hovermode="x unified", margin=dict(l=0, r=0, t=10, b=0),
     )
-    st.plotly_chart(perf_fig, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(perf_fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
     st.markdown(f"&nbsp; {source_badge('yfinance')}", unsafe_allow_html=True)
 
     st.caption("Click any ticker to open its full Ticker Deep Dive analysis:")
@@ -472,7 +472,7 @@ elif section == "Copper COT":
             legend=dict(font=dict(color="#E8EEFF"), bgcolor="rgba(18,21,30,0.90)"),
             margin=dict(l=0, r=0, t=30, b=0),
         )
-        st.plotly_chart(fig_cot, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig_cot, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
         st.markdown(f"&nbsp; {source_badge('cftc', 'CFTC Commitment of Traders')}", unsafe_allow_html=True)
     else:
         st.info("CFTC COT data temporarily unavailable.")
@@ -538,7 +538,7 @@ elif section == "Quantum":
             legend=dict(font=dict(color="#E8EEFF"), bgcolor="rgba(18,21,30,0.90)"),
             margin=dict(l=0, r=0, t=30, b=0),
         )
-        st.plotly_chart(fig_arx, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig_arx, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
         st.caption("Source: arXiv.org API — papers in quant-ph category matching 'qubit', 'error correction', 'fault tolerant'. [Browse arXiv →](https://arxiv.org/list/quant-ph/recent)")
     else:
         st.info("arXiv data temporarily unavailable. The API occasionally rate-limits; try refreshing in a few minutes.")
@@ -620,8 +620,8 @@ elif section == "Confluence":
         rows.append({
             "Signal":    cfg["name"],
             "Leg":       _leg_by_sig.get(sid, "Other"),
-            "Status":    ("🟢 Bullish" if sv.get("status") == "bullish"
-                          else ("🔴 Bearish" if sv.get("status") == "bearish" else "🟡 Neutral")),
+            "Status":    (" Bullish" if sv.get("status") == "bullish"
+                          else (" Bearish" if sv.get("status") == "bearish" else " Neutral")),
             "Score":     round(sv.get("score", 50), 1),
             "Z-Score":   round(sv.get("z_score", 0), 2),
             "Dev %":     round(sv.get("deviation_pct", 0), 2),

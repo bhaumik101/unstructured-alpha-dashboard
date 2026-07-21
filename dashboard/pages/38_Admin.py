@@ -45,7 +45,7 @@ if not is_admin(st.session_state.get("user")):
 render_page_header(
     "Admin Dashboard",
     "User metrics, acquisition funnel, and engagement — live from the DB.",
-    icon="🛠️",
+    icon="",
 )
 
 # ── System health (rate-limiter backend) ──────────────────────────────────────
@@ -53,9 +53,9 @@ try:
     from utils.ratelimit import backend as _rl_backend
     _rlb = _rl_backend()
     if _rlb == "redis":
-        st.caption("🟢 Rate limiter: **Redis** (distributed, shared across instances)")
+        st.caption(" Rate limiter: **Redis** (distributed, shared across instances)")
     else:
-        st.caption("🟡 Rate limiter: **in-process fallback** — REDIS_URL unset or Redis "
+        st.caption(" Rate limiter: **in-process fallback** — REDIS_URL unset or Redis "
                    "unreachable. Limits are per-process only; check the Key Value service.")
 except Exception:
     pass
@@ -283,7 +283,7 @@ with st.spinner("Loading metrics..."):
 
 # ── KPI cards ─────────────────────────────────────────────────────────────────
 
-st.markdown("### 📊 Top-Line KPIs")
+st.markdown("###  Top-Line KPIs")
 
 c1, c2, c3, c4, c5, c6 = st.columns(6)
 c1.metric("Total Users", m["total"])
@@ -299,7 +299,7 @@ st.markdown("---")
 
 # ── Revenue (estimated) ───────────────────────────────────────────────────────
 
-st.markdown("### 💰 Revenue (estimated)")
+st.markdown("###  Revenue (estimated)")
 
 _PRO_MONTHLY = 20  # $/mo — Pro monthly list price (see billing.py)
 _mrr = m["pro"] * _PRO_MONTHLY
@@ -314,7 +314,7 @@ st.markdown("---")
 
 # ── Traffic ───────────────────────────────────────────────────────────────────
 
-st.markdown("### 🌐 Traffic")
+st.markdown("###  Traffic")
 st.caption("Page views are logged on every navigation (deduped per session). "
            "Unique visitors = distinct sessions.")
 
@@ -347,7 +347,7 @@ else:
         yaxis={"showgrid": True, "gridcolor": "rgba(255,255,255,0.08)"},
         margin={"t": 40, "b": 40, "l": 40, "r": 10}, height=260,
     )
-    st.plotly_chart(figv, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(figv, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
     tp_col, ev_col = st.columns(2)
     with tp_col:
@@ -375,7 +375,7 @@ st.markdown("---")
 
 # ── Acquisition ───────────────────────────────────────────────────────────────
 
-st.markdown("### 🚀 Acquisition")
+st.markdown("###  Acquisition")
 
 a1, a2, a3 = st.columns(3)
 a1.metric("New Today",    m["new_today"])
@@ -384,7 +384,7 @@ a3.metric("New (30 days)", m["new_30d"])
 
 # ── Engagement ────────────────────────────────────────────────────────────────
 
-st.markdown("### 🔥 Engagement")
+st.markdown("###  Engagement")
 
 e1, e2, e3 = st.columns(3)
 e1.metric("Active (7d)",  m["active_7d"],
@@ -396,7 +396,7 @@ e3.metric("Have Watchlist", m["users_with_watchlist"],
 
 # ── Conversion funnel ─────────────────────────────────────────────────────────
 
-st.markdown("### 🎯 Conversion Funnel")
+st.markdown("###  Conversion Funnel")
 
 if m["total"] > 0:
     import plotly.graph_objects as go
@@ -414,13 +414,13 @@ if m["total"] > 0:
         margin={"t": 20, "b": 20, "l": 0, "r": 0},
         height=280,
     )
-    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 else:
     st.info("No users yet — funnel will appear once signups arrive.")
 
 # ── Daily signups chart ───────────────────────────────────────────────────────
 
-st.markdown("### 📈 Daily Signups (last 30 days)")
+st.markdown("###  Daily Signups (last 30 days)")
 
 if m["daily_counts"]:
     import plotly.graph_objects as go
@@ -445,13 +445,13 @@ if m["daily_counts"]:
         margin={"t": 10, "b": 40, "l": 40, "r": 10},
         height=240,
     )
-    st.plotly_chart(fig2, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig2, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 else:
     st.info("No signups in the last 30 days.")
 
 # ── Referral stats ────────────────────────────────────────────────────────────
 
-st.markdown("### 🔗 Referral Program")
+st.markdown("###  Referral Program")
 
 r1, r2, r3 = st.columns(3)
 r1.metric("Total Referrals",  m["ref_total"])
@@ -461,7 +461,7 @@ r3.metric("Rewarded",         m["ref_rewarded"])
 
 # ── Recent signups table ──────────────────────────────────────────────────────
 
-st.markdown("### 👥 Recent Signups (last 50)")
+st.markdown("###  Recent Signups (last 50)")
 
 if m["recent"]:
     import pandas as pd
@@ -471,11 +471,11 @@ if m["recent"]:
         rows.append({
             "Email":       email,
             "Signed Up":   created_at[:16].replace("T", " ") if created_at else "—",
-            "Verified":    "✅" if verified else "❌",
+            "Verified":    "" if verified else "",
             "Tier":        tier or "free",
             "Trial Ends":  trial_end[:10] if trial_end else "—",
             "Last Login":  last_login[:16].replace("T", " ") if last_login else "never",
-            "Digest":      "✅" if digest else "—",
+            "Digest":      "" if digest else "—",
         })
 
     df = pd.DataFrame(rows)

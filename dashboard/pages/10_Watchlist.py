@@ -27,7 +27,10 @@ from utils.config import TICKERS
 from utils import alerts_db
 from utils.alerts import evaluate_watchlist
 from utils.header import render_header, render_sidebar_base, render_page_header, render_footer
-from utils.theme import inject_premium_css, inject_skeleton_css, section_label, PLOTLY_CONFIG
+from utils.theme import (
+    inject_premium_css, inject_skeleton_css, section_label,
+    style_sparkline, PLOTLY_CONFIG,
+)
 from utils.auth_ui import require_login
 from utils.quotes import get_batch_quotes, mini_sparkline
 from utils.auth import set_digest_optin, get_digest_optin
@@ -97,7 +100,7 @@ inject_skeleton_css()
 render_page_header(
     "My Watchlist",
     "Track confluence scores and alerts for your saved tickers.",
-    icon="⭐",
+    icon="",
 )
 
 alerts_db.init_db()
@@ -127,7 +130,7 @@ def _wl_ticker_index() -> dict:
     symbols from utils.symbols), not just our 280 scored tickers — so you can
     search and watch almost any stock. Streamlit filters this client-side, so
     matching is instant on every keystroke with no server round-trip.
-    Our 280 scored tickers get a ✦ marker; anything else still works and starts
+    Our scored universe is labeled "Core"; anything else still works and starts
     being tracked the moment it's added.
     """
     from utils.symbols import get_symbol_index
@@ -135,7 +138,7 @@ def _wl_ticker_index() -> dict:
     idx = dict(get_symbol_index())
     for _t in _TK:                       # mark what we actively score
         if _t in idx:
-            idx[_t] = f"✦ {idx[_t]}"
+            idx[_t] = f"{idx[_t]} — Core"
     try:                                 # plus anything already in the dynamic universe
         from sqlalchemy import select as _s
         from utils.db import dynamic_universe as _du, engine as _e
@@ -213,7 +216,7 @@ if new_ticker:
         _pv_tracked = bool(_pv_label)
     _pv_new = "" if _pv_tracked else (
         '<div style="margin-top:6px;font-size:0.60rem;color:#F59E0B;">'
-        '✦ Not scored yet — adding it starts tracking it.</div>')
+        'Not scored yet — adding it starts tracking it.</div>')
     st.html(f"""
     <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;
                 background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
@@ -246,7 +249,7 @@ for _preset_name, _col in {"Bullish Watch": qa1, "Bearish Watch": qa2, "Drastic 
         st.caption(f"<span style='font-size:0.60rem;color:#6B7FBF;'>{_PRESET_BLURB[_preset_name]}</span>",
                    unsafe_allow_html=True)
 
-with st.expander("⚙️  Fine-tune alert thresholds instead"):
+with st.expander("Fine-tune alert thresholds"):
     t1, t2, t3 = st.columns(3)
     with t1:
         bull_thresh = st.slider("Alert when score rises to ≥", 50.0, 99.0, 65.0, 1.0, key="add_bull",
@@ -377,6 +380,7 @@ else:
                         yaxis=dict(visible=False, range=[0, 100]),
                         showlegend=False,
                     )
+                    _csp_fig = style_sparkline(_csp_fig, height=70, y_range=[0, 100])
                     _csp_cols = st.columns([2, 3, 2])
                     with _csp_cols[1]:
                         st.caption("30-day composite score trend")
@@ -384,7 +388,7 @@ else:
                             _csp_fig, use_container_width=True,
                             config=PLOTLY_CONFIG,
                             key="composite_sparkline",
-                        )
+                         theme=None)
     except Exception:
         pass  # composite score is best-effort; never block the watchlist render
 
@@ -466,7 +470,7 @@ else:
                         f'<div style="background:rgba(0,213,102,0.07);border:1px solid rgba(0,213,102,0.18);'
                         f'border-radius:10px;padding:12px 16px;">'
                         f'<div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;'
-                        f'text-transform:uppercase;margin-bottom:4px;">📈 Best Mover — 7 Days</div>'
+                        f'text-transform:uppercase;margin-bottom:4px;">BEST MOVER — 7 DAYS</div>'
                         f'<span style="font-size:1.15rem;font-weight:900;color:{_bc};">{_best["ticker"]}</span>'
                         f'<span style="font-size:0.85rem;color:{_bc};font-weight:700;margin-left:8px;">'
                         f'▲ +{_best["delta"]:.1f} pts</span>'
@@ -482,7 +486,7 @@ else:
                         f'<div style="background:rgba(255,77,106,0.07);border:1px solid rgba(255,77,106,0.18);'
                         f'border-radius:10px;padding:12px 16px;">'
                         f'<div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;'
-                        f'text-transform:uppercase;margin-bottom:4px;">📉 Worst Mover — 7 Days</div>'
+                        f'text-transform:uppercase;margin-bottom:4px;">WORST MOVER — 7 DAYS</div>'
                         f'<span style="font-size:1.15rem;font-weight:900;color:{_wc};">{_worst["ticker"]}</span>'
                         f'<span style="font-size:0.85rem;color:{_wc};font-weight:700;margin-left:8px;">'
                         f'▼ {_worst["delta"]:.1f} pts</span>'
@@ -580,6 +584,7 @@ else:
                         xaxis=dict(visible=False), yaxis=dict(visible=False, range=[0, 100]),
                         showlegend=False,
                     )
+                    _sh_fig = style_sparkline(_sh_fig, height=42, y_range=[0, 100])
                     st.markdown(
                         f'<div style="font-size:0.60rem;font-weight:600;color:#8892AA;margin-top:4px;letter-spacing:0.06em;text-transform:uppercase;">'
                         f'Score 30d &nbsp;·&nbsp; <span style="color:{_sh_color};text-shadow:0 0 10px {_sh_color}50;">{_sh_scores[-1]:.0f}/100</span></div>',
@@ -587,7 +592,7 @@ else:
                     )
                     st.plotly_chart(_sh_fig, use_container_width=True,
                                     config=PLOTLY_CONFIG,
-                                    key=f"score_spark_{ticker}")
+                                    key=f"score_spark_{ticker}", theme=None)
                 else:
                     st.caption("Signal score: building history…")
             except Exception:
@@ -658,7 +663,7 @@ else:
                     use_container_width=True,
                     config=PLOTLY_CONFIG,
                     key=f"watch_spark_{ticker}",
-                )
+                 theme=None)
             else:
                 st.caption("Chart unavailable")
 
@@ -747,7 +752,7 @@ st.html(section_label("Email Settings", color="#F59E0B", dot="#F59E0B"))
 try:
     _current_optin = get_digest_optin(user_id)
     _new_optin = st.toggle(
-        "📬 Morning digest email (7 AM ET daily)",
+        "Morning digest email (7 AM ET daily)",
         value=_current_optin,
         help="Receive a daily email with signal flips since yesterday and biggest score movers. "
              "Sent via Resend to your account email. Unsubscribe any time by turning this off.",
@@ -761,7 +766,7 @@ try:
             st.info("Morning digest disabled.")
         st.rerun()
     if _current_optin:
-        st.caption("✓ You'll receive a morning brief at 7 AM ET with signal flips and score movers.")
+        st.caption("You'll receive a morning brief at 7 AM ET with signal flips and score movers.")
     else:
         st.caption("Turn on to receive a daily morning brief with the day's signal changes and top movers.")
 except Exception as _digest_err:
@@ -777,7 +782,7 @@ if _user_tier != "pro":
     st.markdown(
         '<div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.22);'
         'border-radius:10px;padding:14px 18px;font-family:Inter,sans-serif;">'
-        '<span style="font-size:0.88rem;font-weight:700;color:#7C3AED;">⚡ Pro feature</span>'
+        '<span style="font-size:0.72rem;font-weight:700;color:#8187F7;letter-spacing:0.08em;">PRO FEATURE</span>'
         '<div style="font-size:0.82rem;color:#8892AA;margin-top:4px;">'
         'Get push alerts to Discord, Slack, or any webhook endpoint the moment a watched ticker '
         'crosses a threshold — no need to have the site open.'
@@ -790,7 +795,7 @@ else:
     try:
         _current_url = _webhook.get_webhook_url(user_id) or ""
         _platform = _webhook.detect_platform(_current_url) if _current_url else None
-        _platform_labels = {"discord": "Discord ✓", "slack": "Slack ✓", "generic": "Custom webhook ✓"}
+        _platform_labels = {"discord": "Discord", "slack": "Slack", "generic": "Custom webhook"}
 
         if _current_url:
             _badge = _platform_labels.get(_platform, "")
@@ -823,9 +828,9 @@ else:
                 with st.spinner("Sending test alert…"):
                     _ok = _webhook.fire_test_alert(_current_url)
                 if _ok:
-                    st.success("✅ Test alert delivered! Check your Discord/Slack channel.")
+                    st.success("Test alert delivered. Check your Discord or Slack channel.")
                 else:
-                    st.error("❌ Delivery failed. Double-check the URL and that the webhook is still active.")
+                    st.error("Delivery failed. Double-check the URL and confirm the webhook is active.")
 
         st.caption(
             "Alerts fire immediately when a threshold crossing is detected on page load, "

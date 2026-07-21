@@ -69,7 +69,14 @@ from utils.score_cache import (
 from utils.performance import record_timing
 from utils.header import render_header, render_sidebar_base, render_page_header, go_to_ticker, ticker_chips, ticker_label, render_synthetic_data_banner, render_footer
 from utils.analysis import compute_signal_confidence
-from utils.theme import confluence_gauge_svg, style_area_chart, source_badge, inject_all_css, section_label, PLOTLY_CONFIG, PLOTLY_CONFIG_INTERACTIVE, render_disclaimer, render_educational_callout, signal_confidence_badge, chart_insight_caption
+from utils.theme import (
+    confluence_gauge_svg, style_area_chart, style_chart,
+    style_chart_secondary, style_distribution_chart,
+    source_badge, inject_all_css, section_label, PLOTLY_CONFIG,
+    PLOTLY_CONFIG_INTERACTIVE, render_disclaimer,
+    render_educational_callout, signal_confidence_badge,
+    chart_insight_caption,
+)
 from utils.card_generator import generate_signal_card
 from utils.audit_ui import render_evidence_expander
 from utils.lead_time_research import (
@@ -88,7 +95,7 @@ inject_all_css()
 render_page_header(
     "Ticker Deep Dive",
     "Deep-dive analysis: signal correlations, score history, fundamentals, and catalysts.",
-    icon="🔬",
+    icon="",
 )
 
 # Note: signal/price date ranges (START/END/PRICE_START) now live inside
@@ -104,7 +111,7 @@ st.markdown("""
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <div style="flex:1;min-width:220px;">
             <div style="font-size:0.60rem;letter-spacing:0.14em;font-weight:700;color:#A78BFA;
-                        margin-bottom:4px;">🔬 HOW TICKER DEEP DIVE WORKS</div>
+                        margin-bottom:4px;">TICKER DEEP DIVE</div>
             <div style="font-size:0.82rem;color:#B8C0D4;line-height:1.6;">
                 Type any ticker → get a <b style="color:#E8EEFF;">Confluence Score (0–100)</b> from
                 43 live macro signals, a bull/bear case in plain English, insider activity, earnings
@@ -114,13 +121,13 @@ st.markdown("""
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
             <span style="font-size:0.72rem;color:#00D566;background:rgba(0,213,102,0.08);
                          border:1px solid rgba(0,213,102,0.2);border-radius:6px;padding:3px 10px;">
-                ✓ SEC EDGAR insider filings</span>
+                SEC EDGAR insider filings</span>
             <span style="font-size:0.72rem;color:#00C8E0;background:rgba(0,200,224,0.08);
                          border:1px solid rgba(0,200,224,0.2);border-radius:6px;padding:3px 10px;">
-                ✓ FRED + EIA macro signals</span>
+                FRED + EIA macro signals</span>
             <span style="font-size:0.72rem;color:#A78BFA;background:rgba(124,58,237,0.08);
                          border:1px solid rgba(124,58,237,0.2);border-radius:6px;padding:3px 10px;">
-                ✓ FINRA short interest</span>
+                FINRA short interest</span>
         </div>
     </div>
 </div>
@@ -202,7 +209,7 @@ if not st.session_state.get("_tdd_onboarded"):
 <div style="background:rgba(0,200,224,0.05);border:1px solid rgba(0,200,224,0.18);
             border-radius:12px;padding:16px 22px;margin-bottom:16px;font-family:Inter,sans-serif;">
   <div style="font-size:0.60rem;font-weight:700;letter-spacing:0.14em;color:#00C8E0;
-              text-transform:uppercase;margin-bottom:10px;">🧭 How to use this page</div>
+              text-transform:uppercase;margin-bottom:10px;">HOW TO USE THIS PAGE</div>
   <div style="display:flex;gap:16px;flex-wrap:wrap;">
     <div style="flex:1;min-width:160px;">
       <div style="font-size:0.70rem;font-weight:700;color:#E8EEFF;margin-bottom:3px;">1 · Read the score</div>
@@ -258,7 +265,7 @@ try:
     _wl_c1, _wl_c2 = st.columns([1, 4])
     if _wl_uid:
         if is_watched(_wl_uid, ticker_input):
-            if _wl_c1.button("✓ Watching", key=f"wl_rm_{ticker_input}",
+            if _wl_c1.button("Watching", key=f"wl_rm_{ticker_input}",
                              use_container_width=True,
                              help="Remove this ticker from your watchlist"):
                 remove_from_watchlist(_wl_uid, ticker_input)
@@ -321,7 +328,7 @@ except Exception:
 # st.stop() is OUTSIDE the try so it propagates (it raises a control exception).
 if _rl_blocked:
     st.warning(
-        f"⏳ You're analyzing tickers very quickly. Please wait ~{_rl_retry}s "
+        f"You're analyzing tickers very quickly. Please wait about {_rl_retry}s "
         "before the next one — this keeps live data fresh and fast for everyone."
     )
     st.stop()
@@ -660,7 +667,7 @@ if section == "Overview":
             st.session_state["_risk_profile"] = get_profile(_rp_uid)
         _prof = st.session_state["_risk_profile"]
 
-        with st.expander("🎚️  Your risk profile — personalize this score", expanded=False):
+        with st.expander("Your risk profile — personalize this score", expanded=False):
             st.caption(
                 "Tune the read to how you actually invest. This produces a separate "
                 "**Your Score** — the Confluence Score above stays the standard, "
@@ -691,7 +698,7 @@ if section == "Overview":
                 _prof = _new_prof
                 if _rp_uid:
                     if save_profile(_rp_uid, _new_prof):
-                        st.caption("✅ Saved to your account — applied to Your Score and your alerts.")
+                        st.caption("Saved to your account and applied to Your Score and alerts.")
                         # record() both logs the event and ticks the onboarding
                         # checklist. Keeping those two as separate calls is how
                         # the other three steps ended up with no call site.
@@ -718,7 +725,7 @@ if section == "Overview":
                         padding:14px 18px;margin:0 0 18px;">
               <div style="flex-shrink:0;text-align:center;min-width:104px;">
                 <div style="font-size:0.56rem;font-weight:700;color:{_pc};
-                            letter-spacing:0.10em;text-transform:uppercase;">🎚️ Your Score</div>
+                            letter-spacing:0.10em;text-transform:uppercase;">YOUR SCORE</div>
                 <div style="font-size:2rem;font-weight:900;color:{_pc};line-height:1.15;">{_pv:.0f}</div>
                 <div style="font-size:0.62rem;color:{_dcol};">{_dtxt} vs standard</div>
               </div>
@@ -882,7 +889,7 @@ if section == "Overview":
                         border-left:4px solid #F59E0B;border-radius:8px;
                         padding:10px 18px;margin-bottom:14px;
                         display:flex;align-items:center;gap:14px;">
-              <span style="font-size:1.15rem;flex-shrink:0;">⚡</span>
+              <span style="width:3px;height:30px;background:#8187F7;border-radius:2px;flex-shrink:0;"></span>
               <div>
                 <span style="font-size:0.75rem;font-weight:700;color:#F59E0B;
                              letter-spacing:0.08em;text-transform:uppercase;">Score Velocity Alert</span>
@@ -977,7 +984,7 @@ if section == "Overview":
                             padding:16px 20px;margin:0 0 20px;font-family:Inter,sans-serif;">
                   <div style="font-size:0.60rem;font-weight:700;color:#7C3AED;
                               letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">
-                    ✦ AI SIGNAL INTERPRETATION — PRO
+                    AI SIGNAL INTERPRETATION — PRO
                   </div>
                   <p style="margin:0;font-size:0.90rem;color:#D0D8F0;line-height:1.75;">
                     {_explanation}
@@ -996,7 +1003,7 @@ if section == "Overview":
                         position:relative;overflow:hidden;">
               <div style="font-size:0.60rem;font-weight:700;color:#7C3AED;
                           letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">
-                ✦ AI SIGNAL INTERPRETATION — PRO
+                AI SIGNAL INTERPRETATION — PRO
               </div>
               <p style="margin:0;font-size:0.90rem;color:#4A5280;line-height:1.75;
                         filter:blur(4px);user-select:none;">
@@ -1011,7 +1018,7 @@ if section == "Overview":
                           transparent 20%,rgba(12,14,20,0.85));display:flex;
                           align-items:flex-end;justify-content:center;padding-bottom:12px;">
                 <span style="font-size:0.78rem;color:#A78BFA;font-weight:600;">
-                  🔒 Upgrade to Pro to unlock AI explanations
+                  Upgrade to Pro to unlock AI explanations
                 </span>
               </div>
             </div>
@@ -1056,7 +1063,7 @@ if section == "Overview":
                 top_signals=_card_sigs,
             )
         st.download_button(
-            label="🖼 Download Signal Card",
+            label="Download Signal Card",
             data=st.session_state[_card_cache_key],
             file_name=f"UA_{ticker_input}_{case}_{score_val:.0f}.png",
             mime="image/png",
@@ -1220,7 +1227,10 @@ if section == "Overview":
                 unsafe_allow_html=True,
             )
         with _radar_col_r:
-            st.plotly_chart(_fig_radar, use_container_width=True, config=PLOTLY_CONFIG)
+            _fig_radar = style_chart(
+                _fig_radar, height=300, hovermode="closest", legend=False,
+            )
+            st.plotly_chart(_fig_radar, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
     except Exception:
         pass  # Radar chart failure must never crash the rest of the page
 
@@ -1327,7 +1337,8 @@ if section == "Overview":
                        title="Confluence Score", range=[0, 100]),
             margin=dict(l=0, r=0, t=10, b=0),
         )
-        st.plotly_chart(_fig_hist, use_container_width=True, config=PLOTLY_CONFIG)
+        _fig_hist = style_chart(_fig_hist, height=220, hovermode="x unified", legend=False)
+        st.plotly_chart(_fig_hist, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
         st.caption(
             f"{len(_score_hist)} recorded day(s) for {ticker_input} — built up only from actual visits to "
             "this page (this app has no scheduler to snapshot every ticker daily), so a short or gappy "
@@ -1532,7 +1543,7 @@ if section == "Overview":
     #     users see is the most meaningful relationship, not an arbitrary one.
     #   - Wrapped in st.expander so it doesn't add visual weight unless the user
     #     wants it.
-    with st.expander("📈 Signal → Price Overlay", expanded=False):
+    with st.expander("Signal to Price Overlay", expanded=False):
         try:
             # Sort relevant signals by |correlation| descending so the first
             # option in the selectbox is the most meaningful one by default.
@@ -1691,10 +1702,10 @@ if section == "Overview":
                     ticktext=["-3σ", "-2σ", "-1σ", "0", "+1σ", "+2σ", "+3σ"],
                 )
 
-                st.plotly_chart(_fig_ov, use_container_width=True, config={
-                    "displayModeBar": True, "displaylogo": False, "scrollZoom": True,
-                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
-                })
+                st.plotly_chart(
+                    _fig_ov, use_container_width=True,
+                    config=PLOTLY_CONFIG_INTERACTIVE, theme=None,
+                )
 
                 # ── Correlation stats row ────────────────────────────────────────
                 _stat_col1, _stat_col2, _stat_col3, _stat_col4 = st.columns(4)
@@ -1835,7 +1846,7 @@ if section == "Overview":
             except Exception:
                 return {}
 
-        with st.expander("📊 Company Fundamentals & Financials", expanded=False):
+        with st.expander("Company Fundamentals and Financials", expanded=False):
             with st.spinner("Loading fundamentals…"):
                 fund = _fetch_fundamentals(ticker_input)
 
@@ -1955,11 +1966,10 @@ if section == "Overview":
                                autorange=True, fixedrange=False, tickformat=".2s"),
                     margin=dict(l=0, r=0, t=10, b=0), showlegend=False,
                 )
-                st.plotly_chart(fig_vol, use_container_width=True, config={
-                    "displayModeBar": True, "displaylogo": False,
-                    "scrollZoom": True, "doubleClick": "reset",
-                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
-                })
+                st.plotly_chart(
+                    fig_vol, use_container_width=True,
+                    config=PLOTLY_CONFIG_INTERACTIVE, theme=None,
+                )
                 st.caption(
                     f"Bars colored green when above the trailing 50-day average volume "
                     f"({_vol_avg:,.0f}), tan when below — a rough proxy for unusually active days."
@@ -1991,11 +2001,10 @@ if section == "Overview":
                                range=[0, 100], fixedrange=True),  # RSI is 0-100 by definition
                     margin=dict(l=0, r=0, t=10, b=0), showlegend=False,
                 )
-                st.plotly_chart(fig_rsi, use_container_width=True, config={
-                    "displayModeBar": True, "displaylogo": False,
-                    "scrollZoom": True, "doubleClick": "reset",
-                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
-                })
+                st.plotly_chart(
+                    fig_rsi, use_container_width=True,
+                    config=PLOTLY_CONFIG_INTERACTIVE, theme=None,
+                )
                 _latest_rsi = rsi_full.dropna()
                 if not _latest_rsi.empty:
                     _rsi_val = _latest_rsi.iloc[-1]
@@ -2141,25 +2150,25 @@ if section == "Overview":
                 <div style="background:rgba(124,58,237,0.07);border:1px solid rgba(124,58,237,0.22);
                             border-radius:12px;padding:20px 24px;font-family:Inter,sans-serif;margin:12px 0;">
                     <div style="font-size:0.60rem;letter-spacing:0.16em;font-weight:700;
-                                color:{_PURPLE};margin-bottom:10px;">⚡ UNLOCK THE FULL PICTURE — PRO</div>
+                                color:{_PURPLE};margin-bottom:10px;">UNLOCK THE FULL PICTURE — PRO</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
                         <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
                                     border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">📬 7 AM Digest</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">7 AM Digest</div>
                             <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
                                 Today's top setups from all 47 signals, in your inbox before market open.
                             </div>
                         </div>
                         <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
                                     border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">🔔 Price + Signal Alerts</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">Price and Signal Alerts</div>
                             <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
                                 Get notified the moment a signal flips for a ticker in your watchlist.
                             </div>
                         </div>
                         <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
                                     border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">⚗️ Signal Backtester</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">Signal Backtester</div>
                             <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
                                 Build custom signal rules and backtest them against historical prices.
                             </div>
@@ -2213,7 +2222,10 @@ if section == "Overview":
     # ── Forward Prediction Model ───────────────────────────────────────────────────
     from utils.analysis import predict_ticker_forward  # noqa: E402 (deferred import keeps page fast)
 
-    st.html(section_label("Signal-Based Prediction Model", color="#7C3AED", dot="#7C3AED"))
+    st.markdown(
+        section_label("SIGNAL-BASED PREDICTION MODEL", color="#8187F7", dot="#8187F7"),
+        unsafe_allow_html=True,
+    )
     st.caption(
         "Probability estimates derived from macro signal confluence + price momentum. "
         "NOT financial advice. For research & education only."
@@ -2426,7 +2438,7 @@ if section == "Overview":
 
         _tripwire_lines = []
         if _case == "BULL" or confluence.get("bull_count", 0) >= confluence.get("bear_count", 0):
-            _header = "🔁 What Would Change the Bull Case"
+            _header = "What Would Change the Bull Case"
             for sid, sv in _weak_bulls:
                 nm = sv.get("name", sid)
                 sc = sv.get("score", 50)
@@ -2442,7 +2454,7 @@ if section == "Overview":
                     f"watch for a break below 35, which would add a bearish headwind."
                 )
         else:
-            _header = "🔁 What Would Change the Bear Case"
+            _header = "What Would Change the Bear Case"
             for sid, sv in _weak_bears:
                 nm = sv.get("name", sid)
                 sc = sv.get("score", 50)
@@ -2485,7 +2497,7 @@ if section == "Overview":
     # The last N times this ticker's confluence score crossed 70+ (or dropped
     # below 35), what happened to the stock price 4, 8, 12 weeks later?
     # Turns the score history into a miniature per-ticker track record.
-    with st.expander("📖 Playbook — historical setups at this score level"):
+    with st.expander("Playbook — historical setups at this score level"):
         try:
             _ph = get_score_history(ticker_input, days=365)
             if len(_ph) < 5:
@@ -2548,7 +2560,7 @@ if section == "Overview":
                             )
                             _pb_df = pd.DataFrame(_playbook_rows)
                             st.dataframe(_pb_df, use_container_width=True, hide_index=True)
-                            st.caption("⚠️ Small sample — treat as illustrative context, not statistical proof. Score history only accumulates when this page is visited.")
+                            st.caption("Small sample: treat this as illustrative context, not statistical proof. Score history only accumulates when this page is visited.")
                         else:
                             st.info("Could not compute forward returns for the crossing dates found.")
         except Exception as _pb_err:
@@ -2558,7 +2570,7 @@ if section == "Overview":
     # For each score bucket (50–60, 60–70, 70–80, 80+), show what actual
     # forward returns looked like across ALL tickers in our history when they
     # were in that score range. Context for "what does score X typically mean?"
-    with st.expander("📈 What does this score level historically imply? — Return Distribution"):
+    with st.expander("What this score level historically implies — Return Distribution"):
         try:
             _all_score_hist = []
             # Pull score history for this ticker
@@ -2673,11 +2685,12 @@ if section == "Overview":
                                 showlegend=True,
                                 legend=dict(font=dict(size=9)),
                             )
-                            st.plotly_chart(fig_dist, use_container_width=True, config=PLOTLY_CONFIG)
+                            fig_dist = style_distribution_chart(fig_dist, height=380)
+                            st.plotly_chart(fig_dist, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
                             st.caption(
                                 f"Box plot of {ticker_input}'s actual forward returns at each time horizon "
                                 f"when its score was in each bucket. Current score bucket highlighted. "
-                                f"⚠️ Small samples — interpret with caution. History grows with each visit."
+                                "Small samples: interpret with caution. History grows with each visit."
                             )
         except Exception:
             pass
@@ -2692,7 +2705,7 @@ if section == "Overview":
         st.markdown("""
         | Column | Explanation |
         |---|---|
-        | **Status** | 🟢 Bullish / 🔴 Bearish / 🟡 Neutral based on current reading vs. 52-week history |
+        | **Status** | Bullish / Bearish / Neutral based on current reading vs. 52-week history |
         | **Score** | 0–100 scale. 50 = average. >65 = bullish. <35 = bearish |
         | **Z-Score** | Standard deviations from 52-week mean. ±1.5σ = notable. ±2σ = significant |
         | **Percentile** | Where current reading sits in its own history. 80th+ = elevated. 20th- = depressed |
@@ -2983,7 +2996,7 @@ if section == "Overview":
         _ecol1, _ecol2 = st.columns([2, 2])
         with _ecol1:
             st.download_button(
-                f"⬇️ Download {ticker_input} Signal Analysis (CSV)",
+                f"Download {ticker_input} Signal Analysis (CSV)",
                 csv_b,
                 file_name=f"UA_{ticker_input}_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
@@ -2991,7 +3004,7 @@ if section == "Overview":
             )
         with _ecol2:
             if st.button(
-                f"📄 Export Full PDF Report",
+                "Export Full PDF Report",
                 key="tdd_to_pdf",
                 use_container_width=True,
                 help="Opens the Export page pre-filled with this ticker",
@@ -3000,6 +3013,7 @@ if section == "Overview":
                 st.switch_page("pages/28_Export.py")
 
 elif section == "Insider & Short Interest":
+    st.html(section_label("INSIDER AND SHORT INTEREST", color="#55A7D8", dot="#55A7D8"))
     # ── Insider Transactions ──────────────────────────────────────────────────────
     st.markdown("### Insider Transactions (SEC Form 4)")
 
@@ -3057,8 +3071,7 @@ elif section == "Insider & Short Interest":
                     st.markdown(
                         f'<div style="background:rgba(0,213,102,0.08);border-radius:7px;padding:10px 14px;'
                         f'margin-bottom:10px;border-left:4px solid #00D566;font-family:Inter,sans-serif;">'
-                        f'<span style="font-size:1.1rem;">🔥</span> '
-                        f'<b style="color:#00D566;font-size:0.88rem;">INSIDER CLUSTER BUY</b> — '
+                        f'<b style="color:#35C98B;font-size:0.88rem;letter-spacing:0.04em;">INSIDER CLUSTER BUY</b> — '
                         f'<span style="font-size:0.82rem;color:#B8C0D4;">'
                         f'{_n_cluster} distinct insiders made open-market purchases in the last 21 days. '
                         f'Cluster buying (multiple independent insiders, no offsetting sales) is '
@@ -3155,6 +3168,7 @@ elif section == "Insider & Short Interest":
 
 
 elif section == "13F & Federal Contracts":
+    st.html(section_label("13F AND FEDERAL CONTRACTS", color="#D6A34A", dot="#D6A34A"))
     # ── Federal Contract Awards ───────────────────────────────────────────────────
     st.markdown("### Federal Contract Awards (USASpending.gov)")
 
@@ -3235,7 +3249,8 @@ elif section == "13F & Federal Contracts":
                     legend=dict(font=dict(color="#E8EEFF"), bgcolor="rgba(18,21,30,0.90)"),
                     margin=dict(l=0, r=0, t=30, b=0),
                 )
-                st.plotly_chart(fig_c, use_container_width=True, config=PLOTLY_CONFIG)
+                fig_c = style_chart(fig_c, height=270, hovermode="x unified")
+                st.plotly_chart(fig_c, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
             # Contract table
             display_cols = [c for c in ["date", "agency", "amount", "description"] if c in contracts_df.columns]
@@ -3315,7 +3330,10 @@ elif section == "13F & Federal Contracts":
 elif section == "Deep Correlation Scan":
     # ── Deep Correlation Scan — Lead Time Optimizer ────────────────────────────
     st.divider()
-    st.html(section_label("Deep Correlation Scan — Lead Time Optimizer", color="#00C8E0", dot="#00C8E0"))
+    st.markdown(
+        section_label("DEEP CORRELATION SCAN — LEAD TIME OPTIMIZER", color="#55A7D8", dot="#55A7D8"),
+        unsafe_allow_html=True,
+    )
     st.caption(f"Pick one signal above to test in depth against {ticker_input}: the optimal lead time, "
                f"whether the relationship is stable over time, and a visual overlay.")
 
@@ -3358,7 +3376,7 @@ elif section == "Deep Correlation Scan":
         name = SIGNALS[sid]["name"]
         r = ci.get("r", 0.0)
         if ci.get("significant"):
-            return f"{name}  (r={r:+.2f} ✓)"
+            return f"{name}  (r={r:+.2f}, significant)"
         return name
 
     deep_sig_options = {sid: _sig_label(sid) for sid in _corr_ranked_sids}
@@ -3535,7 +3553,8 @@ elif section == "Deep Correlation Scan":
                     yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)", tickfont=dict(color="#8892AA"), title="Pearson r"),
                     margin=dict(l=0, r=0, t=10, b=0),
                 )
-                st.plotly_chart(fig_lag, use_container_width=True, config=PLOTLY_CONFIG)
+                fig_lag = style_chart(fig_lag, height=280, hovermode="closest", legend=False)
+                st.plotly_chart(fig_lag, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
             # Rolling 26-week correlation
             rolling = deep_corr.get("rolling_corr", pd.Series(dtype=float))
@@ -3555,7 +3574,8 @@ elif section == "Deep Correlation Scan":
                                title="26w rolling r", range=[-1, 1]),
                     margin=dict(l=0, r=0, t=30, b=0),
                 )
-                st.plotly_chart(fig_roll, use_container_width=True, config=PLOTLY_CONFIG)
+                fig_roll = style_area_chart(fig_roll, line_color="#8187F7", height=240)
+                st.plotly_chart(fig_roll, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
             # Signal + price overlay
             aligned = deep_corr.get("aligned", pd.DataFrame())
@@ -3583,7 +3603,12 @@ elif section == "Deep Correlation Scan":
                                      gridcolor="rgba(255,255,255,0.05)", tickfont=dict(color="#8892AA"), title_font=dict(color="#7C3AED"))
                 fig_ov.update_yaxes(title_text=f"{ticker_input} Price (normalized to 100)", secondary_y=True,
                                      gridcolor="rgba(0,0,0,0)", tickfont=dict(color="#8892AA"), title_font=dict(color="#F59E0B"))
-                st.plotly_chart(fig_ov, use_container_width=True, config=PLOTLY_CONFIG)
+                fig_ov = style_chart_secondary(
+                    fig_ov, height=340,
+                    y1_title="Signal (indexed)", y2_title=f"{ticker_input} price (indexed)",
+                    y1_color="#8187F7", y2_color="#D6A34A",
+                )
+                st.plotly_chart(fig_ov, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
         st.divider()
         st.markdown("##### Is this signal's lead time stable, or is it decaying?")
@@ -3624,6 +3649,7 @@ elif section == "Deep Correlation Scan":
 
 
 elif section == "Earnings Track Record":
+    st.html(section_label("EARNINGS TRACK RECORD", color="#8187F7", dot="#8187F7"))
     # ── Earnings Track Record ─────────────────────────────────────────────────
     # Compare what the Confluence Score said in the 7–45 days before each
     # earnings event vs what actually happened (EPS beat / miss / meet).
@@ -3730,7 +3756,7 @@ elif section == "Earnings Track Record":
                 _m3.metric("Accuracy", "—")
 
             st.caption(
-                "⚠️ Small sample — interpret cautiously. Accuracy here is directional only "
+                "Small sample: interpret cautiously. Accuracy here is directional only "
                 "(score ≥60 → predicts beat; ≤40 → predicts miss). Neutral scores (40–60) are excluded from accuracy."
             )
             st.markdown("")
@@ -3763,14 +3789,14 @@ elif section == "Earnings Track Record":
                 if _surp is not None:
                     _actual_dir = "bullish" if _surp > 0 else ("bearish" if _surp < 0 else "neutral")
                     _outcome_label = (
-                        f"✅ Beat (+{_surp:.1f}%)" if _surp > 0 else
-                        f"❌ Miss ({_surp:.1f}%)" if _surp < 0 else
+                        f"Beat (+{_surp:.1f}%)" if _surp > 0 else
+                        f"Miss ({_surp:.1f}%)" if _surp < 0 else
                         "● Met estimate"
                     )
                     _outcome_color = "#00D566" if _surp > 0 else ("#FF4444" if _surp < 0 else "#6B7FBF")
                     if _pred_dir != "neutral":
                         _matched = _pred_dir == _actual_dir
-                        _match_label = "✅ Correct" if _matched else "❌ Wrong"
+                        _match_label = "Correct" if _matched else "Wrong"
                         _match_color = "#00D566" if _matched else "#FF4444"
                     else:
                         _match_label = "— No call"
@@ -3835,6 +3861,7 @@ elif section == "Earnings Track Record":
         st.switch_page("pages/30_Track_Record_Live.py")
 
 elif section == "Earnings Sentiment":
+    st.html(section_label("EARNINGS SENTIMENT", color="#55A7D8", dot="#55A7D8"))
     # ── Earnings Transcript Sentiment (SEC EDGAR 8-K Item 2.02 + LM lexicon) ──
     import plotly.graph_objects as go
 
@@ -3908,7 +3935,8 @@ elif section == "Earnings Sentiment":
             showlegend=False,
             font=dict(family="Inter, sans-serif", color="#cccccc"),
         )
-        st.plotly_chart(_fig, use_container_width=True, config=PLOTLY_CONFIG)
+        _fig = style_distribution_chart(_fig, height=380)
+        st.plotly_chart(_fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
         # ── Bull / Bear scoring ───────────────────────────────────────────────
         _latest   = _sent_df["sentiment_score"].iloc[-1]
@@ -3916,13 +3944,13 @@ elif section == "Earnings Sentiment":
         _trend    = _sent_df["sentiment_score"].diff().tail(3).mean()
 
         if _latest > 0.05 and _trailing > 0:
-            _signal_label = "🟢 Bullish tone"
+            _signal_label = "Bullish tone"
             _signal_color = "#26a69a"
         elif _latest < -0.05 and _trailing < 0:
-            _signal_label = "🔴 Bearish tone"
+            _signal_label = "Bearish tone"
             _signal_color = "#ef5350"
         else:
-            _signal_label = "⚪ Neutral / Mixed"
+            _signal_label = "Neutral / Mixed"
             _signal_color = "#aaaaaa"
 
         _trend_label = (

@@ -20,7 +20,7 @@ from utils.product_metrics import ACTIVE_SIGNAL_COUNT
 
 st.set_page_config(
     page_title="Upgrade to Pro — Unstructured Alpha",
-    page_icon="🔓",
+    page_icon="",
     layout="centered",
 )
 
@@ -246,7 +246,7 @@ if stripe_session_id:
     if result["ok"]:
         st.markdown(f"""
         <div class="success-box">
-            <div style="font-size:3rem;margin-bottom:14px;">🎉</div>
+            <div style="font-size:3rem;margin-bottom:14px;"></div>
             <div style="font-size:1.6rem;font-weight:900;
                         background:linear-gradient(135deg,#00D566,{CYAN});
                         -webkit-background-clip:text;-webkit-text-fill-color:transparent;
@@ -279,7 +279,7 @@ if stripe_session_id:
             <div style="background:{BG_CARD};border:1px solid rgba(255,255,255,0.08);
                         border-radius:10px;padding:16px;text-align:center;height:110px;
                         display:flex;flex-direction:column;justify-content:center;">
-                <div style="font-size:1.5rem;margin-bottom:6px;">📊</div>
+                <div style="font-size:1.5rem;margin-bottom:6px;"></div>
                 <div style="font-size:0.8rem;font-weight:700;color:#E8EEFF;">Today's Brief</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
                     See what signals flipped overnight
@@ -293,7 +293,7 @@ if stripe_session_id:
             <div style="background:{BG_CARD};border:1px solid rgba(124,58,237,0.3);
                         border-radius:10px;padding:16px;text-align:center;height:110px;
                         display:flex;flex-direction:column;justify-content:center;">
-                <div style="font-size:1.5rem;margin-bottom:6px;">🔍</div>
+                <div style="font-size:1.5rem;margin-bottom:6px;"></div>
                 <div style="font-size:0.8rem;font-weight:700;color:#E8EEFF;">Ticker Deep Dive</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
                     Run any ticker through all 47 signals
@@ -307,7 +307,7 @@ if stripe_session_id:
             <div style="background:{BG_CARD};border:1px solid rgba(0,200,224,0.2);
                         border-radius:10px;padding:16px;text-align:center;height:110px;
                         display:flex;flex-direction:column;justify-content:center;">
-                <div style="font-size:1.5rem;margin-bottom:6px;">🧮</div>
+                <div style="font-size:1.5rem;margin-bottom:6px;"></div>
                 <div style="font-size:0.8rem;font-weight:700;color:#E8EEFF;">Factor Exposure</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
                     Pro-only Fama-French regression
@@ -338,7 +338,7 @@ if user:
         st.markdown(f"""
         <div class="pro-status-box">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                <span style="font-size:1.8rem;">🟣</span>
+                <span style="font-size:1.8rem;"></span>
                 <div>
                     <div style="font-size:1.15rem;font-weight:800;color:{TEXT_PRIMARY};">
                         You're on Pro
@@ -393,7 +393,7 @@ if user:
                         border:1px solid rgba(124,58,237,0.28);border-radius:14px;
                         padding:24px 28px;font-family:Inter,sans-serif;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                    <span style="font-size:1.4rem;">🔗</span>
+                    <span style="font-size:1.4rem;"></span>
                     <span style="font-size:1.0rem;font-weight:800;color:#E8EEFF;">
                         Refer a friend — earn a free month
                     </span>
@@ -436,7 +436,7 @@ if user:
 
             # Copy-link button (uses Streamlit's clipboard mechanism via st.code)
             st.code(_ref_link, language=None)
-            st.caption("👆 Click the copy icon to copy your referral link.")
+            st.caption("Use the copy control to copy your referral link.")
 
         except Exception as _ref_err:
             pass  # never block the Pro dashboard over a referral lookup error
@@ -488,7 +488,7 @@ st.markdown(f"""
     </div>
     <div class="ua-guarantee" style="color:#00C8E0;background:rgba(0,200,224,0.06);
          border-color:rgba(0,200,224,0.22);">
-        🔒 Payments secured by Stripe
+         Payments secured by Stripe
     </div>
     <div class="ua-guarantee" style="color:#A78BFA;background:rgba(124,58,237,0.06);
          border-color:rgba(124,58,237,0.22);">
@@ -540,7 +540,7 @@ st.markdown(f"""
 col_l, col_m, col_r = st.columns([1.2, 1.2, 1.2])
 with col_l:
     if st.button(
-        "📅  Monthly  —  $20/mo",
+        "Monthly — $20/mo",
         use_container_width=True,
         type="secondary" if st.session_state.upgrade_plan == "annual" else "primary",
         key="toggle_monthly",
@@ -549,7 +549,7 @@ with col_l:
         st.rerun()
 with col_m:
     if st.button(
-        "🏆  Annual  —  Save 20% ($192/yr)  ✦ BEST VALUE",
+        "  Annual  —  Save 20% ($192/yr)  ✦ BEST VALUE",
         use_container_width=True,
         type="primary" if st.session_state.upgrade_plan == "annual" else "secondary",
         key="toggle_annual",
@@ -642,11 +642,11 @@ st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
 # ── CTA ────────────────────────────────────────────────────────────────────────
 trial_copy = f"{_trial_days}-day free trial included — $0 charged today"
-btn_label  = f"🔓  Start {_trial_days}-Day Free Trial  →  then {monthly_price}/mo" + (" · $192/yr" if plan == "annual" else "")
+btn_label  = f"  Start {_trial_days}-Day Free Trial  →  then {monthly_price}/mo" + (" · $192/yr" if plan == "annual" else "")
 
 st.markdown(f"""
 <div class="trial-bar">
-    <span style="font-size:1.1rem;">⚡</span>
+    <span style="font-size:1.1rem;"></span>
     <span><strong>{trial_copy}</strong> · Cancel any time before day 7 at no charge.</span>
 </div>
 """, unsafe_allow_html=True)
@@ -663,9 +663,9 @@ if not user:
             st.switch_page("pages/home_page.py")
         st.markdown("""
         <div class="secure-note">
-            <span>🔒 Secured by Stripe</span>
+            <span> Secured by Stripe</span>
             <span>✦ Cancel anytime</span>
-            <span>📧 No spam</span>
+            <span> No spam</span>
         </div>
         """, unsafe_allow_html=True)
 else:
@@ -679,7 +679,7 @@ else:
             _check_pid(plan)
         except RuntimeError:
             checkout_disabled = True
-            btn_display = "⚠️ Stripe not configured yet"
+            btn_display = "Stripe not configured yet"
 
         if st.button(btn_display, type="primary", use_container_width=True, disabled=checkout_disabled):
             try:
@@ -708,9 +708,9 @@ else:
 
         st.markdown("""
         <div class="secure-note">
-            <span>🔒 Secured by Stripe</span>
+            <span> Secured by Stripe</span>
             <span>✦ Cancel anytime</span>
-            <span>🔄 Refund within 48h if unsatisfied</span>
+            <span> Refund within 48h if unsatisfied</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -738,7 +738,7 @@ st.markdown(f"""
         <div style="background:rgba(255,68,68,0.07);border:1px solid rgba(255,68,68,0.20);
                     border-radius:10px;padding:14px 16px;border-left:3px solid #FF4444;">
             <div style="font-size:0.58rem;color:#FF4444;font-weight:700;letter-spacing:0.12em;
-                        margin-bottom:4px;">📉 BEARISH FLIP</div>
+                        margin-bottom:4px;"> BEARISH FLIP</div>
             <div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">HY Credit Spreads</div>
             <div style="font-size:0.74rem;color:#8892AA;line-height:1.5;">Widened 8 bps overnight —
             score dropped below 40 for first time in 23 days</div>
@@ -746,7 +746,7 @@ st.markdown(f"""
         <div style="background:rgba(0,213,102,0.06);border:1px solid rgba(0,213,102,0.18);
                     border-radius:10px;padding:14px 16px;border-left:3px solid #00D566;">
             <div style="font-size:0.58rem;color:#00D566;font-weight:700;letter-spacing:0.12em;
-                        margin-bottom:4px;">📈 BULLISH SIGNAL</div>
+                        margin-bottom:4px;"> BULLISH SIGNAL</div>
             <div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">EIA Crude Draw Streak</div>
             <div style="font-size:0.74rem;color:#8892AA;line-height:1.5;">7th consecutive weekly draw.
             XOM, CVX flagged as macro tailwind names.</div>
@@ -771,7 +771,7 @@ st.markdown(f"""
 </div>
 <div class="testimonial-grid">
     <div class="ua-testi">
-        <div class="ua-testi-stars">★★★★★</div>
+        <div class="ua-testi-stars">5 / 5</div>
         <div class="ua-testi-quote">
             "The congressional trade tracker alone paid for itself in the first week.
             I caught a buying cluster in a defense name 11 days before earnings."
@@ -788,7 +788,7 @@ st.markdown(f"""
         </div>
     </div>
     <div class="ua-testi">
-        <div class="ua-testi-stars">★★★★★</div>
+        <div class="ua-testi-stars">5 / 5</div>
         <div class="ua-testi-quote">
             "I used to spend 3 hours each morning pulling data from five different places.
             Now it's one tab and 10 minutes. The morning digest is genuinely addictive."
@@ -805,7 +805,7 @@ st.markdown(f"""
         </div>
     </div>
     <div class="ua-testi">
-        <div class="ua-testi-stars">★★★★★</div>
+        <div class="ua-testi-stars">5 / 5</div>
         <div class="ua-testi-quote">
             "The insider cluster detection flagged 2+ insiders buying the same small-cap
             within 21 days. Price was up 38% in the following month. Uncanny."
@@ -822,7 +822,7 @@ st.markdown(f"""
         </div>
     </div>
     <div class="ua-testi">
-        <div class="ua-testi-stars">★★★★★</div>
+        <div class="ua-testi-stars">5 / 5</div>
         <div class="ua-testi-quote">
             "The Factor Exposure tool gave me a clearer view of what's actually
             driving my portfolio than my Bloomberg terminal does. Genuinely impressive."

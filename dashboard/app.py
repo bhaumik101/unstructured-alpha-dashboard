@@ -78,7 +78,7 @@ pg = st.navigation(
         # the visible nav but remain reachable by URL / cross-link.
         "": [
             st.Page("pages/home_page.py",      title="Home",             default=True),
-            st.Page("pages/29_Upgrade.py",     title="⚡ Upgrade to Pro", url_path="upgrade-to-pro"),
+            st.Page("pages/29_Upgrade.py",     title="Upgrade to Pro", url_path="upgrade-to-pro"),
         ],
         # ── Today ─────────────────────────────────────────────────────────────
         "Today": [

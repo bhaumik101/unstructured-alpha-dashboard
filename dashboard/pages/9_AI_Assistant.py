@@ -19,7 +19,7 @@ render_sidebar_base()
 render_page_header(
     "AI Research Assistant",
     "Ask anything about signals, tickers, or current macro conditions.",
-    icon="🤖",
+    icon="",
 )
 
 
@@ -473,7 +473,7 @@ st.caption(
 )
 
 if has_claude:
-    st.success("Live signal-aware AI active — answers reflect today's real signal state.", icon="🟢")
+    st.success("Live signal-aware AI active — answers reflect today's real signal state.", icon="")
 else:
     st.info("Using built-in knowledge base. AI responses available when Claude API key is configured on the server.")
 
@@ -543,7 +543,7 @@ if prompt := st.chat_input("Ask about current macro conditions, signals, tickers
                 if not _ai_ok:
                     _mins = max(1, _ai_retry // 60)
                     answer = (
-                        f"⏳ You've reached the AI-assistant question limit for now — this keeps "
+                        f" You've reached the AI-assistant question limit for now — this keeps "
                         f"the feature fast and affordable for everyone. Please try again in about "
                         f"{_mins} min. In the meantime, the **Signal Dashboard** and **Ticker Deep "
                         f"Dive** have the same live data you can explore directly."

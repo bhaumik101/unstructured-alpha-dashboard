@@ -16,10 +16,10 @@ inject_premium_css()
 render_page_header(
     "Events & Forecasts",
     "Upcoming macro events with UA signal alignment and historical market impact.",
-    icon="📅",
+    icon="",
 )
 
-tab_cal, tab_forecast = st.tabs(["📅 Macro Calendar", "🔮 Event Forecaster"])
+tab_cal, tab_forecast = st.tabs(["Macro Calendar", "Event Forecaster"])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 1 — MACRO CALENDAR
@@ -32,26 +32,26 @@ with tab_cal:
     TODAY = date.today()
 
     EVENTS = [
-        dict(name="CPI Release",    category="Inflation",   color="#F59E0B", icon="🔥", series="CPIAUCSL",
+        dict(name="CPI Release",    category="Inflation",   color="#F59E0B", icon="", series="CPIAUCSL",
              description="Consumer Price Index — the Fed's core inflation gauge.",
              signals=["ten_year_yield","hy_spread","tips_breakeven"],
              dates=["2026-01-15","2026-02-12","2026-03-12","2026-04-10","2026-05-13",
                     "2026-06-11","2026-07-15","2026-08-12","2026-09-11","2026-10-14"]),
-        dict(name="FOMC Meeting",   category="Fed Policy",  color="#3B82F6", icon="🏦", series="FEDFUNDS",
+        dict(name="FOMC Meeting",   category="Fed Policy",  color="#3B82F6", icon="", series="FEDFUNDS",
              description="Federal Reserve rate decision and policy statement.",
              signals=["ten_year_yield","yield_curve","hy_spread"],
              dates=["2026-01-29","2026-03-19","2026-05-07","2026-06-18","2026-07-30",
                     "2026-09-17","2026-11-05","2026-12-17"]),
-        dict(name="NFP Report",     category="Labor",       color="#10B981", icon="💼", series="PAYEMS",
+        dict(name="NFP Report",     category="Labor",       color="#10B981", icon="", series="PAYEMS",
              description="Non-Farm Payrolls — broadest measure of US labor market strength.",
              signals=["jobless_claims","retail_sales","consumer_sentiment"],
              dates=["2026-01-10","2026-02-07","2026-03-07","2026-04-04","2026-05-09",
                     "2026-06-06","2026-07-11","2026-08-08","2026-09-05","2026-10-03"]),
-        dict(name="GDP Advance",    category="Growth",      color="#8B5CF6", icon="📈", series="GDPC1",
+        dict(name="GDP Advance",    category="Growth",      color="#8B5CF6", icon="", series="GDPC1",
              description="Advance estimate of real GDP growth — the broadest economic measure.",
              signals=["ism_pmi","retail_sales","durable_goods"],
              dates=["2026-01-30","2026-04-30","2026-07-30","2026-10-29"]),
-        dict(name="PCE Release",    category="Inflation",   color="#EC4899", icon="📊", series="PCEPI",
+        dict(name="PCE Release",    category="Inflation",   color="#EC4899", icon="", series="PCEPI",
              description="Personal Consumption Expenditures — the Fed's preferred inflation metric.",
              signals=["tips_breakeven","ten_year_yield"],
              dates=["2026-01-31","2026-02-28","2026-03-31","2026-04-30","2026-05-29",
@@ -74,7 +74,7 @@ with tab_cal:
         st.info("No upcoming events in schedule.")
     else:
         for ev in upcoming[:8]:
-            urgency = "🔴" if ev["days_away"] <= 7 else "🟡" if ev["days_away"] <= 14 else "⚪"
+            urgency = "" if ev["days_away"] <= 7 else "" if ev["days_away"] <= 14 else ""
             countdown = f"**Tomorrow**" if ev["days_away"] == 1 else (f"**Today**" if ev["days_away"] == 0 else f"in **{ev['days_away']} days**")
             st.markdown(
                 f'<div style="background:rgba(255,255,255,0.025);border:0.5px solid rgba(255,255,255,0.08);'

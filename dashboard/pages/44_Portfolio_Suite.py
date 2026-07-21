@@ -26,15 +26,15 @@ require_pro(page_name="Portfolio Suite")
 render_page_header(
     "Portfolio Suite",
     "Every portfolio-level tool in one place — backtest, stress test, signal combination, exposure analysis, and basket building.",
-    icon="🗂️",
+    icon="",
 )
 
 tab_bt, tab_stress, tab_sigbt, tab_macro, tab_basket = st.tabs([
-    "📊 Portfolio Backtest",
-    "🔬 Stress Tester",
-    "⚗️ Signal Backtester",
-    "📐 Macro Exposure",
-    "🧺 Basket Builder",
+    " Portfolio Backtest",
+    " Stress Tester",
+    " Signal Backtester",
+    " Macro Exposure",
+    "Basket Builder",
 ])
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -239,7 +239,7 @@ with tab_bt:
             "_sufficiency": r["sufficiency"],
         }
 
-    if st.button("▶  Run Backtest", key="ps_run_bt"):
+    if st.button("Run Backtest", key="ps_run_bt"):
         with st.spinner("Running walk-forward backtest…"):
             result = _run_backtest(bull_thresh, bear_thresh, n_pos, lookback_y, rebal_days)
 
@@ -291,7 +291,7 @@ with tab_bt:
                 legend=dict(bgcolor="rgba(0,0,0,0)", borderwidth=0),
                 margin=dict(t=20, b=40, l=50, r=20), height=300,
             )
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
             if result["contributions"]:
                 import pandas as pd
@@ -370,7 +370,7 @@ with tab_stress:
         st.markdown("**Run scenario**")
         scenario = st.selectbox("Scenario", list(SCENARIOS.keys()), key="stress_scenario")
 
-        if st.button("▶  Run Stress Test", key="stress_run"):
+        if st.button("Run Stress Test", key="stress_run"):
             from utils.config import TICKERS as TICKER_META
             results = []
             for h in holdings:
@@ -426,7 +426,7 @@ with tab_sigbt:
     bull_t_sb = sb3.slider("Combined bull threshold", 50, 85, 65, key="sb_bull")
     lookback_sb = sb4.slider("Lookback (months)", 6, 36, 18, key="sb_lookback")
 
-    if st.button("▶  Run Signal Backtest", key="sb_run") and chosen_sig_names:
+    if st.button("Run Signal Backtest", key="sb_run") and chosen_sig_names:
         chosen_sids = [sig_opts[n] for n in chosen_sig_names if n in sig_opts]
         with st.spinner("Fetching signals and prices…"):
             try:
@@ -502,7 +502,7 @@ with tab_sigbt:
                                            color="#4A5568", range=[0,100]),
                                 margin=dict(t=20, b=40, l=50, r=20), height=250,
                             )
-                            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+                            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
                             st.caption("Accuracy = % of times the combined score ≥ threshold was followed by positive price return 4 weeks later.")
             except Exception as e:
                 st.error(f"Error running backtest: {e}")
@@ -537,7 +537,7 @@ with tab_macro:
     # Accepts "TICKER, weight" or "TICKER weight" per line (weight optional →
     # equal-weighted). Only known tickers are kept; capped at MAX_PORTFOLIO_HOLDINGS
     # so a huge paste can't drive an unbounded exposure scan on the 2GB box.
-    with st.expander("📋 Paste / import holdings (bulk)"):
+    with st.expander(" Paste / import holdings (bulk)"):
         from utils.guards import MAX_PORTFOLIO_HOLDINGS
         _paste = st.text_area(
             "One holding per line — `TICKER, weight%` (weight optional)",
@@ -618,7 +618,7 @@ with tab_macro:
     # page load, running this automatically meant compute_full_ticker_score() fired
     # for each holding on every visit to the Portfolio Suite — even when the user
     # was on another tab — which froze/spiked the single-core box. Opt-in fixes it.
-    if st.button("▶  Analyze portfolio exposure", key="ps_macro_run_btn", type="primary"):
+    if st.button("Analyze portfolio exposure", key="ps_macro_run_btn", type="primary"):
         st.session_state["ps_macro_analyzed"] = True
     _macro_ready = bool(holdings2) and st.session_state.get("ps_macro_analyzed")
     if holdings2 and not _macro_ready:
@@ -694,7 +694,7 @@ with tab_macro:
             exp_sorted = sorted(exposure.items(), key=lambda x: -abs(x[1]))[:12]
             exp_df = pd.DataFrame([
                 {"Signal": k, "Net Exposure": round(v * 100, 1),
-                 "Direction": "🟢 Bullish" if v > 0.01 else "🔴 Bearish" if v < -0.01 else "⚪ Neutral"}
+                 "Direction": " Bullish" if v > 0.01 else " Bearish" if v < -0.01 else " Neutral"}
                 for k, v in exp_sorted
             ])
             st.dataframe(exp_df, use_container_width=True, hide_index=True,
@@ -756,7 +756,7 @@ with tab_basket:
             rows.append({
                 "Ticker": t, "Name": meta.get("name", t)[:28],
                 "Sector": meta.get("sector","—"), "Score": round(sc, 0),
-                "Signal": "🟢" if sc >= 65 else "🔴" if sc <= 35 else "⚪",
+                "Signal": "" if sc >= 65 else "" if sc <= 35 else "",
             })
 
         basket_df = pd.DataFrame(rows)
@@ -766,8 +766,8 @@ with tab_basket:
 
         bm1, bm2, bm3 = st.columns(3)
         bm1.metric("Basket Avg Score", f"{avg_score:.0f}")
-        bm2.metric("🟢 Bullish tickers", bull_count)
-        bm3.metric("🔴 Bearish tickers", bear_count)
+        bm2.metric(" Bullish tickers", bull_count)
+        bm3.metric(" Bearish tickers", bear_count)
 
         st.dataframe(
             basket_df,
@@ -792,6 +792,6 @@ with tab_basket:
                        range=[0,100], title="Score"),
             margin=dict(t=10, b=40, l=50, r=20), height=220,
         )
-        st.plotly_chart(fig_bk, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig_bk, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
     else:
         st.info("Select a theme or pick custom tickers above.")

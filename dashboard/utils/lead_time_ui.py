@@ -87,7 +87,7 @@ def render_validated_lag_scan(result: dict, reliability: dict, pooled: dict = No
         font=dict(family="Inter,sans-serif"),
         margin=dict(l=0, r=0, t=10, b=0),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, theme=None)
 
     if oos:
         st.caption(
@@ -155,4 +155,4 @@ def render_lag_decay_chart(decay: dict) -> None:
         font=dict(family="Inter,sans-serif"),
         margin=dict(l=0, r=0, t=10, b=0),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, theme=None)

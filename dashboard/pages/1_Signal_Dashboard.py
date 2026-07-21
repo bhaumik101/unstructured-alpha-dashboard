@@ -55,14 +55,14 @@ inject_premium_css()
 render_page_header(
     "Signal Dashboard",
     "47 alternative data signals across macro, commodity, credit, energy, and more.",
-    icon="📊",
+    icon="",
 )
 
-tab_signals, tab_regime = st.tabs(["📡 Signal Dashboard", "📖 Regime Playbook"])
+tab_signals, tab_regime = st.tabs([" Signal Dashboard", " Regime Playbook"])
 
 with tab_signals:
     STATUS_COLOR = {"bullish": "#00D566", "bearish": "#FF4444", "neutral": "#6B7FBF", "insufficient_data": "#6B7FBF"}
-    STATUS_LABEL = {"bullish": "🟢 Bullish", "bearish": "🔴 Bearish", "neutral": "🟡 Neutral", "insufficient_data": "⚪ No Data"}
+    STATUS_LABEL = {"bullish": " Bullish", "bearish": " Bearish", "neutral": " Neutral", "insufficient_data": " No Data"}
     STATUS_SYM   = {"bullish": "▲", "bearish": "▼", "neutral": "●", "insufficient_data": "○"}
 
 
@@ -82,7 +82,7 @@ with tab_signals:
             st.rerun()
 
     # ── Methodology Callout ───────────────────────────────────────────────────────
-    with st.expander("ℹ️ How these signals work", expanded=False):
+    with st.expander("How these signals work", expanded=False):
         _m_css = (
             "background:rgba(18,21,30,0.8);border:1px solid rgba(255,255,255,0.07);"
             "border-radius:10px;padding:14px 16px;height:100%;"
@@ -102,7 +102,7 @@ with tab_signals:
         with _mc1:
             st.markdown(f"""
     <div style="{_m_css}">
-      <div style="{_m_title}">📡 DATA SOURCES</div>
+      <div style="{_m_title}"> DATA SOURCES</div>
       <div style="{_m_body}">
         Signals are fetched daily from public APIs and government data releases — no scraped or
         estimated data. Each series is mapped to an official source ID so you can verify it directly.
@@ -118,7 +118,7 @@ with tab_signals:
         with _mc2:
             st.markdown(f"""
     <div style="{_m_css}">
-      <div style="{_m_title}">📐 SCORING METHOD</div>
+      <div style="{_m_title}"> SCORING METHOD</div>
       <div style="{_m_body}">
         Each signal is converted to a 0–100 percentile rank within its own trailing 2-year
         distribution. Values above 65 are bullish, below 35 are bearish. This normalises
@@ -128,7 +128,7 @@ with tab_signals:
         with _mc3:
             st.markdown(f"""
     <div style="{_m_css}">
-      <div style="{_m_title}">🔗 CONFLUENCE SCORE</div>
+      <div style="{_m_title}"> CONFLUENCE SCORE</div>
       <div style="{_m_body}">
         The per-ticker Confluence Score is a correlation-weighted average of all {len(SIGNALS)} signals,
         where signals that historically co-move with that ticker's price get more weight.
@@ -138,7 +138,7 @@ with tab_signals:
         with _mc4:
             st.markdown(f"""
     <div style="{_m_css}">
-      <div style="{_m_title}">🧪 WHAT'S VALIDATED</div>
+      <div style="{_m_title}">WHAT'S VALIDATED</div>
       <div style="{_m_body}">
         Signal lead-times are tested out-of-sample with Bonferroni correction for multiple
         comparisons. Many signals have <em>not</em> been validated and are marked as such.
@@ -238,7 +238,7 @@ with tab_signals:
     if total_n > 0:
         bull_pct = bull_n / total_n * 100
         temp_color = "#00D566" if bull_pct >= 60 else ("#FF4444" if bull_pct <= 35 else "#6B7FBF")
-        temp_label = "Risk-On 🟢" if bull_pct >= 60 else ("Risk-Off 🔴" if bull_pct <= 35 else "Mixed 🟡")
+        temp_label = "Risk-On " if bull_pct >= 60 else ("Risk-Off " if bull_pct <= 35 else "Mixed ")
     else:
         temp_color, temp_label = "#6B7FBF", "No Data"
 
@@ -301,7 +301,7 @@ with tab_signals:
             st.markdown(
                 f'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;'
                 f'color:#6B7FBF;margin-bottom:4px;font-family:Inter,sans-serif;">'
-                f'⚡ {len(_flips)} signal{"s" if len(_flips) != 1 else ""} changed status since yesterday'
+                f' {len(_flips)} signal{"s" if len(_flips) != 1 else ""} changed status since yesterday'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -499,9 +499,9 @@ with tab_signals:
             _days_flipped = _flip_lookup.get(sig_id)
             if _days_flipped is not None:
                 if _days_flipped == 0:
-                    _flip_note = "⚡ changed today"
+                    _flip_note = " changed today"
                 elif _days_flipped == 1:
-                    _flip_note = "⚡ changed yesterday"
+                    _flip_note = " changed yesterday"
                 else:
                     _flip_note = f"↺ changed {_days_flipped}d ago"
             else:
@@ -528,10 +528,10 @@ with tab_signals:
             _fatigue_html = (
                 f'<span style="font-size:0.64rem;color:#6B7FBF;margin-left:6px;" '
                 f'title="{_streak_days} days in current status">{_streak_label}</span>'
-                if _streak_label.startswith(("⏳", "🔴")) else
+                if _streak_label.startswith(("", "")) else
                 f'<span style="font-size:0.64rem;color:#00D566;margin-left:6px;" '
                 f'title="{_streak_days} days in current status">{_streak_label}</span>'
-                if _streak_label.startswith("🟢") else ""
+                if _streak_label.startswith("") else ""
             )
 
             # Live pulse indicator — shown for signals that flipped today or yesterday
@@ -766,7 +766,7 @@ with tab_signals:
                                        tickfont=dict(size=8, color="#8892AA")),
                             showlegend=False,
                         )
-                        st.plotly_chart(spark, use_container_width=True, config=PLOTLY_CONFIG, key=f"spark_{sig_id}_{mode}")
+                        st.plotly_chart(spark, use_container_width=True, config=PLOTLY_CONFIG, key=f"spark_{sig_id}_{mode}", theme=None)
 
                         # Insight caption below the sparkline
                         _cur_val  = sv.get("current", float("nan"))
@@ -792,7 +792,7 @@ with tab_signals:
                                 f"within normal range. No strong directional signal yet."
                             )
                         st.markdown(
-                            chart_insight_caption(_spark_caption, icon="📊", muted=True),
+                            chart_insight_caption(_spark_caption, icon="", muted=True),
                             unsafe_allow_html=True,
                         )
 
@@ -810,7 +810,7 @@ with tab_signals:
         _bull_pct_int = int(round(bull_pct))
         if bull_pct >= 60:
             _insight_border = "#00D566"
-            _insight_icon = "🟢"
+            _insight_icon = ""
             _insight_headline = "The macro backdrop is risk-on."
             _insight_body = (
                 f"<b>{bull_n} of {total_n} signals</b> are bullish right now ({_bull_pct_int}%). "
@@ -820,7 +820,7 @@ with tab_signals:
             )
         elif bull_pct <= 35:
             _insight_border = "#FF4444"
-            _insight_icon = "🔴"
+            _insight_icon = ""
             _insight_headline = "The macro backdrop is risk-off."
             _bear_pct_int = int(round(bear_n / total_n * 100))
             _insight_body = (
@@ -831,7 +831,7 @@ with tab_signals:
             )
         else:
             _insight_border = "#6B7FBF"
-            _insight_icon = "🟡"
+            _insight_icon = ""
             _insight_headline = "The macro picture is mixed — no clear directional edge."
             _insight_body = (
                 f"<b>{bull_n} bullish / {bear_n} bearish / {neut_n} neutral</b> across {total_n} signals. "
@@ -857,7 +857,7 @@ with tab_signals:
             </div>
             <div style="margin-top:14px;font-size:0.75rem;color:#6B7FBF;
                         border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;">
-                💡 <b style="color:#8892AA;">Next step:</b>
+                 <b style="color:#8892AA;">Next step:</b>
                 Pick a ticker → run
                 <b style="color:#A78BFA;">Ticker Deep Dive</b> to see exactly which of these {total_n} signals
                 are driving its Confluence Score and what they imply for forward returns.
@@ -902,10 +902,10 @@ with tab_signals:
             yaxis=dict(tickfont=dict(size=10, color="#E8EEFF")),
             margin=dict(l=60, r=20, t=10, b=80),
         )
-        st.plotly_chart(fig_heat, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig_heat, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
         st.caption(
             "Each cell is a 0–100 macro signal score for that ticker's relevant indicators. "
-            "🟢 ≥65 = elevated bullish signal · 🔴 ≤35 = bearish · gray = neutral or no relevant data. "
+            " ≥65 = elevated bullish signal ·  ≤35 = bearish · gray = neutral or no relevant data. "
             "Columns ordered by signal category (macro, commodity, credit, energy, sentiment)."
         )
     else:
@@ -1050,7 +1050,7 @@ with tab_signals:
                 yaxis=dict(tickfont=dict(size=8, color="#8892AA"), autorange="reversed"),
                 font=dict(family="Inter, sans-serif"),
             )
-            st.plotly_chart(_fig_corr, use_container_width=True, config=PLOTLY_CONFIG)
+            st.plotly_chart(_fig_corr, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
             st.caption(
                 "Pearson correlation of weekly signal values over the trailing 2-year window. "
                 "Pairs with r ≥ 0.70 (dark green) are measuring similar phenomena — "
@@ -1076,7 +1076,7 @@ with tab_signals:
                 st.markdown(
                     f'<div style="background:rgba(245,158,11,0.07);border-left:3px solid #F59E0B;padding:8px 12px;'
                     f'border-radius:8px;font-family:Inter,sans-serif;font-size:0.75rem;color:#B8C0D4;">'
-                    f'⚠️ <b>High-correlation pairs (r ≥ 0.70)</b> — these signal pairs are reading similar '
+                    f'<b>High-correlation pairs (r ≥ 0.70)</b> — these signal pairs are reading similar '
                     f'phenomena and should not be double-counted as independent confirmation:<br>'
                     f'{_pair_html}</div>',
                     unsafe_allow_html=True,
@@ -1154,7 +1154,7 @@ with tab_regime:
             f'border-radius:8px;padding:10px 12px;margin-bottom:8px;">'
             f'<div style="font-size:0.72rem;font-weight:600;color:#E8EEFF;">{_cn}</div>'
             f'<div style="font-size:1.4rem;font-weight:800;color:{_c};">{_avg:.0f}</div>'
-            f'<div style="font-size:0.60rem;color:#8892AA;">▲{_cd["bull"]} ▼{_cd["bear"]} ⚪{_cd["neut"]}</div>'
+            f'<div style="font-size:0.60rem;color:#8892AA;">▲{_cd["bull"]} ▼{_cd["bear"]} {_cd["neut"]}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )

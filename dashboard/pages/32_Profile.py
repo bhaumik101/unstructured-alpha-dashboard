@@ -41,7 +41,7 @@ if not user:
 render_page_header(
     "Account",
     "Manage your profile, subscription, and preferences.",
-    icon="👤",
+    icon="",
 )
 
 profile = get_full_profile(user["id"])
