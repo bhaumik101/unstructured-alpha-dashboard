@@ -62,10 +62,10 @@ inject_skeleton_css()
 render_page_header(
     "The Machine Called It",
     "Every high-confidence signal call the model has logged — with actual price outcomes.",
-    icon="🎯",
+    icon="",
 )
 
-tab_track, tab_earnings = st.tabs(["📊 Track Record", "📈 Earnings Track Record"])
+tab_track, tab_earnings = st.tabs([" Track Record", " Earnings Track Record"])
 
 with tab_track:
     # ── Quietly resolve any pending predictions whose windows have expired ─────────
@@ -262,7 +262,7 @@ with tab_track:
                         f'<div style="border-top:1px solid rgba(255,255,255,0.07);'
                         f'margin-top:10px;padding-top:8px;">'
                         f'<span style="font-size:0.70rem;color:#8892AA;font-style:italic;">'
-                        f'⏳ {exp_str}</span></div>'
+                        f' {exp_str}</span></div>'
                     )
 
                 entry_str = f"${entry_px:,.2f}" if entry_px else "—"
@@ -315,7 +315,7 @@ with tab_track:
         unsafe_allow_html=True,
     )
     st.caption(
-        "⚠ **Retrospective analysis** — not advance predictions. "
+        "**Retrospective analysis** — not advance predictions. "
         "These are historical moments where the confluence score hit ≥ 70 (bullish) or ≤ 30 (bearish), "
         "matched to the actual 30-day price return. Every qualifying instance is shown, not just the wins."
     )
@@ -440,7 +440,7 @@ with tab_track:
 
         if len(_hist_calls) < 15:
             st.caption(
-                f"⚠ Small sample ({len(_hist_calls)} instances). "
+                f"Small sample ({len(_hist_calls)} instances). "
                 "Statistics are not statistically significant at this size — treat as directional context only."
             )
 
@@ -544,7 +544,7 @@ with tab_track:
             # a gold medal on 3-of-3 would be an outright overclaim.
             medal = ""
             if sig.get("beats_chance"):
-                medal = {0: " 🥇", 1: " 🥈", 2: " 🥉"}.get(i, "")
+                medal = {0: " 1", 1: " 2", 2: " 3"}.get(i, "")
 
             # Evidence context shown inline, so a rate is never read without its
             # sample size. Tier colour: green only when it beats chance.
@@ -575,7 +575,7 @@ with tab_track:
     """, unsafe_allow_html=True)
 
         st.caption(
-            f"🟢 ≥55% · 🟡 45–55% · 🔴 <45%.  **A rate is only shown once a signal has "
+            f" ≥55% ·  45–55% ·  <45%.  **A rate is only shown once a signal has "
             f"at least {_MIN_REPORTABLE} resolved predictions** — below that the sample is too "
             "small to mean anything, so we show “—” rather than a number you might act on. "
             "Ranking is by the *lower* bound of the 95% confidence interval, not the raw "
@@ -631,8 +631,8 @@ with tab_track:
         _last_date = _rh["last_resolved_date"]
         _recent7d  = _rh["recently_resolved_7d"]
         _overdue_label = (
-            "✅ None overdue" if _overdue == 0
-            else f"⚠️ {_overdue} overdue"
+            " None overdue" if _overdue == 0
+            else f"{_overdue} overdue"
         )
         _last_label = _last_date if _last_date else "—"
         with st.expander("Resolver pipeline health"):
@@ -758,13 +758,13 @@ with tab_earnings:
                     "Prediction": _prediction,
                     "EPS Surprise": f"{_surprise:+.1f}%" if _surprise is not None else "—",
                     "Actual": _actual,
-                    "Correct": "✅" if _correct else ("❌" if _correct is False else "—"),
+                    "Correct": "" if _correct else ("" if _correct is False else "—"),
                 })
 
             if _results:
                 _res_df = pd.DataFrame(_results)
-                _hits   = sum(1 for r in _results if r["Correct"] == "✅")
-                _called = sum(1 for r in _results if r["Correct"] in ("✅", "❌"))
+                _hits   = sum(1 for r in _results if r["Correct"] == "")
+                _called = sum(1 for r in _results if r["Correct"] in ("", ""))
                 if _called > 0:
                     _acc = _hits / _called * 100
                     st.metric(f"Accuracy on {_tr_ticker}", f"{_acc:.0f}%",

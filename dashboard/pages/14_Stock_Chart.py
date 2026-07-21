@@ -21,7 +21,7 @@ render_sidebar_base()
 render_page_header(
     "Stock Viewer",
     "Professional charts powered by TradingView — 100+ indicators, drawing tools, multi-timeframe.",
-    icon="📉",
+    icon="",
 )
 
 # ── Design tokens ─────────────────────────────────────────────────────────────

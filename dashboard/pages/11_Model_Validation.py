@@ -33,7 +33,7 @@ render_page_header(
     "Model Validation Center",
     "Every signal, shown as what it actually is — source, weight, confidence, and known limitations. "
     "No cherry-picking, no pretending every signal is equally strong.",
-    icon="🔬",
+    icon="",
 )
 
 # ── Optional: run the rigorous out-of-sample validation pass ──────────────────
@@ -82,7 +82,7 @@ _df = pd.DataFrame([{
     "Confidence": r["confidence"],
     "Validation status": r["validation_status"],
     "Known limitation": r["known_limitation"],
-    "Experimental": "⚠️ Yes" if r["experimental"] else "—",
+    "Experimental": "Yes" if r["experimental"] else "—",
 } for r in records])
 
 st.dataframe(

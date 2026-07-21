@@ -28,7 +28,7 @@ inject_premium_css()
 render_page_header(
     "Privacy & Terms",
     "What we collect, how we use it, and the rules of the road.",
-    icon="⚖️",
+    icon="",
 )
 
 _tab_priv, _tab_tos, _tab_refund = st.tabs(

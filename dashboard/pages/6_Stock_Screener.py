@@ -41,13 +41,13 @@ inject_premium_css()
 render_page_header(
     "Stock Screener",
     f"Filter {len(TICKERS)} tickers by Macro + Momentum Rank, sector, and price momentum.",
-    icon="🔍",
+    icon="",
 )
 
 tab_screener, tab_rank, tab_squeeze = st.tabs([
-    "🔍 Stock Screener",
-    "📊 Rankings",
-    "🎯 Short Squeeze Radar",
+    " Stock Screener",
+    " Rankings",
+    " Short Squeeze Radar",
 ])
 
 with tab_screener:
@@ -183,7 +183,7 @@ with tab_screener:
             st.markdown(
                 '<div style="font-size:0.72rem;color:#6B7FBF;font-family:Inter,sans-serif;'
                 'margin:-4px 0 8px;padding-left:2px;">'
-                '⚡ Not in tracked universe — score uses sector-mapped signals as a proxy. '
+                ' Not in tracked universe — score uses sector-mapped signals as a proxy. '
                 'For the deepest analysis, open Ticker Deep Dive with this symbol.</div>',
                 unsafe_allow_html=True,
             )
@@ -455,7 +455,7 @@ with tab_screener:
         margin=dict(l=8, r=8, t=10, b=8),
         font=dict(family="Inter, sans-serif", color="#8892AA"),
     )
-    st.plotly_chart(fig_dist, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig_dist, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
     st.markdown(
         f"&nbsp; {source_badge('yfinance', 'Live quotes · price history')} "
         f"&nbsp; {source_badge('ua', 'Macro + Momentum Rank · UA internal')}",
@@ -655,7 +655,7 @@ with tab_rank:
         return pd.DataFrame([
             {"Ticker": r["ticker"], "Name": r.get("name","")[:30],
              "Sector": r.get("sector","—"), "Score": round(r.get("score",50),0),
-             "Signal": "🟢" if r.get("score",50) >= 65 else "🔴" if r.get("score",50) <= 35 else "⚪"}
+             "Signal": "" if r.get("score",50) >= 65 else "" if r.get("score",50) <= 35 else ""}
             for r in all_r
         ]).sort_values("Score", ascending=False)
 
@@ -663,8 +663,8 @@ with tab_rank:
         _rank_df = _rank_all_tickers()
 
     _rank_col1, _rank_col2 = st.columns(2)
-    _rank_col1.metric("🟢 Bullish", int((_rank_df["Score"] >= 65).sum()))
-    _rank_col2.metric("🔴 Bearish", int((_rank_df["Score"] <= 35).sum()))
+    _rank_col1.metric(" Bullish", int((_rank_df["Score"] >= 65).sum()))
+    _rank_col2.metric(" Bearish", int((_rank_df["Score"] <= 35).sum()))
 
     import plotly.graph_objects as _go_r
     _rank_top25 = _rank_df.head(25)
@@ -681,7 +681,7 @@ with tab_rank:
             yaxis=dict(range=[0,100], gridcolor="rgba(255,255,255,0.06)", showgrid=True, color="#4A5568"),
             xaxis=dict(showgrid=False, color="#4A5568"),
             margin=dict(t=10,b=40,l=40,r=10), height=220)
-        st.plotly_chart(_fig_top, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(_fig_top, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
     with _r2:
         st.markdown("**Bottom 25 Bearish**")
         _fig_bot = _go_r.Figure(_go_r.Bar(
@@ -693,7 +693,7 @@ with tab_rank:
             yaxis=dict(range=[0,100], gridcolor="rgba(255,255,255,0.06)", showgrid=True, color="#4A5568"),
             xaxis=dict(showgrid=False, color="#4A5568"),
             margin=dict(t=10,b=40,l=40,r=10), height=220)
-        st.plotly_chart(_fig_bot, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(_fig_bot, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
     st.dataframe(
         _rank_df, use_container_width=True, hide_index=True,

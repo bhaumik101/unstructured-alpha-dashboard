@@ -49,7 +49,7 @@ render_page_header(
     "Stock Recommender",
     f"Highest-conviction long and short ideas — macro signals ranked across {len(TICKERS)} tickers, "
     "with the top picks fully enriched with insider activity, 13F positioning, and short interest.",
-    icon="🎯",
+    icon="",
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -301,7 +301,7 @@ enriched_data = st.session_state.get("_rec_enriched")
 if enrich_set:
     _ec1, _ec2 = st.columns([1, 3])
     _do_enrich = _ec1.button(
-        f"🔬 Deep-score top {len(enrich_set)}",
+        f" Deep-score top {len(enrich_set)}",
         type="primary", use_container_width=True,
         help="Adds insider activity, 13F positioning, and short interest to the top "
              "candidates. Heavier — runs on demand so the page stays fast.",
@@ -334,10 +334,10 @@ n_enr    = len([r for r in all_rows if r.get("enriched")])
 
 ov1, ov2, ov3, ov4, ov5 = st.columns(5)
 ov1.metric("Tickers Scored", len(all_rows))
-ov2.metric("🟢 Bullish", n_bull)
-ov3.metric("🔴 Bearish", n_bear)
-ov4.metric("⚪ Neutral", n_neut)
-ov5.metric("🔬 Full-Score Enriched", n_enr,
+ov2.metric(" Bullish", n_bull)
+ov3.metric(" Bearish", n_bear)
+ov4.metric(" Neutral", n_neut)
+ov5.metric(" Full-Score Enriched", n_enr,
            help="Top candidates scored with insider, 13F, and short interest data.")
 
 st.markdown("---")
@@ -370,25 +370,25 @@ def _optional_badges(row: dict, side: str) -> str:
         status = sc.get("status", "neutral")
         c = "#00D566" if status == "bullish" else "#FF4444" if status == "bearish" else "#6B7FBF"
         badges.append(f'<span style="font-size:0.58rem;color:{c};background:rgba(255,255,255,0.04);'
-                      f'border:1px solid {c}44;border-radius:10px;padding:2px 7px;">🏛 Insiders</span>')
+                      f'border:1px solid {c}44;border-radius:10px;padding:2px 7px;">Insiders</span>')
     if row.get("has_13f"):
         sc = row.get("thirteenf_score", {})
         status = sc.get("status", "neutral")
         c = "#00D566" if status == "bullish" else "#FF4444" if status == "bearish" else "#6B7FBF"
         badges.append(f'<span style="font-size:0.58rem;color:{c};background:rgba(255,255,255,0.04);'
-                      f'border:1px solid {c}44;border-radius:10px;padding:2px 7px;">🏦 13F</span>')
+                      f'border:1px solid {c}44;border-radius:10px;padding:2px 7px;"> 13F</span>')
     if row.get("has_short_int"):
         sc = row.get("short_interest_score", {})
         status = sc.get("status", "neutral")
         c = "#00D566" if status == "bullish" else "#FF4444" if status == "bearish" else "#6B7FBF"
         badges.append(f'<span style="font-size:0.58rem;color:{c};background:rgba(255,255,255,0.04);'
-                      f'border:1px solid {c}44;border-radius:10px;padding:2px 7px;">📉 Short Int.</span>')
+                      f'border:1px solid {c}44;border-radius:10px;padding:2px 7px;"> Short Int.</span>')
     if row.get("has_contracts"):
         badges.append('<span style="font-size:0.58rem;color:#4A9EFF;background:rgba(255,255,255,0.04);'
-                      'border:1px solid #4A9EFF44;border-radius:10px;padding:2px 7px;">📋 Gov Contracts</span>')
+                      'border:1px solid #4A9EFF44;border-radius:10px;padding:2px 7px;"> Gov Contracts</span>')
     if row.get("momentum_score", 50) >= 65:
         badges.append('<span style="font-size:0.58rem;color:#FFB347;background:rgba(255,255,255,0.04);'
-                      'border:1px solid #FFB34744;border-radius:10px;padding:2px 7px;">⚡ Momentum</span>')
+                      'border:1px solid #FFB34744;border-radius:10px;padding:2px 7px;"> Momentum</span>')
     return " ".join(badges) if badges else '<span style="font-size:0.58rem;color:#4A5568;">no optional signals</span>'
 
 
@@ -446,7 +446,7 @@ def _why_block(row: dict, side: str) -> str:
         f'<div style="margin-top:10px;padding:8px 10px;border-radius:8px;'
         f'background:rgba(255,255,255,0.03);border-left:2px solid {accent}66;">'
         f'<span style="font-size:0.56rem;color:{accent};text-transform:uppercase;'
-        f'letter-spacing:0.08em;font-weight:700;">💡 Why this pick</span>'
+        f'letter-spacing:0.08em;font-weight:700;"> Why this pick</span>'
         f'<div style="font-size:0.68rem;color:#B8C2D9;margin-top:3px;line-height:1.4;">'
         f'{_why_line(row, side)}</div></div>'
     )
@@ -464,7 +464,7 @@ def _rec_card(row: dict, side: str) -> str:
 
     enriched_star = (
         '<span style="font-size:0.55rem;color:#4A9EFF;margin-left:6px;'
-        'background:rgba(74,158,255,0.12);padding:1px 6px;border-radius:8px;">🔬 Full Score</span>'
+        'background:rgba(74,158,255,0.12);padding:1px 6px;border-radius:8px;"> Full Score</span>'
         if row.get("enriched") else
         '<span style="font-size:0.55rem;color:#4A5568;margin-left:6px;">macro only</span>'
     )
@@ -514,7 +514,7 @@ with col_long:
     st.markdown(
         '<div style="font-size:0.68rem;font-weight:700;color:#00D566;'
         'text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px;">'
-        '🟢 Top Long Ideas</div>',
+        ' Top Long Ideas</div>',
         unsafe_allow_html=True,
     )
     if longs:
@@ -527,7 +527,7 @@ with col_short:
     st.markdown(
         '<div style="font-size:0.68rem;font-weight:700;color:#FF4444;'
         'text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px;">'
-        '🔴 Top Short / Avoid Ideas</div>',
+        ' Top Short / Avoid Ideas</div>',
         unsafe_allow_html=True,
     )
     if shorts:
@@ -541,7 +541,7 @@ with col_short:
 # ─────────────────────────────────────────────────────────────────────────────
 
 st.markdown("---")
-st.markdown("### 📈 Track Record — Past High-Conviction Calls")
+st.markdown("###  Track Record — Past High-Conviction Calls")
 st.caption(
     "Tickers the model scored ≥70 (bullish) or ≤30 (bearish) in the last 6 months, "
     "resolved to their realized 30-day forward return. "
@@ -610,10 +610,10 @@ def _load_track_record() -> pd.DataFrame:
                     "Ticker":          t,
                     "Call Date":       dt,
                     "Score":           round(score_at_call, 0),
-                    "Direction":       "🟢 LONG" if case == "BULL" else "🔴 SHORT",
+                    "Direction":       " LONG" if case == "BULL" else " SHORT",
                     "30d Return (%)":  round(fwd_ret, 1),
                     "Model P&L (%)":   round(model_ret, 1),
-                    "Correct":         "✅" if model_correct else "❌",
+                    "Correct":         "" if model_correct else "",
                 })
         except Exception:
             pass
@@ -632,7 +632,7 @@ if tr_df.empty:
 else:
     # Summary stats
     n_calls  = len(tr_df)
-    n_right  = (tr_df["Correct"] == "✅").sum()
+    n_right  = (tr_df["Correct"] == "").sum()
     win_rate = round(n_right / n_calls * 100, 1) if n_calls else 0
     avg_ret  = round(tr_df["Model P&L (%)"].mean(), 1)
 
@@ -669,7 +669,7 @@ else:
             margin=dict(t=20, b=80, l=50, r=20),
             height=280,
         )
-        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
     st.dataframe(
         tr_df[[c for c in ["Ticker", "Call Date", "Score", "Direction",
@@ -684,20 +684,20 @@ else:
 
 st.markdown("---")
 st.markdown("### Full Ranked Universe")
-st.caption("All scored tickers sorted by confluence score. 🔬 = enriched with full signal set.")
+st.caption("All scored tickers sorted by confluence score.  = enriched with full signal set.")
 
 if all_rows:
     table_df = pd.DataFrame([{
         "Ticker":     r["ticker"],
         "Name":       r["name"],
         "Score":      r["score"],
-        "Case":       ("🟢 " if r["case"] == "BULL" else "🔴 " if r["case"] == "BEAR" else "⚪ ") + r["case"],
+        "Case":       (" " if r["case"] == "BULL" else " " if r["case"] == "BEAR" else " ") + r["case"],
         "Conviction": (r["conviction"] or "—").capitalize(),
         "▲ Bull":     r["bull_count"],
         "▼ Bear":     r["bear_count"],
         "Sigs":       r["n_signals"],
         "Sector":     r["sector"],
-        "Full Score": "🔬" if r.get("enriched") else "—",
+        "Full Score": "" if r.get("enriched") else "—",
     } for r in all_rows])
 
     st.dataframe(
@@ -738,6 +738,6 @@ if all_rows:
                    color="#4A5568", title="# Tickers"),
         margin=dict(t=20, b=40, l=50, r=20), height=250, bargap=0.08,
     )
-    st.plotly_chart(fig2, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig2, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
 render_footer()

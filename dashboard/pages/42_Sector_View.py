@@ -16,27 +16,27 @@ inject_premium_css()
 render_page_header(
     "Sector View",
     "Signal-driven sector strength, equity heatmap, and supply chain network — all in one place.",
-    icon="🗺️",
+    icon="",
 )
 
 tab_sector, tab_heatmap, tab_supply = st.tabs([
-    "📊 Sector Rotation",
-    "🔥 Market Heatmap",
-    "🔗 Supply Chain",
+    " Sector Rotation",
+    " Market Heatmap",
+    " Supply Chain",
 ])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Shared sector metadata (mirrors 12_Sector_Map.py)
 # ─────────────────────────────────────────────────────────────────────────────
 SECTOR_META = {
-    "ai_infrastructure": {"name": "Technology & AI",   "icon": "💻", "color": "#7C3AED", "etf": "XLK / SMH"},
-    "energy":            {"name": "Energy",            "icon": "⛽", "color": "#5D4037", "etf": "XLE / OIH"},
-    "nuclear":           {"name": "Nuclear / Utilities","icon": "⚡", "color": "#FF4444", "etf": "XLU / URA"},
-    "financials":        {"name": "Financials",        "icon": "🏦", "color": "#F59E0B", "etf": "XLF / KRE"},
-    "healthcare":        {"name": "Healthcare",        "icon": "🏥", "color": "#00D566", "etf": "XLV / IBB"},
-    "consumer":          {"name": "Consumer",          "icon": "🛒", "color": "#B34700", "etf": "XLY / XLP"},
-    "industrials":       {"name": "Industrials",       "icon": "🏭", "color": "#4A1B6B", "etf": "XLI / IYT"},
-    "macro":             {"name": "Macro Backdrop",    "icon": "📊", "color": "#00C8E0", "etf": "SPY / TLT"},
+    "ai_infrastructure": {"name": "Technology & AI",   "icon": "", "color": "#7C3AED", "etf": "XLK / SMH"},
+    "energy":            {"name": "Energy",            "icon": "", "color": "#5D4037", "etf": "XLE / OIH"},
+    "nuclear":           {"name": "Nuclear / Utilities","icon": "", "color": "#FF4444", "etf": "XLU / URA"},
+    "financials":        {"name": "Financials",        "icon": "", "color": "#F59E0B", "etf": "XLF / KRE"},
+    "healthcare":        {"name": "Healthcare",        "icon": "", "color": "#00D566", "etf": "XLV / IBB"},
+    "consumer":          {"name": "Consumer",          "icon": "", "color": "#B34700", "etf": "XLY / XLP"},
+    "industrials":       {"name": "Industrials",       "icon": "", "color": "#4A1B6B", "etf": "XLI / IYT"},
+    "macro":             {"name": "Macro Backdrop",    "icon": "", "color": "#00C8E0", "etf": "SPY / TLT"},
 }
 
 STATUS_COLOR = {"bullish": "#00D566", "bearish": "#FF4444", "neutral": "#6B7FBF"}
@@ -82,7 +82,7 @@ with tab_sector:
         st.caption(
             "Signal-based sector posture — not stock price momentum. "
             "Score = average of all signals in that sector's category. "
-            "🟢 ≥ 60 bullish · 🔴 ≤ 40 bearish · ⚪ mixed."
+            " ≥ 60 bullish ·  ≤ 40 bearish ·  mixed."
         )
 
         cols = st.columns(4)
@@ -122,7 +122,7 @@ with tab_sector:
             yaxis=dict(range=[0,100], showgrid=True, gridcolor="rgba(255,255,255,0.06)", color="#4A5568"),
             margin=dict(t=10, b=60, l=50, r=20), height=260,
         )
-        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
         source_badge("FRED · EIA · SEC EDGAR")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -184,7 +184,7 @@ with tab_heatmap:
             paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#E8EEFF", family="Inter", size=11),
             margin=dict(t=10, b=10, l=0, r=0), height=480,
         )
-        st.plotly_chart(fig2, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig2, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
         st.caption("Color = Confluence Score. Green ≥65 bullish · Red ≤35 bearish. Scores via macro signal cache (fast, no price fetch).")
         source_badge("FRED · EIA · UA Signals Cache")
 
@@ -253,7 +253,7 @@ with tab_supply:
         xaxis=dict(visible=False), yaxis=dict(visible=False),
         margin=dict(t=20, b=20, l=20, r=20), height=420,
     )
-    st.plotly_chart(fig3, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig3, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
     st.markdown("#### Supply Chain Signal Scores")
     with st.spinner("Loading supply chain signals…"):
@@ -268,9 +268,9 @@ with tab_supply:
                 rows.append({
                     "Signal": sv.get("name", sid),
                     "Score":  round(float(sv.get("score", 50)), 1),
-                    "Status": ("🟢 Bullish" if sv.get("status")=="bullish"
-                               else "🔴 Bearish" if sv.get("status")=="bearish"
-                               else "⚪ Neutral"),
+                    "Status": (" Bullish" if sv.get("status")=="bullish"
+                               else " Bearish" if sv.get("status")=="bearish"
+                               else " Neutral"),
                 })
         if rows:
             import pandas as pd

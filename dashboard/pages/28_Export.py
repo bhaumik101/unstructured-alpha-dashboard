@@ -538,7 +538,7 @@ if generate:
         _ex_ok, _ex_retry = True, 0
     if not _ex_ok:
         st.warning(
-            f"⏳ You've generated several reports recently — please wait "
+            f" You've generated several reports recently — please wait "
             f"~{max(1, _ex_retry // 60)} min before the next one."
         )
         generate = False

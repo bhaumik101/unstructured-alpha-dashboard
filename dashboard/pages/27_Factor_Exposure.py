@@ -336,7 +336,7 @@ with load_col:
         font=dict(family="Inter, sans-serif"),
         showlegend=False,
     )
-    st.plotly_chart(fig_bar, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig_bar, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
     st.markdown(
         source_badge("yfinance", "ETF factor proxies") + "&nbsp;" +
         source_badge("yfinance", ticker_input),
@@ -351,7 +351,7 @@ with detail_col:
         se    = ses[i]
         t     = t_stats[i]
         p     = p_vals[i]
-        sig   = "★" if p < 0.05 else ("·" if p < 0.10 else "")
+        sig   = "p<0.05" if p < 0.05 else ("p<0.10" if p < 0.10 else "")
         c_col = "#00D566" if coef >= 0 else "#FF4444"
         p_col = "#00D566" if p < 0.05 else ("#F59E0B" if p < 0.10 else "#6B7FBF")
         rows_html += (
@@ -386,7 +386,7 @@ with detail_col:
   <tbody>{rows_html}</tbody>
 </table>
 <div style="font-size:0.67rem;color:#6B7FBF;margin-top:8px;">
-  ★ p&lt;0.05 &nbsp;·&nbsp; · p&lt;0.10 &nbsp;·&nbsp; Error bars = 95% CI
+  Significance labels show p&lt;0.05 or p&lt;0.10 &nbsp;·&nbsp; Error bars = 95% CI
 </div>
 </div>
 """, unsafe_allow_html=True)
@@ -494,7 +494,7 @@ if len(rolling_mkt_beta) > 10:
         showlegend=False,
         font=dict(family="Inter, sans-serif"),
     )
-    st.plotly_chart(fig_roll, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig_roll, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
     st.caption(
         f"63-day (quarterly) rolling OLS beta against SPY. Current: {cur_beta:.2f}. "
         "High market beta means the stock amplifies index moves; below 1.0 means it dampens them."
@@ -591,7 +591,7 @@ with pie_col:
         x=0.5, y=0.5, showarrow=False,
         font=dict(color="#E8EEFF", size=11, family="Inter"),
     )
-    st.plotly_chart(fig_pie, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig_pie, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
 with interp_col2:
     # Factor description cards
@@ -680,7 +680,7 @@ if len(compare_tickers) > 1:
             legend=dict(font=dict(color="#E8EEFF", size=10), bgcolor="rgba(18,21,30,0.85)"),
             font=dict(family="Inter, sans-serif"),
         )
-        st.plotly_chart(fig_cmp, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig_cmp, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
 
         # Summary table
         rows = []

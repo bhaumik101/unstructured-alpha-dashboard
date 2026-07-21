@@ -379,14 +379,14 @@ try:
         _fl_c   = "#00D566" if _flip["to_status"] == "bullish" else "#FF4444"
         _fl_r, _fl_g, _fl_b = int(_fl_c[1:3], 16), int(_fl_c[3:5], 16), int(_fl_c[5:7], 16)
         _fl_verb = "TURNED BULLISH" if _flip["to_status"] == "bullish" else "TURNED BEARISH"
-        _fl_icon = "📈" if _flip["to_status"] == "bullish" else "📉"
+        _fl_icon = "" if _flip["to_status"] == "bullish" else ""
         st.markdown(
             f'<div class="ua-pop-in" style="background:rgba({_fl_r},{_fl_g},{_fl_b},0.07);'
             f'border:1px solid rgba({_fl_r},{_fl_g},{_fl_b},0.28);'
             f'border-radius:10px;padding:11px 20px;margin:10px auto 0;max-width:860px;'
             f'display:flex;align-items:center;gap:10px;font-family:Inter,sans-serif;">'
             f'<span style="font-size:1.1rem;">{_fl_icon}</span>'
-            f'<span style="font-size:0.60rem;letter-spacing:0.14em;font-weight:700;color:{_fl_c};">⚡ JUST FLIPPED</span>'
+            f'<span style="font-size:0.60rem;letter-spacing:0.14em;font-weight:700;color:{_fl_c};"> JUST FLIPPED</span>'
             f'<span style="font-size:0.82rem;font-weight:600;color:#E8EEFF;margin-left:2px;">{_h.escape(_flip["name"])}</span>'
             f'<span style="font-size:0.78rem;font-weight:700;color:{_fl_c};margin-left:2px;">{_fl_verb}</span>'
             f'<span style="font-size:0.70rem;color:#6B7FBF;margin-left:6px;">Score: {_flip["score"]:.0f}/100</span>'
@@ -466,7 +466,7 @@ if _anon_user:
 
     <div style="flex:1;min-width:200px;background:rgba(0,213,102,0.06);
                 border:1px solid rgba(0,213,102,0.18);border-radius:12px;padding:16px 18px;">
-      <div style="font-size:1.3rem;margin-bottom:8px;">📋</div>
+      <div style="font-size:1.3rem;margin-bottom:8px;"></div>
       <div style="font-size:0.84rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">
         1 · Read Today's Brief
       </div>
@@ -479,7 +479,7 @@ if _anon_user:
 
     <div style="flex:1;min-width:200px;background:rgba(124,58,237,0.06);
                 border:1px solid rgba(124,58,237,0.20);border-radius:12px;padding:16px 18px;">
-      <div style="font-size:1.3rem;margin-bottom:8px;">📡</div>
+      <div style="font-size:1.3rem;margin-bottom:8px;"></div>
       <div style="font-size:0.84rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">
         2 · Browse the Signal Dashboard
       </div>
@@ -492,7 +492,7 @@ if _anon_user:
 
     <div style="flex:1;min-width:200px;background:rgba(0,200,224,0.06);
                 border:1px solid rgba(0,200,224,0.20);border-radius:12px;padding:16px 18px;">
-      <div style="font-size:1.3rem;margin-bottom:8px;">🔍</div>
+      <div style="font-size:1.3rem;margin-bottom:8px;"></div>
       <div style="font-size:0.84rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">
         3 · Look up a stock you own
       </div>
@@ -535,7 +535,7 @@ try:
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
     <div>
       <div style="font-size:0.60rem;color:#00D566;letter-spacing:0.16em;font-weight:700;
-                  text-transform:uppercase;margin-bottom:5px;">👋 Welcome, {_h.escape(_uname)}</div>
+                  text-transform:uppercase;margin-bottom:5px;"> Welcome, {_h.escape(_uname)}</div>
       <div style="font-size:1.05rem;font-weight:700;color:#E8EEFF;letter-spacing:-0.3px;">
         Start here — 3 steps to your first macro read
       </div>
@@ -745,13 +745,13 @@ st.markdown("""
 
 _who1, _who2, _who3, _who4 = st.columns(4)
 _who_cards = [
-    ("#00D566", "📈", "Active Traders",
+    ("#00D566", "", "Active Traders",
      "Know the macro backdrop before entering a position. Stop guessing whether the environment supports your trade."),
-    ("#7C3AED", "🏦", "Long-Term Investors",
+    ("#7C3AED", "", "Long-Term Investors",
      "Get early warning when macro tailwinds are fading. Protect gains before the rotation happens."),
-    ("#00C8E0", "📊", "Portfolio Managers",
+    ("#00C8E0", "", "Portfolio Managers",
      "Score every holding's macro exposure at once. Identify crowded positions before they unwind."),
-    ("#F59E0B", "🔬", "Research-Driven",
+    ("#F59E0B", "", "Research-Driven",
      "Follow primary sources — Fed data, SEC filings, FINRA — not analysts spinning narratives."),
 ]
 for _col, (_ac, _icon, _title, _body) in zip([_who1, _who2, _who3, _who4], _who_cards):
@@ -777,7 +777,7 @@ if _data_loaded:
             backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);
             box-shadow:0 0 30px rgba(0,200,224,0.07),0 8px 32px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.04);">
     <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:#00C8E0;
-                margin-bottom:8px;">⚡ INSTANT MACRO CHECK — NO ACCOUNT NEEDED</div>
+                margin-bottom:8px;"> INSTANT MACRO CHECK — NO ACCOUNT NEEDED</div>
     <div style="font-size:1.0rem;font-weight:800;color:#E8EEFF;margin-bottom:4px;
                 letter-spacing:-0.2px;">What does the macro say about your stocks right now?</div>
     <div style="font-size:0.77rem;color:#8892AA;line-height:1.55;">
@@ -881,7 +881,7 @@ if _data_loaded:
                         st.html(render_portfolio_xray_html(build_portfolio_xray(_ob_inputs)))
                         st.markdown(
                             '<div style="font-size:0.68rem;color:#8892AA;margin-top:8px;'
-                            'font-family:Inter,sans-serif;">👁 Want us to watch these for you? Save them to a '
+                            'font-family:Inter,sans-serif;"> Want us to watch these for you? Save them to a '
                             'free watchlist and we\'ll flag the moment the macro around any of them '
                             'materially changes.</div>',
                             unsafe_allow_html=True,
@@ -926,7 +926,7 @@ if _data_loaded:
         _watch_html = (
             f'<div style="margin-top:10px;padding:8px 12px;background:rgba(0,200,224,0.06);'
             f'border-left:3px solid #00C8E0;border-radius:0 6px 6px 0;font-size:0.74rem;color:#00C8E0;">'
-            f'👁 {_nar["watch_note"]}</div>'
+            f' {_nar["watch_note"]}</div>'
             if _nar.get("watch_note") else ""
         )
         st.markdown(
@@ -996,7 +996,7 @@ if _conv_events:
     st.markdown("""
     <div style="font-size:1.1rem;font-weight:800;color:#E8EEFF;margin:20px 0 6px;
                 font-family:Inter,sans-serif;letter-spacing:-0.3px;">
-        ⚡ Signal Convergence Events
+         Signal Convergence Events
         <span style="font-size:0.70rem;font-weight:500;color:#8892AA;margin-left:10px;">
         3+ independent signals aligned on the same ticker in the last 7 days</span>
     </div>
@@ -1048,7 +1048,7 @@ try:
             f'backdrop-filter:blur(12px) saturate(130%);-webkit-backdrop-filter:blur(12px) saturate(130%);'
             f'border-radius:12px;padding:18px 22px;margin-bottom:24px;font-family:Inter,sans-serif;">'
             f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
-            f'<span style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:#00D566;">📰 LATEST RESEARCH NOTE</span>'
+            f'<span style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:#00D566;"> LATEST RESEARCH NOTE</span>'
             f'<span style="font-size:0.64rem;font-weight:700;letter-spacing:0.08em;padding:2px 8px;'
             f'border-radius:5px;background:{_regime_bg_note};color:{_regime_fg};border:1px solid {_regime_fg}33;">{_note_regime}</span>'
             f'<span style="font-size:0.68rem;color:#8892AA;margin-left:auto;">{_note_date_str}</span>'
@@ -1083,7 +1083,7 @@ _sp1, _sp2, _sp3 = st.columns(3)
 with _sp1:
     st.markdown(f"""
 <div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,#00D566,#00C8E0);">
-    <span class="ua-spotlight-icon">📰</span>
+    <span class="ua-spotlight-icon"></span>
     <div class="ua-spotlight-tag" style="color:#00D566;">DAILY INTELLIGENCE</div>
     <div class="ua-spotlight-title">Today's Brief — your 2-minute macro read</div>
     <div class="ua-spotlight-body">Every morning: which signals flipped overnight, what the
@@ -1100,7 +1100,7 @@ with _sp1:
 with _sp2:
     st.markdown("""
 <div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,#7C3AED,#A78BFA);">
-    <span class="ua-spotlight-icon">🔬</span>
+    <span class="ua-spotlight-icon"></span>
     <div class="ua-spotlight-tag" style="color:#A78BFA;">STOCK-SPECIFIC ANALYSIS</div>
     <div class="ua-spotlight-title">Ticker Deep Dive — type any stock, get a macro report</div>
     <div class="ua-spotlight-body">Confluence Score (0–100), 30/60/90-day probability model,
@@ -1117,7 +1117,7 @@ with _sp2:
 with _sp3:
     st.markdown("""
 <div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,#00C8E0,#06B6D4);">
-    <span class="ua-spotlight-icon">🔔</span>
+    <span class="ua-spotlight-icon"></span>
     <div class="ua-spotlight-tag" style="color:#00C8E0;">SMART ALERTS</div>
     <div class="ua-spotlight-title">Watchlist — know the moment a signal flips</div>
     <div class="ua-spotlight-body">Track any ticker with custom alert thresholds. Get notified
@@ -1175,21 +1175,21 @@ st.markdown("""
 _proof_c1, _proof_c2, _proof_c3 = st.columns(3)
 _PROOFS = [
     {
-        "icon": "📉", "date": "January 2022", "color": "#FF4444",
+        "icon": "", "date": "January 2022", "color": "#FF4444",
         "signal": "HY Credit Spreads",
         "what": "ICE BofA OAS widened 60+ bps in 6 weeks — spread signal turned bearish Jan 4.",
         "outcome": "QQQ fell 32.6% by May. Nasdaq growth stocks down 40–70%.",
         "timing": "~6 weeks before",
     },
     {
-        "icon": "📈", "date": "March 18–25, 2020", "color": "#00D566",
+        "icon": "", "date": "March 18–25, 2020", "color": "#00D566",
         "signal": "Insider Buying Cluster",
         "what": "Surge in Form 4 insider buys across 40+ companies in the same week.",
         "outcome": "Preceded the March 2020 low. S&P 500 +47% over the following 6 months.",
         "timing": "near the low",
     },
     {
-        "icon": "⚡", "date": "June–July 2023", "color": "#F59E0B",
+        "icon": "", "date": "June–July 2023", "color": "#F59E0B",
         "signal": "EIA Crude Draw Streak",
         "what": "5 consecutive weekly crude inventory draws exceeding 3M bbl each.",
         "outcome": "XLE outperformed S&P 500 by ~12% over the following 8 weeks.",
@@ -1214,7 +1214,7 @@ for _pi, (_col, _p) in enumerate(zip([_proof_c1, _proof_c2, _proof_c3], _PROOFS)
             f'<div style="font-size:0.78rem;font-weight:700;color:{_p["color"]};line-height:1.4;margin-bottom:8px;">{_p["outcome"]}</div>'
             f'<span style="font-size:0.60rem;padding:3px 8px;border-radius:5px;'
             f'background:{_p["color"]}18;color:{_p["color"]};font-weight:700;'
-            f'letter-spacing:0.06em;">⏱ {_p["timing"]}</span>'
+            f'letter-spacing:0.06em;">{_p["timing"]}</span>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1352,16 +1352,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 _steps = [
-    ("1", "#00D566", "📰", "Read Today's Brief",
+    ("1", "#00D566", "", "Read Today's Brief",
      "2-minute macro morning read. Which signals are bullish, which are bearish, what it means for your stocks.",
      "pages/2_Today_Digest.py", "Open Today's Brief →", "cta_s1"),
-    ("2", "#F59E0B", "🗺", "Check the Sector Map",
+    ("2", "#F59E0B", "", "Check the Sector Map",
      "See which sectors the signals currently favor. Find where the macro tailwinds are pointing right now.",
      "pages/12_Sector_Map.py", "Open Sector Map →", "cta_s2"),
-    ("3", "#7C3AED", "🔬", "Deep Dive a Ticker",
+    ("3", "#7C3AED", "", "Deep Dive a Ticker",
      "Type any stock. Get a Confluence Score, signal breakdown, earnings history, and bull/bear case.",
      "pages/3_Ticker_Deep_Dive.py", "Open Deep Dive →", "cta_s3"),
-    ("4", "#00C8E0", "🔔", "Set Up Alerts",
+    ("4", "#00C8E0", "", "Set Up Alerts",
      "Save your stocks. Get emailed when signals flip — hourly watchlist alerts, 7 AM digest, or Discord/Slack webhooks.",
      "pages/10_Watchlist.py", "Open Watchlist →", "cta_s4"),
 ]
@@ -1454,16 +1454,16 @@ st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 _al1, _al2, _al3, _al4 = st.columns(4)
 
 _alert_cards = [
-    ("#00C8E0", "🐦", "Daily X/Twitter Feed",
+    ("#00C8E0", "", "Daily X/Twitter Feed",
      "Every morning at 9 AM ET, @UnstructuredAlpha tweets which signals flipped overnight and what it means. "
      "Follow once, stay informed forever."),
-    ("#00D566", "📧", "Watchlist Email Alerts",
+    ("#00D566", "", "Watchlist Email Alerts",
      "When a signal on any of your watchlist tickers crosses a threshold, you get an email — "
      "automatically, hourly. No logging in required."),
-    ("#F59E0B", "📬", "7 AM Morning Digest",
+    ("#F59E0B", "", "7 AM Morning Digest",
      "A Seeking Alpha-style macro briefing lands in your inbox before market open — "
      "bull/bear signal counts, top movers, the regime in plain English."),
-    ("#A78BFA", "🔗", "Discord / Slack Webhooks",
+    ("#A78BFA", "", "Discord / Slack Webhooks",
      "Send signal alerts directly into your Discord server or Slack workspace. "
      "Your whole team sees the flip the moment it happens."),
 ]
@@ -1552,25 +1552,25 @@ st.markdown("""
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
                              background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
-                             border-radius:5px;padding:3px 9px;">📧 Morning Digest</span>
+                             border-radius:5px;padding:3px 9px;"> Morning Digest</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
                              background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
-                             border-radius:5px;padding:3px 9px;">🐦 Daily X/Twitter Signals</span>
+                             border-radius:5px;padding:3px 9px;">Daily X/Twitter Signals</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
                              background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
-                             border-radius:5px;padding:3px 9px;">🔔 Watchlist Email Alerts</span>
+                             border-radius:5px;padding:3px 9px;"> Watchlist Email Alerts</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
                              background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
-                             border-radius:5px;padding:3px 9px;">🔗 Discord/Slack Webhooks</span>
+                             border-radius:5px;padding:3px 9px;"> Discord/Slack Webhooks</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
                              background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
-                             border-radius:5px;padding:3px 9px;">📊 Signal Backtester</span>
+                             border-radius:5px;padding:3px 9px;"> Signal Backtester</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
                              background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
-                             border-radius:5px;padding:3px 9px;">📈 Factor Exposure</span>
+                             border-radius:5px;padding:3px 9px;"> Factor Exposure</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
                              background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
-                             border-radius:5px;padding:3px 9px;">♾ Unlimited Watchlist</span>
+                             border-radius:5px;padding:3px 9px;">Unlimited Watchlist</span>
             </div>
         </div>
         <div style="text-align:center;min-width:160px;">
@@ -1618,7 +1618,6 @@ try:
             border:1px solid rgba(0,213,102,0.25);border-radius:12px;
             padding:22px 28px 20px;margin-bottom:6px;">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-    <span style="font-size:1.4rem;">🎁</span>
     <span style="font-size:1.1rem;font-weight:800;color:#E8EEFF;font-family:Inter,sans-serif;
                  letter-spacing:-0.3px;">Invite a friend — both of you win</span>
   </div>
@@ -1646,7 +1645,7 @@ try:
 <div style="background:rgba(0,213,102,0.06);border:1px solid rgba(0,213,102,0.18);
             border-radius:8px;padding:14px 20px 12px;margin-bottom:6px;">
   <div style="font-size:0.9rem;font-weight:700;color:#E8EEFF;font-family:Inter,sans-serif;
-              margin-bottom:6px;">🔗 Share Unstructured Alpha</div>
+              margin-bottom:6px;"> Share Unstructured Alpha</div>
   <div style="font-size:0.82rem;color:#9DAFC8;font-family:Inter,sans-serif;margin-bottom:10px;">
     Friends get a 14-day free trial via your link. You earn 1 free month every time one subscribes.
   </div>

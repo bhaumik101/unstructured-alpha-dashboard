@@ -1,18 +1,17 @@
-"""
-utils/theme.py — Unstructured Alpha Modern Dark Design System
-All chart styling flows through style_chart() for consistency.
-Robinhood-inspired: dark backgrounds, green/purple gradient accents, glassmorphism cards.
-"""
+"""Unstructured Alpha's restrained dark product and chart system."""
 import math as _math
+
+import plotly.graph_objects as _go
+import plotly.io as _pio
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 
 # Backgrounds
-BG_PAGE         = "#0B0D12"   # near-black page background
-BG_CARD         = "#12151E"   # card surface
-BG_CARD_RAISED  = "#1A1E2C"   # hover / elevated card
-BG_PLOT         = "#0F1118"   # chart plot area
-BG_SIDEBAR      = "#0D0F1A"   # sidebar
+BG_PAGE         = "#0A0D12"   # near-black page background
+BG_CARD         = "#11151C"   # card surface
+BG_CARD_RAISED  = "#171C25"   # hover / elevated card
+BG_PLOT         = "rgba(0,0,0,0)"  # charts inherit their containing surface
+BG_SIDEBAR      = "#0D1016"   # sidebar
 
 # Typography
 TEXT_PRIMARY   = "#E8EEFF"   # cool near-white
@@ -21,17 +20,17 @@ TEXT_MUTED     = "#8892AA"   # muted but readable on dark bg (was #8892AA — to
 TEXT_CAPTION   = "#6B7FBF"   # subtle caption
 
 # Brand accents
-GREEN       = "#00D566"   # primary green (Robinhood-style)
-GREEN_DARK  = "#00A847"   # darker green variant
+GREEN       = "#35C98B"   # restrained positive accent
+GREEN_DARK  = "#27966A"   # darker green variant
 GREEN_DIM   = "#001A0D"   # dimmed green for backgrounds
-PURPLE      = "#7C3AED"   # violet accent
+PURPLE      = "#8187F7"   # analytic-series accent
 PURPLE_DIM  = "#1A0A3D"   # dimmed purple
-CYAN        = "#00C8E0"   # secondary accent
-AMBER       = "#F59E0B"   # warning/watch amber
+CYAN        = "#55A7D8"   # secondary accent
+AMBER       = "#D6A34A"   # warning/watch amber
 
 # Signal status
-BULL_GREEN  = "#00D566"   # bullish green
-BEAR_RED    = "#FF4444"   # bearish red
+BULL_GREEN  = "#35C98B"   # bullish green
+BEAR_RED    = "#E06C75"   # bearish red
 BEAR_DIM    = "#4D0000"   # dimmed red
 NEUTRAL     = "#6B7FBF"   # neutral blue-gray
 
@@ -42,49 +41,84 @@ DIVIDER      = "rgba(255,255,255,0.05)"
 
 # Data series — vibrant on dark
 SERIES_COLORS = [
-    "#00D566",   # green (primary)
-    "#7C3AED",   # purple
-    "#00C8E0",   # cyan
-    "#FF4444",   # red
-    "#F59E0B",   # amber
-    "#06B6D4",   # sky
-    "#EC4899",   # pink
-    "#34D399",   # emerald
+    "#55A7D8",   # blue
+    "#8187F7",   # indigo
+    "#35C98B",   # green
+    "#D6A34A",   # amber
+    "#E06C75",   # red
+    "#7FB7BE",   # muted cyan
+    "#B58BD2",   # muted violet
+    "#A8B1C2",   # neutral
 ]
 
 # Heatmap colorscale (bear → neutral → bull) — dark-friendly
 HEATMAP_COLORSCALE = [
-    [0.00, "#3D0000"],
-    [0.25, "#FF4444"],
-    [0.45, "#1A1E2C"],
-    [0.50, "#20243A"],
-    [0.55, "#0A2018"],
-    [0.75, "#00D566"],
-    [1.00, "#003D1A"],
+    [0.00, "#6E3038"],
+    [0.25, "#B75B65"],
+    [0.50, "#252B35"],
+    [0.75, "#2E8F68"],
+    [1.00, "#3FC68E"],
 ]
 
+
+def _register_plotly_template() -> None:
+    """Give every figure a sane baseline, including figures not styled locally."""
+    axis = dict(
+        showgrid=True,
+        gridcolor=GRID_COLOR,
+        gridwidth=1,
+        zeroline=False,
+        showline=False,
+        ticks="",
+        automargin=True,
+        tickfont=dict(family="Inter, sans-serif", size=10, color=TEXT_SECONDARY),
+        title=dict(font=dict(family="Inter, sans-serif", size=11, color=TEXT_MUTED), standoff=10),
+    )
+    _pio.templates["ua_financial"] = _go.layout.Template(
+        layout=_go.Layout(
+            colorway=SERIES_COLORS,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="Inter, sans-serif", size=11, color=TEXT_SECONDARY),
+            title=dict(font=dict(family="Inter, sans-serif", size=14, color=TEXT_PRIMARY), x=0.01),
+            xaxis=axis,
+            yaxis=axis,
+            margin=dict(l=12, r=12, t=36, b=12),
+            hoverlabel=dict(
+                bgcolor=BG_CARD_RAISED,
+                bordercolor="rgba(255,255,255,0.12)",
+                font=dict(family="Inter, sans-serif", size=11, color=TEXT_PRIMARY),
+            ),
+            legend=dict(
+                orientation="h", x=0, xanchor="left", y=1.02, yanchor="bottom",
+                bgcolor="rgba(0,0,0,0)", borderwidth=0,
+                font=dict(family="Inter, sans-serif", size=10, color=TEXT_SECONDARY),
+            ),
+            modebar=dict(bgcolor="rgba(0,0,0,0)", color=TEXT_MUTED, activecolor=TEXT_PRIMARY),
+        )
+    )
+    _pio.templates.default = "ua_financial"
+
+
+_register_plotly_template()
+
 # ── Plotly chart config ───────────────────────────────────────────────────────
-# Default config — no toolbar clutter, but scroll-zoom enabled so users can
-# zoom with the mouse wheel / trackpad pinch without needing the mode bar.
+# Plotly must never hijack vertical page scrolling. Range selectors and drag
+# zoom remain available on the few charts where exploration is valuable.
 PLOTLY_CONFIG: dict = {
     "displayModeBar": False,
-    "scrollZoom": True,          # wheel/pinch zoom — works without toolbar
+    "scrollZoom": False,
     "staticPlot": False,         # keep hover tooltips
     "responsive": True,
     "doubleClick": "reset",      # double-click resets zoom
 }
 
-# Full interactive mode — toolbar + zoom/pan for price/signal history charts:
+# Interactive charts retain drag zoom and reset-on-double-click without a
+# floating toolbar obscuring data.
 PLOTLY_CONFIG_INTERACTIVE: dict = {
-    "displayModeBar": True,
-    "modeBarButtonsToRemove": [
-        "select2d", "lasso2d", "autoScale2d",
-        "hoverCompareCartesian", "hoverClosestCartesian",
-        "toggleSpikelines",
-    ],
-    "modeBarButtonsToAdd": ["resetScale2d"],
+    "displayModeBar": False,
     "displaylogo": False,
-    "scrollZoom": True,
+    "scrollZoom": False,
     "responsive": True,
     "doubleClick": "reset",
 }
@@ -93,14 +127,21 @@ PLOTLY_CONFIG_INTERACTIVE: dict = {
 # no toolbar visible. Use with style_timeseries_chart().
 PLOTLY_CONFIG_TIMESERIES: dict = {
     "displayModeBar": False,
-    "scrollZoom": True,
+    "scrollZoom": False,
     "responsive": True,
     "doubleClick": "reset",
 }
 
 # ── Chart Style Helper ────────────────────────────────────────────────────────
 
-def style_chart(fig, height: int = 350, title: str = "") -> object:
+def style_chart(
+    fig,
+    height: int = 350,
+    title: str = "",
+    *,
+    hovermode: str = "x unified",
+    legend: bool | None = None,
+) -> object:
     """
     Apply the Unstructured Alpha dark theme to any Plotly figure.
 
@@ -116,23 +157,17 @@ def style_chart(fig, height: int = 350, title: str = "") -> object:
         # Tick labels — readable on dark plot background (#0F1118)
         tickfont=dict(color=TEXT_SECONDARY, size=10, family="Inter, sans-serif"),
         title_font=dict(color=TEXT_MUTED, size=11, family="Inter, sans-serif"),
-        linecolor="rgba(255,255,255,0.08)",
+        linecolor="rgba(255,255,255,0.07)",
         zeroline=False,
         # Axis line itself
-        showline=True,
+        showline=False,
     )
-    fig.update_layout(
+    layout_updates = dict(
         height=height,
-        title=dict(
-            text=title,
-            font=dict(family="Inter, -apple-system, sans-serif", size=13, color=TEXT_PRIMARY),
-            x=0,
-            xanchor="left",
-        ) if title else None,
-        paper_bgcolor=BG_PAGE,
+        paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor=BG_PLOT,
         font=dict(family="Inter, -apple-system, sans-serif", color=TEXT_SECONDARY),
-        hovermode="x unified",
+        hovermode=hovermode,
         hoverlabel=dict(
             bgcolor=BG_CARD_RAISED,
             bordercolor=BORDER_LIGHT,
@@ -140,12 +175,18 @@ def style_chart(fig, height: int = 350, title: str = "") -> object:
             namelength=-1,
         ),
         legend=dict(
-            bgcolor="rgba(18,21,30,0.90)",
-            bordercolor="rgba(255,255,255,0.08)",
-            borderwidth=1,
+            orientation="h",
+            x=0,
+            xanchor="left",
+            y=1.02,
+            yanchor="bottom",
+            bgcolor="rgba(0,0,0,0)",
+            borderwidth=0,
             font=dict(size=11, color=TEXT_SECONDARY, family="Inter, sans-serif"),
         ),
-        margin=dict(l=8, r=8, t=36 if title else 16, b=8),
+        margin=dict(l=12, r=12, t=46 if title else 24, b=12),
+        hoverdistance=48,
+        uirevision="ua-chart-v2",
         xaxis=dict(
             **_axis,
             showspikes=True,
@@ -155,7 +196,38 @@ def style_chart(fig, height: int = 350, title: str = "") -> object:
         ),
         yaxis=_axis,
     )
+    if title:
+        layout_updates["title"] = dict(
+            text=title,
+            font=dict(family="Inter, -apple-system, sans-serif", size=14, color=TEXT_PRIMARY),
+            x=0.01,
+            xanchor="left",
+        )
+    if legend is not None:
+        layout_updates["showlegend"] = legend
+    fig.update_layout(**layout_updates)
     return fig
+
+
+def style_sparkline(fig, height: int = 54, *, y_range=None) -> object:
+    """A quiet, non-interactive trend line for dense cards and watchlists."""
+    fig.update_layout(
+        height=height,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0, r=0, t=2, b=2),
+        showlegend=False,
+        hovermode=False,
+        xaxis=dict(visible=False, fixedrange=True),
+        yaxis=dict(visible=False, fixedrange=True, range=y_range),
+        uirevision="ua-spark-v2",
+    )
+    return fig
+
+
+def style_distribution_chart(fig, height: int = 360, title: str = "") -> object:
+    """Style box, violin, histogram, and scatter distributions without unified hover."""
+    return style_chart(fig, height=height, title=title, hovermode="closest")
 
 
 def style_chart_secondary(fig, height: int = 380,
@@ -167,7 +239,7 @@ def style_chart_secondary(fig, height: int = 380,
     _tick = dict(color=TEXT_SECONDARY, size=10, family="Inter, sans-serif")
     fig.update_layout(
         height=height,
-        paper_bgcolor=BG_PAGE,
+        paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor=BG_PLOT,
         font=dict(family="Inter, -apple-system, sans-serif", color=TEXT_SECONDARY),
         hovermode="x unified",
@@ -178,12 +250,12 @@ def style_chart_secondary(fig, height: int = 380,
             namelength=-1,
         ),
         legend=dict(
-            bgcolor="rgba(18,21,30,0.90)",
-            bordercolor="rgba(255,255,255,0.08)",
-            borderwidth=1,
+            orientation="h", x=0, xanchor="left", y=1.02, yanchor="bottom",
+            bgcolor="rgba(0,0,0,0)", borderwidth=0,
             font=dict(size=11, color=TEXT_SECONDARY, family="Inter, sans-serif"),
         ),
-        margin=dict(l=8, r=8, t=20, b=8),
+        margin=dict(l=12, r=12, t=42, b=12),
+        uirevision="ua-secondary-v2",
         xaxis=dict(
             showgrid=True,
             gridcolor=GRID_COLOR,
@@ -1855,7 +1927,7 @@ def render_data_freshness(
 def render_educational_callout(
     title: str,
     body: str,
-    icon: str = "ℹ️",
+    icon: str = "",
     accent: str = "#00C8E0",
 ) -> str:
     """
@@ -1871,7 +1943,6 @@ def render_educational_callout(
         f'border-radius:0 8px 8px 0;padding:10px 14px;margin:10px 0;'
         f'font-family:Inter,sans-serif;">'
         f'<div style="display:flex;align-items:flex-start;gap:8px;">'
-        f'<span style="font-size:0.9rem;margin-top:1px;flex-shrink:0;">{icon}</span>'
         f'<div>'
         f'<div style="font-size:0.8rem;font-weight:700;color:#C8D0E4;'
         f'margin-bottom:3px;">{title}</div>'
@@ -1896,7 +1967,7 @@ def render_pro_cta(
             'background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.20);'
             'border-radius:8px;padding:6px 12px;font-family:Inter,sans-serif;">'
             '<span style="font-size:0.68rem;color:#A78BFA;font-weight:700;'
-            'letter-spacing:0.06em;">⚡ PRO</span>'
+            'letter-spacing:0.06em;">PRO</span>'
             f'<span style="font-size:0.8rem;color:#8892AA;">{feature_name}</span>'
             '<a href="/upgrade-to-pro" style="font-size:0.78rem;color:#7C3AED;font-weight:600;'
             'text-decoration:none;margin-left:4px;white-space:nowrap;">Unlock →</a>'
@@ -1907,7 +1978,6 @@ def render_pro_cta(
         'border:1px solid rgba(124,58,237,0.18);border-radius:10px;'
         'padding:14px 18px;margin:12px 0;font-family:Inter,sans-serif;'
         'display:flex;align-items:flex-start;gap:12px;">'
-        '<span style="font-size:1.1rem;margin-top:2px;flex-shrink:0;">⚡</span>'
         '<div style="flex:1;min-width:0;">'
         '<div style="font-size:0.82rem;font-weight:700;color:#A78BFA;margin-bottom:3px;">'
         f'Pro — {feature_name}</div>'
@@ -2158,7 +2228,7 @@ def signal_confidence_badge(level: str, compact: bool = False) -> str:
     )
 
 
-def chart_insight_caption(text: str, icon: str = "💡", muted: bool = False) -> str:
+def chart_insight_caption(text: str, icon: str = "", muted: bool = False) -> str:
     """
     Render a styled insight caption intended to appear directly below a Plotly chart.
 
@@ -2167,7 +2237,7 @@ def chart_insight_caption(text: str, icon: str = "💡", muted: bool = False) ->
 
     Args:
         text:  The caption text (one or two sentences max).
-        icon:  Emoji icon shown at the start (default 💡).
+        icon:  Deprecated; retained for backwards-compatible call sites.
         muted: If True, use a more subdued style (for secondary charts).
 
     Returns an HTML string.
@@ -2184,7 +2254,6 @@ def chart_insight_caption(text: str, icon: str = "💡", muted: bool = False) ->
         f'<div style="background:{bg};border:1px solid {border};border-radius:8px;'
         f'padding:9px 14px;margin-top:-4px;margin-bottom:12px;'
         f'font-family:Inter,sans-serif;display:flex;align-items:flex-start;gap:8px;">'
-        f'<span style="font-size:0.85rem;flex-shrink:0;margin-top:1px;">{icon}</span>'
         f'<span style="font-size:0.78rem;color:{color};line-height:1.55;">{text}</span>'
         f'</div>'
     )

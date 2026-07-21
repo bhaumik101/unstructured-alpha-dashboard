@@ -1135,6 +1135,65 @@ code, pre {
    harmless no-op; legibility text-shadows use a vertical offset and are
    untouched. */
 [style*="0px 0px"] { text-shadow: none !important; }
+
+/* ── Institutional surface pass (2026-07-21) ──────────────────────────────
+   Reduce motion, glow, glass, and decorative gradients across every page.
+   Directional color remains meaningful; surfaces and typography stay quiet. */
+[data-testid="stAppViewContainer"], .main {
+    background: #0A0D12 !important;
+    background-image: none !important;
+}
+section[data-testid="stSidebar"] {
+    background: #0D1016 !important;
+    border-right-color: rgba(255,255,255,0.07) !important;
+}
+.ua-header::after, .ua-card-shine::after { display: none !important; }
+.ua-wordmark span {
+    background: none !important;
+    -webkit-text-fill-color: #DDE3EC !important;
+    color: #DDE3EC !important;
+    animation: none !important;
+}
+.metric-card, .page-card, .stat-box,
+[data-testid="stMetric"], [data-testid="stExpander"] {
+    background: #11151C !important;
+    backdrop-filter: none !important;
+    border-color: rgba(255,255,255,0.08) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+.metric-card:hover, .page-card:hover,
+[data-testid="stMetric"]:hover, [data-testid="stExpander"]:hover {
+    border-color: rgba(255,255,255,0.14) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+.stButton > button, .stDownloadButton > button,
+[data-testid="stPopover"] > button {
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+}
+[data-testid="stPlotlyChart"] {
+    background: #11151C !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 8px !important;
+    padding: 4px !important;
+    box-shadow: none !important;
+}
+[data-testid="stPlotlyChart"]:hover { box-shadow: none !important; }
+.ua-slide-up, .main .block-container,
+[data-testid="stMainBlockContainer"] {
+    animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 </style>
 """
 
@@ -1162,7 +1221,7 @@ def render_synthetic_data_banner(n_synthetic: int, n_total: int) -> None:
     <div style="background:rgba(255,68,68,0.08);color:#FF8888;border-radius:10px;padding:12px 18px;
                 margin-bottom:14px;font-family:Inter,sans-serif;font-size:0.83rem;
                 border:1px solid rgba(255,68,68,0.3);border-left:3px solid #FF4444;">
-        <b style="color:#FF4444;">⚠ DEMO DATA</b> — {n_synthetic} of {n_total} signals on this page are showing
+        <b style="color:#E06C75;">DEMO DATA</b> — {n_synthetic} of {n_total} signals on this page are showing
         synthetic placeholder data, not real values. This happens when no FRED API
         key is configured or a live fetch fails. Add a free key in the sidebar under
         "Setup" for real data — until then, treat any bullish/bearish reading from
@@ -1225,7 +1284,7 @@ def render_global_ticker_search() -> None:
     """
     # Search the FULL US-listed universe (~12.6k symbols via utils.symbols), not
     # just our 280 scored tickers — matching on symbol AND company name, filtered
-    # client-side so it's instant per keystroke. Scored tickers are marked ✦.
+    # client-side so it's instant per keystroke. Scored tickers are labeled Core.
     # The option list is static, so Streamlit ships it once per session rather
     # than on every rerun. Degrades to the tracked list if the directory is
     # unavailable, so search never breaks.
@@ -1234,7 +1293,7 @@ def render_global_ticker_search() -> None:
         _sym_idx = dict(get_symbol_index())
         for _t in TICKERS:
             if _t in _sym_idx:
-                _sym_idx[_t] = f"✦ {_sym_idx[_t]}"
+                _sym_idx[_t] = f"{_sym_idx[_t]} — Core"
     except Exception:
         _sym_idx = {}
 
@@ -1251,7 +1310,7 @@ def render_global_ticker_search() -> None:
             "Jump to a ticker",
             options,
             index=None,
-            placeholder="🔍 Search any ticker…",
+            placeholder="Search ticker or company",
             key="global_ticker_search",
             label_visibility="collapsed",
             format_func=_fmt,
@@ -1582,9 +1641,9 @@ a.ua-tnav-item.active { color: #00D566 !important; background: rgba(0,213,102,0.
 <script>
 (function(){
   try {
-    var path = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+        var path = (window.location.pathname || '/').replace(/\\/+$/, '') || '/';
     document.querySelectorAll('.ua-tnav-drop a').forEach(function(a){
-      var hp = (a.getAttribute('href') || '').replace(/\/+$/, '') || '/';
+      var hp = (a.getAttribute('href') || '').replace(/\\/+$/, '') || '/';
       if (hp && hp === path) {
         a.classList.add('active');
         var grp = a.closest('.ua-tnav-group');
@@ -1772,7 +1831,7 @@ def render_header(page_subtitle: str = "") -> None:
             f'background:rgba(0,213,102,0.08);border:1px solid rgba(0,213,102,0.2);'
             f'border-radius:6px;padding:2px 8px;font-size:0.68rem;color:#00D566;'
             f'font-weight:600;font-family:Inter,sans-serif;white-space:nowrap;">'
-            f'👤 {_user_email}{_tier_badge}</span>'
+            f'{_user_email}{_tier_badge}</span>'
         )
 
     right_html = (
@@ -1847,7 +1906,7 @@ def render_header(page_subtitle: str = "") -> None:
     # that calls render_header() (all of them).
     render_global_ticker_search()
 
-    # ── Top-right widget row: bell (logged-in only) + account ─────────────────
+    # ── Top-right widget row: notifications (logged-in only) + account ────────
     # Single st.columns() call so both widgets share one horizontal row.
     # Bell is only rendered for logged-in users (no point showing notifications
     # to a guest who has no account-linked data).
@@ -1856,7 +1915,7 @@ def render_header(page_subtitle: str = "") -> None:
     _hdr_user = try_restore_session(_cookies)
     _uid = (_hdr_user or {}).get("id")
 
-    _space, _bell_col, _acct_col = st.columns([4.2, 0.45, 1.55])
+    _space, _bell_col, _acct_col = st.columns([3.75, 1.05, 1.55])
 
     # Bell — logged-in users only
     if _uid:
@@ -1865,9 +1924,9 @@ def render_header(page_subtitle: str = "") -> None:
                 get_unread_notification_count, get_recent_notifications, mark_all_read
             )
             _unread = get_unread_notification_count(_uid)
-            _badge_text = f" ({min(_unread, 99)})" if _unread > 0 else ""
+            _badge_text = f" {_unread if _unread < 100 else '99+'}" if _unread > 0 else ""
             with _bell_col:
-                with st.popover(f"🔔{_badge_text}", use_container_width=True):
+                with st.popover(f"Notifications{_badge_text}", use_container_width=True):
                     st.markdown(
                         '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;'
                         'text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);'
@@ -1878,14 +1937,14 @@ def render_header(page_subtitle: str = "") -> None:
                     if not _notifs:
                         st.caption("No notifications yet. Convergence events and prediction resolutions will appear here.")
                     else:
-                        _NOTIF_ICONS = {
-                            "convergence":          "⚡",
-                            "regime_change":        "📈",
-                            "near_flip":            "⏳",
-                            "prediction_resolved":  "📊",
+                        _NOTIF_LABELS = {
+                            "convergence":          "CONVERGENCE",
+                            "regime_change":        "REGIME",
+                            "near_flip":            "WATCH",
+                            "prediction_resolved":  "RESOLVED",
                         }
                         for _n in _notifs:
-                            _icon = _NOTIF_ICONS.get(_n.get("notif_type", ""), "●")
+                            _type_label = _NOTIF_LABELS.get(_n.get("notif_type", ""), "UPDATE")
                             _n_bg = "rgba(0,213,102,0.06)" if _n.get("direction") == "bull" else (
                                     "rgba(255,68,68,0.06)" if _n.get("direction") == "bear" else "rgba(18,21,30,0.6)"
                             )
@@ -1896,8 +1955,10 @@ def render_header(page_subtitle: str = "") -> None:
                             st.markdown(
                                 f'<div style="background:{_n_bg};border-radius:8px;padding:8px 10px;'
                                 f'margin-bottom:6px;border-left:3px solid {_n_border};font-family:Inter,sans-serif;">'
+                                f'<div style="font-size:0.58rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;'
+                                f'text-transform:uppercase;margin-bottom:3px;">{_type_label}</div>'
                                 f'<div style="font-size:0.76rem;font-weight:600;color:#E8EEFF;">'
-                                f'{_icon} {_n.get("title","")}</div>'
+                                f'{_n.get("title","")}</div>'
                                 f'<div style="font-size:0.70rem;color:#8892AA;margin-top:3px;line-height:1.4;">'
                                 f'{_n.get("body","")}</div>'
                                 f'<div style="font-size:0.60rem;color:#8892AA;margin-top:4px;">{_n_ts}</div>'
@@ -1914,7 +1975,7 @@ def render_header(page_subtitle: str = "") -> None:
     # Account widget — all users
     with _acct_col:
         if _hdr_user:
-            with st.popover("⚙ Account", use_container_width=True):
+            with st.popover("Account", use_container_width=True):
                 if st.button("Log Out", key="topright_logout", use_container_width=True):
                     logout()
                     st.rerun()
@@ -2006,13 +2067,13 @@ def _render_live_ticker_strip() -> None:
 def render_page_header(title: str, subtitle: str = "",
                        icon: str = "", live_stat: str = "") -> None:
     """
-    Modern page title with gradient text, animated underline accent, and
+    Restrained page title with a quiet divider and
     optional live right-side stat chip.
 
     Args:
-        title:     Page title — displayed with gradient text + animated accent.
+        title:     Page title.
         subtitle:  One-line description of what the page does.
-        icon:      Optional emoji/icon prefix for the title (e.g. "📊").
+        icon:      Deprecated visual-prefix argument; intentionally ignored.
         live_stat: Optional right-aligned stat string (e.g. "47 signals active").
     """
     # De-emoji (2026-07-13): every page title now renders WITHOUT its emoji icon
@@ -2024,10 +2085,10 @@ def render_page_header(title: str, subtitle: str = "",
 
     stat_html = (
         f'<div style="display:inline-flex;align-items:center;gap:6px;'
-        f'background:rgba(0,213,102,0.07);border:1px solid rgba(0,213,102,0.18);'
-        f'border-radius:20px;padding:4px 12px;font-size:0.68rem;font-weight:700;'
-        f'color:#00D566;letter-spacing:0.06em;white-space:nowrap;font-family:Inter,sans-serif;">'
-        f'<span class="ua-pulse-dot" style="margin-right:2px;"></span>{live_stat}</div>'
+        f'background:#11151C;border:1px solid rgba(255,255,255,0.09);'
+        f'border-radius:6px;padding:5px 10px;font-size:0.66rem;font-weight:650;'
+        f'color:#AAB3C5;letter-spacing:0.04em;white-space:nowrap;font-family:Inter,sans-serif;">'
+        f'{live_stat}</div>'
     ) if live_stat else ""
 
     sub_html = (
@@ -2040,18 +2101,10 @@ def render_page_header(title: str, subtitle: str = "",
             margin:8px 0 20px;padding-bottom:16px;position:relative;
             border-bottom:1px solid rgba(255,255,255,0.05);"
      class="ua-slide-up">
-    <!-- Animated gradient accent line -->
-    <div style="position:absolute;bottom:-1px;left:0;width:200px;height:2px;
-                background:linear-gradient(90deg,#00D566,#00C8E0,#7C3AED);
-                background-size:300% 100%;
-                animation:ua_gradient_x 5s ease infinite;
-                border-radius:1px;"></div>
     <div>
-        <div style="font-size:1.9rem;font-weight:800;letter-spacing:-0.7px;line-height:1.1;
+        <div style="font-size:1.8rem;font-weight:720;letter-spacing:-0.55px;line-height:1.15;
                     font-family:Inter,sans-serif;display:flex;align-items:center;flex-wrap:wrap;">
-            {icon_html}<span style="background:linear-gradient(135deg,#E8EEFF 0%,#C8D0E4 100%);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-            background-clip:text;">{title}</span>
+            {icon_html}<span style="color:#E4E9F2;">{title}</span>
         </div>
         {sub_html}
     </div>
@@ -2115,7 +2168,7 @@ def render_footer(page: str = "") -> None:
                     border-radius:10px;padding:16px 20px;margin-bottom:16px;">
             <div style="font-size:0.65rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;
                         text-transform:uppercase;margin-bottom:6px;">
-                ⚠ Important Disclaimer
+                Important Disclaimer
             </div>
             <div style="font-size:0.73rem;color:#6B7FBF;line-height:1.65;">
                 Unstructured Alpha is for <strong style="color:#8892AA;">educational and informational

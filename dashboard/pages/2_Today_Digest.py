@@ -46,11 +46,11 @@ inject_all_css()
 render_page_header(
     "Today's Brief",
     "What the macro machine sees right now — signals, regime, and top opportunities.",
-    icon="📋",
+    icon="",
 )
 init_db()
 
-tab_today, tab_weekly = st.tabs(["📋 Today's Brief", "📰 Weekly Brief"])
+tab_today, tab_weekly = st.tabs([" Today's Brief", " Weekly Brief"])
 
 with tab_today:
 
@@ -179,7 +179,7 @@ with tab_today:
 
     # Educational callout collapsed by default — returning users don't need it
     # taking up screen space every visit. New users can expand it.
-    with st.expander("ℹ️ How to read these signals", expanded=False):
+    with st.expander("How to read these signals", expanded=False):
         st.markdown(
             render_educational_callout(
                 title="How to read these signals",
@@ -190,7 +190,7 @@ with tab_today:
                     "Scores between 36–64 are neutral — no strong tilt. "
                     "<strong>These are informational indicators, not buy/sell signals.</strong>"
                 ),
-                icon="📊",
+                icon="",
                 accent="#00C8E0",
             ),
             unsafe_allow_html=True,
@@ -241,7 +241,7 @@ with tab_today:
         _nar_watch_html = (
             f'<div style="margin-top:8px;padding:7px 10px;background:rgba(245,158,11,0.08);'
             f'border-left:3px solid #F59E0B;border-radius:4px;font-size:0.73rem;color:#F59E0B;">'
-            f'👁 {_nar["watch_note"]}</div>'
+            f' {_nar["watch_note"]}</div>'
             if _nar.get("watch_note") else ""
         )
         st.markdown(
@@ -275,7 +275,7 @@ with tab_today:
             _regime_shift_html = (
                 f'<div style="background:rgba(245,158,11,0.08);border-left:3px solid #F59E0B;padding:5px 10px;'
                 f'border-radius:4px;font-size:0.76rem;color:#F59E0B;margin-bottom:8px;">'
-                f'⚡ Regime shift: <b>{_d_regime}</b></div>'
+                f' Regime shift: <b>{_d_regime}</b></div>'
                 if _d_regime else ""
             )
             def _flip_pill(entry, direction):
@@ -309,7 +309,7 @@ with tab_today:
                 f'border-left:4px solid #F59E0B;font-family:Inter,sans-serif;'
                 f'box-shadow:0 4px 20px rgba(0,0,0,0.30);">'
                 f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
-                f'<span style="font-size:1.1rem;">⚡</span>'
+                f'<span style="font-size:1.1rem;"></span>'
                 f'<div style="font-size:0.70rem;font-weight:700;letter-spacing:0.12em;color:#F59E0B;'
                 f'text-transform:uppercase;">What Changed Since Last Week</div>'
                 f'<div style="margin-left:auto;font-size:0.62rem;color:#6B7FBF;">'
@@ -330,7 +330,7 @@ with tab_today:
             st.markdown(
                 '<div style="font-size:0.68rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;'
                 'text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:6px;margin-bottom:10px;">'
-                '⚡ SIGNAL CONVERGENCE EVENTS — 3+ signals aligned this week</div>',
+                ' SIGNAL CONVERGENCE EVENTS — 3+ signals aligned this week</div>',
                 unsafe_allow_html=True,
             )
             render_convergence_events(_conv, max_bull=3, max_bear=2)
@@ -349,7 +349,7 @@ with tab_today:
                 'border:1px solid rgba(255,255,255,0.08);font-family:Inter,sans-serif;">'
                 '<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.10em;color:#8892AA;'
                 'text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:6px;">'
-                '⏳ ABOUT TO FLIP — signals within 5 pts of a threshold crossing</div>',
+                ' ABOUT TO FLIP — signals within 5 pts of a threshold crossing</div>',
                 unsafe_allow_html=True,
             )
             _flip_cols = st.columns(2)
@@ -477,7 +477,7 @@ with tab_today:
             for sid, d in _bull_sigs:
                 st.html(_signal_card_html(sid, d))
         else:
-            st.html(empty_state("📈", "No bullish signals", "All signals currently read neutral or bearish."))
+            st.html(empty_state("", "No bullish signals", "All signals currently read neutral or bearish."))
 
     with _pulse_col2:
         st.markdown(
@@ -493,7 +493,7 @@ with tab_today:
             for sid, d in _bear_sigs:
                 st.html(_signal_card_html(sid, d))
         else:
-            st.html(empty_state("📉", "No bearish signals", "All signals currently read neutral or bullish."))
+            st.html(empty_state("", "No bearish signals", "All signals currently read neutral or bullish."))
 
     with _pulse_col3:
         st.markdown(
@@ -509,7 +509,7 @@ with tab_today:
             for sid, d in _neut_sigs:
                 st.html(_signal_card_html(sid, d))
         else:
-            st.html(empty_state("⚖️", "No neutral signals", "Signals are polarized — all currently bullish or bearish."))
+            st.html(empty_state("", "No neutral signals", "Signals are polarized — all currently bullish or bearish."))
 
     # Summary bar
     _n_bull, _n_bear, _n_neut = len(_bull_sigs), len(_bear_sigs), len(_neut_sigs)
@@ -554,7 +554,7 @@ with tab_today:
                 f'border-radius:8px;padding:14px 20px;margin-bottom:14px;font-family:Inter,sans-serif;">'
                 f'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;'
                 f'color:#12151E;font-weight:700;margin-bottom:10px;">'
-                f'⚡ {len(_week_flips)} signal change{"s" if len(_week_flips) != 1 else ""} this week — what you may have missed</div>'
+                f' {len(_week_flips)} signal change{"s" if len(_week_flips) != 1 else ""} this week — what you may have missed</div>'
                 f'<div style="display:flex;flex-wrap:wrap;gap:8px;">',
                 unsafe_allow_html=True,
             )
@@ -586,7 +586,7 @@ with tab_today:
             if len(_week_flips) > 12:
                 st.caption(f"+ {len(_week_flips) - 12} more signal changes this week.")
         else:
-            st.html(empty_state("✅", "No signal changes this week", "The macro picture is holding steady — no direction flips in the past 7 days."))
+            st.html(empty_state("", "No signal changes this week", "The macro picture is holding steady — no direction flips in the past 7 days."))
     except Exception:
         pass  # Never crash the page if flip history unavailable
 
@@ -667,7 +667,7 @@ with tab_today:
             _n_watching = int(_movers_df["ticker"].isin(_watch_set).sum())
             if _n_watching:
                 st.caption(
-                    f"📌 {_n_watching} of your watched ticker(s) appear below — shown first."
+                    f" {_n_watching} of your watched ticker(s) appear below — shown first."
                 )
 
         for _, row in _movers_df.iterrows():
@@ -693,7 +693,7 @@ with tab_today:
                     st.markdown(
                         '<span style="font-size:0.68rem;font-weight:700;color:#00C8E0;'
                         'background:rgba(0,200,224,0.12);border-radius:3px;'
-                        'padding:1px 6px;letter-spacing:0.02em;">👁 Watching</span>',
+                        'padding:1px 6px;letter-spacing:0.02em;"> Watching</span>',
                         unsafe_allow_html=True,
                     )
             with mc2:
@@ -822,7 +822,7 @@ with tab_today:
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
             <div>
                 <div style="font-size:0.60rem;font-weight:700;letter-spacing:0.16em;color:#A78BFA;
-                            text-transform:uppercase;margin-bottom:6px;">📬 Want this in your inbox?</div>
+                            text-transform:uppercase;margin-bottom:6px;"> Want this in your inbox?</div>
                 <div style="font-size:1.0rem;font-weight:800;color:#E8EEFF;margin-bottom:4px;
                             letter-spacing:-0.2px;">
                     Get Today's Brief every morning at 7 AM ET
@@ -836,7 +836,7 @@ with tab_today:
     """, unsafe_allow_html=True)
         _nc1, _nc2, _ = st.columns([1.4, 1.4, 2])
         with _nc1:
-            _btn_label = "→ Get it in my inbox" if _cur_user else "📬 Create free account"
+            _btn_label = "→ Get it in my inbox" if _cur_user else " Create free account"
             _btn_page  = "pages/29_Upgrade.py" if _cur_user else "pages/home_page.py"
             if st.button(_btn_label, use_container_width=True, type="primary", key="digest_signup_cta"):
                 st.switch_page(_btn_page)
@@ -900,7 +900,7 @@ with tab_weekly:
             f'padding-bottom:10px;margin-bottom:16px;display:flex;align-items:center;'
             f'justify-content:space-between;flex-wrap:wrap;gap:8px;">'
             f'<span style="font-size:1.1rem;font-weight:700;color:#E8EEFF;">'
-            f'📰 Unstructured Alpha — Weekly Brief</span>'
+            f' Unstructured Alpha — Weekly Brief</span>'
             f'<span style="font-size:0.70rem;color:#4A5478;">Machine intelligence · Macro synthesis</span>'
             f'</div>',
             unsafe_allow_html=True,
@@ -934,7 +934,7 @@ with tab_weekly:
 
     # Archive
     st.markdown("---")
-    with st.expander("📂 Past issues", expanded=False):
+    with st.expander(" Past issues", expanded=False):
         _wb_archive = get_note_archive(limit=20)
         if not _wb_archive:
             st.caption("No past issues yet.")
