@@ -1,0 +1,20 @@
+[server]
+runOnSave = false
+fileWatcherType = "none"
+headless = true
+enableXsrfProtection = true
+enableCORS = true
+
+[runner]
+fastReruns = true
+enforceSerializableSessionState = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = "none"
+
+[logger]
+level = "warning"
