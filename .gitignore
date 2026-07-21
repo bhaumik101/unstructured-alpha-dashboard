@@ -44,3 +44,5 @@ unstructured-alpha-web/out/
 .idea/
 *.stale_*
 .env
+
+.vercel/
