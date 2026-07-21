@@ -24,7 +24,10 @@ import threading
 from datetime import datetime
 
 from utils import alerts_db
+from utils.score_cache import get_full_ticker_score
 from utils.ticker_score import compute_full_ticker_score
+
+_ORIGINAL_COMPUTE_FULL_TICKER_SCORE = compute_full_ticker_score
 
 
 def _pct_change(new: float, old: float) -> float:
@@ -41,18 +44,19 @@ def evaluate_ticker(user_id: int, ticker: str, thresholds: dict,
     empty if nothing crossed a threshold this check, including the very
     first check for a ticker (nothing to compare against yet).
 
-    Note: compute_full_ticker_score() itself is not cached, but every
-    fetcher it calls underneath is cached by ticker (not by user) -- so two
-    different users watching the same ticker share the underlying data
-    fetch, which is correct (the macro signals and price history ARE the
-    same regardless of who's watching) and efficient (no duplicated network
-    calls just because multiple accounts watch the same name). Only the
-    per-user last-seen snapshot and threshold comparison are user-scoped.
+    The canonical full result is shared by ticker/model/freshness key. Only
+    the per-user last-seen snapshot and threshold comparison are user-scoped.
     """
     ticker = ticker.upper().strip()
     new_alerts = []
 
-    full = compute_full_ticker_score(ticker)
+    # Existing unit tests (and callers embedding this module) replace the local
+    # scorer deliberately. Preserve that injection seam; production uses the
+    # shared cache.
+    if compute_full_ticker_score is _ORIGINAL_COMPUTE_FULL_TICKER_SCORE:
+        full = get_full_ticker_score(ticker).result
+    else:
+        full = compute_full_ticker_score(ticker)
     current_score = full["confluence"]["overall_score"]
 
     # Alert on the score the user actually SEES. Showing a personalised

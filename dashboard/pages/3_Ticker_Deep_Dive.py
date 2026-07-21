@@ -32,6 +32,9 @@ section is actually opened.
 """
 
 from datetime import datetime, timedelta
+import time
+
+_PAGE_STARTED_AT = time.perf_counter()
 
 import numpy as np
 import pandas as pd
@@ -53,7 +56,17 @@ from utils.analysis import (
     compute_quick_correlation_stats, compute_correlation,
     score_contract_velocity, build_narrative, compute_rsi,
 )
-from utils.ticker_score import compute_full_ticker_score, resolve_ticker_meta
+from utils.ticker_score import resolve_ticker_meta
+from utils.score_cache import (
+    clear_full_score_result,
+    clear_session_result,
+    get_full_ticker_score,
+    get_latest_compatible_full_snapshot,
+    get_session_result,
+    make_full_score_cache_key,
+    set_session_result,
+)
+from utils.performance import record_timing
 from utils.header import render_header, render_sidebar_base, render_page_header, go_to_ticker, ticker_chips, ticker_label, render_synthetic_data_banner, render_footer
 from utils.analysis import compute_signal_confidence
 from utils.theme import confluence_gauge_svg, style_area_chart, source_badge, inject_all_css, section_label, PLOTLY_CONFIG, PLOTLY_CONFIG_INTERACTIVE, render_disclaimer, render_educational_callout, signal_confidence_badge, chart_insight_caption
@@ -319,18 +332,88 @@ if _rl_blocked:
 # 2026-06-21 specifically so the score shown here and the score an alert
 # fires on can never silently diverge into two different numbers for the
 # same ticker (see utils/ticker_score.py's module docstring).
-try:
-    with st.spinner(f"Loading signal data for {ticker_input}…"):
-        _full = compute_full_ticker_score(ticker_input, signal_ids=relevant_sig_ids)
-except Exception as _score_err:
-    st.error(
-        f"**Could not load data for {ticker_input}.** "
-        f"This usually means the ticker symbol is invalid, or a data source "
-        f"(yfinance / FRED) is temporarily unavailable. "
-        f"Try again in a moment, or check that '{ticker_input}' is a valid NYSE/NASDAQ symbol."
+_score_key = make_full_score_cache_key(ticker_input, relevant_sig_ids, True)
+_snapshot = get_latest_compatible_full_snapshot(ticker_input, relevant_sig_ids)
+_snapshot_slot = st.empty()
+if _snapshot:
+    _age_hours = _snapshot["age_seconds"] / 3600
+    _freshness = "fresh" if _age_hours < 6 else "recent" if _age_hours < 24 else "stale"
+    _snapshot_slot.info(
+        f"**Latest complete score: {_snapshot['score']:.1f} ({_snapshot['case']})** · "
+        f"calculated {_snapshot['calculated_at'][:16].replace('T', ' ')} UTC · {_freshness}. "
+        "Refreshing live evidence now."
     )
+
+_refresh_col, _refresh_help = st.columns([1, 5])
+if _refresh_col.button("↻ Refresh live score", key=f"refresh_full_{ticker_input}",
+                       help="Refresh only this ticker and signal configuration"):
+    clear_session_result(st.session_state, _score_key)
+    clear_full_score_result(ticker_input, relevant_sig_ids, include_optional=True)
+    st.rerun()
+_refresh_help.caption("The complete score includes macro, momentum, contracts, insiders, short interest, and 13F evidence.")
+
+_full = get_session_result(st.session_state, _score_key)
+_score_cache_status = "session_hit" if _full is not None else "miss"
+try:
+    if _full is None:
+        with st.status(f"Preparing {ticker_input}'s complete score…", expanded=True) as _load_status:
+            def _score_progress(_stage: str, _message: str) -> None:
+                _load_status.update(label=_message, state="running", expanded=True)
+
+            _score_outcome = get_full_ticker_score(
+                ticker_input,
+                relevant_sig_ids,
+                include_optional=True,
+                progress_callback=_score_progress,
+            )
+            _full = _score_outcome.result
+            _score_cache_status = _score_outcome.cache_status
+            set_session_result(st.session_state, _score_outcome.key, _full)
+            _ready_label = "Complete score ready" if _full.get("is_complete", True) else "Provisional score ready"
+            _load_status.update(label=_ready_label, state="complete", expanded=False)
+except Exception as _score_err:
+    if _snapshot:
+        st.warning(
+            "Fresh optional evidence is temporarily unavailable. The compatible complete score above "
+            "has been preserved and was not replaced by a partial score."
+        )
+    else:
+        st.error(
+            f"**Could not load data for {ticker_input}.** "
+            f"This usually means the ticker symbol is invalid, or a data source "
+            f"(yfinance / FRED) is temporarily unavailable. "
+            f"Try again in a moment, or check that '{ticker_input}' is a valid NYSE/NASDAQ symbol."
+        )
     st.caption(f"Technical detail: {_score_err}")
     st.stop()
+
+if not _full.get("is_complete", True) and _snapshot:
+    st.warning(
+        "Fresh optional evidence is temporarily unavailable. The last compatible complete score "
+        "above remains authoritative; no partial score has replaced it."
+    )
+    st.stop()
+if not _full.get("is_complete", True):
+    st.warning(
+        "**Provisional score:** one or more live sources are unavailable "
+        f"({', '.join(_full.get('source_errors', []))}). This result is not stored as a complete score."
+    )
+_snapshot_slot.empty()
+_display_score_kind = "Complete" if _full.get("is_complete", True) else "Provisional"
+st.caption(
+    f"{_display_score_kind} score calculated {_full.get('calculated_at', 'just now')[:16].replace('T', ' ')} UTC "
+    f"· cache: {_score_cache_status.replace('_', ' ')}"
+)
+_page_run_count = int(st.session_state.get("_tdd_page_run_count", 0)) + 1
+st.session_state["_tdd_page_run_count"] = _page_run_count
+record_timing(
+    "page_startup_to_score",
+    ticker=ticker_input,
+    duration_seconds=time.perf_counter() - _PAGE_STARTED_AT,
+    success=_full.get("is_complete", True),
+    cache_status=_score_cache_status,
+    metadata={"rerun": _page_run_count > 1},
+)
 
 signal_scores  = _full["signal_scores"]
 signal_data    = _full["signal_data"]
@@ -362,22 +445,24 @@ render_synthetic_data_banner(
 # foundation the Score History chart, future track-record page, and real
 # alert deltas all sit on). Wrapped defensively: a DB hiccup here must
 # never break the page someone is just trying to look at a score on.
-try:
-    record_score_snapshot(
-        ticker_input, confluence["overall_score"], confluence["case"], confluence["conviction"],
-    )
-except Exception:
-    pass
+if _full.get("score_kind") == "full" and _full.get("is_complete", True):
+    try:
+        record_score_snapshot(
+            ticker_input, confluence["overall_score"], confluence["case"], confluence["conviction"],
+        )
+    except Exception:
+        pass
 
 # Component snapshot for "Explain the Move" — the reconciling per-signal / factor
 # breakdown behind today's score, upserted opportunistically like the score
 # snapshot above. This is what a future A/B comparison attributes the change to.
-try:
-    from utils.score_components import build_components
-    from utils.score_history import record_score_components
-    record_score_components(ticker_input, build_components(_full))
-except Exception:
-    pass
+if _full.get("score_kind") == "full" and _full.get("is_complete", True):
+    try:
+        from utils.score_components import build_components
+        from utils.score_history import record_score_components
+        record_score_components(ticker_input, build_components(_full))
+    except Exception:
+        pass
 
 # ── Explain the Move: contextual attribution command ─────────────────────────
 # Appears near the score whenever there's a material move AND a prior snapshot to
@@ -3884,3 +3969,11 @@ elif section == "Earnings Sentiment":
 
 st.html(render_disclaimer())
 render_footer(page="ticker")
+record_timing(
+    "full_page_render",
+    ticker=ticker_input,
+    duration_seconds=time.perf_counter() - _PAGE_STARTED_AT,
+    success=True,
+    cache_status=_score_cache_status,
+    metadata={"rerun": _page_run_count > 1},
+)

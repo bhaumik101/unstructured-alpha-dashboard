@@ -44,7 +44,6 @@ if str(_here) not in sys.path:
 
 from utils.db import init_db, alert_state, engine, upsert_stmt
 from utils.alerts_db import get_all_watchlist_users, get_watchlist, get_alert_state
-from utils.ticker_score import compute_full_ticker_score
 from utils.email import send_score_moved_email, EmailSendError
 
 # Minimum absolute score change (points) before we notify.
@@ -91,7 +90,8 @@ def check_user(user_id: int) -> list[dict]:
     for row in watchlist:
         ticker = row["ticker"]
         try:
-            full = compute_full_ticker_score(ticker)
+            from utils.score_cache import get_full_ticker_score
+            full = get_full_ticker_score(ticker).result
             current = float(full["confluence"]["overall_score"])
         except Exception as exc:
             print(

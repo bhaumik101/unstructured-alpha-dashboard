@@ -89,8 +89,8 @@ def _compute_real_score(ticker: str) -> dict:
     Falls back gracefully on failure.
     """
     try:
-        from utils.ticker_score import compute_full_ticker_score
-        return compute_full_ticker_score(ticker)
+        from utils.score_cache import get_full_ticker_score
+        return get_full_ticker_score(ticker).result
     except Exception as exc:
         return {
             "confluence": {"overall_score": 50.0, "case": "neutral"},
