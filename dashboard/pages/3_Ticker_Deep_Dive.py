@@ -84,6 +84,15 @@ render_page_header(
 STATUS_COLOR = {"bullish": "#00D566", "bearish": "#FF4444", "neutral": "#6B7FBF", "no_data": "#8892AA"}
 STATUS_EMOJI = {"bullish": "▲", "bearish": "▼", "neutral": "●", "no_data": "○"}
 
+
+@st.cache_data(ttl=1800, show_spinner=False, max_entries=256)
+def _cached_full_ticker_score(ticker: str, signal_ids: tuple[str, ...]) -> dict:
+    """Cache the complete Deep Dive score for 30 minutes per ticker/signal set."""
+    return compute_full_ticker_score(
+        ticker,
+        signal_ids=list(signal_ids) if signal_ids else None,
+    )
+
 st.markdown("""
 <div style="background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(0,200,224,0.06));
             border:1px solid rgba(124,58,237,0.22);border-radius:12px;
@@ -321,7 +330,7 @@ if _rl_blocked:
 # same ticker (see utils/ticker_score.py's module docstring).
 try:
     with st.spinner(f"Loading signal data for {ticker_input}…"):
-        _full = compute_full_ticker_score(ticker_input, signal_ids=relevant_sig_ids)
+        _full = _cached_full_ticker_score(ticker_input, tuple(relevant_sig_ids))
 except Exception as _score_err:
     st.error(
         f"**Could not load data for {ticker_input}.** "
