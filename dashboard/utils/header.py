@@ -3,6 +3,8 @@ Shared header + CSS injected at the top of every page.
 Call render_header() as the very first Streamlit call after st.set_page_config().
 """
 
+from html import escape as html_escape
+
 import streamlit as st
 
 from utils.config import TICKERS, SIGNAL_COUNT
@@ -23,10 +25,10 @@ _CSS = """
     --ua-purple:     #7C3AED;
     --ua-red:        #FF4444;
     --ua-amber:      #F59E0B;
-    --ua-text-hi:    #E8EEFF;
-    --ua-text-mid:   #B8C0D4;
-    --ua-text-lo:    #8892AA;
-    --ua-text-cap:   #6B7FBF;
+    --ua-text-hi:    #E7EAF0;
+    --ua-text-mid:   #C5CBD5;
+    --ua-text-lo:    #A7B0BF;
+    --ua-text-cap:   #8D97A8;
     --ua-border:     rgba(255,255,255,0.07);
     --ua-border-lo:  rgba(255,255,255,0.04);
     --ua-grid:       rgba(255,255,255,0.04);
@@ -429,13 +431,13 @@ h1, h2, h3 { color: #E8EEFF !important; font-family: 'Inter', sans-serif !import
 h1 { font-size: 1.75rem !important; }
 h2 { font-size: 1.3rem !important; }
 h3 { font-size: 1.05rem !important; }
-p  { color: #B8C0D4 !important; font-family: 'Inter', sans-serif !important; }
+p  { color: var(--ua-text-mid) !important; font-family: 'Inter', sans-serif !important; }
 
 /* Radio / Checkbox */
-.stRadio label, .stCheckbox label { color: #B8C0D4 !important; font-family: 'Inter', sans-serif !important; }
+.stRadio label, .stCheckbox label { color: var(--ua-text-mid) !important; font-family: 'Inter', sans-serif !important; }
 
 /* Caption */
-.stCaption, small { color: #8892AA !important; font-family: 'Inter', sans-serif !important; }
+.stCaption, small { color: var(--ua-text-cap) !important; font-family: 'Inter', sans-serif !important; }
 
 /* Dataframe */
 [data-testid="stDataFrame"] { border: 1px solid rgba(255,255,255,0.06) !important; border-radius: 10px !important; overflow: hidden !important; }
@@ -1186,6 +1188,90 @@ section[data-testid="stSidebar"] {
     border-radius: 8px !important;
     box-shadow: none !important;
     transform: none !important;
+}
+.metric-card p, .page-card p, .stat-box p,
+[data-testid="stMetric"] [data-testid="stMetricLabel"],
+[data-testid="stExpander"] p,
+[data-testid="stAlert"] p,
+[data-testid="stForm"] label p,
+[data-testid="stVerticalBlockBorderWrapper"] p {
+    color: var(--ua-text-mid) !important;
+}
+.metric-card .stCaption, .page-card .stCaption, .stat-box .stCaption,
+[data-testid="stMetric"] [data-testid="stMetricDelta"],
+[data-testid="stExpander"] .stCaption,
+[data-testid="stAlert"] .stCaption,
+[data-testid="stForm"] .stCaption,
+[data-testid="stVerticalBlockBorderWrapper"] .stCaption {
+    color: var(--ua-text-cap) !important;
+}
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-testid="stTextArea"] textarea,
+[data-baseweb="select"] span {
+    color: var(--ua-text-hi) !important;
+}
+
+/* Compact notification tray: rendered in normal document flow beneath its
+   trigger, never as an auto-flipping popover that can grow upward. */
+.ua-notification-panel-marker {
+    display: block;
+    height: 0;
+    overflow: hidden;
+}
+.ua-notification-title {
+    color: var(--ua-text-cap) !important;
+    font-size: 0.60rem;
+    font-weight: 750;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    padding-bottom: 7px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.ua-notification-item {
+    background: #151A22;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-left-width: 2px;
+    border-radius: 6px;
+    padding: 8px 9px;
+    margin-bottom: 6px;
+}
+.ua-notification-kicker {
+    color: var(--ua-text-cap) !important;
+    font-size: 0.56rem;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+.ua-notification-heading {
+    color: var(--ua-text-hi) !important;
+    font-size: 0.73rem;
+    font-weight: 650;
+    line-height: 1.35;
+    margin-top: 2px;
+}
+.ua-notification-copy {
+    color: var(--ua-text-lo) !important;
+    font-size: 0.67rem;
+    line-height: 1.42;
+    margin-top: 3px;
+}
+.ua-notification-time {
+    color: var(--ua-text-cap) !important;
+    font-size: 0.57rem;
+    margin-top: 4px;
+}
+
+/* Legacy page helpers still carry the former muted palette inline. Lift those
+   values globally into the current restrained contrast scale without touching
+   semantic bullish/bearish colors or turning body copy bright white. */
+[style*="color:#8892AA" i] { color: var(--ua-text-lo) !important; }
+[style*="color: #8892AA" i] { color: var(--ua-text-lo) !important; }
+[style*="color:#6B7FBF" i] { color: var(--ua-text-cap) !important; }
+[style*="color: #6B7FBF" i] { color: var(--ua-text-cap) !important; }
+[style*="color:#4A5280" i], [style*="color:#5A6478" i] {
+    color: #7F899A !important;
 }
 .metric-card:hover, .page-card:hover,
 [data-testid="stMetric"]:hover, [data-testid="stExpander"]:hover {
@@ -1951,7 +2037,10 @@ def render_header(page_subtitle: str = "") -> None:
     _hdr_user = try_restore_session(_cookies)
     _uid = (_hdr_user or {}).get("id")
 
-    _space, _bell_col, _acct_col = st.columns([3.75, 1.05, 1.55])
+    _space, _bell_col, _acct_col = st.columns([3.9, 1.15, 1.35])
+
+    _notification_api = None
+    _unread = 0
 
     # Bell — logged-in users only
     if _uid:
@@ -1961,50 +2050,16 @@ def render_header(page_subtitle: str = "") -> None:
             )
             _unread = get_unread_notification_count(_uid)
             _badge_text = f" {_unread if _unread < 100 else '99+'}" if _unread > 0 else ""
+            _notification_api = (get_recent_notifications, mark_all_read)
             with _bell_col:
-                with st.popover(f"Notifications{_badge_text}", use_container_width=True):
-                    st.markdown(
-                        '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;'
-                        'text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);'
-                        'padding-bottom:6px;font-family:Inter,sans-serif;">System Notifications</div>',
-                        unsafe_allow_html=True,
+                if st.button(
+                    f"Notifications{_badge_text}",
+                    key="_notification_tray_toggle",
+                    use_container_width=True,
+                ):
+                    st.session_state["_notification_tray_open"] = not st.session_state.get(
+                        "_notification_tray_open", False
                     )
-                    _notifs = get_recent_notifications(limit=15)
-                    if not _notifs:
-                        st.caption("No notifications yet. Convergence events and prediction resolutions will appear here.")
-                    else:
-                        _NOTIF_LABELS = {
-                            "convergence":          "CONVERGENCE",
-                            "regime_change":        "REGIME",
-                            "near_flip":            "WATCH",
-                            "prediction_resolved":  "RESOLVED",
-                        }
-                        for _n in _notifs:
-                            _type_label = _NOTIF_LABELS.get(_n.get("notif_type", ""), "UPDATE")
-                            _n_bg = "rgba(0,213,102,0.06)" if _n.get("direction") == "bull" else (
-                                    "rgba(255,68,68,0.06)" if _n.get("direction") == "bear" else "rgba(18,21,30,0.6)"
-                            )
-                            _n_border = "#00D566" if _n.get("direction") == "bull" else (
-                                        "#FF4444" if _n.get("direction") == "bear" else "rgba(255,255,255,0.07)"
-                            )
-                            _n_ts = _n.get("created_at", "")[:10]
-                            st.markdown(
-                                f'<div style="background:{_n_bg};border-radius:8px;padding:8px 10px;'
-                                f'margin-bottom:6px;border-left:3px solid {_n_border};font-family:Inter,sans-serif;">'
-                                f'<div style="font-size:0.58rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;'
-                                f'text-transform:uppercase;margin-bottom:3px;">{_type_label}</div>'
-                                f'<div style="font-size:0.76rem;font-weight:600;color:#E8EEFF;">'
-                                f'{_n.get("title","")}</div>'
-                                f'<div style="font-size:0.70rem;color:#8892AA;margin-top:3px;line-height:1.4;">'
-                                f'{_n.get("body","")}</div>'
-                                f'<div style="font-size:0.60rem;color:#8892AA;margin-top:4px;">{_n_ts}</div>'
-                                f'</div>',
-                                unsafe_allow_html=True,
-                            )
-                    if _unread > 0:
-                        if st.button("Mark all read", key="_notif_mark_read", use_container_width=True):
-                            mark_all_read(_uid)
-                            st.rerun()
         except Exception:
             pass  # Never crash the header for a notification badge
 
@@ -2018,6 +2073,56 @@ def render_header(page_subtitle: str = "") -> None:
         else:
             with st.popover("Sign In", use_container_width=True):
                 render_auth_forms(_cookies, key_prefix="widget_")
+
+    # A compact, fixed-height tray in normal page flow. Keeping it outside a
+    # popover prevents BaseWeb from flipping the panel upward when it estimates
+    # that the viewport is constrained. Recent rows are fetched only while open.
+    if _uid and _notification_api and st.session_state.get("_notification_tray_open", False):
+        _notif_space, _notif_panel_col = st.columns([3.65, 1.35])
+        with _notif_panel_col:
+            with st.container(height=340, border=True):
+                st.markdown(
+                    '<span class="ua-notification-panel-marker"></span>'
+                    '<div class="ua-notification-title">System Notifications</div>',
+                    unsafe_allow_html=True,
+                )
+                _get_recent_notifications, _mark_all_read = _notification_api
+                _notifs = _get_recent_notifications(limit=10)
+                if not _notifs:
+                    st.caption(
+                        "No notifications yet. Convergence events and prediction resolutions will appear here."
+                    )
+                else:
+                    _NOTIF_LABELS = {
+                        "convergence":         "CONVERGENCE",
+                        "regime_change":       "REGIME",
+                        "near_flip":           "WATCH",
+                        "prediction_resolved": "RESOLVED",
+                    }
+                    for _n in _notifs:
+                        _type_label = _NOTIF_LABELS.get(_n.get("notif_type", ""), "UPDATE")
+                        _n_border = "#35C98B" if _n.get("direction") == "bull" else (
+                            "#E06C75" if _n.get("direction") == "bear" else "#6F7888"
+                        )
+                        _n_ts = html_escape(str(_n.get("created_at", ""))[:10])
+                        _n_title = html_escape(str(_n.get("title", "")))
+                        _n_body = html_escape(str(_n.get("body", "")))
+                        st.markdown(
+                            f'<div class="ua-notification-item" style="border-left-color:{_n_border};">'
+                            f'<div class="ua-notification-kicker">{_type_label}</div>'
+                            f'<div class="ua-notification-heading">{_n_title}</div>'
+                            f'<div class="ua-notification-copy">{_n_body}</div>'
+                            f'<div class="ua-notification-time">{_n_ts}</div>'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
+                if _unread > 0 and st.button(
+                    "Mark all read",
+                    key="_notif_mark_read",
+                    use_container_width=True,
+                ):
+                    _mark_all_read(_uid)
+                    st.rerun()
 
 
 @st.cache_data(ttl=60, max_entries=1, show_spinner=False)

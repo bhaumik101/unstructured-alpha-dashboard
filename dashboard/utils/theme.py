@@ -14,10 +14,10 @@ BG_PLOT         = "rgba(0,0,0,0)"  # charts inherit their containing surface
 BG_SIDEBAR      = "#0D1016"   # sidebar
 
 # Typography
-TEXT_PRIMARY   = "#E8EEFF"   # cool near-white
-TEXT_SECONDARY = "#8892AA"   # muted blue-gray
-TEXT_MUTED     = "#8892AA"   # muted but readable on dark bg (was #8892AA — too dark)
-TEXT_CAPTION   = "#6B7FBF"   # subtle caption
+TEXT_PRIMARY   = "#E7EAF0"   # soft near-white, not luminous
+TEXT_SECONDARY = "#A7B0BF"   # readable neutral blue-gray
+TEXT_MUTED     = "#9DA7B7"   # restrained secondary copy on dark surfaces
+TEXT_CAPTION   = "#8D97A8"   # subtle but accessible caption
 
 # Brand accents
 GREEN       = "#35C98B"   # restrained positive accent
