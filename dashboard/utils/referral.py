@@ -31,7 +31,8 @@ from utils.db import engine, users, referrals
 
 # Base URL used to build referral links. Matches the Render external URL in
 # production; falls back to localhost so local dev links are still usable.
-_BASE_URL = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8501")
+_BASE_URL = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8501").rstrip("/")
+_UPGRADE_PATH = "/upgrade-to-pro"
 
 
 def _now_iso() -> str:
@@ -90,7 +91,7 @@ def get_referral_stats(user_id: int) -> dict:
     }
     """
     code = get_or_create_referral_code(user_id)
-    link = f"{_BASE_URL}/Upgrade?ref={code}"
+    link = f"{_BASE_URL}{_UPGRADE_PATH}?ref={code}"
 
     try:
         with engine.connect() as conn:
@@ -109,6 +110,34 @@ def get_referral_stats(user_id: int) -> dict:
         "total_converted": sum(1 for s in statuses if s in ("converted", "rewarded")),
         "months_earned":   sum(1 for s in statuses if s == "rewarded"),
     }
+
+
+def is_valid_referral_code(code: str) -> bool:
+    """Return whether ``code`` belongs to a real referrer."""
+    normalized = (code or "").strip().upper()
+    if not normalized:
+        return False
+    try:
+        with engine.connect() as conn:
+            return conn.execute(
+                select(users.c.id).where(users.c.referral_code == normalized)
+            ).fetchone() is not None
+    except Exception:
+        return False
+
+
+def has_recorded_referral(referee_email: str) -> bool:
+    """Return whether an account was created through a valid referral."""
+    normalized = (referee_email or "").strip().lower()
+    if not normalized:
+        return False
+    try:
+        with engine.connect() as conn:
+            return conn.execute(
+                select(referrals.c.id).where(referrals.c.referee_email == normalized)
+            ).fetchone() is not None
+    except Exception:
+        return False
 
 
 # ── Signup tracking ───────────────────────────────────────────────────────────

@@ -385,6 +385,8 @@ PRO_FEATURES = [
     "Signal Backtester — build & backtest custom signal combinations",
     "Portfolio Analyzer — risk decomposition across your full portfolio",
     "Options Flow — live unusual options activity feed",
+    "AI Research Assistant — answers grounded in current live signals",
+    "Ticker Deep Dive Pro — correlation, filings, contracts, and sentiment",
     "Unlimited watchlist tickers (Free: 5)",
     "Morning digest email with top signal moves",
 ]
@@ -400,14 +402,16 @@ _PAGE_BENEFIT = {
     "Export Report":           "Export a clean, one-click PDF research report for any equity.",
     "Signal Backtester":       "Build and backtest custom signal combinations against historical price moves.",
     "Signal Portfolio Backtest": "Backtest a signal-driven portfolio and compare it against the benchmark.",
+    "AI Research Assistant":     "Use a live signal-aware research copilot grounded in the platform's current real-data state.",
+    "Ticker Deep Dive Pro":      "Unlock lead-lag correlation, insider and short-interest evidence, 13F and federal-contract intelligence, and earnings sentiment.",
 }
 
 _PRO_GATE_CSS = """
 <style>
 .pro-gate {
-    background: linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(0,200,224,0.06) 100%);
-    border: 1px solid rgba(124,58,237,0.35);
-    border-radius: 12px;
+    background: #101522;
+    border: 1px solid #2B354B;
+    border-radius: 8px;
     padding: 28px 32px;
     text-align: center;
     margin: 24px 0;

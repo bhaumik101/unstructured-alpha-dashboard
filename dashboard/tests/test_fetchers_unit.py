@@ -2,11 +2,9 @@
 Unit tests for utils/fetchers.py's parsing logic, with the network layer
 mocked out — these run offline and verify two things:
 
-1. fetch_fred() / fetch_eia() correctly parse a real response shape into a
-   clean pandas Series and mark s.attrs["synthetic"] = False.
-2. When no API key is configured, both fall back to synthetic data marked
-   s.attrs["synthetic"] = True — the contract every page on this site
-   depends on to decide whether to show the "DEMO DATA" banner.
+1. fetch_fred() / fetch_eia() correctly parse a real response shape.
+2. Missing credentials and failures return explicitly unavailable empty data;
+   no provider path manufactures observations.
 
 The EIA response fixture below is the exact JSON shape captured live from
 api.eia.gov/v2/seriesid/PET.WCESTUS1.W with a real key (verified directly
@@ -22,7 +20,7 @@ import streamlit as st
 from utils.fetchers import (
     fetch_fred, fetch_eia, fetch_fda_approval_velocity, fetch_live_quote,
     fetch_insider_transactions_detail, fetch_short_interest, fetch_13f_holdings,
-    is_synthetic, _synthetic_signal,
+    is_unavailable,
 )
 
 
@@ -69,38 +67,38 @@ def _mock_response(json_body):
 
 def test_fetch_eia_parses_real_response_shape_when_key_present():
     fetch_eia.clear()  # bypass @st.cache_data between test runs
-    with patch("utils.fetchers.requests.get", return_value=_mock_response(EIA_RESPONSE_FIXTURE)):
+    with patch("utils.fetchers.resilient_get", return_value=_mock_response(EIA_RESPONSE_FIXTURE)):
         s = fetch_eia("PET.WCESTUS1.W", "2026-01-01", "2026-12-31", api_key="fake-key-for-test")
-    assert not is_synthetic(s)
+    assert not is_unavailable(s)
     assert len(s) == 2
     assert float(s.iloc[-1]) == 418222.0  # most recent period, sorted ascending
 
 
-def test_fetch_eia_falls_back_to_synthetic_without_key():
+def test_fetch_eia_is_unavailable_without_key():
     fetch_eia.clear()
     s = fetch_eia("PET.WCESTUS1.W", "2024-01-01", "2024-06-01", api_key="")
-    assert is_synthetic(s)
+    assert is_unavailable(s) and s.empty
 
 
-def test_fetch_eia_falls_back_to_synthetic_on_request_exception():
+def test_fetch_eia_is_unavailable_on_request_exception():
     fetch_eia.clear()
-    with patch("utils.fetchers.requests.get", side_effect=ConnectionError("network down")):
+    with patch("utils.fetchers.resilient_get", side_effect=ConnectionError("network down")):
         s = fetch_eia("PET.WCESTUS1.W", "2024-01-01", "2024-06-01", api_key="fake-key-for-test")
-    assert is_synthetic(s)
+    assert is_unavailable(s) and s.empty
 
 
 def test_fetch_fred_parses_real_response_shape_when_key_present():
     fetch_fred.clear()
-    with patch("utils.fetchers.requests.get", return_value=_mock_response(FRED_RESPONSE_FIXTURE)):
+    with patch("utils.fetchers.resilient_get", return_value=_mock_response(FRED_RESPONSE_FIXTURE)):
         s = fetch_fred("SOME_SERIES", "2026-01-01", "2026-12-31", api_key="fake-key-for-test")
-    assert not is_synthetic(s)
+    assert not is_unavailable(s)
     assert len(s) == 2
 
 
-def test_fetch_fred_falls_back_to_synthetic_without_key():
+def test_fetch_fred_is_unavailable_without_key():
     fetch_fred.clear()
     s = fetch_fred("SOME_SERIES", "2024-01-01", "2024-06-01", api_key="")
-    assert is_synthetic(s)
+    assert is_unavailable(s) and s.empty
 
 
 def test_fetch_fred_cache_is_keyed_on_api_key_not_just_series_and_dates():
@@ -112,21 +110,15 @@ def test_fetch_fred_cache_is_keyed_on_api_key_not_just_series_and_dates():
     first user to request a given (series_id, start, end) would silently
     determine what every other user sees for that same request for the next
     hour -- a user with a real key could get served another user's
-    synthetic fallback, or vice versa. This test proves the two calls below,
+    unavailable result, or vice versa. This test proves the two calls below,
     which differ ONLY in api_key, do NOT share a cache entry.
     """
     fetch_fred.clear()
-    with patch("utils.fetchers.requests.get", return_value=_mock_response(FRED_RESPONSE_FIXTURE)):
+    with patch("utils.fetchers.resilient_get", return_value=_mock_response(FRED_RESPONSE_FIXTURE)):
         with_key = fetch_fred("SAME_SERIES", "2024-01-01", "2024-06-01", api_key="real-key")
     without_key = fetch_fred("SAME_SERIES", "2024-01-01", "2024-06-01", api_key="")
-    assert not is_synthetic(with_key)
-    assert is_synthetic(without_key)
-
-
-def test_synthetic_signal_is_marked_synthetic():
-    s = _synthetic_signal("ANY_ID", "2024-01-01", "2024-06-01")
-    assert is_synthetic(s)
-    assert not s.empty
+    assert not is_unavailable(with_key)
+    assert is_unavailable(without_key)
 
 
 # ── openFDA drug approval velocity ───────────────────────────────────────────
@@ -151,7 +143,7 @@ OPENFDA_RESPONSE_FIXTURE = {
 
 def test_fetch_fda_approval_velocity_parses_real_response_shape():
     fetch_fda_approval_velocity.clear()
-    with patch("utils.fetchers.requests.get", return_value=_mock_response(OPENFDA_RESPONSE_FIXTURE)):
+    with patch("utils.fetchers.resilient_get", return_value=_mock_response(OPENFDA_RESPONSE_FIXTURE)):
         s = fetch_fda_approval_velocity()
     assert not s.empty
     assert s.sum() == 2  # two AP-status submissions in the fixture; the PEND one must be excluded
@@ -159,7 +151,7 @@ def test_fetch_fda_approval_velocity_parses_real_response_shape():
 
 def test_fetch_fda_approval_velocity_falls_back_to_empty_on_request_exception():
     fetch_fda_approval_velocity.clear()
-    with patch("utils.fetchers.requests.get", side_effect=ConnectionError("network down")):
+    with patch("utils.fetchers.resilient_get", side_effect=ConnectionError("network down")):
         s = fetch_fda_approval_velocity()
     assert s.empty
 
@@ -197,7 +189,7 @@ def test_fetch_short_interest_parses_real_response_shape():
     mock_resp.status_code = 200
     mock_resp.raise_for_status = MagicMock()
     mock_resp.json.return_value = FINRA_SHORT_INTEREST_FIXTURE
-    with patch("utils.fetchers.requests.post", return_value=mock_resp):
+    with patch("utils.fetchers.resilient_post", return_value=mock_resp):
         df = fetch_short_interest("MSFT", years=1.5)
 
     assert len(df) == 2
@@ -215,14 +207,14 @@ def test_fetch_short_interest_empty_on_204_no_rows():
     fetch_short_interest.clear()
     mock_resp = MagicMock()
     mock_resp.status_code = 204
-    with patch("utils.fetchers.requests.post", return_value=mock_resp):
+    with patch("utils.fetchers.resilient_post", return_value=mock_resp):
         df = fetch_short_interest("ZZZZ_NOT_A_REAL_TICKER", years=1.5)
     assert df.empty
 
 
 def test_fetch_short_interest_empty_on_request_exception():
     fetch_short_interest.clear()
-    with patch("utils.fetchers.requests.post", side_effect=ConnectionError("network down")):
+    with patch("utils.fetchers.resilient_post", side_effect=ConnectionError("network down")):
         df = fetch_short_interest("MSFT", years=1.5)
     assert df.empty
 
@@ -313,7 +305,7 @@ def test_fetch_13f_holdings_excludes_amendments_and_parses_put_options():
     idx2 = _mock_response(THIRTEENF_INDEX_JSON_FIXTURE_2)
     tbl2 = _xml_mock(THIRTEENF_INFOTABLE_FIXTURE_2)
 
-    with patch("utils.fetchers.requests.get",
+    with patch("utils.fetchers.resilient_get",
                side_effect=_mock_get_sequence(sub_resp, idx1, tbl1, idx2, tbl2)):
         df = fetch_13f_holdings("1067983", "Berkshire Hathaway", max_filings=2)
 
@@ -332,7 +324,7 @@ def test_fetch_13f_holdings_excludes_amendments_and_parses_put_options():
 
 def test_fetch_13f_holdings_empty_on_request_exception():
     fetch_13f_holdings.clear()
-    with patch("utils.fetchers.requests.get", side_effect=ConnectionError("network down")):
+    with patch("utils.fetchers.resilient_get", side_effect=ConnectionError("network down")):
         df = fetch_13f_holdings("1067983", "Berkshire Hathaway")
     assert df.empty
 
@@ -398,7 +390,7 @@ def test_fetch_insider_transactions_detail_parses_real_response_shapes():
     xml_resp.raise_for_status = MagicMock()
     xml_resp.content = INSIDER_XML_PURCHASE
 
-    with patch("utils.fetchers.requests.get", side_effect=_mock_get_sequence(search_resp, xml_resp)):
+    with patch("utils.fetchers.resilient_get", side_effect=_mock_get_sequence(search_resp, xml_resp)):
         df = fetch_insider_transactions_detail("MSFT", days=180)
 
     assert len(df) == 1
@@ -422,7 +414,7 @@ def test_fetch_insider_transactions_detail_skips_non_open_market_codes():
     xml_resp.raise_for_status = MagicMock()
     xml_resp.content = xml_grant
 
-    with patch("utils.fetchers.requests.get", side_effect=_mock_get_sequence(search_resp, xml_resp)):
+    with patch("utils.fetchers.resilient_get", side_effect=_mock_get_sequence(search_resp, xml_resp)):
         df = fetch_insider_transactions_detail("MSFT", days=180)
 
     assert df.empty
@@ -430,7 +422,7 @@ def test_fetch_insider_transactions_detail_skips_non_open_market_codes():
 
 def test_fetch_insider_transactions_detail_empty_on_search_failure():
     fetch_insider_transactions_detail.clear()
-    with patch("utils.fetchers.requests.get", side_effect=ConnectionError("network down")):
+    with patch("utils.fetchers.resilient_get", side_effect=ConnectionError("network down")):
         df = fetch_insider_transactions_detail("MSFT", days=180)
     assert df.empty
 
@@ -442,6 +434,7 @@ def test_fetch_live_quote_parses_fast_info():
     mock_fast_info = {"lastPrice": 190.5, "previousClose": 188.0}
     mock_ticker = MagicMock()
     mock_ticker.fast_info = mock_fast_info
+    mock_ticker.info = {}
     with patch("utils.fetchers.yf.Ticker", return_value=mock_ticker):
         q = fetch_live_quote("AAPL")
     assert q["price"] == 190.5
@@ -453,13 +446,14 @@ def test_fetch_live_quote_handles_missing_price():
     fetch_live_quote.clear()
     mock_ticker = MagicMock()
     mock_ticker.fast_info = {"previousClose": 188.0}  # no lastPrice
+    mock_ticker.info = {}
     with patch("utils.fetchers.yf.Ticker", return_value=mock_ticker):
         q = fetch_live_quote("AAPL")
-    assert q == {"price": None, "prev_close": None, "pct_change": None}
+    assert q["price"] is None and q["prev_close"] is None and q["pct_change"] is None
 
 
 def test_fetch_live_quote_falls_back_on_exception():
     fetch_live_quote.clear()
     with patch("utils.fetchers.yf.Ticker", side_effect=ConnectionError("network down")):
         q = fetch_live_quote("AAPL")
-    assert q == {"price": None, "prev_close": None, "pct_change": None}
+    assert q["price"] is None and q["prev_close"] is None and q["pct_change"] is None

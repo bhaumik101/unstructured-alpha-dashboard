@@ -629,8 +629,8 @@ elif section == "Macro Indicators":
     # this content didn't need its own page when Market Overview already covers
     # markets — keeping macro context here instead of forcing a second page click)
     # ─────────────────────────────────────────────────────────────────────────────
-    from utils.fetchers import fetch_fred, is_synthetic, _get_fred_key
-    from utils.header import render_synthetic_data_banner
+    from utils.fetchers import fetch_fred, is_unavailable, _get_fred_key
+    from utils.header import render_data_unavailable_banner
 
     MACRO_END   = datetime.now().strftime("%Y-%m-%d")
     MACRO_START = (datetime.now() - timedelta(days=3 * 365)).strftime("%Y-%m-%d")
@@ -690,8 +690,8 @@ elif section == "Macro Indicators":
     _macro_series_ids = ["TRUCKD11", "GACDFSA066MSFRBPHI", "DGORDER", "IC4WSA", "JTSLDR", "RAILFRTINTERMODAL",
                          "UMCSENT", "RSXFS", "CPIUFDSL", "T10Y2Y"]
     _macro_fetched = {sid: _get_fred_cached(sid, MACRO_START, MACRO_END, api_key=_fred_key) for sid in _macro_series_ids}
-    render_synthetic_data_banner(
-        sum(1 for s in _macro_fetched.values() if is_synthetic(s)),
+    render_data_unavailable_banner(
+        sum(1 for s in _macro_fetched.values() if is_unavailable(s)),
         len(_macro_fetched),
     )
 

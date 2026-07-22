@@ -8,6 +8,7 @@ institutional reviewers. Dark glassmorphism throughout.
 import streamlit as st
 
 from utils.header import render_header, render_sidebar_base, render_page_header
+from utils.product_metrics import ACTIVE_SIGNAL_COUNT, ACTIVE_SOURCE_COUNT, SUPPORTED_TICKER_COUNT
 
 st.set_page_config(page_title="About — Unstructured Alpha", layout="wide")
 render_header("About")
@@ -67,7 +68,7 @@ with tab_about:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("""
+        st.markdown(f"""
         <div style="font-family:Inter,sans-serif;font-size:0.87rem;color:#B8C0D4;line-height:1.75;">
         <p>Most retail equity research is backward-looking: it explains why a stock moved after the fact.
         Unstructured Alpha is built around a single contrarian premise: <b style="color:#E8EEFF;">non-price
@@ -509,10 +510,10 @@ with tab_about:
             <div style="font-size:0.62rem;color:#00D566;font-weight:700;letter-spacing:0.10em;
                         text-transform:uppercase;margin-bottom:12px;">By the Numbers</div>
             <div style="font-size:0.83rem;color:#B8C0D4;line-height:2.4;">
-                <b style="color:#E8EEFF;">38</b> alternative signals<br>
+                <b style="color:#E8EEFF;">{ACTIVE_SIGNAL_COUNT}</b> registered signals<br>
                 <b style="color:#E8EEFF;">26</b> app pages<br>
-                <b style="color:#E8EEFF;">7</b> data sources<br>
-                <b style="color:#E8EEFF;">80+</b> tracked tickers<br>
+                <b style="color:#E8EEFF;">{ACTIVE_SOURCE_COUNT}</b> source families<br>
+                <b style="color:#E8EEFF;">{SUPPORTED_TICKER_COUNT}</b> tracked tickers<br>
                 <b style="color:#E8EEFF;">8</b> signal categories<br>
                 <b style="color:#E8EEFF;">~6,000</b> lines of Python<br>
                 <b style="color:#E8EEFF;">Live</b> on Render

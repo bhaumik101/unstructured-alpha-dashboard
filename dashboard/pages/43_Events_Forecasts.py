@@ -6,7 +6,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Events & Forecasts — UA", layout="wide")
 
-from utils.header import render_header, render_sidebar_base, render_page_header, disclose_synthetic_signals
+from utils.header import render_header, render_sidebar_base, render_page_header, disclose_unavailable_signals
 from utils.theme import inject_premium_css
 
 render_header("Events & Forecasts")
@@ -24,7 +24,7 @@ render_page_header(
 # that must be visible here, not only on the Signal Dashboard. Same cached call
 # the page's own logic uses, so no extra network cost.
 from utils.signals_cache import get_all_signal_scores as _gas_disc
-disclose_synthetic_signals(_gas_disc())
+disclose_unavailable_signals(_gas_disc())
 
 tab_cal, tab_forecast = st.tabs(["Macro Calendar", "Event Forecaster"])
 

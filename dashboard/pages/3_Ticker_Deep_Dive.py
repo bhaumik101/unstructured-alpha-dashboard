@@ -45,7 +45,7 @@ import streamlit as st
 from utils.config import SIGNALS, TICKERS, CATEGORIES, CURATED_FUNDS, THIRTEENF_CUSIP_TO_TICKER
 from utils.conviction import get_conviction_context
 from utils.fetchers import (
-    fetch_price, fetch_signal_series, is_synthetic, fetch_volume,
+    fetch_price, fetch_signal_series, is_unavailable, fetch_volume,
     fetch_federal_contracts, fetch_insider_trades, fetch_live_quote,
     fetch_insider_transactions_detail, fetch_short_interest, fetch_13f_holdings,
     fetch_earnings_dates, fetch_ticker_news,
@@ -67,7 +67,7 @@ from utils.score_cache import (
     set_session_result,
 )
 from utils.performance import record_timing
-from utils.header import render_header, render_sidebar_base, render_page_header, go_to_ticker, ticker_chips, ticker_label, render_synthetic_data_banner, render_footer
+from utils.header import render_header, render_sidebar_base, render_page_header, go_to_ticker, ticker_chips, ticker_label, render_data_unavailable_banner, render_footer
 from utils.analysis import compute_signal_confidence
 from utils.theme import (
     confluence_gauge_svg, style_area_chart, style_chart,
@@ -334,14 +334,34 @@ if _rl_blocked:
     )
     st.stop()
 
+# Select the research workflow before scoring so public views never pay for
+# optional SEC, FINRA, USASpending, or 13F calls they do not display.
+section = st.selectbox(
+    "View",
+    ["Overview", "Deep Correlation Scan", "Insider & Short Interest", "13F & Federal Contracts", "Earnings Track Record", "Earnings Sentiment"],
+    index=0,
+    key="dive_section",
+)
+_pro_sections = {
+    "Deep Correlation Scan",
+    "Insider & Short Interest",
+    "13F & Federal Contracts",
+    "Earnings Sentiment",
+}
+if section in _pro_sections:
+    from utils.billing import require_pro
+    require_pro("Ticker Deep Dive Pro")
+
+_include_optional_score = section in {"Insider & Short Interest", "13F & Federal Contracts"}
+
 # ── Full Score Computation ──────────────────────────────────────────────────────
 # compute_full_ticker_score() is the SAME function the alert engine calls to
 # evaluate watched tickers in the background -- extracted from this page on
 # 2026-06-21 specifically so the score shown here and the score an alert
 # fires on can never silently diverge into two different numbers for the
 # same ticker (see utils/ticker_score.py's module docstring).
-_score_key = make_full_score_cache_key(ticker_input, relevant_sig_ids, True)
-_snapshot = get_latest_compatible_full_snapshot(ticker_input, relevant_sig_ids)
+_score_key = make_full_score_cache_key(ticker_input, relevant_sig_ids, _include_optional_score)
+_snapshot = get_latest_compatible_full_snapshot(ticker_input, relevant_sig_ids) if _include_optional_score else None
 _snapshot_slot = st.empty()
 if _snapshot:
     _age_hours = _snapshot["age_seconds"] / 3600
@@ -356,22 +376,27 @@ _refresh_col, _refresh_help = st.columns([1, 5])
 if _refresh_col.button("↻ Refresh live score", key=f"refresh_full_{ticker_input}",
                        help="Refresh only this ticker and signal configuration"):
     clear_session_result(st.session_state, _score_key)
-    clear_full_score_result(ticker_input, relevant_sig_ids, include_optional=True)
+    clear_full_score_result(ticker_input, relevant_sig_ids, include_optional=_include_optional_score)
     st.rerun()
-_refresh_help.caption("The complete score includes macro, momentum, contracts, insiders, short interest, and 13F evidence.")
+_refresh_help.caption(
+    "This view loads macro and momentum evidence only."
+    if not _include_optional_score else
+    "This Pro view adds contracts, insiders, short interest, and curated 13F evidence."
+)
 
 _full = get_session_result(st.session_state, _score_key)
 _score_cache_status = "session_hit" if _full is not None else "miss"
 try:
     if _full is None:
-        with st.status(f"Preparing {ticker_input}'s complete score…", expanded=True) as _load_status:
+        _score_label = "complete evidence score" if _include_optional_score else "macro and momentum score"
+        with st.status(f"Preparing {ticker_input}'s {_score_label}…", expanded=True) as _load_status:
             def _score_progress(_stage: str, _message: str) -> None:
                 _load_status.update(label=_message, state="running", expanded=True)
 
             _score_outcome = get_full_ticker_score(
                 ticker_input,
                 relevant_sig_ids,
-                include_optional=True,
+                include_optional=_include_optional_score,
                 progress_callback=_score_progress,
             )
             _full = _score_outcome.result
@@ -441,8 +466,8 @@ _thirteenf_score = _full["thirteenf_score"]
 _has_13f_signal = _full["has_13f_signal"]
 _fund_rows_13f = _full["thirteenf_fund_rows"]
 
-render_synthetic_data_banner(
-    sum(1 for s in signal_data.values() if is_synthetic(s)),
+render_data_unavailable_banner(
+    sum(1 for s in signal_data.values() if is_unavailable(s)),
     len(signal_data),
 )
 
@@ -537,14 +562,6 @@ except Exception:
     pass
 
 st.divider()
-
-section = st.segmented_control(
-    "View",
-    ["Overview", "Deep Correlation Scan", "Insider & Short Interest", "13F & Federal Contracts", "Earnings Track Record", "Earnings Sentiment"],
-    default="Overview",
-    key="dive_section",
-)
-section = section or "Overview"  # segmented_control returns None if deselected
 
 if section == "Overview":
     # ── Confluence Score Banner ────────────────────────────────────────────────────

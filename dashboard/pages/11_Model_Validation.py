@@ -97,7 +97,7 @@ st.dataframe(
 st.caption(
     "Weight: Core / Supporting / Experimental reflects each signal's tier in the scoring stack. "
     "Confidence is a data-quality read, not a promise of predictive accuracy. Sources: "
-    "FRED, SEC EDGAR, FINRA, EIA, CBOE and others — each signal links to its primary source on its card."
+    "FRED, SEC EDGAR, FINRA, EIA, CFTC, NY Fed, Yahoo Finance and others — each signal links to its primary source on its card."
 )
 
 # ── Composite models — the honest status of the scores built on the signals ───

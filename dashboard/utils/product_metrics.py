@@ -20,13 +20,19 @@ SUPPORTED_TICKER_COUNT: int = len(TICKERS)
 # ── Canonical primary data providers ─────────────────────────────────────────
 # The precise, honest expansion of the "7+ sources" claim. Ordered.
 PRIMARY_SOURCES: dict[str, str] = {
-    "fred":      "FRED (Federal Reserve)",
-    "eia":       "EIA (energy inventories)",
-    "cboe":      "CBOE (volatility)",
-    "sec_edgar": "SEC EDGAR (insider filings)",
-    "finra":     "FINRA (short interest)",
-    "yahoo":     "Yahoo Finance (prices)",
-    "congress":  "Congressional disclosures",
+    "fred":          "FRED (Federal Reserve economic data)",
+    "eia":           "EIA (energy inventories)",
+    "ny_fed":        "New York Fed (supply-chain pressure)",
+    "yahoo":         "Yahoo Finance (prices and options)",
+    "sec_edgar":     "SEC EDGAR (insider, 8-K, and 13F filings)",
+    "finra":         "FINRA (short interest)",
+    "cftc":          "CFTC (commitments of traders)",
+    "usaspending":   "USASpending.gov (federal awards)",
+    "congress":      "Congressional disclosure feeds",
+    "openfda":       "openFDA (approval activity)",
+    "arxiv":         "arXiv (research velocity)",
+    "google_trends": "Google Trends (search interest)",
+    "federal_reserve":"Federal Reserve communications",
 }
 ACTIVE_SOURCE_COUNT: int = len(PRIMARY_SOURCES)
 
@@ -48,8 +54,8 @@ def source_names() -> list[str]:
 
 def signals_phrase() -> str:
     """A ready-to-use, always-correct phrase for marketing/UI copy."""
-    return f"{ACTIVE_SIGNAL_COUNT} macro signals"
+    return f"{ACTIVE_SIGNAL_COUNT} registered signals"
 
 
 def sources_phrase() -> str:
-    return f"{ACTIVE_SOURCE_COUNT} primary data sources"
+    return f"{ACTIVE_SOURCE_COUNT} real-data source families"

@@ -16,7 +16,7 @@ import os
 import streamlit as st
 
 from utils.theme import BG_PAGE, BG_CARD, TEXT_PRIMARY, PURPLE, CYAN, GREEN, AMBER, inject_all_css
-from utils.product_metrics import ACTIVE_SIGNAL_COUNT
+from utils.product_metrics import ACTIVE_SIGNAL_COUNT, ACTIVE_SOURCE_COUNT
 
 st.set_page_config(
     page_title="Upgrade to Pro — Unstructured Alpha",
@@ -37,10 +37,11 @@ inject_all_css()
 
 # ── Base URL ──────────────────────────────────────────────────────────────────
 def _base_url() -> str:
-    return os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8501")
+    return os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8501").rstrip("/")
 
-def _page_url(path: str = "/Upgrade") -> str:
-    return f"{_base_url()}{path}"
+def _page_url(path: str = "/upgrade-to-pro") -> str:
+    normalized = path if path.startswith("/") else f"/{path}"
+    return f"{_base_url()}{normalized}"
 
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
@@ -57,9 +58,7 @@ st.markdown(f"""
 }}
 .hero-headline {{
     font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900;
-    background: linear-gradient(135deg, #FFFFFF 30%, {CYAN} 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text; text-align: center; line-height: 1.15;
+    color: {TEXT_PRIMARY}; text-align: center; line-height: 1.15;
     margin-bottom: 12px;
 }}
 .hero-sub {{
@@ -75,7 +74,7 @@ st.markdown(f"""
 .toggle-label {{ font-size: 0.9rem; color: #8892B0; font-weight: 500; }}
 .toggle-label.active {{ color: {TEXT_PRIMARY}; font-weight: 700; }}
 .savings-pill {{
-    background: linear-gradient(90deg, #064E3B, #065F46);
+    background: #10261E;
     color: #34D399; font-size: 0.72rem; font-weight: 700;
     padding: 3px 10px; border-radius: 20px; letter-spacing: 0.06em;
     border: 1px solid rgba(52,211,153,0.35);
@@ -90,11 +89,11 @@ st.markdown(f"""
 }}
 .card-wrap.featured {{
     border-color: {PURPLE};
-    box-shadow: 0 0 40px rgba(124,58,237,0.22), 0 4px 24px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.28);
 }}
 .popular-ribbon {{
     position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
-    background: linear-gradient(90deg, {PURPLE}, {CYAN});
+    background: {PURPLE};
     color: #fff; font-size: 0.65rem; font-weight: 800;
     letter-spacing: 0.14em; text-transform: uppercase;
     padding: 4px 18px; border-radius: 20px; white-space: nowrap;
@@ -217,10 +216,32 @@ user    = try_restore_session(cookies)
 params = st.query_params
 stripe_session_id = params.get("stripe_session_id", "")
 
-# Referral code from ?ref= param — gives the referred user a 14-day trial
-# instead of the default 7-day trial.
-_ref_code   = params.get("ref", "")
-_trial_days = 14 if _ref_code else 7
+# Referral eligibility must be verified, not inferred from an arbitrary query
+# string. A recorded referral remains eligible if navigation removed ?ref=.
+from utils.referral import is_valid_referral_code, has_recorded_referral
+_ref_code = params.get("ref", "")
+_is_referred = is_valid_referral_code(_ref_code)
+if user and not _is_referred:
+    _is_referred = has_recorded_referral(user["email"])
+_trial_days = 14 if _is_referred else 7
+
+
+def _create_limited_checkout(current_user: dict, selected_plan: str, trial_days: int) -> str:
+    """Create at most a small number of Stripe sessions per user/window."""
+    from utils.ratelimit import limit_action
+    allowed, retry_after = limit_action(f"u{current_user['id']}", "checkout")
+    if not allowed:
+        raise RuntimeError(
+            f"Too many checkout attempts. Please wait about {retry_after // 60 + 1} minutes and try again."
+        )
+    return create_checkout_session(
+        user_id=current_user["id"],
+        user_email=current_user["email"],
+        success_url=_page_url() + "?stripe_session_id={CHECKOUT_SESSION_ID}",
+        cancel_url=_page_url() + "?stripe_cancel=1",
+        plan=selected_plan,
+        trial_days=trial_days,
+    )
 
 if stripe_session_id:
     if not user:
@@ -357,7 +378,7 @@ if user:
         with col1:
             if customer_id and st.button("Manage Subscription ↗", use_container_width=True, type="primary"):
                 try:
-                    portal_url = create_portal_session(customer_id, return_url=_page_url("/Upgrade"))
+                    portal_url = create_portal_session(customer_id, return_url=_page_url())
                     st.markdown(f"""
                     <script>window.open("{portal_url}", "_blank");</script>
                     <div style="font-size:0.85rem;color:{CYAN};">
@@ -376,6 +397,17 @@ if user:
                 else:
                     st.warning("Subscription no longer active — downgraded to Free.")
                     st.rerun()
+
+        st.markdown("### Your Pro workspace")
+        _p1, _p2, _p3, _p4 = st.columns(4)
+        if _p1.button("Deep Research", use_container_width=True, key="pro_deep"):
+            st.switch_page("pages/3_Ticker_Deep_Dive.py")
+        if _p2.button("Signal Backtests", use_container_width=True, key="pro_backtest"):
+            st.switch_page("pages/35_Signal_Strategy.py")
+        if _p3.button("Portfolio Suite", use_container_width=True, key="pro_portfolio"):
+            st.switch_page("pages/44_Portfolio_Suite.py")
+        if _p4.button("AI Assistant", use_container_width=True, key="pro_ai"):
+            st.switch_page("pages/9_AI_Assistant.py")
 
         # ── Referral section (Pro users only) ────────────────────────────────
         st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
@@ -466,25 +498,25 @@ st.markdown("""
 st.markdown(f"""
 <div class="value-strip" style="position:relative;">
     <div class="value-item ua-kpi-animate">
-        <div class="value-num">43</div>
-        <div class="value-label">Alternative signals</div>
+        <div class="value-num">{ACTIVE_SIGNAL_COUNT}</div>
+        <div class="value-label">Registered signals</div>
     </div>
     <div class="value-item ua-kpi-animate">
         <div class="value-num" style="color:{GREEN};">{_trial_days}</div>
         <div class="value-label">Day free trial</div>
     </div>
     <div class="value-item ua-kpi-animate">
-        <div class="value-num" style="color:{GREEN};">$0</div>
-        <div class="value-label">Due today</div>
+        <div class="value-num" style="color:{CYAN};">{ACTIVE_SOURCE_COUNT}</div>
+        <div class="value-label">Source families</div>
     </div>
     <div class="value-item ua-kpi-animate">
-        <div class="value-num">∞</div>
-        <div class="value-label">Cancel anytime</div>
+        <div class="value-num" style="color:{GREEN};">$0</div>
+        <div class="value-label">Due today</div>
     </div>
 </div>
 <div style="display:flex;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap;">
     <div class="ua-guarantee">
-        ✓ 48-hour money-back guarantee
+        48-hour money-back guarantee
     </div>
     <div class="ua-guarantee" style="color:#00C8E0;background:rgba(0,200,224,0.06);
          border-color:rgba(0,200,224,0.22);">
@@ -492,7 +524,7 @@ st.markdown(f"""
     </div>
     <div class="ua-guarantee" style="color:#A78BFA;background:rgba(124,58,237,0.06);
          border-color:rgba(124,58,237,0.22);">
-        ✦ No long-term commitment
+        No long-term commitment
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -513,7 +545,7 @@ st.markdown(f"""
         Bloomberg shows you the same data every other institutional player sees.
         Unstructured Alpha aggregates <em>signals from that data</em> — pre-scored,
         correlated to specific tickers, validated against forward returns.
-        At 1% of the cost.
+        In a focused research workflow built for individual investors and small teams.
       </div>
     </div>
     <div>
@@ -528,8 +560,8 @@ st.markdown(f"""
       <div style="font-size:0.78rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">vs. any stock screener</div>
       <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
         Screeners filter on price and fundamentals — things already priced in.
-        The Confluence Score measures the macro environment <em>before</em> it
-        hits earnings. The lead time on validated signals averages 4–12 weeks.
+        The Confluence Score measures how macro and alternative evidence align
+        with a ticker, with validation results and methodology visible in-product.
       </div>
     </div>
   </div>
@@ -647,7 +679,7 @@ btn_label  = f"  Start {_trial_days}-Day Free Trial  →  then {monthly_price}/m
 st.markdown(f"""
 <div class="trial-bar">
     <span style="font-size:1.1rem;"></span>
-    <span><strong>{trial_copy}</strong> · Cancel any time before day 7 at no charge.</span>
+    <span><strong>{trial_copy}</strong> · Cancel any time before day {_trial_days} at no charge.</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -663,9 +695,9 @@ if not user:
             st.switch_page("pages/home_page.py")
         st.markdown("""
         <div class="secure-note">
-            <span> Secured by Stripe</span>
-            <span>✦ Cancel anytime</span>
-            <span> No spam</span>
+            <span>Secured by Stripe</span>
+            <span>Cancel anytime</span>
+            <span>No spam</span>
         </div>
         """, unsafe_allow_html=True)
 else:
@@ -683,16 +715,7 @@ else:
 
         if st.button(btn_display, type="primary", use_container_width=True, disabled=checkout_disabled):
             try:
-                success_url  = _page_url("/Upgrade") + "?stripe_session_id={CHECKOUT_SESSION_ID}"
-                cancel_url   = _page_url("/Upgrade") + "?stripe_cancel=1"
-                checkout_url = create_checkout_session(
-                    user_id=user["id"],
-                    user_email=user["email"],
-                    success_url=success_url,
-                    cancel_url=cancel_url,
-                    plan=plan,
-                    trial_days=_trial_days,
-                )
+                checkout_url = _create_limited_checkout(user, plan, _trial_days)
                 st.markdown(
                     f'<meta http-equiv="refresh" content="0; url={checkout_url}">',
                     unsafe_allow_html=True,
@@ -708,9 +731,9 @@ else:
 
         st.markdown("""
         <div class="secure-note">
-            <span> Secured by Stripe</span>
-            <span>✦ Cancel anytime</span>
-            <span> Refund within 48h if unsatisfied</span>
+            <span>Secured by Stripe</span>
+            <span>Cancel anytime</span>
+            <span>Refund within 48h if unsatisfied</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -762,80 +785,40 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Testimonials ──────────────────────────────────────────────────────────────
+# ── Verifiable Pro workflow ───────────────────────────────────────────────────
 st.markdown("<div style='height:36px'></div>", unsafe_allow_html=True)
 st.markdown(f"""
 <div style="font-size:1.2rem;font-weight:800;color:{TEXT_PRIMARY};text-align:center;
             margin-bottom:22px;letter-spacing:-0.3px;">
-    What Pro members say
+    A complete research workflow, not a collection of claims
 </div>
 <div class="testimonial-grid">
     <div class="ua-testi">
-        <div class="ua-testi-stars">5 / 5</div>
+        <div class="ua-testi-stars">DISCOVER</div>
         <div class="ua-testi-quote">
-            "The congressional trade tracker alone paid for itself in the first week.
-            I caught a buying cluster in a defense name 11 days before earnings."
-        </div>
-        <div class="ua-testi-footer">
-            <span style="display:inline-flex;align-items:center;justify-content:center;
-                         width:34px;height:34px;border-radius:50%;background:#1A1E2C;
-                         border:1px solid rgba(255,255,255,0.10);font-size:12px;
-                         font-weight:700;color:#C8D0E4;flex-shrink:0;">RK</span>
-            <div>
-                <div class="ua-testi-name">R.K.</div>
-                <div class="ua-testi-role">Portfolio manager · Chicago</div>
-            </div>
+            Rank ideas using {ACTIVE_SIGNAL_COUNT} registered signals, alternative-data
+            evidence, unusual options activity, and macro-aware stock screening.
         </div>
     </div>
     <div class="ua-testi">
-        <div class="ua-testi-stars">5 / 5</div>
+        <div class="ua-testi-stars">INVESTIGATE</div>
         <div class="ua-testi-quote">
-            "I used to spend 3 hours each morning pulling data from five different places.
-            Now it's one tab and 10 minutes. The morning digest is genuinely addictive."
-        </div>
-        <div class="ua-testi-footer">
-            <span style="display:inline-flex;align-items:center;justify-content:center;
-                         width:34px;height:34px;border-radius:50%;background:#1A2030;
-                         border:1px solid rgba(124,58,237,0.25);font-size:12px;
-                         font-weight:700;color:#A78BFA;flex-shrink:0;">SM</span>
-            <div>
-                <div class="ua-testi-name">S.M.</div>
-                <div class="ua-testi-role">Equity analyst · New York</div>
-            </div>
+            Use Deep Correlation, SEC insider filings, FINRA short interest, curated 13F
+            holdings, federal awards, and earnings sentiment from {ACTIVE_SOURCE_COUNT} source families.
         </div>
     </div>
     <div class="ua-testi">
-        <div class="ua-testi-stars">5 / 5</div>
+        <div class="ua-testi-stars">TEST</div>
         <div class="ua-testi-quote">
-            "The insider cluster detection flagged 2+ insiders buying the same small-cap
-            within 21 days. Price was up 38% in the following month. Uncanny."
-        </div>
-        <div class="ua-testi-footer">
-            <span style="display:inline-flex;align-items:center;justify-content:center;
-                         width:34px;height:34px;border-radius:50%;background:#0A1A10;
-                         border:1px solid rgba(0,213,102,0.22);font-size:12px;
-                         font-weight:700;color:#00D566;flex-shrink:0;">TW</span>
-            <div>
-                <div class="ua-testi-name">T.W.</div>
-                <div class="ua-testi-role">Retail investor · Austin</div>
-            </div>
+            Validate hypotheses with configurable, point-in-time signal backtests,
+            transaction costs, benchmark comparisons, and public model-validation evidence.
         </div>
     </div>
     <div class="ua-testi">
-        <div class="ua-testi-stars">5 / 5</div>
+        <div class="ua-testi-stars">MONITOR</div>
         <div class="ua-testi-quote">
-            "The Factor Exposure tool gave me a clearer view of what's actually
-            driving my portfolio than my Bloomberg terminal does. Genuinely impressive."
-        </div>
-        <div class="ua-testi-footer">
-            <span style="display:inline-flex;align-items:center;justify-content:center;
-                         width:34px;height:34px;border-radius:50%;background:#0A1420;
-                         border:1px solid rgba(0,200,224,0.22);font-size:12px;
-                         font-weight:700;color:#00C8E0;flex-shrink:0;">AP</span>
-            <div>
-                <div class="ua-testi-name">A.P.</div>
-                <div class="ua-testi-role">Quant researcher · London</div>
-            </div>
+            Track portfolio factor exposure, watchlists, morning signal changes, and
+            exportable research reports while the AI assistant retains live signal context.
         </div>
     </div>
 </div>
@@ -864,6 +847,11 @@ st.markdown(f"""
 <tr>
     <td>Ticker Deep Dive — any stock, any signal</td>
     <td style="text-align:center;" class="comp-yes">✓</td>
+    <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
+</tr>
+<tr>
+    <td>Deep Correlation, insider, 13F, contracts, and earnings sentiment</td>
+    <td style="text-align:center;" class="comp-no">—</td>
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
 </tr>
 <tr>
@@ -902,6 +890,11 @@ st.markdown(f"""
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
 </tr>
 <tr>
+    <td>AI Research Assistant — grounded in current live signals</td>
+    <td style="text-align:center;" class="comp-no">—</td>
+    <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
+</tr>
+<tr>
     <td>Portfolio Analyzer — macro exposure map</td>
     <td style="text-align:center;" class="comp-no">✗</td>
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
@@ -934,16 +927,7 @@ with col:
             st.switch_page("pages/home_page.py")
         else:
             try:
-                success_url  = _page_url("/Upgrade") + "?stripe_session_id={CHECKOUT_SESSION_ID}"
-                cancel_url   = _page_url("/Upgrade") + "?stripe_cancel=1"
-                checkout_url = create_checkout_session(
-                    user_id=user["id"],
-                    user_email=user["email"],
-                    success_url=success_url,
-                    cancel_url=cancel_url,
-                    plan=plan,
-                    trial_days=_trial_days,
-                )
+                checkout_url = _create_limited_checkout(user, plan, _trial_days)
                 st.markdown(
                     f'<meta http-equiv="refresh" content="0; url={checkout_url}">',
                     unsafe_allow_html=True,
@@ -957,7 +941,7 @@ with col:
 
 st.markdown("""
 <div style="text-align:center;font-size:0.78rem;color:#2D3348;margin-top:12px;">
-    Less than a Bloomberg terminal. Less than a Netflix subscription. More signal than either.
+    Built for repeatable research: discover, investigate, test, monitor, and export in one workspace.
 </div>
 """, unsafe_allow_html=True)
 

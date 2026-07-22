@@ -23,7 +23,7 @@ import yfinance as yf
 from utils.config import SIGNALS, TICKERS
 from utils.fetchers import fetch_live_quote, fetch_signal_series
 from utils.analysis import compute_confluence, score_signal
-from utils.header import render_header, render_sidebar_base, render_page_header, render_synthetic_data_banner, render_footer
+from utils.header import render_header, render_sidebar_base, render_page_header, render_data_unavailable_banner, render_footer
 from utils.theme import source_badge, inject_premium_css, section_label, PLOTLY_CONFIG
 from utils.quotes import get_batch_quotes
 from utils.signals_cache import get_all_signal_scores
@@ -324,8 +324,8 @@ with tab_screener:
         all_scores      = get_all_signal_scores()
         _momentum_cache = load_all_ticker_momentum()
 
-    render_synthetic_data_banner(
-        sum(1 for sv in all_scores.values() if sv.get("is_synthetic")),
+    render_data_unavailable_banner(
+        sum(1 for sv in all_scores.values() if sv.get("unavailable") or sv.get("error")),
         len(all_scores),
     )
 

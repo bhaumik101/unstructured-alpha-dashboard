@@ -43,7 +43,7 @@ RETURN SHAPE per signal_id key:
       "category":      str,
       "tier":          int,
       "pcs":           int,
-      "is_synthetic":  bool,
+      "unavailable":   bool,    # True when no trustworthy real observations exist
       "error":         bool,     # True if fetch/score raised an exception
     }
 
@@ -90,7 +90,7 @@ def _error_result(cfg: dict) -> dict:
         "category":      cfg.get("category", "macro"),
         "tier":          cfg.get("tier", 1),
         "pcs":           cfg.get("pcs", 5),
-        "is_synthetic":  False,
+        "unavailable":   True,
         "error":         True,
     }
 
@@ -99,10 +99,12 @@ def _score_one_signal(sig_id: str, cfg: dict, start: str, end: str) -> tuple[str
     """Fetch + score a single signal. Never raises — returns an error row on
     failure so one bad provider can't break the whole page (same contract as
     the original per-signal try/except)."""
-    from utils.fetchers import fetch_signal_series, is_synthetic
+    from utils.fetchers import fetch_signal_series, is_unavailable
     from utils.analysis import score_signal
     try:
         s      = fetch_signal_series(cfg, start, end)
+        if is_unavailable(s):
+            return sig_id, _error_result(cfg)
         scored = score_signal(s, inverse=cfg.get("inverse", False))
         return sig_id, {
             **scored,
@@ -112,7 +114,7 @@ def _score_one_signal(sig_id: str, cfg: dict, start: str, end: str) -> tuple[str
             "category":     cfg.get("category", "macro"),
             "tier":         cfg.get("tier", 1),
             "pcs":          cfg.get("pcs", 5),
-            "is_synthetic": is_synthetic(s),
+            "unavailable":  False,
             "error":        False,
         }
     except Exception:

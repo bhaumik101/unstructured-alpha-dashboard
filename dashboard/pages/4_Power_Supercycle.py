@@ -21,12 +21,12 @@ import streamlit as st
 
 from utils.config import SIGNALS, POWER_SUPERCYCLE_TICKERS
 from utils.fetchers import (
-    fetch_signal_series, is_synthetic, fetch_basket, fetch_arxiv_velocity, fetch_cot, fetch_federal_contracts,
+    fetch_signal_series, is_unavailable, fetch_basket, fetch_arxiv_velocity, fetch_cot, fetch_federal_contracts,
 )
 from utils.analysis import (
     score_signal, score_cot, compute_supercycle_score, score_contract_velocity,
 )
-from utils.header import render_header, render_sidebar_base, render_page_header, ticker_chips, render_synthetic_data_banner, render_footer
+from utils.header import render_header, render_sidebar_base, render_page_header, ticker_chips, render_data_unavailable_banner, render_footer
 from utils.theme import source_badge, inject_premium_css, inject_skeleton_css, section_label, PLOTLY_CONFIG
 
 st.set_page_config(page_title="Power Supercycle — UA", layout="wide")
@@ -140,8 +140,8 @@ with st.spinner("Loading Power Supercycle signals…"):
         else:
             supercycle["thesis_status"] = "DIVERGING — Most signals are currently reading against the thesis"
 
-render_synthetic_data_banner(
-    sum(1 for s in sc_data.values() if is_synthetic(s)),
+render_data_unavailable_banner(
+    sum(1 for s in sc_data.values() if is_unavailable(s)),
     len(sc_data),
 )
 

@@ -101,7 +101,8 @@ Get a free EIA API key at: https://www.eia.gov/opendata/register.php
 (Both take about 2 minutes, completely free, no credit card)
 
 Locally, none of these are required — the app falls back to a local SQLite database (for
-accounts/watchlists) and synthetic demo data (for FRED/EIA signals) when they're not set.
+accounts/watchlists). FRED/EIA-backed signals are marked unavailable and excluded when
+their keys are not set; the application does not generate demo observations.
 
 ---
 

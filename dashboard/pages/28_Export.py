@@ -13,7 +13,7 @@ import streamlit as st
 
 from utils.header import (
     render_header, render_page_header, render_sidebar_base,
-    disclose_synthetic_signals, count_synthetic_signals,
+    disclose_unavailable_signals, count_unavailable_signals,
 )
 from utils.signals_cache import get_all_signal_scores
 from utils.theme import inject_skeleton_css, skeleton_cards
@@ -160,21 +160,17 @@ def build_pdf(
     pdf.set_xy(140, 10)
     pdf.cell(60, 6, f"Generated {generated_at}", align="R")
 
-    # ── Synthetic-data warning, inside the masthead ───────────────────────────
-    # The flag must be IN the file, not only on the web page: a downloaded PDF is
-    # exactly where a placeholder reading would otherwise be mistaken for a real
-    # one, days later, by someone who never saw the on-screen banner. Drawn within
-    # the existing navy header band (y 0-30) at y=20 in warning-amber, so it is
-    # prominent without colliding with the ticker block that begins at y=36.
-    _n_syn, _n_tot = count_synthetic_signals(all_signals)
-    if _n_syn > 0:
+    # Keep source availability inside the file so forwarded reports retain the
+    # same real-data integrity contract as the live application.
+    _n_unavailable, _n_tot = count_unavailable_signals(all_signals)
+    if _n_unavailable > 0:
         pdf.set_xy(10, 20)
         pdf.set_font("Helvetica", "B", 8)
         pdf.set_text_color(255, 180, 60)
         pdf.cell(
             190, 6,
-            f"DEMO DATA: {_n_syn} of {_n_tot} signals are synthetic placeholder "
-            f"values, not live data - treat readings as illustrative only.",
+            f"REAL DATA UNAVAILABLE: {_n_unavailable} of {_n_tot} signals were "
+            f"excluded. No placeholder observations are included.",
         )
 
     # ── Ticker + company ──────────────────────────────────────────────────────
@@ -469,12 +465,9 @@ _sk = st.empty()
 _sk.markdown(skeleton_cards(n=3, height=60, cols=3), unsafe_allow_html=True)
 all_signals = get_all_signal_scores()
 
-# Data-integrity disclosure. Export is the highest-stakes surface: the PDF LEAVES
-# the app, so an undisclosed synthetic reading becomes a fabricated figure in a
-# file a user may forward or act on with no way to know it was placeholder data.
-# The banner covers the page; the PDF and the preview table carry the flag too
-# (see build_pdf's warning band and the "Source" column below).
-disclose_synthetic_signals(all_signals)
+# Data-integrity disclosure. Exported files preserve the same provider-availability
+# warning and never contain placeholder observations.
+disclose_unavailable_signals(all_signals)
 _sk.empty()
 
 # Real per-ticker correlation-weighted Confluence Score
@@ -643,9 +636,7 @@ for sid, sv in sorted(
         "Score":    round(sv.get("score", 50), 1),
         "Status":   sv.get("status", "neutral").upper(),
         "PCS":      cfg.get("pcs", 0),
-        # Per-row provenance so the table (which a user can copy out) marks which
-        # scores are synthetic, not just an aggregate banner above it.
-        "Source":   "DEMO" if sv.get("is_synthetic") else "Live",
+        "Source":   "Live",
     })
 
 if preview_rows:

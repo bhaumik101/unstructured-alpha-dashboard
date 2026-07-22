@@ -10,9 +10,14 @@ from datetime import datetime
 
 import streamlit as st
 
-from utils.header import render_header, render_sidebar_base, render_page_header, disclose_synthetic_signals
+from utils.header import render_header, render_sidebar_base, render_page_header, disclose_unavailable_signals
 
 st.set_page_config(page_title="AI Assistant — UA", layout="wide")
+from utils.billing import require_pro
+require_pro(
+    "AI Research Assistant",
+    "Use a live signal-aware research copilot grounded in the platform's current real-data state.",
+)
 render_header("AI Research Assistant")
 render_sidebar_base()
 
@@ -22,12 +27,10 @@ render_page_header(
     icon="",
 )
 
-# Data-integrity disclosure: this page presents/acts on macro-signal scores. If
-# any underlying signal is synthetic (no FRED/EIA key or a failed live fetch),
-# that must be visible here, not only on the Signal Dashboard. Same cached call
-# the page's own logic uses, so no extra network cost.
+# Data-integrity disclosure uses the same shared cache as the assistant context,
+# so unavailable providers are excluded without another network request.
 from utils.signals_cache import get_all_signal_scores as _gas_disc
-disclose_synthetic_signals(_gas_disc())
+disclose_unavailable_signals(_gas_disc())
 
 
 
@@ -215,7 +218,7 @@ TICKER CATEGORIES:
 
 IMPORTANT DISCLAIMERS:
 - All signals are research tools, not buy/sell recommendations
-- Without a FRED/EIA API key, macro signals use synthetic demo data
+- Without required provider credentials, affected signals are unavailable and excluded
 - yfinance data is typically 15-minute delayed for equities
 - The confluence score measures signal AGREEMENT, not proven forecasting accuracy
 """
@@ -329,7 +332,7 @@ INVERSE: widening = bearish, tightening = bullish.
 
 FRED (Federal Reserve Economic Data) powers signals like ATA Trucking, Yield Curve, HY Credit Spread, Jobless Claims, Consumer Sentiment, Retail Sales, and more.
 
-**Without a key:** App runs in demo mode with synthetic data. All pages work but macro signals are neutral/synthetic.
+**Without a key:** FRED-backed signals are marked unavailable and excluded from scores. The app never substitutes placeholder observations.
 
 **To get a free key:**
 1. Go to https://fred.stlouisfed.org/docs/api/api_key.html

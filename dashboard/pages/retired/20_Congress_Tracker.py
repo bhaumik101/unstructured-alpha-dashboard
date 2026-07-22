@@ -44,65 +44,16 @@ _SENATE_URL = (
 )
 
 
-def _synthetic_congress_trades() -> pd.DataFrame:
-    """Realistic synthetic trades for demo mode when live data unavailable."""
-    np.random.seed(42)
-    members = [
-        ("Nancy Pelosi", "Democrat", "House", "CA"),
-        ("Ro Khanna", "Democrat", "House", "CA"),
-        ("Michael McCaul", "Republican", "House", "TX"),
-        ("Virginia Foxx", "Republican", "House", "NC"),
-        ("Brian Schatz", "Democrat", "Senate", "HI"),
-        ("Tommy Tuberville", "Republican", "Senate", "AL"),
-        ("Dan Sullivan", "Republican", "Senate", "AK"),
-        ("Sheldon Whitehouse", "Democrat", "Senate", "RI"),
-        ("Mark Warner", "Democrat", "Senate", "VA"),
-        ("John Hoeven", "Republican", "Senate", "ND"),
-    ]
-    tickers = ["NVDA", "MSFT", "AMZN", "AAPL", "GOOGL", "JPM", "XOM", "LMT", "RTX", "CEG",
-               "AVGO", "META", "TSLA", "VST", "UNH", "GS", "BAC", "OXY", "CCJ", "PWR"]
-    amounts = ["$1,001 - $15,000", "$15,001 - $50,000", "$50,001 - $100,000",
-               "$100,001 - $250,000", "$250,001 - $500,000", "$500,001 - $1,000,000"]
-    types = ["Purchase", "Sale (Full)", "Sale (Partial)"]
-    type_weights = [0.55, 0.25, 0.20]  # Congress buys more than sells in public filings
-
-    records = []
-    base_date = datetime.now()
-    for i in range(200):
-        member, party, chamber, state = members[np.random.randint(len(members))]
-        trade_date = base_date - timedelta(days=np.random.randint(1, 180))
-        disc_date = trade_date + timedelta(days=np.random.randint(20, 45))
-        ticker = tickers[np.random.randint(len(tickers))]
-        t = np.random.choice(types, p=type_weights)
-        records.append({
-            "disclosure_date": disc_date.strftime("%Y-%m-%d"),
-            "transaction_date": trade_date.strftime("%Y-%m-%d"),
-            "member": member,
-            "party": party,
-            "chamber": chamber,
-            "state": state,
-            "ticker": ticker,
-            "type": t,
-            "amount": amounts[np.random.randint(len(amounts))],
-        })
-
-    df = pd.DataFrame(records)
-    df["disclosure_date"] = pd.to_datetime(df["disclosure_date"])
-    df["transaction_date"] = pd.to_datetime(df["transaction_date"])
-    df["synthetic"] = True
-    return df.sort_values("disclosure_date", ascending=False).reset_index(drop=True)
-
-
 @st.cache_data(ttl=3600 * 6, show_spinner=False, max_entries=2)
 def fetch_congress_trades(days: int = 180) -> pd.DataFrame:
     """
     Fetch congressional trades from House + Senate Stock Watcher S3 endpoints,
     which parse the official STOCK Act disclosures from disclosures.house.gov
-    and efds.senate.gov daily. Falls back to synthetic demo data on failure.
+    and efds.senate.gov daily. Returns an empty frame when both are unavailable.
 
     Returns unified DataFrame with columns:
         disclosure_date, transaction_date, member, party, chamber, state,
-        ticker, type (Purchase / Sale (Full) / Sale (Partial)), amount, synthetic
+        ticker, type (Purchase / Sale (Full) / Sale (Partial)), amount
     """
     cutoff = datetime.now() - timedelta(days=days)
     records = []
@@ -136,7 +87,7 @@ def fetch_congress_trades(days: int = 180) -> pd.DataFrame:
                 "amount":  item.get("amount", ""),
             })
     except Exception:
-        pass  # fall through to Senate + synthetic
+        pass  # continue with the Senate feed
 
     # ── Senate ─────────────────────────────────────────────────────────────
     try:
@@ -170,10 +121,9 @@ def fetch_congress_trades(days: int = 180) -> pd.DataFrame:
         pass
 
     if not records:
-        return _synthetic_congress_trades()
+        return pd.DataFrame()
 
     df = pd.DataFrame(records)
-    df["synthetic"] = False
     return df.sort_values("disclosure_date", ascending=False).reset_index(drop=True)
 
 
@@ -267,13 +217,8 @@ with c4:
 with st.spinner("Loading congressional disclosures…"):
     df_raw = fetch_congress_trades(days=days_back)
 
-is_synthetic = df_raw.get("synthetic", pd.Series([False])).all()
-if is_synthetic:
-    st.warning(
-        "⚠ Using synthetic demo data — congressional trade endpoints unavailable. "
-        "Real data sourced from house-stock-watcher and senate-stock-watcher (community-parsed official STOCK Act disclosures).",
-        icon="⚠️",
-    )
+if df_raw.empty:
+    st.warning("Congressional trade endpoints are unavailable. No placeholder trades are shown.")
 
 # ── Filter ────────────────────────────────────────────────────────────────────
 df = df_raw.copy()

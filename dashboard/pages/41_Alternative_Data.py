@@ -28,37 +28,12 @@ tab_congress, tab_options = st.tabs(["Congress Trades", "Options Flow"])
 with tab_congress:
     import html as _h
     from datetime import datetime, timedelta
-    import numpy as np
     import pandas as pd
     import plotly.graph_objects as go
     import requests
 
     _HOUSE_URL  = "https://house-stock-watcher-data.s3-us-east-2.amazonaws.com/data/all_transactions.json"
     _SENATE_URL = "https://senate-stock-watcher-data.s3-us-east-2.amazonaws.com/aggregate/all_transactions.json"
-
-    def _synthetic_congress_trades() -> pd.DataFrame:
-        np.random.seed(42)
-        members = [
-            ("Nancy Pelosi",       "Democrat",   "House",  "CA"),
-            ("Ro Khanna",          "Democrat",   "House",  "CA"),
-            ("Michael McCaul",     "Republican", "House",  "TX"),
-            ("Tommy Tuberville",   "Republican", "Senate", "AL"),
-            ("Mark Warner",        "Democrat",   "Senate", "VA"),
-        ]
-        tickers = ["NVDA","AAPL","MSFT","TSLA","META","GOOGL","AMD","XOM","CCJ","PLTR"]
-        rows = []
-        for i in range(40):
-            m = members[i % len(members)]
-            d = (datetime.now() - timedelta(days=np.random.randint(1, 90))).strftime("%Y-%m-%d")
-            rows.append({
-                "transaction_date": d, "disclosure_date": d,
-                "representative": m[0], "party": m[1], "chamber": m[2], "state": m[3],
-                "ticker": np.random.choice(tickers),
-                "asset_description": "Stock", "type": np.random.choice(["Purchase","Sale"]),
-                "amount": np.random.choice(["$1,001 - $15,000","$15,001 - $50,000","$50,001 - $100,000"]),
-                "source": "DEMO",
-            })
-        return pd.DataFrame(rows)
 
     @st.cache_data(ttl=3600, show_spinner=False, max_entries=2)
     def _load_congress_trades(days: int = 90) -> pd.DataFrame:
@@ -75,7 +50,10 @@ with tab_congress:
                 pass
 
         if not frames:
-            return _synthetic_congress_trades()
+            unavailable = pd.DataFrame()
+            unavailable.attrs["fetch_error"] = True
+            unavailable.attrs["provider"] = "congressional_disclosures"
+            return unavailable
 
         df = pd.concat(frames, ignore_index=True)
         date_col = next((c for c in ["transaction_date","transactionDate","date"] if c in df.columns), None)
@@ -104,8 +82,8 @@ with tab_congress:
     with st.spinner("Loading congressional disclosures…"):
         cdf = _load_congress_trades(days_back)
 
-    if "DEMO" in cdf.get("source","").values if "source" in cdf.columns else False:
-        st.info("Live data unavailable — showing representative synthetic data.", icon="")
+    if cdf.attrs.get("fetch_error"):
+        st.warning("Congressional disclosure feeds are temporarily unavailable. No placeholder trades are shown.")
 
     if type_filter and "type" in cdf.columns:
         cdf = cdf[cdf["type"].isin(type_filter)]

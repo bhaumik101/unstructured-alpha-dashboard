@@ -22,6 +22,11 @@ from utils.header import render_header
 from utils.theme import inject_all_css, PLOTLY_CONFIG
 
 st.set_page_config(page_title="Signal Strategy | Unstructured Alpha", layout="wide")
+from utils.billing import require_pro
+require_pro(
+    "Signal Backtester",
+    "Test configurable signal thresholds with point-in-time rules, costs, and benchmark comparisons.",
+)
 inject_all_css()
 render_header()
 

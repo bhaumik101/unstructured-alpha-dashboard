@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from utils.config import CATEGORIES, SIGNALS, TICKERS
-from utils.header import render_header, render_sidebar_base, render_page_header, ticker_chips, render_synthetic_data_banner, render_footer
+from utils.header import render_header, render_sidebar_base, render_page_header, ticker_chips, render_data_unavailable_banner, render_footer
 from utils.score_history import get_signal_flips, get_signal_trends, get_signal_streaks, compute_signal_correlation_matrix
 from utils.signals_cache import get_all_signal_scores
 from utils.analysis import compute_signal_confidence
@@ -155,8 +155,8 @@ with tab_signals:
     all_signals = get_all_signal_scores()
     _sk_ph.empty()
 
-    render_synthetic_data_banner(
-        sum(1 for sv in all_signals.values() if sv.get("is_synthetic")),
+    render_data_unavailable_banner(
+        sum(1 for sv in all_signals.values() if sv.get("unavailable") or sv.get("error")),
         len(all_signals),
     )
 

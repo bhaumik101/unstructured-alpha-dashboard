@@ -77,8 +77,8 @@ def test_confidence_freshness_and_shape():
 
 # ── Product metrics SSOT ─────────────────────────────────────────────────────
 def test_product_metrics():
-    assert pm.ACTIVE_SOURCE_COUNT == 7
+    assert pm.ACTIVE_SOURCE_COUNT == len(pm.PRIMARY_SOURCES) == 13
     assert pm.ACTIVE_SIGNAL_COUNT == 47          # computed from the (stubbed) registry
-    assert pm.SUPPORTED_TICKER_COUNT == 193
-    assert len(pm.source_names()) == 7
-    assert pm.signals_phrase() == "47 macro signals"
+    assert pm.SUPPORTED_TICKER_COUNT == 280
+    assert len(pm.source_names()) == 13
+    assert pm.signals_phrase() == "47 registered signals"

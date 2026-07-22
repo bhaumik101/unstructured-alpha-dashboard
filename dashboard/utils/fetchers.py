@@ -20,9 +20,8 @@
 #                    this is a whitelist, not algorithmic name-matching)
 #   arXiv API      — quantum paper velocity (no key needed)
 #
-# All functions fall back to synthetic demo data (or an empty result, where
-# fabricating a synthetic value wouldn't be honest) if real data is
-# unavailable.
+# Provider failures return explicitly unavailable empty results. No fetcher
+# fabricates substitute observations.
 
 import os
 import io
@@ -84,22 +83,29 @@ def _empty_frame_with_error(provider: str, exc: Exception) -> pd.DataFrame:
     return frame
 
 
+def _empty_series_with_error(name: str, provider: str, error_type: str) -> pd.Series:
+    """Represent unavailable real data without inventing observations."""
+    series = pd.Series(dtype=float, name=name)
+    series.attrs["fetch_error"] = True
+    series.attrs["provider"] = provider
+    series.attrs["error_type"] = error_type
+    return series
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # FRED — Macro Signal Data
 # ─────────────────────────────────────────────────────────────────────────────
 
-def is_synthetic(s: pd.Series) -> bool:
-    """True if this series is synthetic placeholder data, not real fetched data."""
-    return bool(getattr(s, "attrs", {}).get("synthetic", False))
+def is_unavailable(data: pd.Series | pd.DataFrame) -> bool:
+    """True when a provider returned no trustworthy real observations."""
+    return bool(getattr(data, "attrs", {}).get("fetch_error", False)) or data.empty
 
 
 @st.cache_data(ttl=21600, show_spinner=False, max_entries=60)  # 6h — FRED series are daily/weekly/monthly, unchanged intraday
 def fetch_fred(series_id: str, start: str, end: str, api_key: str = "") -> pd.Series:
     """
-    Fetch a FRED data series.
-    Falls back to synthetic data if no API key is configured. The returned
-    series carries s.attrs["synthetic"] so callers/pages can detect and
-    visibly flag demo data instead of silently presenting it as real.
+    Fetch a FRED data series. Missing credentials and provider failures return
+    an explicitly unavailable empty series; this function never fabricates data.
 
     IMPORTANT — api_key MUST be passed in by the caller (resolved via
     _get_fred_key()), not read internally from st.session_state here. This
@@ -132,12 +138,11 @@ def fetch_fred(series_id: str, start: str, end: str, api_key: str = "") -> pd.Se
             df["value"] = pd.to_numeric(df["value"], errors="coerce")
             s = df.dropna(subset=["value"]).set_index("date")["value"]
             s.name = series_id
-            s.attrs["synthetic"] = False
             return s
-        except Exception:
-            pass  # Fall through to synthetic
+        except Exception as exc:
+            return _empty_series_with_error(series_id, "fred", type(exc).__name__)
 
-    return _synthetic_signal(series_id, start, end)
+    return _empty_series_with_error(series_id, "fred", "MissingAPIKey")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -153,8 +158,8 @@ def fetch_eia(series_id: str, start: str, end: str, api_key: str = "") -> pd.Ser
     (weekly Lower-48 working gas in underground storage) — both confirmed
     live on EIA's own dnav pages as of 2026.
 
-    Falls back to synthetic data if no key is configured or the fetch fails,
-    same contract as fetch_fred(): s.attrs["synthetic"] marks which is which.
+    Missing credentials and provider failures return an explicitly unavailable
+    empty series; this function never fabricates data.
 
     api_key MUST be passed in by the caller (resolved via _get_eia_key()) for
     the same reason documented on fetch_fred() — this is a server-wide cache
@@ -177,12 +182,11 @@ def fetch_eia(series_id: str, start: str, end: str, api_key: str = "") -> pd.Ser
                 s = df.dropna(subset=["value"]).set_index("date")["value"].sort_index()
                 s = s.loc[(s.index >= pd.to_datetime(start)) & (s.index <= pd.to_datetime(end))]
                 s.name = series_id
-                s.attrs["synthetic"] = False
                 return s
-        except Exception:
-            pass  # Fall through to synthetic
+        except Exception as exc:
+            return _empty_series_with_error(series_id, "eia", type(exc).__name__)
 
-    return _synthetic_signal(series_id, start, end)
+    return _empty_series_with_error(series_id, "eia", "MissingAPIKey")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -204,8 +208,7 @@ def fetch_ny_fed_gscpi(start: str, end: str) -> pd.Series:
     Positive values = above-average global supply chain stress.
     Negative values = below-average stress (smooth conditions).
 
-    Falls back to synthetic data with the same attrs contract as fetch_fred()
-    if the download fails or openpyxl is not available.
+    Provider or parser failures return an explicitly unavailable empty series.
     """
     _URL = (
         "https://www.newyorkfed.org/medialibrary/research/"
@@ -230,12 +233,10 @@ def fetch_ny_fed_gscpi(start: str, end: str) -> pd.Series:
             & (s.index <= pd.to_datetime(end))
         ]
         s.name = "gscpi"
-        s.attrs["synthetic"] = False
         return s
-    except Exception:
-        pass  # Fall through to synthetic
+    except Exception as exc:
+        return _empty_series_with_error("gscpi", "ny_fed", type(exc).__name__)
 
-    return _synthetic_signal("gscpi", start, end)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -316,13 +317,19 @@ def fetch_live_quote(ticker: str) -> dict:
     """
     try:
         t = yf.Ticker(ticker)
-        # fast_info is an OBJECT — use getattr, not .get()
+        # yfinance normally exposes FastInfo as an object, but some versions
+        # and test adapters provide the same fields as a mapping.
         fi = t.fast_info
-        price = getattr(fi, "last_price", None)
-        prev_close = (
-            getattr(fi, "previous_close", None)
-            or getattr(fi, "regular_market_previous_close", None)
-        )
+        if isinstance(fi, dict):
+            price = fi.get("lastPrice") or fi.get("last_price")
+            prev_close = (fi.get("previousClose") or fi.get("previous_close") or
+                          fi.get("regularMarketPreviousClose"))
+        else:
+            price = getattr(fi, "last_price", None)
+            prev_close = (
+                getattr(fi, "previous_close", None)
+                or getattr(fi, "regular_market_previous_close", None)
+            )
         # Fallback to .info dict if fast_info didn't give us a price
         if price is None:
             try:
@@ -344,7 +351,8 @@ def fetch_live_quote(ticker: str) -> dict:
         pre_price = pre_chg = post_price = post_chg = market_state = None
         try:
             info = t.info or {}
-            market_state  = info.get("marketState")  # "PRE", "REGULAR", "POST", "CLOSED"
+            market_state_raw = info.get("marketState")  # "PRE", "REGULAR", "POST", "CLOSED"
+            market_state = market_state_raw if isinstance(market_state_raw, str) else None
             pre_price_raw  = info.get("preMarketPrice")
             post_price_raw = info.get("postMarketPrice")
             if pre_price_raw and prev_close:
@@ -499,7 +507,7 @@ def fetch_cot(market: str = "copper") -> pd.DataFrame:
     """
     Fetch CFTC Commitments of Traders data.
     Downloads the current-year legacy futures CSV from cftc.gov.
-    Falls back to synthetic data if download fails.
+    Returns an explicitly unavailable empty frame when live data cannot be used.
     """
     year = datetime.now().year
     # CFTC legacy futures-only report
@@ -519,7 +527,7 @@ def fetch_cot(market: str = "copper") -> pd.DataFrame:
         sub = df[mask].copy()
 
         if sub.empty:
-            return _synthetic_cot(market)
+            return _empty_frame_with_error("cftc", LookupError("market not found"))
 
         date_col = next((c for c in sub.columns if "date" in c.lower()), None)
         if date_col:
@@ -540,7 +548,7 @@ def fetch_cot(market: str = "copper") -> pd.DataFrame:
         oi_col         = _find_col(sub, "open interest")
 
         if not all([spec_long_col, spec_short_col, comm_long_col, comm_short_col]):
-            return _synthetic_cot(market)
+            return _empty_frame_with_error("cftc", ValueError("required columns missing"))
 
         result = pd.DataFrame({
             "date":          sub["date"],
@@ -553,8 +561,8 @@ def fetch_cot(market: str = "copper") -> pd.DataFrame:
 
         return result.reset_index(drop=True)
 
-    except Exception:
-        return _synthetic_cot(market)
+    except Exception as exc:
+        return _empty_frame_with_error("cftc", exc)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1160,55 +1168,10 @@ def fetch_fda_approval_velocity(max_results: int = 1000) -> pd.Series:
         s = pd.Series(1, index=dates)
         weekly = s.resample("W").sum()
         weekly.name = "fda_approvals_per_week"
-        weekly.attrs["synthetic"] = False
         return weekly
 
     except Exception:
         return pd.Series(dtype=float, name="fda_approvals_per_week")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# SYNTHETIC DATA GENERATORS (demo fallbacks)
-# ─────────────────────────────────────────────────────────────────────────────
-
-_SYNTHETIC_PARAMS = {
-    # series_id: (mean, noise_std, weekly_trend, cycle_amplitude_mult)
-    "TRUCKD11":          (108.0,  2.5,  0.04,  0.60),
-    "RAILFRTINTERMODAL": (285000, 10000, 80,   0.55),
-    "IC4WSA":            (218000, 16000, -180, 0.50),
-    "JTSLDR":            (1.14,   0.10, -0.0008, 0.40),
-    "DCOILWTICO":        (78.0,   5.5,  0.018, 0.75),
-    "MHHNGSP":           (2.82,   0.40, 0.004, 0.65),
-    "CPIUFDSL":          (288.5,  3.5,  0.22,  0.90),
-}
-
-
-def _synthetic_signal(series_id: str, start: str, end: str) -> pd.Series:
-    """Realistic synthetic signal data for demo mode."""
-    dates = pd.date_range(start=start, end=end, freq="W")
-    n = len(dates)
-    np.random.seed(abs(hash(series_id)) % 2**31)
-
-    mean, std, trend_pw, cycle_amp = _SYNTHETIC_PARAMS.get(
-        series_id, (100.0, 8.0, 0.05, 0.50)
-    )
-
-    noise  = np.random.normal(0, std * 0.35, n)
-    trend  = np.linspace(0, trend_pw * n, n)
-    cycle  = std * cycle_amp * np.sin(np.linspace(0, 3.0 * np.pi, n))
-
-    # Inject 2-3 realistic shock events (simulate crises/booms)
-    shock = np.zeros(n)
-    for _ in range(3):
-        idx = np.random.randint(n // 5, 4 * n // 5)
-        mag = np.random.choice([-1, 1]) * std * np.random.uniform(1.5, 3.0)
-        width = min(12, n - idx)
-        shock[idx:idx + width] += mag * np.linspace(1.0, 0.0, width)
-
-    values = mean + noise + trend + cycle + shock
-    s = pd.Series(values, index=dates, name=series_id)
-    s.attrs["synthetic"] = True
-    return s
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1569,28 +1532,6 @@ def fetch_fedspeaks_hawkishness(series_id: str = "fomc_hawkishness") -> pd.Serie
     series = pd.Series(scored, name="fedspeaks_hawkishness")
     series.index = pd.to_datetime(series.index)
     return series.sort_index()
-
-
-def _synthetic_cot(market: str) -> pd.DataFrame:
-    """Synthetic COT positioning data for demo mode."""
-    np.random.seed(abs(hash(market)) % 2**31)
-    dates = pd.date_range(end=datetime.now(), periods=130, freq="W")
-    n = len(dates)
-
-    # Positioning cycles between extremes — realistic boom/bust pattern
-    cycle      = np.sin(np.linspace(0, 5 * np.pi, n))
-    spec_net   = (cycle * 85000 + np.random.normal(0, 12000, n)).astype(int)
-    comm_net   = (-spec_net * 0.95 + np.random.normal(0, 6000, n)).astype(int)
-    oi         = np.clip(350000 + np.random.normal(0, 25000, n), 100000, 600000).astype(int)
-
-    return pd.DataFrame({
-        "date":          dates,
-        "spec_long":     np.maximum(spec_net,  0),
-        "spec_short":    np.maximum(-spec_net, 0),
-        "comm_long":     np.maximum(-comm_net, 0),
-        "comm_short":    np.maximum(comm_net,  0),
-        "open_interest": oi,
-    })
 
 
 # ─────────────────────────────────────────────────────────────────────────────

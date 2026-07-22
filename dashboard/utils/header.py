@@ -1208,65 +1208,37 @@ def render_dark_mode_toggle() -> None:
     pass
 
 
-def render_synthetic_data_banner(n_synthetic: int, n_total: int) -> None:
-    """
-    Render an unmissable banner when any FRED-sourced data on the page is
-    synthetic placeholder data (shown whenever no FRED API key is configured,
-    or a live fetch failed). Intentionally loud — a quiet caption is how a
-    user mistakes a fabricated chart for a real one.
-    """
-    if n_synthetic <= 0:
+def render_data_unavailable_banner(n_unavailable: int, n_total: int) -> None:
+    """Explain that missing providers were excluded, never replaced or scored."""
+    if n_unavailable <= 0:
         return
     st.markdown(f"""
     <div style="background:rgba(255,68,68,0.08);color:#FF8888;border-radius:10px;padding:12px 18px;
                 margin-bottom:14px;font-family:Inter,sans-serif;font-size:0.83rem;
                 border:1px solid rgba(255,68,68,0.3);border-left:3px solid #FF4444;">
-        <b style="color:#E06C75;">DEMO DATA</b> — {n_synthetic} of {n_total} signals on this page are showing
-        synthetic placeholder data, not real values. This happens when no FRED API
-        key is configured or a live fetch fails. Add a free key in the sidebar under
-        "Setup" for real data — until then, treat any bullish/bearish reading from
-        these signals as illustrative only.
+        <b style="color:#E06C75;">REAL DATA UNAVAILABLE</b> — {n_unavailable} of {n_total} signals could not be
+        loaded from their source and have been excluded from scores, rankings, and
+        exports. No placeholder or synthetic observations are used. Check provider
+        credentials under Setup or try again after the source recovers.
     </div>
     """, unsafe_allow_html=True)
 
 
-def count_synthetic_signals(all_signals: dict) -> tuple[int, int]:
-    """(n_synthetic, n_total) from a signals-cache dict.
-
-    Every page previously inlined `sum(1 for sv in ... if sv.get("is_synthetic"))`
-    at its own call site. Five pages did; eight score-consuming pages did not,
-    and an inlined count is exactly the kind of thing that silently drifts or
-    gets forgotten on a new page. Centralising the count means a page cannot
-    miscount, and the coverage test can assert every consumer routes through
-    this or its sibling below.
-    """
+def count_unavailable_signals(all_signals: dict) -> tuple[int, int]:
+    """Return unavailable and total counts from a shared signal-score mapping."""
     if not all_signals:
         return 0, 0
     total = len(all_signals)
-    synthetic = sum(1 for sv in all_signals.values()
-                    if isinstance(sv, dict) and sv.get("is_synthetic"))
-    return synthetic, total
+    unavailable = sum(1 for sv in all_signals.values()
+                      if isinstance(sv, dict) and (sv.get("unavailable") or sv.get("error")))
+    return unavailable, total
 
 
-def disclose_synthetic_signals(all_signals: dict) -> int:
-    """Render the demo-data banner for a signals dict and return the count.
-
-    The single one-liner every score-consuming page should call:
-
-        all_signals = get_all_signal_scores()
-        disclose_synthetic_signals(all_signals)
-
-    This is a data-correctness control, not decoration. When no FRED/EIA key is
-    configured or a live fetch fails, signals fall back to synthetic placeholder
-    series (see utils/fetchers._synthetic_signal). Any page that ranks, scores,
-    exports, or reasons over those values while presenting them as real is
-    showing fabricated data as live — the precise failure this product's
-    credibility cannot survive. Returns the synthetic count so callers that also
-    need to act on it (e.g. tagging exported rows) do not have to recount.
-    """
-    n_synthetic, n_total = count_synthetic_signals(all_signals)
-    render_synthetic_data_banner(n_synthetic, n_total)
-    return n_synthetic
+def disclose_unavailable_signals(all_signals: dict) -> int:
+    """Render the real-data availability notice and return the excluded count."""
+    n_unavailable, n_total = count_unavailable_signals(all_signals)
+    render_data_unavailable_banner(n_unavailable, n_total)
+    return n_unavailable
 
 
 def ticker_label(ticker: str) -> str:
@@ -1382,15 +1354,15 @@ def _render_topnav() -> None:
     _hdr_user = st.session_state.get("user")
     _hdr_admin = is_admin(_hdr_user)
     if _hdr_admin:
-        _upgrade_slot = '<span class="ua-tnav-pro ua-tnav-admin" title="Admin access">&#9733; ADMIN</span>'
+        _upgrade_slot = '<span class="ua-tnav-pro ua-tnav-admin" title="Admin access">ADMIN</span>'
     elif effective_is_pro(_hdr_user):
-        _upgrade_slot = '<span class="ua-tnav-pro" title="You\'re on Pro">&#9889; PRO</span>'
+        _upgrade_slot = '<span class="ua-tnav-pro" title="You\'re on Pro">PRO</span>'
     else:
-        _upgrade_slot = '<a class="ua-tnav-upgrade" href="/upgrade-to-pro">&#9889; Upgrade</a>'
+        _upgrade_slot = '<a class="ua-tnav-upgrade" href="/upgrade-to-pro">Upgrade</a>'
     # Admin-only nav entry — only rendered for admins, invisible to everyone else.
     _admin_nav_slot = (
         '<div class="ua-tnav-drop-rule"></div>'
-        '<a href="/admin" style="color:#E8C766;">&#9733; Admin</a>'
+        '<a href="/admin" style="color:#E8C766;">Admin</a>'
     ) if _hdr_admin else ""
     st.html(("""
 <style>
@@ -1783,9 +1755,9 @@ def render_header(page_subtitle: str = "") -> None:
         {property: 'og:site_name',    content: 'Unstructured Alpha'},
         {property: 'og:type',         content: 'website'},
         {property: 'og:url',          content: 'https://unstructuredalpha.com'},
-        {property: 'og:title',        content: 'Unstructured Alpha — 43-Signal Macro Intelligence'},
-        {property: 'og:description',  content: 'Score insider trades, credit spreads, energy inventories and 44 other signals daily. Free to browse. Pro $20/mo.'},
-        {name:     'description',     content: 'Score insider trades, credit spreads, energy inventories and 44 other macro signals daily. Confluence Score for any stock. Free to browse.'},
+        {property: 'og:title',        content: 'Unstructured Alpha — 47-Signal Market Intelligence'},
+        {property: 'og:description',  content: 'Research 47 registered signals across 13 real-data source families. Public validation and track record; deeper testing and research workflows in Pro.'},
+        {name:     'description',     content: 'Research 47 registered signals across macro, market, filings, energy, contracts and alternative data. No synthetic placeholder observations.'},
         {name:     'twitter:card',    content: 'summary'},
         {name:     'twitter:title',   content: 'Unstructured Alpha — Alternative Data Intelligence'},
         {name:     'twitter:description', content: '47 macro signals scored daily. Free to browse. Insider trades, credit spreads, VIX term structure, copper/gold ratio and more.'},
@@ -2185,13 +2157,13 @@ def render_footer(page: str = "") -> None:
     _foot_cta = (
         '<span style="font-size:0.68rem;color:#C4B5FD;font-weight:700;'
         'background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);'
-        'padding:5px 12px;border-radius:6px;white-space:nowrap;">&#9889; Pro member</span>'
+        'padding:5px 12px;border-radius:6px;white-space:nowrap;">Pro member</span>'
         if _foot_is_pro else
         '<a href="/upgrade-to-pro" style="font-size:0.68rem;color:#fff;text-decoration:none;'
         'font-weight:700;background:linear-gradient(135deg,#7C3AED,#6D28D9);'
         'padding:5px 12px;border-radius:6px;white-space:nowrap;" '
         'onmouseover="this.style.opacity=\'0.88\'" '
-        'onmouseout="this.style.opacity=\'1\'">&#9889; Upgrade to Pro</a>'
+        'onmouseout="this.style.opacity=\'1\'">Upgrade to Pro</a>'
     )
 
     # st.html (not st.markdown) — this footer is multi-line indented HTML, which

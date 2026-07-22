@@ -143,6 +143,7 @@ POLICIES: dict[str, tuple[int, int]] = {
     "ai_research":     (10, 3600),
     "options_flow":    (20, 300),   # provider-heavy (yfinance options chains)
     "export":          (10, 600),
+    "checkout":        (5, 900),    # prevent duplicate Stripe sessions / scripted abuse
     "screener_scan":   (60, 300),
     "login_ip":        (25, 900),
     "signup_ip":       (10, 3600),

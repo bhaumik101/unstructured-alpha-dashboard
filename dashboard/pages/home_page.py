@@ -25,7 +25,7 @@ st.set_page_config(
 
 import html as _h
 import pandas as pd
-from utils.header import render_header, render_sidebar_base, render_footer, disclose_synthetic_signals
+from utils.header import render_header, render_sidebar_base, render_footer, disclose_unavailable_signals
 from utils.signals_cache import get_all_signal_scores
 from utils.config import SIGNALS, CATEGORIES
 from utils.narrative import generate_narrative
@@ -40,7 +40,7 @@ render_sidebar_base()
 # Data-integrity disclosure: the landing page summarises regime and top signals.
 # If any signal is synthetic (no FRED/EIA key or a failed fetch), the very first
 # thing a visitor sees would otherwise present fabricated readings as live.
-disclose_synthetic_signals(get_all_signal_scores())
+disclose_unavailable_signals(get_all_signal_scores())
 
 # ── Load live signal data (shared cache — no extra API cost) ──────────────────
 def _build_home_data() -> dict:

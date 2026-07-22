@@ -376,15 +376,7 @@ tabs = st.tabs(tab_labels)
 for tab, sig in zip(tabs, CHAIN_SIGNALS):
     with tab:
         s = data.get(sig["key"], pd.Series(dtype=float)).dropna()
-        is_synth = getattr(s, "attrs", {}).get("synthetic", False)
         status, latest, pct = signal_scores[sig["key"]]
-
-        if is_synth:
-            st.warning(
-                "⚠️ Showing demo data — live fetch unavailable. "
-                "Patterns are illustrative only.",
-                icon="⚠️",
-            )
 
         if len(s) < 3:
             st.info("Insufficient data for chart. Check API connectivity.")
