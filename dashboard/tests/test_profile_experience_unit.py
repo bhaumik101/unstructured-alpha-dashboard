@@ -10,7 +10,7 @@ AUTH = (ROOT / "utils" / "auth.py").read_text(encoding="utf-8")
 
 
 def test_profile_uses_focused_side_sections_instead_of_one_long_page():
-    assert 'sections=("Profile & Preferences", "Security", "Plan & Referrals")' in PROFILE
+    assert 'sections=("Profile & Preferences", "Security", "API Access", "Plan & Referrals")' in PROFILE
     assert 'section_key="profile_section_rail"' in PROFILE
     assert "st.tabs(" not in PROFILE
 

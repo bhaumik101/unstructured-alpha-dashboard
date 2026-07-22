@@ -279,6 +279,22 @@ portfolio_reviews = Table(
     Column("updated_at", String(64), nullable=False),
 )
 
+# Pro API credentials. Raw keys are shown once and never stored; only their
+# SHA-256 digest and a non-secret display prefix persist. Key revocation does
+# not affect the user's browser sessions or any other credential.
+api_keys = Table(
+    "api_keys", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("name", String(64), nullable=False),
+    Column("key_prefix", String(20), nullable=False),
+    Column("key_hash", String(64), nullable=False, unique=True),
+    Column("created_at", String(64), nullable=False),
+    Column("last_used_at", String(64)),
+    Column("revoked_at", String(64)),
+    UniqueConstraint("user_id", "name", name="uq_api_key_user_name"),
+)
+
 # One evolving investment thesis per user/security. This is deliberately
 # user-scoped: unlike the canonical Confluence Score, thesis language, horizon,
 # risk conditions, and outcome notes are private decision-journal data.
