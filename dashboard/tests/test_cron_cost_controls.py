@@ -55,6 +55,7 @@ def test_threshold_dispatcher_evaluates_each_user_once(monkeypatch):
     from cron import send_threshold_alerts as dispatcher
 
     evaluated: list[int] = []
+    screens_evaluated: list[int] = []
     emailed: list[str] = []
     webhook_users: list[int] = []
     monkeypatch.setattr(dispatcher, "init_db", lambda: None)
@@ -65,12 +66,25 @@ def test_threshold_dispatcher_evaluates_each_user_once(monkeypatch):
                  {"id": 2, "email": "two@example.com"}],
     )
     monkeypatch.setattr(dispatcher, "get_all_webhook_users", lambda: [{"id": 2}])
+    monkeypatch.setattr(
+        dispatcher,
+        "get_enabled_screen_users",
+        lambda: [{"id": 2, "email": "two@example.com"},
+                 {"id": 3, "email": "three@example.com"}],
+    )
 
     def evaluate(user_id):
         evaluated.append(user_id)
         return [{"ticker": "AAPL"}]
 
     monkeypatch.setattr(dispatcher, "evaluate_watchlist", evaluate)
+
+    def evaluate_screens(user_id, *, rankings_by_horizon):
+        screens_evaluated.append(user_id)
+        rankings_by_horizon.setdefault("All", [])
+        return [{"ticker": "NVDA"}]
+
+    monkeypatch.setattr(dispatcher, "evaluate_saved_screens", evaluate_screens)
     monkeypatch.setattr(
         dispatcher, "send_watchlist_alert_email", lambda email, alerts: emailed.append(email)
     )
@@ -83,5 +97,6 @@ def test_threshold_dispatcher_evaluates_each_user_once(monkeypatch):
     dispatcher.main()
 
     assert evaluated == [1, 2]
-    assert emailed == ["one@example.com", "two@example.com"]
+    assert screens_evaluated == [2, 3]
+    assert emailed == ["one@example.com", "two@example.com", "three@example.com"]
     assert webhook_users == [2]

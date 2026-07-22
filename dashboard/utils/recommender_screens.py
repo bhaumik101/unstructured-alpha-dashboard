@@ -9,7 +9,7 @@ from typing import Iterable
 
 from sqlalchemy import delete, func, select
 
-from utils.db import engine, saved_recommender_screens, upsert_stmt
+from utils.db import alerts, engine, saved_recommender_screens, upsert_stmt, users
 
 
 MAX_SAVED_SCREENS = 10
@@ -147,7 +147,15 @@ def save_screen(
         )
         stmt = stmt.on_conflict_do_update(
             index_elements=["user_id", "name"],
-            set_={"config_json": stmt.excluded.config_json, "updated_at": now},
+            # A changed definition is a different comparison universe. Clear
+            # its baseline so the next monitor run re-establishes state silently
+            # instead of treating the edited results as new entrants.
+            set_={
+                "config_json": stmt.excluded.config_json,
+                "result_state_json": None,
+                "last_checked_at": None,
+                "updated_at": now,
+            },
         )
         conn.execute(stmt)
         row = conn.execute(
@@ -169,3 +177,161 @@ def delete_screen(user_id: int, screen_id: int) -> bool:
             )
         )
     return bool(result.rowcount)
+
+
+def set_screen_alerts(user_id: int, screen_id: int, enabled: bool) -> bool:
+    """Toggle monitoring for one owned screen and reset its comparison baseline."""
+    with engine.begin() as conn:
+        result = conn.execute(
+            saved_recommender_screens.update()
+            .where(
+                saved_recommender_screens.c.id == int(screen_id),
+                saved_recommender_screens.c.user_id == int(user_id),
+            )
+            .values(
+                alerts_enabled=1 if enabled else 0,
+                result_state_json=None,
+                last_checked_at=None,
+                updated_at=_now(),
+            )
+        )
+    return bool(result.rowcount)
+
+
+def get_enabled_screen_users() -> list[dict]:
+    """Return verified Pro members who have at least one monitored screen."""
+    with engine.begin() as conn:
+        rows = conn.execute(
+            select(users.c.id, users.c.email)
+            .where(
+                users.c.id.in_(
+                    select(saved_recommender_screens.c.user_id)
+                    .where(saved_recommender_screens.c.alerts_enabled == 1)
+                    .distinct()
+                ),
+                users.c.email_verified == True,  # noqa: E712
+                users.c.subscription_tier == "pro",
+            )
+        ).mappings().all()
+    return [dict(row) for row in rows]
+
+
+def _decode_state(raw: str | None) -> dict[str, list[str]] | None:
+    if not raw:
+        return None
+    try:
+        value = json.loads(raw)
+        longs = [str(ticker) for ticker in value.get("longs", [])]
+        shorts = [str(ticker) for ticker in value.get("shorts", [])]
+        return {"longs": longs, "shorts": shorts}
+    except (AttributeError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+
+
+def evaluate_saved_screens(
+    user_id: int,
+    *,
+    rankings_by_horizon: dict[str, list[dict]] | None = None,
+) -> list[dict]:
+    """Create alerts for new macro-ranked entrants across enabled screens.
+
+    The first run and every post-edit run are baseline-only. Rankings may be
+    injected by tests or a batch dispatcher; otherwise all enabled horizons
+    share one signal snapshot and are each computed at most once.
+    """
+    user_id = int(user_id)
+    with engine.begin() as conn:
+        rows = conn.execute(
+            select(saved_recommender_screens).where(
+                saved_recommender_screens.c.user_id == user_id,
+                saved_recommender_screens.c.alerts_enabled == 1,
+            ).order_by(saved_recommender_screens.c.id)
+        ).mappings().all()
+    screens: list[dict] = []
+    for row in rows:
+        try:
+            config = normalize_screen_config(json.loads(row["config_json"]))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+        screens.append({**dict(row), "config": config})
+    if not screens:
+        return []
+
+    from utils.recommender_rankings import HORIZON_WEEKS, macro_rank_all, screen_candidates
+
+    # A dispatcher can pass one mutable cache across every user. At most four
+    # horizon rankings are then computed for the entire cron run, not per user.
+    rankings = rankings_by_horizon if rankings_by_horizon is not None else {}
+    missing_horizons = {
+        screen["config"]["time_horizon"] for screen in screens
+        if screen["config"]["time_horizon"] not in rankings
+    }
+    if missing_horizons:
+        from utils.signals_cache import get_all_signal_scores
+        all_scores = get_all_signal_scores()
+        for horizon in missing_horizons:
+            min_lag, max_lag = HORIZON_WEEKS[horizon]
+            rankings[horizon] = macro_rank_all(
+                min_lag, max_lag, all_scores=all_scores
+            )
+
+    emitted: list[dict] = []
+    for screen in screens:
+        candidates = screen_candidates(
+            rankings[screen["config"]["time_horizon"]], screen["config"]
+        )
+        current = {
+            "longs": [row["ticker"] for row in candidates["longs"]],
+            "shorts": [row["ticker"] for row in candidates["shorts"]],
+        }
+        previous = _decode_state(screen.get("result_state_json"))
+        new_rows: list[dict] = []
+        if previous is not None:
+            for side, direction, label in (
+                ("longs", "bullish", "bullish"),
+                ("shorts", "bearish", "bearish"),
+            ):
+                previous_tickers = set(previous[side])
+                for candidate in candidates[side]:
+                    ticker = candidate["ticker"]
+                    if ticker in previous_tickers:
+                        continue
+                    new_rows.append({
+                        "user_id": user_id,
+                        "ticker": ticker,
+                        "alert_type": "screen_entry",
+                        "direction": direction,
+                        "message": (
+                            f'{ticker} entered the {label} side of your saved screen '
+                            f'“{screen["name"]}” at a macro-ranked score of '
+                            f'{candidate["score"]:.1f}. Review the current evidence before acting.'
+                        ),
+                        "created_at": _now(),
+                        "is_read": 0,
+                    })
+
+        now = _now()
+        with engine.begin() as conn:
+            if new_rows:
+                conn.execute(alerts.insert(), new_rows)
+            conn.execute(
+                saved_recommender_screens.update()
+                .where(
+                    saved_recommender_screens.c.id == screen["id"],
+                    saved_recommender_screens.c.user_id == user_id,
+                )
+                .values(
+                    result_state_json=json.dumps(current, sort_keys=True, separators=(",", ":")),
+                    last_checked_at=now,
+                )
+            )
+        emitted.extend([
+            {
+                "ticker": row["ticker"],
+                "alert_type": row["alert_type"],
+                "direction": row["direction"],
+                "message": row["message"],
+            }
+            for row in new_rows
+        ])
+    return emitted

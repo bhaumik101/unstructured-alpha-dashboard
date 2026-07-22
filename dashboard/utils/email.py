@@ -1111,6 +1111,7 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
         "52w_high": "New 52-week high",
         "52w_low": "New 52-week low",
         "signal_change": "Differentiator change",
+        "screen_entry": "Saved screen entrant",
     }
 
     alert_rows = ""
@@ -1154,7 +1155,17 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
     if n > 4:
         tickers_short += f" +{n - 4} more"
 
-    subject = f"{n} Watchlist Alert{plural}: {tickers_short}"
+    _all_screen_entries = all(a.get("alert_type") == "screen_entry" for a in new_alerts)
+    _has_screen_entries = any(a.get("alert_type") == "screen_entry" for a in new_alerts)
+    _alert_name = "Saved Screen Alert" if _all_screen_entries else (
+        "Research Alert" if _has_screen_entries else "Watchlist Alert"
+    )
+    _header_label = "SAVED SCREENS" if _all_screen_entries else (
+        "RESEARCH ALERTS" if _has_screen_entries else "WATCHLIST"
+    )
+    _cta_url = f"{_APP_URL}/stock-recommender" if _all_screen_entries else f"{_APP_URL}/my-watchlist"
+    _cta_label = "Open Stock Recommender" if _all_screen_entries else "Open Watchlist"
+    subject = f"{n} {_alert_name}{plural}: {tickers_short}"
     alert_fingerprint = hashlib.sha256(
         "|".join(
             sorted(
@@ -1168,7 +1179,7 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
 <html>
 <body style="margin:0;padding:0;background:#F3F4F6;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-  {_safe(tickers_short)} crossed a watchlist threshold. Review the evidence and next action.
+  {_safe(tickers_short)} triggered a saved research condition. Review the evidence and next action.
 </div>
 <div style="max-width:560px;margin:0 auto;background:#FFFFFF;
             font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;">
@@ -1178,10 +1189,10 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
               border-top:4px solid #7C3AED;">
     <div style="font-size:0.60rem;color:#C4B5FD;letter-spacing:0.14em;
                 text-transform:uppercase;margin-bottom:5px;">
-      UNSTRUCTURED ALPHA · WATCHLIST
+      UNSTRUCTURED ALPHA · {_header_label}
     </div>
     <div style="font-size:1.4rem;font-weight:800;color:#FFFFFF;line-height:1.2;">
-      {n} Watchlist Alert{plural}
+      {n} {_alert_name}{plural}
     </div>
     <div style="font-size:0.82rem;color:#B8C0D4;margin-top:6px;">
       {today_str} · {tickers_short}
@@ -1197,10 +1208,10 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
 
   <!-- CTA -->
   <div style="background:#F9FAFB;padding:22px 28px;text-align:center;">
-    <a href="{_APP_URL}/my-watchlist"
+    <a href="{_cta_url}"
        style="display:inline-block;background:#6D28D9;color:#FFFFFF;padding:12px 30px;border-radius:6px;
               text-decoration:none;font-size:0.9rem;font-weight:700;letter-spacing:0.02em;">
-      Open Watchlist →
+      {_cta_label} →
     </a>
   </div>
 
@@ -1208,7 +1219,7 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
   <div style="background:#111827;padding:14px 28px;border-radius:0 0 8px 8px;
               font-size:0.68rem;color:#9CA3AF;text-align:center;line-height:1.6;">
     Unstructured Alpha · app.unstructuredalpha.com · Not financial advice<br>
-    <a href="{_APP_URL}/my-watchlist"
+    <a href="{_cta_url}"
        style="color:#7C3AED;text-decoration:none;">Manage alert settings</a>
   </div>
 

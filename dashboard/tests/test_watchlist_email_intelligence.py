@@ -173,6 +173,35 @@ def test_watchlist_alert_email_escapes_content_and_links_research(monkeypatch):
     assert "linear-gradient" not in payload["html"]
 
 
+def test_saved_screen_alert_email_uses_recommender_context(monkeypatch):
+    from utils import email
+
+    captured = {}
+
+    def _post(url, **kwargs):
+        captured.update(url=url, **kwargs)
+        return _FakeResponse()
+
+    monkeypatch.setattr(email, "_get_resend_config", lambda: ("re_test", "UA <mail@example.com>"))
+    monkeypatch.setattr(email.requests, "post", _post)
+
+    email.send_watchlist_alert_email(
+        "reader@example.com",
+        [{
+            "ticker": "XOM",
+            "alert_type": "screen_entry",
+            "direction": "bullish",
+            "message": "XOM entered Long-term energy leaders.",
+        }],
+    )
+
+    payload = captured["json"]
+    assert payload["subject"] == "1 Saved Screen Alert: XOM"
+    assert "Saved screen entrant" in payload["html"]
+    assert "/stock-recommender" in payload["html"]
+    assert "Open Stock Recommender" in payload["html"]
+
+
 def test_digest_email_renders_weighted_portfolio_intelligence(monkeypatch):
     from utils import email
 

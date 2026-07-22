@@ -109,6 +109,7 @@ _TYPE_LABEL = {
     "insider":         "Insider Activity",
     "short_interest":  "Short Interest",
     "13f":             "13F Positioning",
+    "screen_entry":    "Saved Screen Entrant",
 }
 
 

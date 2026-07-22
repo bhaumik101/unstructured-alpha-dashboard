@@ -225,6 +225,11 @@ saved_recommender_screens = Table(
     Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
     Column("name", String(64), nullable=False),
     Column("config_json", Text, nullable=False),
+    # Monitoring is opt-in per screen. The first enabled evaluation writes a
+    # baseline without notifying; later runs alert only on genuinely new names.
+    Column("alerts_enabled", Integer, nullable=False, server_default="0"),
+    Column("result_state_json", Text),
+    Column("last_checked_at", String(64)),
     Column("created_at", String(64), nullable=False),
     Column("updated_at", String(64), nullable=False),
     UniqueConstraint("user_id", "name", name="uq_recommender_screen_user_name"),
@@ -724,6 +729,28 @@ def _migrate_score_snapshots_table() -> None:
                 f"ALTER TABLE score_snapshots ADD COLUMN {col.name} {col_sql_type}"))
 
 
+def _migrate_saved_recommender_screens_table() -> None:
+    """Add monitoring state to screen tables created before alert support."""
+    inspector = inspect(engine)
+    if "saved_recommender_screens" not in inspector.get_table_names():
+        return
+    existing_cols = {c["name"] for c in inspector.get_columns("saved_recommender_screens")}
+    new_cols = [c for c in saved_recommender_screens.columns if c.name not in existing_cols]
+    if not new_cols:
+        return
+    with engine.begin() as conn:
+        for col in new_cols:
+            if col.name == "alerts_enabled":
+                conn.execute(text(
+                    "ALTER TABLE saved_recommender_screens "
+                    "ADD COLUMN alerts_enabled INTEGER DEFAULT 0"
+                ))
+            else:
+                conn.execute(text(
+                    f"ALTER TABLE saved_recommender_screens ADD COLUMN {col.name} TEXT"
+                ))
+
+
 def init_db() -> None:
     """Create every table if it doesn't already exist, then apply any
     pending column migrations. Safe to call on every page load."""
@@ -732,6 +759,7 @@ def init_db() -> None:
     _migrate_prediction_log_table()
     _migrate_alert_state_table()
     _migrate_score_snapshots_table()
+    _migrate_saved_recommender_screens_table()
 
 
 # Probability that any single page load triggers run_periodic_maintenance()

@@ -32,7 +32,7 @@ from utils.header import render_header, render_sidebar_base, render_page_header,
 from utils.theme import inject_premium_css, source_badge, PLOTLY_CONFIG
 from utils.config import SIGNALS, TICKERS
 from utils.billing import require_pro
-from utils.conviction import get_signal_alignment
+from utils.recommender_rankings import HORIZON_WEEKS, macro_rank_all
 
 render_header("Stock Recommender")
 _recommender_section = render_sidebar_base(
@@ -72,7 +72,12 @@ if _recommender_section != "Track Record":
     # Configuration
     # ─────────────────────────────────────────────────────────────────────────────
 
-    from utils.recommender_screens import delete_screen, list_saved_screens, save_screen
+    from utils.recommender_screens import (
+        delete_screen,
+        list_saved_screens,
+        save_screen,
+        set_screen_alerts,
+    )
 
     _sector_options = sorted(set(m.get("sector", "Other") for m in TICKERS.values()))
     _saved_screens = (
@@ -86,7 +91,7 @@ if _recommender_section != "Track Record":
     # calls or surprise the single-core production service.
     if _recommender_user:
         with st.container(border=True):
-            _saved_c1, _saved_c2, _saved_c3 = st.columns([4, 1, 1])
+            _saved_c1, _saved_c2, _saved_c3, _saved_c4 = st.columns([4, 1, 1, 1])
             with _saved_c1:
                 _selected_screen_id = st.selectbox(
                     "Saved Pro screens",
@@ -104,6 +109,21 @@ if _recommender_section != "Track Record":
             _delete_screen = _saved_c3.button(
                 "Delete", use_container_width=True, disabled=_selected_screen_id is None,
                 key="rec_delete_saved_screen",
+            )
+            _selected_monitoring = bool(
+                _selected_screen_id is not None
+                and _screen_by_id[_selected_screen_id].get("alerts_enabled")
+            )
+            _monitor_screen = _saved_c4.button(
+                "Pause" if _selected_monitoring else "Monitor",
+                use_container_width=True,
+                disabled=_selected_screen_id is None,
+                key="rec_monitor_saved_screen",
+                help=(
+                    "Pause new-entry alerts for this screen."
+                    if _selected_monitoring
+                    else "Alert when a new stock enters this screen's bullish or bearish results."
+                ),
             )
             if _apply_screen and _selected_screen_id is not None:
                 _selected = _screen_by_id[_selected_screen_id]
@@ -125,6 +145,17 @@ if _recommender_section != "Track Record":
                         st.session_state.pop("rec_screen_name_input", None)
                     st.session_state.pop("rec_saved_screen_selector", None)
                     st.session_state["rec_screen_notice"] = f'Deleted “{_selected["name"]}”.'
+                    st.rerun()
+            if _monitor_screen and _selected_screen_id is not None:
+                _selected = _screen_by_id[_selected_screen_id]
+                _new_monitoring = not bool(_selected.get("alerts_enabled"))
+                if set_screen_alerts(
+                    _recommender_user["id"], _selected_screen_id, _new_monitoring
+                ):
+                    _state_label = "Monitoring enabled" if _new_monitoring else "Monitoring paused"
+                    st.session_state["rec_screen_notice"] = (
+                        f'{_state_label} for “{_selected["name"]}”.'
+                    )
                     st.rerun()
             if st.session_state.get("rec_active_screen_name"):
                 st.caption(
@@ -180,7 +211,8 @@ if _recommender_section != "Track Record":
             )
             st.caption(
                 f"Save up to 10 private filter presets. Results are recomputed from current real data; "
-                "cached charts and provider responses are never stored in a preset."
+                "cached charts and provider responses are never stored in a preset. Select a saved "
+                "screen and choose Monitor to receive genuine new-entry alerts."
             )
             if _save_current_screen:
                 try:
@@ -207,13 +239,7 @@ if _recommender_section != "Track Record":
                 except ValueError as exc:
                     st.error(str(exc))
 
-    _horizon_weeks = {
-        "Short-term (1–2 wks)":  (0, 3),
-        "Medium-term (1–2 mo)":  (3, 9),
-        "Long-term (3+ mo)":     (9, 999),
-        "All":                   (0, 999),
-    }
-    _min_lag, _max_lag = _horizon_weeks[time_horizon]
+    _min_lag, _max_lag = HORIZON_WEEKS[time_horizon]
 
     st.markdown("---")
 
@@ -223,75 +249,8 @@ if _recommender_section != "Track Record":
 
 @st.cache_data(ttl=3600, show_spinner=False, max_entries=4)
 def _macro_rank_all(min_lag: int, max_lag: int) -> list[dict]:
-    """
-    Score all 193 tickers using cached macro signal scores only.
-    Fast (~1s). Returns list sorted by score desc.
-    """
-    from utils.signals_cache import get_all_signal_scores
-    from utils.analysis import compute_confluence
-
-    all_scores = get_all_signal_scores()
-
-    rows = []
-    for ticker, meta in TICKERS.items():
-        sig_ids = meta.get("signals", [])
-        if min_lag > 0 or max_lag < 999:
-            sig_ids = [
-                s for s in sig_ids
-                if min_lag <= SIGNALS.get(s, {}).get("lag_weeks", 4) <= max_lag
-            ]
-        ticker_scores = {
-            sid: all_scores[sid]
-            for sid in sig_ids
-            if sid in all_scores and not all_scores[sid].get("error")
-        }
-        if len(ticker_scores) < 1:
-            continue
-
-        weights = {
-            sid: SIGNALS[sid].get("pcs", 5) / 10.0
-            for sid in ticker_scores if sid in SIGNALS
-        }
-        conf = compute_confluence(ticker_scores, weights=weights)
-
-        bull_sigs = [
-            {"id": sid, "name": SIGNALS.get(sid, {}).get("name", sid),
-             "lag": SIGNALS.get(sid, {}).get("lag_weeks", "?"),
-             "score": ticker_scores[sid].get("score", 50)}
-            for sid in ticker_scores if ticker_scores[sid].get("status") == "bullish"
-        ]
-        bear_sigs = [
-            {"id": sid, "name": SIGNALS.get(sid, {}).get("name", sid),
-             "lag": SIGNALS.get(sid, {}).get("lag_weeks", "?"),
-             "score": ticker_scores[sid].get("score", 50)}
-            for sid in ticker_scores if ticker_scores[sid].get("status") == "bearish"
-        ]
-
-        _aligned, _total = get_signal_alignment(ticker, conf["overall_score"], all_scores)
-        rows.append({
-            "ticker":        ticker,
-            "name":          meta.get("name", ticker),
-            "sector":        meta.get("sector", "Other"),
-            "score":         round(conf["overall_score"], 1),
-            "case":          conf["case"],
-            "conviction":    conf["conviction"],
-            "bull_count":    conf["bull_count"],
-            "bear_count":    conf["bear_count"],
-            "n_signals":     len(ticker_scores),
-            "bull_signals":  sorted(bull_sigs, key=lambda x: -x["score"]),
-            "bear_signals":  sorted(bear_sigs, key=lambda x: x["score"]),
-            "enriched":      False,
-            "has_insider":   False,
-            "has_13f":       False,
-            "has_short_int": False,
-            "has_contracts": False,
-            "momentum_score": 50.0,
-            "aligned":       _aligned,
-            "total_relevant": _total,
-        })
-
-    rows.sort(key=lambda r: -r["score"])
-    return rows
+    """Cached page wrapper around the cron-safe shared ranking engine."""
+    return macro_rank_all(min_lag, max_lag)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
