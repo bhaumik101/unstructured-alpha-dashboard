@@ -41,7 +41,8 @@ _here = Path(__file__).resolve().parent.parent   # dashboard/
 if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
 
-CHUNK_SIZE = 120          # symbols per batched price request
+CHUNK_SIZE = 30           # small enough to stay below Render Starter's 512MB cap
+MEMORY_CHECK_EVERY = 5    # stop within a chunk instead of waiting for its end
 DEFAULT_BUDGET = 1200     # max tickers scored in one run
 DEFAULT_DEADLINE_MIN = 50  # wall-clock guard
 
@@ -143,6 +144,22 @@ def _log(event: str, **fields):
         pass
     print(f"[score_universe] {event} " +
           " ".join(f"{k}={v}" for k, v in fields.items()), flush=True)
+
+
+def _memory_limit_reached(limit_mb: int, scored: int, remaining: int) -> bool:
+    """Return True when the worker should bank its progress and stop.
+
+    Checking only between 120-symbol chunks was too coarse: the July 22 REST
+    run crossed 512MB and was killed halfway through its first chunk before the
+    existing guard could run a second time.  The caller now checks this helper
+    between small groups of tickers as well as before every batch fetch.
+    """
+    rss = _rss_mb()
+    if rss and rss >= limit_mb:
+        _log("memory_guard_reached", rss_mb=round(rss, 1), limit_mb=limit_mb,
+             scored=scored, remaining=max(0, remaining))
+        return True
+    return False
 
 
 def _core_tickers() -> list[str]:
@@ -250,16 +267,14 @@ def main() -> None:
     stats = {"scored": 0, "written": 0, "gated": 0, "failed": 0, "chunks": 0}
     gate_reasons: dict[str, int] = {}
 
+    stop_for_memory = False
     for i in range(0, len(targets), CHUNK_SIZE):
         # Checked per chunk, in the same place as the deadline, because both are
         # "stop cleanly and keep what we have" conditions. Ordered before the
         # deadline check so a memory stop is reported as such rather than being
         # masked by a coincident timeout.
-        _rss = _rss_mb()
-        if _rss and _rss > args.max_rss_mb:
-            _log("memory_guard_reached", rss_mb=round(_rss, 1),
-                 limit_mb=args.max_rss_mb, scored=stats["scored"],
-                 remaining=len(targets) - i)
+        if _memory_limit_reached(args.max_rss_mb, stats["scored"],
+                                 len(targets) - i):
             break
 
         if time.monotonic() > deadline:
@@ -273,7 +288,17 @@ def main() -> None:
             _log("chunk_fetch_failed", chunk=i // CHUNK_SIZE, error=str(exc)[:120])
             continue
 
-        for tkr in chunk:
+        for chunk_pos, tkr in enumerate(chunk):
+            # The old guard ran only once per 120 tickers.  A leaking cache or
+            # allocator arena could therefore add >80MB before we looked again,
+            # leaving Render to kill the process at 512MB.  Check inside the
+            # chunk and trim periodically so completed snapshots survive.
+            if chunk_pos and chunk_pos % MEMORY_CHECK_EVERY == 0:
+                release_memory()
+                remaining = len(targets) - (i + chunk_pos)
+                if _memory_limit_reached(args.max_rss_mb, stats["scored"], remaining):
+                    stop_for_memory = True
+                    break
             try:
                 series = prices.get(tkr)
                 reason = qualifies_on_price(series)
@@ -301,7 +326,16 @@ def main() -> None:
                 continue
 
         del prices
+        # This process is a one-shot worker.  Keeping each batch in Streamlit's
+        # process-local cache only retains DataFrames that will never be reused.
+        # Clearing it here has no effect on the separately running web service.
+        try:
+            fetch_prices_batch.clear()
+        except Exception:
+            pass
         release_memory()      # keep peak RSS flat across chunks
+        if stop_for_memory:
+            break
 
     _log("run_complete", tier=args.tier, duration_s=round(time.monotonic() - t0, 1),
          **stats, **{f"gate_{k}": v for k, v in gate_reasons.items()})

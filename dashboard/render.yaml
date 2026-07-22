@@ -98,31 +98,15 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
 
-  # Keep-warm cron — pings the web service every 10 minutes so a free/low-tier
-  # Render instance never spins down. Prevents the cold-start "Page not found"
-  # flash on shared deep-links. Lightweight (a few HTTP GETs); no DB/API keys.
-  # If the web service is already on an always-on paid plan, this is harmless.
-  - type: cron
-    name: unstructured-alpha-keep-warm
-    runtime: python
-    rootDir: dashboard
-    schedule: "*/10 * * * *"   # every 10 minutes
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.keep_warm
-    envVars:
-      - key: APP_URL
-        value: https://app.unstructuredalpha.com
-
-  # Morning digest cron job — runs at 07:00 ET (12:00 UTC) daily.
+  # Morning digest cron job — one daily run. 12:00 UTC is 07:00 ET in winter
+  # and 08:00 ET in summer; avoiding a second DST-only invocation halves boots.
   # Scores all signals, detects flips, emails opted-in users.
   # Uses the same DATABASE_URL / RESEND_* env vars as the web service.
   - type: cron
     name: unstructured-alpha-digest
     runtime: python
     rootDir: dashboard
-    # Render schedules use UTC. Run at both DST possibilities; send_digest
-    # exits unless local New York time is exactly 07:xx.
-    schedule: "0 11,12 * * *"
+    schedule: "0 12 * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.send_digest
     envVars:
@@ -139,57 +123,16 @@ services:
       - key: EIA_API_KEY
         sync: false
 
-  # Day-6 trial-end reminder cron — runs at 10:00 ET (15:00 UTC) daily.
-  # Finds Pro users whose 7-day trial ends within the next 20–32 hours
-  # and emails them a "trial ends tomorrow" nudge.
+  # Daily lifecycle sweep — trial reminder, day-3/day-7 onboarding and
+  # re-engagement are small, idempotent DB/email checks with identical secrets.
+  # One process replaces four separately billed Render invocations.
   - type: cron
-    name: unstructured-alpha-trial-reminder
+    name: unstructured-alpha-lifecycle
     runtime: python
     rootDir: dashboard
-    schedule: "0 15 * * *"   # 15:00 UTC = 10:00 ET
+    schedule: "0 15 * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.send_trial_reminder
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: RESEND_FROM_EMAIL
-        sync: false
-
-  # Webhook alert cron — runs every hour.
-  # For every user with a Discord/Slack/generic webhook URL configured,
-  # evaluates their watchlist and fires any threshold crossings to their
-  # webhook. Duplicate-safe: the alert state table prevents re-firing the
-  # same crossing more than once. Only needs DATABASE_URL + the signal data
-  # APIs (FRED/EIA) — no email sending.
-  - type: cron
-    name: unstructured-alpha-webhooks
-    runtime: python
-    rootDir: dashboard
-    schedule: "0 * * * *"   # every hour on the hour
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.fire_webhooks
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: FRED_API_KEY
-        sync: false
-      - key: EIA_API_KEY
-        sync: false
-
-  # Watchlist email alert cron — runs every hour (offset 30 min from webhooks).
-  # For every verified user with at least one watchlist entry, evaluates their
-  # watchlist and emails them about any threshold crossings. Covers users who
-  # have no Discord/Slack webhook configured but still want push notifications.
-  # Duplicate-safe: same alert_state table dedup as fire_webhooks.py.
-  - type: cron
-    name: unstructured-alpha-watchlist-alerts
-    runtime: python
-    rootDir: dashboard
-    schedule: "30 * * * *"   # every hour at :30 (offset from webhook cron)
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.send_watchlist_alerts
+    startCommand: python -m cron.run_group lifecycle
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -202,7 +145,32 @@ services:
       - key: EIA_API_KEY
         sync: false
 
-  # Nightly prediction auto-resolution cron — runs at 02:00 UTC daily.
+  # Threshold crossings — evaluate each watchlist once, then fan the same event
+  # out to email and webhook. This fixes the old shared-state race where the
+  # webhook cron could consume a crossing before the email cron saw it. Running
+  # every two hours keeps Pro alerts timely with 75% fewer invocations than two
+  # separate hourly jobs.
+  - type: cron
+    name: unstructured-alpha-threshold-alerts
+    runtime: python
+    rootDir: dashboard
+    schedule: "0 */2 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m cron.send_threshold_alerts
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: FRED_API_KEY
+        sync: false
+      - key: EIA_API_KEY
+        sync: false
+
+  # Prediction auto-resolution — twice weekly is sufficient for 4/8/12-week
+  # horizons and avoids five no-op boots most weeks.
   # Finds pending predictions whose 4w/8w/12w forward windows have expired,
   # fetches realized prices via yfinance, and marks them correct/incorrect.
   # This powers the public Track Record leaderboard and per-signal accuracy stats.
@@ -210,7 +178,7 @@ services:
     name: unstructured-alpha-resolve-predictions
     runtime: python
     rootDir: dashboard
-    schedule: "0 2 * * *"   # 02:00 UTC = 10:00 PM ET (runs overnight, off-peak)
+    schedule: "0 2 * * 1,4"
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.resolve_predictions
     envVars:
@@ -241,7 +209,7 @@ services:
       - key: EIA_API_KEY
         sync: false
       - key: SCORE_MAX_RSS_MB
-        value: "430"
+        value: "390"
       - key: OMP_NUM_THREADS
         value: "1"
       - key: OPENBLAS_NUM_THREADS
@@ -250,16 +218,16 @@ services:
   # ── Batch scoring: REST tier ────────────────────────────────────────────────
   # The remaining qualifying universe (~5k common stocks), scored macro+momentum
   # only — a DIFFERENT metric, stored as score_kind="macro_momentum" so it can
-  # never be mistaken for the full Confluence Score. Rotated in daily slices
-  # (1/7th per day) so the whole universe refreshes weekly without a 5k run.
+  # never be mistaken for the full Confluence Score. Long-tail names refresh
+  # Monday/Wednesday/Friday; anything a user watches remains in daily CORE.
   # A macro_momentum write can never overwrite a same-day "full" row.
   - type: cron
     name: unstructured-alpha-score-rest
     runtime: python
     rootDir: dashboard
-    schedule: "40 5 * * *"
+    schedule: "40 5 * * 1,3,5"
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.score_universe --tier rest --rotate-days 7 --budget 900 --deadline-min 40
+    startCommand: python -m cron.score_universe --tier rest --rotate-days 1 --budget 600 --deadline-min 25
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -268,13 +236,13 @@ services:
       - key: EIA_API_KEY
         sync: false
       - key: SCORE_MAX_RSS_MB
-        value: "430"
+        value: "390"
       - key: OMP_NUM_THREADS
         value: "1"
       - key: OPENBLAS_NUM_THREADS
         value: "1"
 
-  # Daily universe growth — seeds big-cap names across covered industries into
+  # Weekly universe growth — seeds big-cap names across covered industries into
   # the dynamic_universe table and pre-warms each one's Confluence Score snapshot
   # so common tickers load instantly. Runs at 03:00 UTC (after resolve-predictions,
   # still off-peak). Watchlist adds also grow the universe live (utils/universe.py).
@@ -282,7 +250,7 @@ services:
     name: unstructured-alpha-grow-universe
     runtime: python
     rootDir: dashboard
-    schedule: "0 3 * * *"   # 03:00 UTC = 11:00 PM ET (off-peak)
+    schedule: "0 3 * * 0"
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.grow_universe
     envVars:
@@ -293,20 +261,15 @@ services:
       - key: EIA_API_KEY
         sync: false
 
-  # Score-movement email cron — runs once daily at 15:30 UTC (11:30 AM ET).
-  # For every verified watchlist user, computes current Confluence Score for each
-  # watched ticker and compares against last_score_emailed in alert_state. Any
-  # ticker that moved ±10+ points since the last emailed baseline triggers a
-  # batched notification email. Baseline is updated after each alert so subsequent
-  # checks measure movement from the new level, not the original one. First-run
-  # for a ticker sets the baseline silently with no email.
+  # Daily watchlist insights — score movement and velocity share the same users,
+  # database and email configuration, so run both in one isolated task group.
   - type: cron
-    name: unstructured-alpha-score-moved
+    name: unstructured-alpha-watchlist-insights
     runtime: python
     rootDir: dashboard
-    schedule: "30 15 * * *"   # 15:30 UTC = 11:30 AM ET
+    schedule: "30 15 * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.send_score_moved
+    startCommand: python -m cron.run_group watchlist-insights
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -319,38 +282,14 @@ services:
       - key: EIA_API_KEY
         sync: false
 
-  # Score Velocity Alert cron — runs once daily at 16:00 UTC (12:00 PM ET).
-  # For each user's watchlist, computes rolling score velocity from score_snapshots
-  # and emails an alert when a ticker's velocity is in the top 10% of its own history.
-  # De-duplication: last_velocity_alert_at in alert_state prevents re-alerting
-  # the same (user, ticker) pair within 6 days.
-  - type: cron
-    name: unstructured-alpha-velocity-alerts
-    runtime: python
-    rootDir: dashboard
-    schedule: "0 16 * * *"   # 16:00 UTC = 12:00 PM ET
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.send_velocity_alerts
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: RESEND_FROM_EMAIL
-        sync: false
-      - key: FRED_API_KEY
-        sync: false
-      - key: EIA_API_KEY
-        sync: false
-
-  # Machine's Best Ideas tweet cron — runs daily at 14:00 UTC (10:00 AM ET).
+  # Machine's Best Ideas — three high-signal posts per week instead of daily.
   # Finds tickers with score ≥ 65 + positive velocity, posts top 5 to Twitter.
   # Separate from signal-flip tweet (13:00 UTC) to avoid resource contention.
   - type: cron
     name: unstructured-alpha-tweet-best-ideas
     runtime: python
     rootDir: dashboard
-    schedule: "0 14 * * *"   # 14:00 UTC = 10:00 AM ET
+    schedule: "0 14 * * 1,3,5"
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.tweet_best_ideas
     envVars:
@@ -424,78 +363,7 @@ services:
       - key: APP_BASE_URL
         value: "https://unstructuredalpha.com"
 
-  # Day-7 retention email cron — runs daily at 15:00 UTC (11:00 AM ET).
-  # Sends "one week in — what the machine is seeing" to users who verified
-  # their email 7–8 days ago. Covers: current regime, top 3 tickers by
-  # Confluence Score, most notable 7-day signal flip, soft Pro CTA for free users.
-  # One-shot per user (guarded by day7_email_sent column on users table).
-  - type: cron
-    name: unstructured-alpha-onboarding-day7
-    runtime: python
-    rootDir: dashboard
-    schedule: "0 15 * * *"   # 15:00 UTC = 11:00 AM ET
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.send_onboarding_day7
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: RESEND_FROM_EMAIL
-        sync: false
-      - key: FRED_API_KEY
-        sync: false
-      - key: EIA_API_KEY
-        sync: false
-
-  # Day-3 onboarding email cron — runs daily at 14:00 UTC (10:00 AM ET).
-  # Sends "3 features you probably haven't tried yet" to users who verified
-  # their email 3–4 days ago. One-shot per user (guarded by day3_email_sent).
-  - type: cron
-    name: unstructured-alpha-onboarding-day3
-    runtime: python
-    rootDir: dashboard
-    schedule: "0 14 * * *"   # 14:00 UTC = 10:00 AM ET
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.send_onboarding_day3
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: RESEND_FROM_EMAIL
-        sync: false
-      - key: FRED_API_KEY
-        sync: false
-      - key: EIA_API_KEY
-        sync: false
-
-  # Re-engagement email cron — runs daily at 17:00 UTC (1:00 PM ET).
-  # Targets verified users who haven't logged in for >= 5 days, have a watchlist,
-  # and haven't been re-engaged within the past 7 days. Sends a "here's what you
-  # missed" email with their top watchlist movers + macro signal flips since they
-  # were last active. Only sends if there's something substantive to show (>=1 mover
-  # or flip). Updates last_reengagement_at after every successful send.
-  - type: cron
-    name: unstructured-alpha-reengagement
-    runtime: python
-    rootDir: dashboard
-    schedule: "0 17 * * *"   # 17:00 UTC = 1:00 PM ET
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.send_reengagement
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: RESEND_FROM_EMAIL
-        sync: false
-      - key: FRED_API_KEY
-        sync: false
-      - key: EIA_API_KEY
-        sync: false
-
-  # Twitter/X signal-flip tweet cron — runs once daily at 13:00 UTC (9:00 AM ET).
+  # Twitter/X signal-flip tweet cron — weekdays at 13:00 UTC.
   # Computes the current macro signal state, detects flips since yesterday, and
   # tweets a briefing via @UnstructuredAlpha. Requires Twitter API v2 credentials
   # (OAuth 1.0a user context) set as Render env vars — never commit key values.
@@ -503,7 +371,7 @@ services:
     name: unstructured-alpha-tweet-flips
     runtime: python
     rootDir: dashboard
-    schedule: "0 13 * * *"   # 13:00 UTC = 09:00 ET
+    schedule: "0 13 * * 1-5"
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.tweet_signal_flips
     envVars:
@@ -522,17 +390,17 @@ services:
       - key: TWITTER_ACCESS_TOKEN_SECRET
         sync: false
 
-  # Signal flip email alert cron — runs every 2 hours at :15 past the hour.
+  # Signal flip email alert cron — four checks daily. Macro source series are
+  # daily/weekly/monthly, so two-hour polling paid for repeated identical data.
   # Detects macro signal status changes (bullish ↔ neutral ↔ bearish) via
   # signal_snapshots table, then emails opted-in watchlist users whose tickers
   # are exposed to the flipped signals. De-duplicated via signal_flip_log table
-  # (one alert per signal per calendar day max). Offset at :15 to avoid
-  # contention with the hourly watchlist-alerts cron that runs at :30.
+  # (one alert per signal per calendar day max).
   - type: cron
     name: unstructured-alpha-signal-flip-alerts
     runtime: python
     rootDir: dashboard
-    schedule: "15 */2 * * *"   # every 2 hours at :15 past the hour
+    schedule: "15 */6 * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.signal_flip_alerts
     envVars:
