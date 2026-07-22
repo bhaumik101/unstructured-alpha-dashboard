@@ -43,7 +43,7 @@ from utils.theme import inject_premium_css  # noqa: E402
 render_header("My Profile")
 section = render_sidebar_base(
     page_title="My Profile",
-    sections=("Profile & Preferences", "Security", "Plan & Referrals"),
+    sections=("Profile & Preferences", "Security", "API Access", "Plan & Referrals"),
     section_key="profile_section_rail",
 )
 inject_premium_css()
@@ -268,6 +268,92 @@ elif section == "Security":
                     st.success("Password updated successfully.")
                 except AuthError as exc:
                     st.error(str(exc))
+
+
+elif section == "API Access":
+    st.markdown("### Pro API access")
+    st.caption(
+        "Read the latest persisted Confluence Score snapshots from your own tools. "
+        "The API never starts a live score calculation and never substitutes estimated data."
+    )
+
+    if tier != "pro":
+        st.info("Read-only score API access is available with Pro.")
+        if st.button("Upgrade to Pro", type="primary", key="profile_api_upgrade"):
+            st.switch_page("pages/29_Upgrade.py")
+    else:
+        from utils.api_access import create_api_key, list_api_keys, revoke_api_key
+
+        _new_raw_key = st.session_state.get("profile_new_api_key")
+        if _new_raw_key:
+            st.warning(
+                "Copy this key now. It is shown only in this browser session and cannot be recovered later."
+            )
+            st.code(_new_raw_key, language=None)
+            if st.button("I have copied the key", key="profile_api_key_copied"):
+                st.session_state.pop("profile_new_api_key", None)
+                st.rerun()
+
+        api_left, api_right = st.columns([1, 1.15], gap="large")
+        with api_left:
+            st.markdown("#### Create a key")
+            with st.form("profile_api_key_form"):
+                _api_key_name = st.text_input(
+                    "Key name",
+                    placeholder="e.g. Research notebook",
+                    max_chars=64,
+                    help="Use a name that identifies the integration or device.",
+                )
+                _create_key = st.form_submit_button(
+                    "Create API key", type="primary", use_container_width=True
+                )
+            if _create_key:
+                try:
+                    _created_key = create_api_key(user["id"], _api_key_name)
+                    st.session_state["profile_new_api_key"] = _created_key["raw_key"]
+                    st.rerun()
+                except (ValueError, PermissionError) as exc:
+                    st.error(str(exc))
+
+            st.markdown("#### Request example")
+            st.code(
+                'curl "https://www.unstructuredalpha.com/api/v1/scores/AAPL" \\\n+  -H "Authorization: Bearer YOUR_API_KEY"',
+                language="bash",
+            )
+            st.caption(
+                "Batch endpoint: `/api/v1/scores?tickers=AAPL,MSFT,XOM` · up to 25 tickers · "
+                "120 requests per key per hour."
+            )
+
+        with api_right:
+            st.markdown("#### Active credentials")
+            _api_keys = list_api_keys(user["id"])
+            _active_keys = [row for row in _api_keys if not row.get("revoked_at")]
+            if not _active_keys:
+                st.info("No active API keys. Create one to connect an external research workflow.")
+            for _key in _active_keys:
+                with st.container(border=True):
+                    _key_info, _key_action = st.columns([4, 1])
+                    _key_info.markdown(f'**{escape(str(_key["name"]))}**')
+                    _last_used = str(_key.get("last_used_at") or "Never")[:19].replace("T", " ")
+                    _key_info.caption(
+                        f'{_key["key_prefix"]}… · Last used: {_last_used}'
+                    )
+                    if _key_action.button(
+                        "Revoke",
+                        key=f'profile_revoke_api_{_key["id"]}',
+                        use_container_width=True,
+                    ):
+                        if revoke_api_key(user["id"], _key["id"]):
+                            st.success("API key revoked immediately.")
+                            st.rerun()
+
+            st.markdown(
+                '<div class="ua-profile-note"><b>Security model</b><br>'
+                'Keys are stored as irreversible hashes. Revocation is immediate. API responses contain '
+                'persisted score snapshots only and do not expose account, billing, or portfolio data.</div>',
+                unsafe_allow_html=True,
+            )
 
 
 elif section == "Plan & Referrals":

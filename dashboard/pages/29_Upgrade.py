@@ -623,6 +623,7 @@ PRO_FEATS = [
     "Alerts when a Confluence Score materially moves or a signal flips — email + Discord + Slack",
     "Portfolio macro-exposure shifts, flagged as they happen",
     "Portfolio Review — cached executive read of concentration, coverage, and personalized score risk",
+    "Read-only Pro API — integrate persisted score snapshots into your own research workflow",
     "Personalized 7 AM morning digest on your holdings",
     "Score history + 30-day sparklines + factor exposure",
     "Signal Backtester — long/short returns for any signal combo",
@@ -898,6 +899,11 @@ st.markdown(f"""
 <tr>
     <td>AI Research Assistant — grounded in current live signals</td>
     <td style="text-align:center;" class="comp-no">—</td>
+    <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
+</tr>
+<tr>
+    <td>Read-only score API — hashed keys and rate-limited access</td>
+    <td style="text-align:center;" class="comp-no">✗</td>
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
 </tr>
 <tr>

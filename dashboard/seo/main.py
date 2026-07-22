@@ -39,7 +39,7 @@ from utils.taxonomy import category_display, factor_family_name_of  # noqa: E402
 from utils.coverage import coverage_tier      # noqa: E402  (honest coverage states, no "—/100 Unknown")
 from utils.product_metrics import ACTIVE_SIGNAL_COUNT  # noqa: E402  (metrics SSOT)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response, JSONResponse
 
 # ── lazy imports from utils/ (deferred to avoid heavy Streamlit dep at startup)
@@ -74,6 +74,10 @@ RED           = "#C53030"
 AMBER         = "#D97706"
 
 app = FastAPI(title="Unstructured Alpha SEO", docs_url=None, redoc_url=None)
+
+from seo.pro_api import router as pro_api_router  # noqa: E402
+
+app.include_router(pro_api_router)
 
 
 # ── Structured logging + per-request correlation id ───────────────────────────
@@ -125,7 +129,9 @@ def _warm_engine_bg():
 
 
 import threading as _threading
-_threading.Thread(target=_warm_engine_bg, daemon=True).start()
+
+if os.getenv("SEO_DISABLE_DB_WARMUP", "").strip().lower() not in {"1", "true", "yes"}:
+    _threading.Thread(target=_warm_engine_bg, daemon=True).start()
 
 
 # ── HTML helpers ──────────────────────────────────────────────────────────────

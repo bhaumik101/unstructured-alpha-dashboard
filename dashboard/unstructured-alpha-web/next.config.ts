@@ -37,6 +37,10 @@ const nextConfig: NextConfig = {
       { source: "/signals/report", destination: `${SEO_ORIGIN}/signals/report` },
       { source: "/sitemap.xml", destination: `${SEO_ORIGIN}/sitemap.xml` },
       { source: "/robots.txt", destination: `${SEO_ORIGIN}/robots.txt` },
+      // Authenticated Pro API traffic is transparently proxied to the existing
+      // FastAPI service. Authorization headers pass through the rewrite; the
+      // public Next.js deployment never stores or validates raw API keys.
+      { source: "/api/v1/:path*", destination: `${SEO_ORIGIN}/api/v1/:path*` },
     ];
   },
 };
