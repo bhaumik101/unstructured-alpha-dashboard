@@ -6,7 +6,7 @@ import streamlit as st
 
 from utils.auth_ui import require_login
 from utils.billing import require_pro
-from utils.header import render_header, render_page_header, render_sidebar_base, render_footer
+from utils.header import render_header, render_page_header, render_sidebar_base, render_guided_steps, render_footer
 from utils.theme import inject_premium_css
 from utils.thesis import list_user_theses
 
@@ -32,6 +32,37 @@ require_pro(
     benefit="Build a durable decision record tied to live scores, prices, risks, and review outcomes.",
 )
 
+render_guided_steps(
+    "Create a decision record you can audit later",
+    [
+        ("Start with a ticker", "Open its Thesis Workspace from Ticker Deep Dive and record your stance, catalysts, risks, and invalidation rule."),
+        ("Review the live thesis", "Return as evidence changes to compare the original reasoning with updated scores, prices, and market context."),
+        ("Close the feedback loop", "Mark the decision closed or invalidated and capture what happened so future decisions improve."),
+    ],
+    eyebrow="Private thesis workflow",
+    intro="Your thesis journal is private to your account and separates active ideas from completed and invalidated decisions.",
+)
+_new_ticker_col, _new_action_col, _new_space_col = st.columns([2, 2, 4])
+with _new_ticker_col:
+    _new_thesis_ticker = st.text_input(
+        "Ticker for a new thesis",
+        value=st.session_state.get("selected_ticker", ""),
+        placeholder="e.g. NVDA",
+        key="journal_new_thesis_ticker",
+        max_chars=10,
+    ).strip().upper()
+with _new_action_col:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button(
+        "Start Thesis in Deep Dive",
+        type="primary",
+        use_container_width=True,
+        disabled=not bool(_new_thesis_ticker),
+    ):
+        st.session_state["selected_ticker"] = _new_thesis_ticker
+        st.session_state["dive_section"] = "Thesis Workspace"
+        st.switch_page("pages/3_Ticker_Deep_Dive.py")
+
 _status_map = {
     "Active Theses": "active",
     "Closed Decisions": "closed",
@@ -53,8 +84,8 @@ else:
 
 if not _theses:
     st.info(
-        "No decisions are in this section yet. Open a ticker in Ticker Deep Dive and choose "
-        "Thesis Workspace from the side rail to create one."
+        "No decisions are in this section yet. Enter a ticker above and select "
+        "**Start Thesis in Deep Dive** to create your first decision record."
     )
     if st.button("Open Ticker Deep Dive", type="primary"):
         st.switch_page("pages/3_Ticker_Deep_Dive.py")

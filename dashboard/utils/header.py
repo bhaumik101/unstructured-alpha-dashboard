@@ -42,6 +42,105 @@ _CSS = """
     --ua-glow-cyan:  0 0 28px rgba(0,200,224,0.14);
 }
 
+/* ── Guided workflow cards ───────────────────────────────────────────────── */
+.ua-guide-shell {
+    position: relative;
+    overflow: hidden;
+    margin: 6px 0 18px;
+    padding: 20px;
+    border: 1px solid rgba(0,200,224,0.18);
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 92% -10%, rgba(124,58,237,0.13), transparent 34%),
+        linear-gradient(145deg, rgba(15,22,31,0.98), rgba(10,15,23,0.96));
+    box-shadow: 0 14px 36px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.025);
+    font-family: Inter, sans-serif;
+}
+.ua-guide-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00C8E0 0%, #7C3AED 58%, transparent 100%);
+    opacity: 0.9;
+}
+.ua-guide-kicker {
+    margin-bottom: 6px;
+    color: #72D6E2;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+}
+.ua-guide-title {
+    color: #E7EAF0;
+    font-size: 1.02rem;
+    font-weight: 760;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+}
+.ua-guide-intro {
+    max-width: 760px;
+    margin-top: 5px;
+    color: #A7B0BF;
+    font-size: 0.76rem;
+    line-height: 1.55;
+}
+.ua-guide-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--ua-guide-cols, 3), minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+}
+.ua-guide-step {
+    min-width: 0;
+    padding: 13px 14px 14px;
+    border: 1px solid rgba(255,255,255,0.065);
+    border-radius: 10px;
+    background: rgba(18,21,30,0.72);
+    transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+.ua-guide-step:hover {
+    transform: translateY(-1px);
+    border-color: rgba(0,200,224,0.20);
+    background: rgba(22,27,39,0.88);
+}
+.ua-guide-step-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 8px;
+}
+.ua-guide-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    border: 1px solid rgba(0,200,224,0.28);
+    border-radius: 7px;
+    background: linear-gradient(145deg, rgba(0,200,224,0.14), rgba(124,58,237,0.10));
+    color: #A9EAF1;
+    font-size: 0.66rem;
+    font-weight: 800;
+}
+.ua-guide-step-title {
+    color: #DDE2EB;
+    font-size: 0.78rem;
+    font-weight: 720;
+    line-height: 1.3;
+}
+.ua-guide-step-body {
+    color: #A7B0BF;
+    font-size: 0.73rem;
+    line-height: 1.58;
+}
+@media (max-width: 900px) {
+    .ua-guide-grid { grid-template-columns: 1fr; }
+    .ua-guide-shell { padding: 17px; }
+}
+
 /* ── Page-local section rail ─────────────────────────────────────────────── */
 [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] {
     gap: 3px !important;
@@ -2280,6 +2379,52 @@ def render_page_header(title: str, subtitle: str = "",
 """, unsafe_allow_html=True)
 
 
+def render_guided_steps(
+    title: str,
+    steps: list[tuple[str, str]],
+    *,
+    eyebrow: str = "Guided workflow",
+    intro: str = "",
+) -> None:
+    """Render a concise, themed workflow explainer for product features.
+
+    This deliberately accepts plain text only. Escaping every field keeps the
+    shared component safe if a future caller includes a ticker or provider name.
+    Ordinary status, warning, and empty-state messages should continue using
+    Streamlit alerts; this component is reserved for multi-step guidance.
+    """
+    if not steps:
+        return
+
+    _step_html = []
+    for _index, (_heading, _body) in enumerate(steps, start=1):
+        _step_html.append(
+            '<div class="ua-guide-step">'
+            '<div class="ua-guide-step-head">'
+            f'<span class="ua-guide-step-num">{_index:02d}</span>'
+            f'<span class="ua-guide-step-title">{html_escape(str(_heading))}</span>'
+            '</div>'
+            f'<div class="ua-guide-step-body">{html_escape(str(_body))}</div>'
+            '</div>'
+        )
+
+    _intro_html = (
+        f'<div class="ua-guide-intro">{html_escape(str(intro))}</div>'
+        if intro else ""
+    )
+    _columns = min(max(len(steps), 1), 4)
+    st.markdown(
+        '<div class="ua-guide-shell">'
+        f'<div class="ua-guide-kicker">{html_escape(str(eyebrow))}</div>'
+        f'<div class="ua-guide-title">{html_escape(str(title))}</div>'
+        f'{_intro_html}'
+        f'<div class="ua-guide-grid" style="--ua-guide-cols:{_columns};">'
+        f'{"".join(_step_html)}'
+        '</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
 def render_footer(page: str = "") -> None:
     """
     Render a professional full-width disclaimer footer.
@@ -2403,6 +2548,45 @@ def render_sidebar_base(
     """
     selected_section: str | None = None
     with st.sidebar:
+        if sections:
+            _options = list(sections)
+            _default = default_section if default_section in _options else _options[0]
+            # The page-local navigator belongs at the top of the sidebar, before
+            # account/settings chrome, so it is immediately discoverable. The
+            # radio itself remains sticky while the main research canvas scrolls.
+            st.markdown(
+                """
+                <style>
+                [data-testid="stSidebar"] [data-testid="stRadio"]:has(input[aria-label="Page section"]) {
+                    position: sticky;
+                    top: 0.75rem;
+                    z-index: 20;
+                    background: rgba(10, 14, 24, 0.97);
+                    border: 1px solid rgba(107, 127, 191, 0.20);
+                    border-radius: 10px;
+                    padding: 8px 10px 10px;
+                    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f'<div style="font-size:0.60rem;font-weight:800;color:#8C9BC8;'
+                f'letter-spacing:0.13em;text-transform:uppercase;margin:2px 0 5px;">'
+                f'{page_title or "On this page"}</div>',
+                unsafe_allow_html=True,
+            )
+            selected_section = st.radio(
+                "Page section",
+                _options,
+                index=_options.index(_default),
+                key=section_key or f"section_rail_{(page_title or 'page').lower().replace(' ', '_')}",
+                label_visibility="collapsed",
+            )
+            st.caption("Choose a section. Only this section is loaded. This menu stays available while you scroll.")
+            st.divider()
+
         # Account info — most pages no longer require login (per explicit
         # user request), so an anonymous visitor is a completely normal,
         # expected case here, not an edge case. This sidebar block is just
@@ -2426,25 +2610,6 @@ def render_sidebar_base(
         # Dark mode toggle — persists preference in localStorage
         render_dark_mode_toggle()
         st.divider()
-
-        if sections:
-            _options = list(sections)
-            _default = default_section if default_section in _options else _options[0]
-            st.markdown(
-                f'<div style="font-size:0.60rem;font-weight:800;color:#6B7FBF;'
-                f'letter-spacing:0.13em;text-transform:uppercase;margin:2px 0 5px;">'
-                f'{page_title or "On this page"}</div>',
-                unsafe_allow_html=True,
-            )
-            selected_section = st.radio(
-                "Page section",
-                _options,
-                index=_options.index(_default),
-                key=section_key or f"section_rail_{(page_title or 'page').lower().replace(' ', '_')}",
-                label_visibility="collapsed",
-            )
-            st.caption("Only this section is loaded.")
-            st.divider()
 
         # AI Assistant quick-access
         st.markdown(

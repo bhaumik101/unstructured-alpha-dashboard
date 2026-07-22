@@ -13,7 +13,7 @@ import streamlit as st
 
 from utils.header import (
     render_header, render_page_header, render_sidebar_base,
-    disclose_unavailable_signals, count_unavailable_signals,
+    render_guided_steps, disclose_unavailable_signals, count_unavailable_signals,
 )
 from utils.signals_cache import get_all_signal_scores
 from utils.theme import inject_skeleton_css, skeleton_cards
@@ -119,6 +119,23 @@ def _fmt_shares(v) -> str:
             return (str(v)[:12] or "0")
 
 
+def _pdf_safe_text(value, limit: int | None = None) -> str:
+    """Return text that FPDF's built-in Helvetica font can always encode.
+
+    Provider data regularly contains smart quotes, em dashes and arrows. One
+    such character previously raised FPDFUnicodeEncodingException and aborted
+    the whole export. Keep readable ASCII equivalents, then replace any rare
+    remaining unsupported glyph instead of failing the report.
+    """
+    text = str(value or "").translate(str.maketrans({
+        "’": "'", "‘": "'", "“": '"', "”": '"',
+        "—": "-", "–": "-", "→": "->", "←": "<-",
+        "•": "-", "…": "...", "\u00a0": " ",
+    }))
+    text = text.encode("latin-1", "replace").decode("latin-1")
+    return text[:limit] if limit is not None else text
+
+
 def build_pdf(
     ticker: str,
     company_name: str,
@@ -154,7 +171,7 @@ def build_pdf(
     pdf.set_xy(10, 7)
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(*WHITE)
-    pdf.cell(130, 8, "UNSTRUCTURED ALPHA", ln=0)
+    pdf.cell(130, 8, "UNSTRUCTURED ALPHA")
     pdf.set_font("Helvetica", "", 8)
     pdf.set_text_color(160, 170, 200)
     pdf.set_xy(140, 10)
@@ -177,10 +194,11 @@ def build_pdf(
     pdf.set_xy(10, 36)
     pdf.set_font("Helvetica", "B", 28)
     pdf.set_text_color(*NAVY)
-    pdf.cell(100, 12, ticker, ln=0)
+    pdf.cell(100, 12, ticker)
     pdf.set_font("Helvetica", "", 11)
     pdf.set_text_color(80, 90, 110)
     pdf.set_xy(10, 50)
+    company_name = _pdf_safe_text(company_name)
     name_display = company_name[:60] + ("..." if len(company_name) > 60 else "")
     pdf.cell(190, 7, name_display)
 
@@ -253,7 +271,7 @@ def build_pdf(
         pdf.ln(1)
         for sid, sv in sigs:
             cfg   = sv.get("config", {})
-            name  = cfg.get("name", sid)[:38]
+            name  = _pdf_safe_text(cfg.get("name", sid), 38)
             score = sv.get("score", 50)
             pdf.set_xy(start_x, pdf.get_y())
             pdf.set_font("Helvetica", "", 7)
@@ -303,8 +321,8 @@ def build_pdf(
             pdf.ln()
 
         cfg    = sv.get("config", {})
-        name   = cfg.get("name", sid)[:44]
-        cat    = cfg.get("category", "").replace("_", " ").title()[:22]
+        name   = _pdf_safe_text(cfg.get("name", sid), 44)
+        cat    = _pdf_safe_text(cfg.get("category", "").replace("_", " ").title(), 22)
         score  = sv.get("score", 50)
         status = sv.get("status", "neutral")
         pcs    = cfg.get("pcs", 0)
@@ -372,8 +390,8 @@ def build_pdf(
             pdf.cell(190, 5, "Recent Insider Transactions (SEC Form 4)")
             pdf.ln(1)
             for tx in (insider_tx or [])[:4]:
-                name_tx  = str(tx.get("insider_name", ""))[:26]
-                title_tx = str(tx.get("title", ""))[:18]
+                name_tx  = _pdf_safe_text(tx.get("insider_name", ""), 26)
+                title_tx = _pdf_safe_text(tx.get("title", ""), 18)
                 txtype   = str(tx.get("transaction_type", ""))
                 shares   = tx.get("shares", 0) or 0
                 date_tx  = str(tx.get("transaction_date", ""))[:10]
@@ -402,7 +420,7 @@ def build_pdf(
             pdf.cell(190, 5, "Top Institutional Holders (13F)")
             pdf.ln(1)
             for fund in (thirteenf_fund_rows or [])[:4]:
-                fname  = str(fund.get("fund_name", fund.get("manager", "")))[:50]
+                fname  = _pdf_safe_text(fund.get("fund_name", fund.get("manager", "")), 50)
                 shares = fund.get("shares", fund.get("value", 0)) or 0
                 pdf.set_xy(10, pdf.get_y())
                 pdf.set_font("Helvetica", "", 6.5)
@@ -443,8 +461,24 @@ def build_pdf(
 
 
 # ── UI ────────────────────────────────────────────────────────────────────────
-# Pre-fill ticker if navigated here from Ticker Deep Dive
-_prefill = st.session_state.pop("export_ticker", "NVDA")
+# Pre-fill ticker if navigated here from Ticker Deep Dive. Assign the widget's
+# keyed state directly: passing value= alone is ignored after the widget has
+# existed once in this session, which made the export page keep the old ticker.
+_requested_export_ticker = st.session_state.pop("export_ticker", "")
+if _requested_export_ticker:
+    st.session_state["export_ticker_input"] = _requested_export_ticker
+_prefill = st.session_state.get("export_ticker_input", "NVDA")
+
+render_guided_steps(
+    "Build a presentation-ready research report",
+    [
+        ("Confirm the company", "Review the ticker and live score preview before generating the report."),
+        ("Generate the report", "Select Generate PDF Report to package the current score, signals, positioning, and methodology."),
+        ("Download and share", "Use the download action when it appears. Any unavailable live coverage remains clearly disclosed."),
+    ],
+    eyebrow="PDF report workflow",
+    intro="The exported report uses the same live evidence shown across Unstructured Alpha and never substitutes synthetic observations.",
+)
 
 col_ticker, col_btn, col_space = st.columns([2, 2, 4])
 with col_ticker:
@@ -476,9 +510,13 @@ with st.spinner(f"Computing {ticker_input} score…"):
 
 _confluence_data   = _score_result.get("confluence", {})
 score              = float(_confluence_data.get("overall_score", 50.0))
-score_status       = _confluence_data.get("case", "neutral")
-if score_status not in ("bullish", "bearish", "neutral", "insufficient_data"):
-    score_status = "neutral"
+_raw_score_status  = str(_confluence_data.get("case", "neutral")).strip().lower()
+score_status       = {
+    "bull": "bullish", "bullish": "bullish",
+    "bear": "bearish", "bearish": "bearish",
+    "neutral": "neutral", "mixed": "neutral",
+    "insufficient_data": "insufficient_data",
+}.get(_raw_score_status, "neutral")
 insider_score      = _score_result.get("insider_score")
 short_interest_score = _score_result.get("short_interest_score")
 thirteenf_score    = _score_result.get("thirteenf_score")
@@ -563,7 +601,7 @@ if generate:
         )
         generate = False
 
-if generate or st.session_state.get("pdf_ready"):
+if generate:
     try:
         generated_at = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
         with st.spinner("Building PDF…"):
@@ -581,22 +619,11 @@ if generate or st.session_state.get("pdf_ready"):
                 insider_tx=_insider_tx,
                 thirteenf_fund_rows=_thirteenf_rows,
             )
-        st.session_state["pdf_ready"] = True
-
-        st.success(f"Report ready — {len(pdf_bytes)//1024} KB")
-        st.download_button(
-            label=f"Download {ticker_input} Research Report (PDF)",
-            data=pdf_bytes,
-            file_name=f"UA_{ticker_input}_{datetime.now().strftime('%Y%m%d')}.pdf",
-            mime="application/pdf",
-            use_container_width=True,
-            key="pdf_dl",
-        )
-        st.caption(
-            "Report includes: full correlation-weighted Confluence Score, all signal scores, "
-            "price metrics, insider activity, short interest, 13F institutional positioning, "
-            "and methodology note."
-        )
+        st.session_state["pdf_payload"] = {
+            "ticker": ticker_input,
+            "bytes": pdf_bytes,
+            "file_name": f"UA_{ticker_input}_{datetime.now().strftime('%Y%m%d')}.pdf",
+        }
     except ImportError:
         st.error(
             "**fpdf2 is not installed.** Run `pip install fpdf2` on your Render instance "
@@ -605,6 +632,24 @@ if generate or st.session_state.get("pdf_ready"):
     except Exception as e:
         st.error(f"PDF generation failed: {e}")
         st.exception(e)
+
+_pdf_payload = st.session_state.get("pdf_payload") or {}
+if _pdf_payload.get("ticker") == ticker_input and _pdf_payload.get("bytes"):
+    pdf_bytes = _pdf_payload["bytes"]
+    st.success(f"Report ready — {len(pdf_bytes)//1024} KB")
+    st.download_button(
+        label=f"Download {ticker_input} Research Report (PDF)",
+        data=pdf_bytes,
+        file_name=_pdf_payload["file_name"],
+        mime="application/pdf",
+        use_container_width=True,
+        key="pdf_dl",
+    )
+    st.caption(
+        "Report includes: full correlation-weighted Confluence Score, all signal scores, "
+        "price metrics, insider activity, short interest, 13F institutional positioning, "
+        "and methodology note."
+    )
 
 # ── Signal preview table ───────────────────────────────────────────────────────
 st.markdown(

@@ -49,3 +49,5 @@ def test_sidebar_helper_documents_lazy_execution_contract():
     header_source = (PAGES.parent / "utils" / "header.py").read_text(encoding="utf-8")
     assert "Only this section is loaded." in header_source
     assert "selected_section = st.radio(" in header_source
+    assert 'position: sticky;' in header_source
+    assert "This menu stays available while you scroll." in header_source

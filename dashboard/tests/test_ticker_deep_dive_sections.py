@@ -136,6 +136,19 @@ def test_default_load_shows_overview_not_other_sections(app_test):
     assert "DEEP CORRELATION SCAN" not in text
 
 
+def test_ticker_workflow_exposes_thesis_journal_and_pdf_actions():
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[1] / "pages" / "3_Ticker_Deep_Dive.py"
+    ).read_text(encoding="utf-8")
+    assert '"Create or Update Thesis"' in source
+    assert '"Open Thesis Journal"' in source
+    assert '"Export PDF Report"' in source
+    assert 'st.session_state["dive_section"] = "Thesis Workspace"' in source
+    assert 'st.session_state["export_ticker"] = ticker_input' in source
+
+
 def test_switching_to_insider_short_interest_section(app_test):
     at = app_test("pages/3_Ticker_Deep_Dive.py")
     sc = next((s for s in at.radio if s.key == "dive_section"), None)
