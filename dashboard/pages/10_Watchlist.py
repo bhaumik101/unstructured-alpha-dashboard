@@ -32,6 +32,8 @@ from utils.auth import set_digest_optin, get_digest_optin
 from utils.score_history import compute_sector_percentiles, get_score_history
 from utils.billing import get_user_tier
 from utils import webhook as _webhook
+from utils.personalized_watchlist import load_watchlist_score_views
+from utils.risk_profile import get_profile as get_risk_profile
 
 # ── Pre/post market batch fetch ────────────────────────────────────────────────
 # Separate from get_batch_quotes (which uses yf.download for speed) because
@@ -569,6 +571,10 @@ if _watchlist_section == "Securities":
         # ticker, not per page render; the same module Stock Screener uses, so
         # price/% displays can't silently disagree between the two pages.
         _ticker_list = [row["ticker"] for row in watchlist]
+        _watch_profile = get_risk_profile(user_id)
+        _personal_score_views = load_watchlist_score_views(
+            user_id, _watch_profile, limit=min(50, max(1, len(watchlist)))
+        )
         with st.spinner(f"Loading prices for {len(watchlist)} watched ticker(s)…"):
             _watch_quotes  = get_batch_quotes(_ticker_list)
             _prepost_quotes = _get_prepost_batch(tuple(_ticker_list))
@@ -579,6 +585,11 @@ if _watchlist_section == "Securities":
         for _row in watchlist:
             _ticker = _row["ticker"]
             _score, _score_asof, _score_kind = _wl_latest_score(_ticker)
+            _score_view = _personal_score_views.get(_ticker) or {}
+            if _score_view:
+                _score = _score_view["score"]
+                _score_asof = _score_view["as_of"]
+                _score_kind = _score_view["score_kind"]
             _quote = _watch_quotes.get(_ticker, {})
             _move = _quote.get("chg_1d_pct")
             _attention = bool(
@@ -599,6 +610,7 @@ if _watchlist_section == "Securities":
                 "_score": _score,
                 "_score_asof": _score_asof,
                 "_score_kind": _score_kind,
+                "_score_view": _score_view,
                 "_move": _move,
                 "_attention": _attention,
                 "_case": _case,
@@ -607,8 +619,8 @@ if _watchlist_section == "Securities":
         _peer_contexts = compute_sector_percentiles([
             {
                 "ticker": row["ticker"],
-                "score": row["_score"],
-                "score_kind": row["_score_kind"],
+                "score": (row.get("_score_view") or {}).get("peer_score", row["_score"]),
+                "score_kind": (row.get("_score_view") or {}).get("peer_score_kind", row["_score_kind"]),
             }
             for row in _watchlist_view
             if row["_score"] is not None and row["_score_kind"]
@@ -683,6 +695,8 @@ if _watchlist_section == "Securities":
             price   = q.get("last")
             chg_pct = q.get("chg_1d_pct")
             series  = q.get("series")
+            score_value = row.get("_score")
+            score_asof = row.get("_score_asof")
 
             # One bordered card per ticker.
             _row_box = st.container(border=True)
@@ -697,9 +711,32 @@ if _watchlist_section == "Securities":
                     st.switch_page("pages/14_Stock_Chart.py")
                 st.caption(TICKERS.get(ticker, {}).get("name", "Tracked security"))
                 st.caption(
-                    f"Alerts: score ≥ {row['score_bull_threshold']:.0f} / ≤ {row['score_bear_threshold']:.0f} "
+                    f"Alerts on {(row.get('_score_view') or {}).get('alert_basis_label', 'Confluence Score')}: "
+                    f"≥ {row['score_bull_threshold']:.0f} / ≤ {row['score_bear_threshold']:.0f} "
                     f"· price ±{row['price_move_pct_threshold']:.1f}%"
                 )
+                _score_view = row.get("_score_view") or {}
+                if score_value is not None:
+                    _basis = _score_view.get("basis_label") or (
+                        "Confluence" if row.get("_score_kind") == "full" else "Macro + momentum"
+                    )
+                    _basis_color = "#A7B6D2" if _score_view.get("personal_applied") else "#8F9AAD"
+                    _standard_note = (
+                        f' · standard {_score_view["canonical_score"]:.0f} '
+                        f'({_score_view["profile_delta"]:+.1f})'
+                        if _score_view.get("personal_applied") else ""
+                    )
+                    st.markdown(
+                        f'<div style="font-size:.70rem;color:{_basis_color};font-weight:700;margin-top:5px;">'
+                        f'{_basis} {score_value:.0f}/100{_standard_note}</div>'
+                        f'<div style="font-size:.60rem;color:#7F8999;">as of {score_asof or "—"}'
+                        + (
+                            f' · {_score_view.get("horizon_label")}'
+                            if _score_view.get("personal_applied") else ""
+                        )
+                        + '</div>',
+                        unsafe_allow_html=True,
+                    )
                 _peer = row.get("_peer_context") or {}
                 if _peer and _peer.get("error") is None and "delta_vs_median" in _peer:
                     _peer_color = (
@@ -712,7 +749,7 @@ if _watchlist_section == "Securities":
                         f'Sector rank #{_peer["rank"]} of {_peer["universe_size"]} · '
                         f'{_peer["delta_vs_median"]:+.0f} vs median</div>'
                         f'<div style="font-size:.60rem;color:#7F8999;">'
-                        f'{"Confluence" if row["_score_kind"] == "full" else "Macro + momentum"} '
+                        f'{"Confluence" if _score_view.get("peer_score_kind", row["_score_kind"]) == "full" else "Macro + momentum"} '
                         f'peers · latest recorded within 30d</div>',
                         unsafe_allow_html=True,
                     )
@@ -742,7 +779,8 @@ if _watchlist_section == "Securities":
                         _sh_fig = style_sparkline(_sh_fig, height=42, y_range=[0, 100])
                         st.markdown(
                             f'<div style="font-size:0.60rem;font-weight:600;color:#8892AA;margin-top:4px;letter-spacing:0.06em;text-transform:uppercase;">'
-                            f'Score 30d &nbsp;·&nbsp; <span style="color:{_sh_color};">{_sh_scores[-1]:.0f}/100</span></div>',
+                            f'{"Standard score" if _score_view.get("personal_applied") else "Score"} 30d '
+                            f'&nbsp;·&nbsp; <span style="color:{_sh_color};">{_sh_scores[-1]:.0f}/100</span></div>',
                             unsafe_allow_html=True,
                         )
                         st.plotly_chart(_sh_fig, use_container_width=True,
