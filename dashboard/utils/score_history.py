@@ -159,6 +159,29 @@ def get_latest_components(ticker: str) -> dict | None:
         return None
 
 
+def get_latest_signal_states() -> dict[str, dict]:
+    """Latest persisted state for every signal in one database read.
+
+    Used by global chrome such as the regime bar. It deliberately never calls
+    a provider or computes signals: page headers must not turn every route into
+    a hidden 47-source refresh. Returns an empty dict until snapshots accrue.
+    """
+    try:
+        with db.engine.begin() as conn:
+            rows = conn.execute(
+                select(signal_snapshots)
+                .order_by(signal_snapshots.c.snapshot_date.desc(), signal_snapshots.c.created_at.desc())
+            ).mappings().all()
+        latest: dict[str, dict] = {}
+        for row in rows:
+            signal_id = str(row["signal_id"])
+            if signal_id not in latest:
+                latest[signal_id] = dict(row)
+        return latest
+    except Exception:
+        return {}
+
+
 def get_components_on_or_before(ticker: str, cutoff_date: str) -> dict | None:
     """
     The component snapshot with the latest snapshot_date <= cutoff_date (i.e. the
@@ -508,7 +531,7 @@ def get_signal_streaks(days_back: int = 90) -> dict[str, dict]:
     return result
 
 
-def get_signal_diff(days_back: int = 7) -> dict:
+def get_signal_diff(days_back: int = 7, persisted_only: bool = False) -> dict:
     """
     Compare current signal states to their states from `days_back` days ago.
     Returns a structured diff used by Today's Brief "What Changed" section.
@@ -522,7 +545,6 @@ def get_signal_diff(days_back: int = 7) -> dict:
             "regime_shift":    str | None,  # "RISK-ON → MIXED" if regime changed
         }
     """
-    from utils.signals_cache import get_all_signal_scores
     from utils.config import SIGNALS
 
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
@@ -542,7 +564,11 @@ def get_signal_diff(days_back: int = 7) -> dict:
     for r in rows:
         by_sig[str(r["signal_id"])].append(dict(r))
 
-    current_scores = get_all_signal_scores()
+    if persisted_only:
+        current_scores = get_latest_signal_states()
+    else:
+        from utils.signals_cache import get_all_signal_scores
+        current_scores = get_all_signal_scores()
 
     flipped_bull, flipped_bear, movers = [], [], []
 

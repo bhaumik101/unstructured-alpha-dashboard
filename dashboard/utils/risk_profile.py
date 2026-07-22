@@ -261,3 +261,48 @@ def compute_personal_score(full: dict, profile: Any) -> dict:
     except Exception:
         out["explanation"] = "Could not personalize — showing the standard score."
         return out
+
+
+def compute_personal_score_from_components(components: Any, profile: Any) -> dict:
+    """Personalize a stored component snapshot without fetching live data.
+
+    Component snapshots already contain the measured signal weights, scores,
+    momentum, and optional positioning evidence used by the canonical score.
+    Rehydrating that shape lets the Today page reuse ``compute_personal_score``
+    exactly, while avoiding a network-heavy full ticker recomputation.
+    """
+    if not isinstance(components, dict):
+        return compute_personal_score({}, profile)
+
+    signal_scores: dict[str, dict] = {}
+    corr_info: dict[str, dict] = {}
+    for signal in components.get("signals") or []:
+        if not isinstance(signal, dict) or not signal.get("id"):
+            continue
+        sid = str(signal["id"])
+        signal_scores[sid] = {"score": signal.get("score", 50.0)}
+        corr_info[sid] = {
+            "weight": signal.get("weight", 0.0),
+            "significant": bool(signal.get("significant")),
+        }
+
+    full: dict = {
+        "confluence": {"overall_score": components.get("final_score")},
+        "signal_scores": signal_scores,
+        "corr_info": corr_info,
+        "momentum_score": components.get("momentum_score", 50.0),
+    }
+    optional_map = {
+        "insider": ("has_insider_signal", "insider_score"),
+        "short_interest": ("has_short_interest_signal", "short_interest_score"),
+        "thirteenf": ("has_13f_signal", "thirteenf_score"),
+    }
+    for item in components.get("components") or []:
+        if not isinstance(item, dict):
+            continue
+        mapped = optional_map.get(str(item.get("id", "")))
+        if mapped and item.get("score") is not None:
+            flag_key, score_key = mapped
+            full[flag_key] = True
+            full[score_key] = {"score": item["score"]}
+    return compute_personal_score(full, profile)
