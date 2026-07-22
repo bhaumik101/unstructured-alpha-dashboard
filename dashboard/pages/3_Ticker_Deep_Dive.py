@@ -105,14 +105,6 @@ STATUS_COLOR = {"bullish": "#00D566", "bearish": "#FF4444", "neutral": "#6B7FBF"
 STATUS_EMOJI = {"bullish": "▲", "bearish": "▼", "neutral": "●", "no_data": "○"}
 
 
-@st.cache_data(ttl=1800, show_spinner=False, max_entries=256)
-def _cached_full_ticker_score(ticker: str, signal_ids: tuple[str, ...]) -> dict:
-    """Cache the complete Deep Dive score for 30 minutes per ticker/signal set."""
-    return compute_full_ticker_score(
-        ticker,
-        signal_ids=list(signal_ids) if signal_ids else None,
-    )
-
 st.markdown("""
 <div style="background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(0,200,224,0.06));
             border:1px solid rgba(124,58,237,0.22);border-radius:12px;
