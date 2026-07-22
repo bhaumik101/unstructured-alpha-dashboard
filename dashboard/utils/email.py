@@ -26,6 +26,8 @@
 #     real signups need a verified sending domain configured in Resend and
 #     that address set here.
 
+import hashlib
+import html as _html
 import os
 
 import requests
@@ -33,6 +35,7 @@ import streamlit as st
 
 _RESEND_API_URL = "https://api.resend.com/emails"
 _DEFAULT_FROM = "Unstructured Alpha <onboarding@resend.dev>"
+_APP_URL = os.environ.get("APP_BASE_URL", "https://app.unstructuredalpha.com").rstrip("/")
 
 
 class EmailSendError(Exception):
@@ -56,6 +59,45 @@ def _get_resend_config() -> tuple[str, str]:
         except Exception:
             from_email = _DEFAULT_FROM
     return api_key, from_email
+
+
+def _safe(value: object) -> str:
+    """Escape dynamic content before inserting it into an HTML email."""
+    return _html.escape(str(value), quote=True)
+
+
+def _recipient_token(to_email: str) -> str:
+    return hashlib.sha256(to_email.strip().lower().encode("utf-8")).hexdigest()[:16]
+
+
+def _post_resend_email(
+    *,
+    api_key: str,
+    from_email: str,
+    to_email: str,
+    subject: str,
+    html: str,
+    email_type: str,
+    idempotency_key: str,
+    timeout: int = 20,
+) -> requests.Response:
+    """Send a tagged, retry-safe Resend email."""
+    return requests.post(
+        _RESEND_API_URL,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotency_key[:256],
+        },
+        json={
+            "from": from_email,
+            "to": [to_email],
+            "subject": subject,
+            "html": html,
+            "tags": [{"name": "email_type", "value": email_type}],
+        },
+        timeout=timeout,
+    )
 
 
 def send_verification_email(to_email: str, code: str) -> None:
@@ -256,7 +298,7 @@ def _build_article_html(
             f'<tr style="border-top:1px solid #E2E8F0;">'
             f'<td style="padding:7px 8px 5px 0;font-size:0.83rem;color:#4A5568;'
             f'font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;">'
-            f'⚡ Flip: {top_flip.get("signal_name", top_flip.get("signal_id",""))}</td>'
+            f'Flip: {top_flip.get("signal_name", top_flip.get("signal_id",""))}</td>'
             f'<td style="padding:7px 0 5px 8px;font-weight:700;font-size:0.83rem;'
             f'color:{flip_color};text-align:right;">{flip_dir}</td>'
             f'</tr>'
@@ -441,7 +483,7 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
                   background:#F3F0FF;border-radius:0 6px 6px 0;">
         <p style="margin:0;font-size:0.86rem;color:#1F1235;line-height:1.65;
                   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-          {narrative}
+          {_safe(narrative)}
         </p>
       </div>"""
 
@@ -460,7 +502,10 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
             f'font-weight:700;">{("+" if delta >= 0 else "")}{delta:.1f} 7d</span>'
             if delta is not None else ""
         )
-        name_short = item["name"][:22] + "…" if len(item["name"]) > 24 else item["name"]
+        ticker = _safe(item["ticker"])
+        item_name = str(item.get("name", item["ticker"]))
+        name_short = item_name[:22] + "…" if len(item_name) > 24 else item_name
+        name_short = _safe(name_short)
 
         # Conviction: signal alignment badge
         aligned   = item.get("aligned", 0)
@@ -486,7 +531,7 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
                       padding:12px 10px;text-align:center;">
             <div style="font-size:1.1rem;font-weight:800;color:#0f1119;margin-bottom:2px;
                         font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-              {item["ticker"]}
+              {ticker}
             </div>
             <div style="font-size:0.65rem;color:#6B7280;margin-bottom:8px;
                         font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -507,6 +552,12 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
             </div>
             <div style="margin-top:4px;">{delta_str}</div>
             {conviction_str}
+            <div style="margin-top:9px;">
+              <a href="{_APP_URL}/ticker-deep-dive?ticker={ticker}"
+                 style="font-size:0.68rem;color:#5B21B6;text-decoration:none;font-weight:700;">
+                Open research →
+              </a>
+            </div>
           </div>
         </td>"""
 
@@ -526,8 +577,8 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
                     'border:1px solid #E5E7EB;border-radius:6px;font-size:0.78rem;'
                     "color:#374151;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,"
                     "'Segoe UI',sans-serif;\">"
-                    f'<span style="font-weight:700;color:#7C3AED;">Why {_mover["ticker"]} moved:</span> '
-                    f'{_a["summary"]}</div>'
+                    f'<span style="font-weight:700;color:#7C3AED;">Why {_safe(_mover["ticker"])} moved:</span> '
+                    f'{_safe(_a["summary"])}</div>'
                 )
     except Exception:
         why_block = ""
@@ -537,7 +588,7 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
       <div style="font-size:0.60rem;font-weight:700;color:#7C3AED;text-transform:uppercase;
                   letter-spacing:0.12em;margin-bottom:12px;
                   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-        📋 Your Watchlist
+        Your Watchlist Intelligence
       </div>
       {narrative_html}
       <table style="border-collapse:collapse;width:100%;">
@@ -545,7 +596,7 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
       </table>
       {why_block}
       <div style="margin-top:10px;text-align:right;">
-        <a href="https://unstructuredalpha.com/Watchlist"
+        <a href="{_APP_URL}/my-watchlist"
            style="font-size:0.72rem;color:#7C3AED;text-decoration:none;
                   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
           Open Watchlist →
@@ -563,6 +614,7 @@ def send_digest_email(
     bull_n: int,
     bear_n: int,
     neut_n: int,
+    unavailable_n: int = 0,
     signal_scores: dict | None = None,
     watchlist_items: list[dict] | None = None,
     watchlist_narrative: str | None = None,
@@ -574,7 +626,8 @@ def send_digest_email(
     signal_flips:       list of {signal_id, from_status, to_status, to_score} dicts
     score_movers:       list of {ticker, from_score, to_score, delta, case} dicts
     overall_bias:       "Bullish", "Bearish", or "Mixed"
-    bull_n / bear_n / neut_n: current signal counts
+    bull_n / bear_n / neut_n: current live signal counts
+    unavailable_n: sources excluded because the live fetch was unavailable
     signal_scores:      {sig_id: {name, score, status}} — used for the article section.
                         Optional for backward compat; article is skipped if None.
     watchlist_items:    [{ticker, name, score, case, delta}] — personalised section.
@@ -589,6 +642,11 @@ def send_digest_email(
 
     from datetime import date
     today_str = date.today().strftime("%B %-d, %Y")
+    live_n = bull_n + bear_n + neut_n
+    configured_n = live_n + unavailable_n
+    coverage_text = f"{live_n}/{configured_n} live sources loaded" if configured_n else "No live sources loaded"
+    if unavailable_n:
+        coverage_text += f" · {unavailable_n} unavailable excluded"
 
     # ── Personalised watchlist section ────────────────────────────────────
     watchlist_html = (
@@ -641,7 +699,7 @@ def send_digest_email(
         <div style="font-size:0.60rem;font-weight:700;color:#4A5568;text-transform:uppercase;
                     letter-spacing:0.10em;margin-bottom:10px;padding:0 24px;
                     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-            ⚡ {len(signal_flips)} Signal Flip{"s" if len(signal_flips) != 1 else ""} Since Yesterday
+            {len(signal_flips)} Signal Flip{"s" if len(signal_flips) != 1 else ""} Since Yesterday
         </div>
         <table style="border-collapse:collapse;width:100%;margin-bottom:4px;">
             {flip_rows}
@@ -685,7 +743,7 @@ def send_digest_email(
         <div style="font-size:0.60rem;font-weight:700;color:#4A5568;text-transform:uppercase;
                     letter-spacing:0.10em;margin-bottom:10px;padding:0 24px;
                     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-            📊 Biggest Score Movers (7 days)
+            Biggest Score Movers (7 days)
         </div>
         <table style="border-collapse:collapse;width:100%;margin-bottom:4px;">
             <tr style="background:#F7F8FA;">
@@ -718,6 +776,9 @@ def send_digest_email(
     html = f"""<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#F0F2F5;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+  {_safe(overall_bias)} signal pulse · {_safe(coverage_text)} · personalised watchlist intelligence
+</div>
 <div style="max-width:600px;margin:0 auto;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 
     <!-- Header -->
@@ -738,6 +799,11 @@ def send_digest_email(
                 </td>
             </tr>
         </table>
+    </div>
+
+    <div style="padding:8px 24px;background:#FFFFFF;border-bottom:1px solid #E5E7EB;
+                font-size:0.70rem;color:#6B7280;">
+        {_safe(coverage_text)}. Unavailable sources are not scored or treated as neutral.
     </div>
 
     <!-- Signal Pulse Banner -->
@@ -780,7 +846,7 @@ def send_digest_email(
 
     <!-- CTA -->
     <div style="padding:4px 24px 28px;text-align:center;">
-        <a href="https://unstructuredalpha.com/Today%27s_Brief"
+        <a href="{_APP_URL}/today-s-brief"
            style="display:inline-block;background:#7C3AED;color:#ffffff;
                   padding:12px 28px;border-radius:6px;text-decoration:none;
                   font-size:0.9rem;font-weight:700;">
@@ -791,8 +857,8 @@ def send_digest_email(
     <!-- Footer -->
     <div style="background:#0f1119;padding:14px 24px;border-radius:0 0 4px 4px;">
         <p style="font-size:0.68rem;color:#6B7280;text-align:center;margin:0;">
-            Unstructured Alpha · unstructuredalpha.com · Not financial advice · Data from public sources<br>
-            <a href="https://unstructuredalpha.com/Watchlist"
+            Unstructured Alpha · app.unstructuredalpha.com · Not financial advice · Live public-source data<br>
+            <a href="{_APP_URL}/my-watchlist"
                style="color:#7C3AED;text-decoration:none;">Manage preferences</a>
         </p>
     </div>
@@ -802,15 +868,14 @@ def send_digest_email(
 </html>"""
 
     try:
-        resp = requests.post(
-            _RESEND_API_URL,
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={
-                "from": from_email,
-                "to": [to_email],
-                "subject": subject_line,
-                "html": html,
-            },
+        resp = _post_resend_email(
+            api_key=api_key,
+            from_email=from_email,
+            to_email=to_email,
+            subject=subject_line,
+            html=html,
+            email_type="morning_digest",
+            idempotency_key=f"morning-digest/{date.today().isoformat()}/{_recipient_token(to_email)}",
             timeout=20,
         )
         print(f"[digest] Resend responded: status={resp.status_code}", flush=True)
@@ -1014,29 +1079,43 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
     from datetime import date
     today_str = date.today().strftime("%B %-d, %Y")
 
-    DIRECTION_COLOR = {"bullish": "#00D566", "bearish": "#FF4B4B"}
-    DIRECTION_ICON  = {"bullish": "▲", "bearish": "▼"}
+    DIRECTION_COLOR = {"bullish": "#047857", "bearish": "#B91C1C"}
+    DIRECTION_ICON = {"bullish": "▲", "bearish": "▼"}
+    ALERT_LABELS = {
+        "score_bull": "Confluence threshold",
+        "score_bear": "Confluence threshold",
+        "price_move": "Material price move",
+        "52w_high": "New 52-week high",
+        "52w_low": "New 52-week low",
+        "signal_change": "Differentiator change",
+    }
 
     alert_rows = ""
     for a in new_alerts[:10]:                       # cap at 10 in the email
-        ticker    = a.get("ticker", "???").upper()
+        ticker    = _safe(a.get("ticker", "???").upper())
         direction = (a.get("direction") or "neutral").lower()
-        message   = a.get("message", "Threshold crossed.")
+        message   = _safe(a.get("message", "Threshold crossed."))
+        alert_label = _safe(ALERT_LABELS.get(a.get("alert_type"), "Watchlist trigger"))
         color     = DIRECTION_COLOR.get(direction, "#8892AA")
         icon      = DIRECTION_ICON.get(direction, "●")
         alert_rows += f"""
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
-            <div style="font-size:0.92rem;font-weight:700;color:#E8EEFF;
+          <td style="padding:14px 16px;border-bottom:1px solid #E5E7EB;">
+            <div style="font-size:0.66rem;font-weight:700;color:#6B7280;text-transform:uppercase;
+                        letter-spacing:0.08em;margin-bottom:4px;">{alert_label}</div>
+            <div style="font-size:0.96rem;font-weight:800;color:#111827;
                         font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;">
               <span style="color:{color};margin-right:6px;">{icon}</span>{ticker}
             </div>
-            <div style="font-size:0.78rem;color:#8892AA;margin-top:3px;line-height:1.5;
+            <div style="font-size:0.80rem;color:#4B5563;margin-top:4px;line-height:1.55;
                         font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;">
               {message}
             </div>
+            <a href="{_APP_URL}/ticker-deep-dive?ticker={ticker}"
+               style="display:inline-block;margin-top:8px;font-size:0.72rem;color:#5B21B6;
+                      font-weight:700;text-decoration:none;">Review the full research →</a>
           </td>
-          <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);
+          <td style="padding:14px 16px;border-bottom:1px solid #E5E7EB;
                      text-align:right;vertical-align:top;white-space:nowrap;">
             <span style="color:{color};font-size:0.78rem;font-weight:700;
                          font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
@@ -1048,22 +1127,33 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
 
     n      = len(new_alerts)
     plural = "s" if n != 1 else ""
-    tickers_short = ", ".join(sorted({a.get("ticker", "???").upper() for a in new_alerts[:4]}))
+    tickers_short = ", ".join(sorted({_safe(a.get("ticker", "???").upper()) for a in new_alerts[:4]}))
     if n > 4:
         tickers_short += f" +{n - 4} more"
 
-    subject = f"⚡ {n} Watchlist Alert{plural}: {tickers_short}"
+    subject = f"{n} Watchlist Alert{plural}: {tickers_short}"
+    alert_fingerprint = hashlib.sha256(
+        "|".join(
+            sorted(
+                f"{a.get('ticker')}:{a.get('alert_type')}:{a.get('direction')}:{a.get('message')}"
+                for a in new_alerts
+            )
+        ).encode("utf-8")
+    ).hexdigest()[:20]
 
     html = f"""<!DOCTYPE html>
 <html>
-<body style="margin:0;padding:0;background:#0B0D12;">
-<div style="max-width:560px;margin:0 auto;background:#12151E;
+<body style="margin:0;padding:0;background:#F3F4F6;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+  {_safe(tickers_short)} crossed a watchlist threshold. Review the evidence and next action.
+</div>
+<div style="max-width:560px;margin:0 auto;background:#FFFFFF;
             font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;">
 
   <!-- Header -->
-  <div style="background:linear-gradient(135deg,#7C3AED 0%,#12151E 100%);
-              padding:24px 28px;border-radius:12px 12px 0 0;">
-    <div style="font-size:0.60rem;color:#A78BFA;letter-spacing:0.14em;
+  <div style="background:#111827;padding:24px 28px;border-radius:8px 8px 0 0;
+              border-top:4px solid #7C3AED;">
+    <div style="font-size:0.60rem;color:#C4B5FD;letter-spacing:0.14em;
                 text-transform:uppercase;margin-bottom:5px;">
       UNSTRUCTURED ALPHA · WATCHLIST
     </div>
@@ -1076,28 +1166,26 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
   </div>
 
   <!-- Alert table -->
-  <div style="background:#12151E;padding:20px 0 8px;">
+  <div style="background:#FFFFFF;padding:8px 12px;">
     <table style="border-collapse:collapse;width:100%;">
       {alert_rows}
     </table>
   </div>
 
   <!-- CTA -->
-  <div style="background:#0f1119;padding:20px 28px;text-align:center;">
-    <a href="https://unstructuredalpha.com/Watchlist"
-       style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#00C8E0);
-              color:#FFFFFF;padding:12px 30px;border-radius:8px;
+  <div style="background:#F9FAFB;padding:22px 28px;text-align:center;">
+    <a href="{_APP_URL}/my-watchlist"
+       style="display:inline-block;background:#6D28D9;color:#FFFFFF;padding:12px 30px;border-radius:6px;
               text-decoration:none;font-size:0.9rem;font-weight:700;letter-spacing:0.02em;">
       Open Watchlist →
     </a>
   </div>
 
   <!-- Footer -->
-  <div style="background:#0B0D12;padding:14px 28px;border-radius:0 0 12px 12px;
-              border-top:1px solid rgba(255,255,255,0.05);
-              font-size:0.68rem;color:#4A5280;text-align:center;line-height:1.6;">
-    Unstructured Alpha · unstructuredalpha.com · Not financial advice<br>
-    <a href="https://unstructuredalpha.com/Watchlist"
+  <div style="background:#111827;padding:14px 28px;border-radius:0 0 8px 8px;
+              font-size:0.68rem;color:#9CA3AF;text-align:center;line-height:1.6;">
+    Unstructured Alpha · app.unstructuredalpha.com · Not financial advice<br>
+    <a href="{_APP_URL}/my-watchlist"
        style="color:#7C3AED;text-decoration:none;">Manage alert settings</a>
   </div>
 
@@ -1106,15 +1194,14 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
 </html>"""
 
     try:
-        resp = requests.post(
-            _RESEND_API_URL,
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={
-                "from": from_email,
-                "to": [to_email],
-                "subject": subject,
-                "html": html,
-            },
+        resp = _post_resend_email(
+            api_key=api_key,
+            from_email=from_email,
+            to_email=to_email,
+            subject=subject,
+            html=html,
+            email_type="watchlist_alert",
+            idempotency_key=f"watchlist-alert/{_recipient_token(to_email)}/{alert_fingerprint}",
             timeout=15,
         )
         print(f"[watchlist-alert] Resend responded: status={resp.status_code}", flush=True)
@@ -1169,7 +1256,7 @@ def send_pro_welcome_email(to_email: str) -> None:
         <!-- Item 1 -->
         <div style="border-left:3px solid #7C3AED;padding:14px 0 14px 18px;margin-bottom:20px;">
           <div style="font-size:1rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">
-            📋 Today's Brief — read this every morning
+            Today's Brief — read this every morning
           </div>
           <div style="font-size:0.88rem;color:#8892AA;line-height:1.6;">
             The daily signal pulse: what's bullish, what's bearish, what flipped
@@ -1202,7 +1289,7 @@ def send_pro_welcome_email(to_email: str) -> None:
         <!-- Item 3 -->
         <div style="border-left:3px solid #00C8E0;padding:14px 0 14px 18px;margin-bottom:20px;">
           <div style="font-size:1rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">
-            📊 PDF Export — institutional-quality reports
+            PDF Export — institutional-quality reports
           </div>
           <div style="font-size:0.88rem;color:#8892AA;line-height:1.6;">
             From any Ticker Deep Dive, hit "Export Full PDF Report." You get the
@@ -1220,7 +1307,7 @@ def send_pro_welcome_email(to_email: str) -> None:
         <!-- Item 4 -->
         <div style="border-left:3px solid #F59E0B;padding:14px 0 14px 18px;margin-bottom:20px;">
           <div style="font-size:1rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">
-            ⚡ Short Squeeze Radar
+            Short Squeeze Radar
           </div>
           <div style="font-size:0.88rem;color:#8892AA;line-height:1.6;">
             Screens for tickers with high short interest + macro tailwinds +
@@ -1254,7 +1341,7 @@ def send_pro_welcome_email(to_email: str) -> None:
         <!-- Item 6 -->
         <div style="border-left:3px solid #8892AA;padding:14px 0 14px 18px;margin-bottom:4px;">
           <div style="font-size:1rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">
-            🔔 Watchlist & Alerts — let it come to you
+            Watchlist & Alerts — let it come to you
           </div>
           <div style="font-size:0.88rem;color:#8892AA;line-height:1.6;">
             Add your tickers to the Watchlist and set score-threshold alerts.
@@ -1418,7 +1505,7 @@ def send_referral_welcome_email(to_email: str) -> None:
       </tr>
       <tr>
         <td style="padding:8px 12px 8px 0;vertical-align:top;">
-          <span style="color:#F59E0B;font-size:1rem;">⚡</span>
+          <span style="color:#F59E0B;font-size:1rem;">ALERT</span>
         </td>
         <td style="padding:8px 0;">
           <div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;">
@@ -1763,9 +1850,9 @@ def send_velocity_alert_email(to_email: str, alerts: list[dict]) -> None:
     n = len(alerts)
     if n == 1:
         subj_ticker = alerts[0]["ticker"]
-        subject = f"⚡ Score Velocity Alert: {subj_ticker} is moving fast"
+        subject = f"Score Velocity Alert: {subj_ticker} is moving fast"
     else:
-        subject = f"⚡ Score Velocity Alert: {n} of your tickers are moving fast"
+        subject = f"Score Velocity Alert: {n} of your tickers are moving fast"
 
     def _score_pill(score: float, case: str) -> str:
         color = "#00D566" if case == "BULL" else ("#FF4D6A" if case == "BEAR" else "#F59E0B")
@@ -1819,7 +1906,7 @@ def send_velocity_alert_email(to_email: str, alerts: list[dict]) -> None:
   <div style="background:linear-gradient(135deg,#1A1E30,#0F1118);
               padding:24px 28px 20px;border-bottom:1px solid #1E2535;">
     <div style="font-size:0.60rem;font-weight:700;color:#F59E0B;letter-spacing:0.14em;
-                text-transform:uppercase;margin-bottom:6px;">⚡ Velocity Alert</div>
+                text-transform:uppercase;margin-bottom:6px;">Velocity Alert</div>
     <div style="font-size:1.30rem;font-weight:800;color:#E8EEFF;line-height:1.3;">
       Score moving at an unusual pace
     </div>
@@ -1965,7 +2052,7 @@ def send_weekly_brief_email(
     if not week_str:
         week_str = today_str
 
-    subject = f"📊 Your Weekly Portfolio Brief — {week_str}"
+    subject = f"Your Weekly Portfolio Brief — {week_str}"
 
     # ── Composite score section ─────────────────────────────────────────────
     if composite_score is not None and n_tickers > 0:
@@ -2147,7 +2234,7 @@ def send_weekly_brief_email(
   <div style="margin:0 24px;">
     <div style="font-size:0.58rem;font-weight:700;color:#F59E0B;letter-spacing:0.12em;
                 text-transform:uppercase;margin-bottom:4px;">
-      🎯 MACHINE'S BEST IDEAS RIGHT NOW
+      MACHINE'S BEST IDEAS RIGHT NOW
     </div>
     <div style="font-size:0.72rem;color:#6B7A95;margin-bottom:12px;">
       Highest conviction + rising score momentum across all tracked tickers
@@ -2502,7 +2589,7 @@ def send_day3_onboarding_email(
 <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.22);
             border-radius:10px;padding:14px 20px;margin:20px 0;text-align:center;">
   <div style="font-size:0.88rem;font-weight:700;color:#C5CCDE;margin-bottom:6px;">
-    ⚡ All three features above are free with Pro
+    All three features above are included with Pro
   </div>
   <div style="font-size:0.78rem;color:#8892AA;margin-bottom:12px;">
     $20/month · Cancel anytime · 7-day free trial
@@ -2546,7 +2633,7 @@ def send_day3_onboarding_email(
     <!-- Feature 1 -->
     <div style="border:1px solid #1E2535;border-radius:12px;padding:18px 20px;margin-bottom:14px;">
       <div style="font-size:0.62rem;font-weight:700;color:#00C8E0;text-transform:uppercase;
-                  letter-spacing:0.10em;margin-bottom:6px;">🎯 Best Ideas Page</div>
+                  letter-spacing:0.10em;margin-bottom:6px;">Best Ideas Page</div>
       <div style="font-size:0.92rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">
         The machine's highest-conviction bullish calls right now
       </div>
@@ -2562,7 +2649,7 @@ def send_day3_onboarding_email(
     <!-- Feature 2 -->
     <div style="border:1px solid #1E2535;border-radius:12px;padding:18px 20px;margin-bottom:14px;">
       <div style="font-size:0.62rem;font-weight:700;color:#F59E0B;text-transform:uppercase;
-                  letter-spacing:0.10em;margin-bottom:6px;">📊 Ticker Deep Dive</div>
+                  letter-spacing:0.10em;margin-bottom:6px;">Ticker Deep Dive</div>
       <div style="font-size:0.92rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">
         28 signals, each scored for your specific ticker
       </div>
@@ -2732,7 +2819,7 @@ def send_day7_onboarding_email(
           </a>
         </div>"""
 
-    subject = "One week in — what the machine is seeing right now 📊"
+    subject = "One week in — what the machine is seeing right now"
 
     html = f"""<!DOCTYPE html>
 <html lang="en">

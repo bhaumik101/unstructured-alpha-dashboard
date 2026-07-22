@@ -10,14 +10,9 @@ user's explicit scoping): Confluence Score threshold crossings, price moves
 (52-week high/low and % moves), and differentiator-signal changes (insider
 activity, short interest, 13F).
 
-Honesty check on delivery: this page is the IN-APP notification center.
-Email delivery was explicitly scoped as a fast-follow, not built yet --
-that requires an actual scheduled job running outside this Streamlit
-process (a cron job, a hosted scheduler, etc.) plus an email-sending
-service, which is real infrastructure, not just a feature on this page.
-The "Check Watchlist Now" button below runs the same evaluation logic that
-job would call, but only when someone has this page open and clicks it --
-it does not run on a timer in the background.
+Delivery is multi-channel: in-app alerts, hourly threshold emails, a daily
+morning intelligence digest, a weekly research brief, and optional Pro
+webhooks. The manual check uses the same evaluation engine as the scheduler.
 """
 
 import streamlit as st
@@ -99,8 +94,31 @@ inject_skeleton_css()
 
 render_page_header(
     "My Watchlist",
-    "Track confluence scores and alerts for your saved tickers.",
+    "A focused research command center for conviction, material changes, and alerts.",
     icon="",
+)
+
+st.markdown(
+    """
+    <style>
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border-color: #252B3A !important;
+        box-shadow: none !important;
+    }
+    .ua-watchlist-summary {
+        background: #12151E; border: 1px solid #252B3A; border-radius: 8px;
+        padding: 14px 16px; min-height: 86px;
+    }
+    .ua-watchlist-summary-label {
+        color: #7F8AA3; font-size: .64rem; font-weight: 700;
+        letter-spacing: .09em; text-transform: uppercase;
+    }
+    .ua-watchlist-summary-value {
+        color: #F3F4F6; font-size: 1.45rem; font-weight: 800; margin-top: 5px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 alerts_db.init_db()
@@ -351,7 +369,7 @@ else:
                                 text-transform:uppercase;margin-bottom:4px;">Portfolio Macro Score</div>
                     <div style="display:flex;align-items:baseline;gap:6px;">
                       <span style="font-size:2.4rem;font-weight:900;color:{_comp_color};
-                                   text-shadow:0 0 32px {_comp_color}40;line-height:1;">{_latest_composite:.0f}</span>
+                                   line-height:1;">{_latest_composite:.0f}</span>
                       <span style="font-size:1rem;color:#4A5280;">/100</span>
                       {_delta_str}
                     </div>
@@ -539,7 +557,97 @@ else:
         _watch_quotes  = get_batch_quotes(_ticker_list)
         _prepost_quotes = _get_prepost_batch(tuple(_ticker_list))
 
-    for row in watchlist:
+    # Compact portfolio command center: prioritise material changes instead of
+    # forcing users to scan every card in database order.
+    _watchlist_view = []
+    for _row in watchlist:
+        _ticker = _row["ticker"]
+        _score, _score_asof = _wl_latest_score(_ticker)
+        _quote = _watch_quotes.get(_ticker, {})
+        _move = _quote.get("chg_1d_pct")
+        _attention = bool(
+            (_score is not None and (
+                _score >= float(_row["score_bull_threshold"])
+                or _score <= float(_row["score_bear_threshold"])
+            ))
+            or (_move is not None and abs(_move) >= float(_row["price_move_pct_threshold"]))
+        )
+        _case = (
+            "Bullish" if _score is not None and _score >= 55 else
+            "Bearish" if _score is not None and _score <= 45 else
+            "Neutral" if _score is not None else
+            "No score"
+        )
+        _watchlist_view.append({
+            **_row,
+            "_score": _score,
+            "_score_asof": _score_asof,
+            "_move": _move,
+            "_attention": _attention,
+            "_case": _case,
+        })
+
+    _attention_count = sum(1 for _r in _watchlist_view if _r["_attention"])
+    _priced_count = sum(1 for _r in _watchlist_view if _watch_quotes.get(_r["ticker"], {}).get("last") is not None)
+    _unread_count = alerts_db.count_unread(user_id)
+    _summary_cols = st.columns(4)
+    _summary_values = (
+        ("Securities tracked", len(_watchlist_view)),
+        ("Needs review", _attention_count),
+        ("Live prices", f"{_priced_count}/{len(_watchlist_view)}"),
+        ("Unread alerts", _unread_count),
+    )
+    for _col, (_label, _value) in zip(_summary_cols, _summary_values):
+        with _col:
+            st.markdown(
+                f'<div class="ua-watchlist-summary"><div class="ua-watchlist-summary-label">{_label}</div>'
+                f'<div class="ua-watchlist-summary-value">{_value}</div></div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    _filter_cols = st.columns([1.25, 1.25, 2])
+    with _filter_cols[0]:
+        _sort_mode = st.selectbox(
+            "Sort by",
+            ("Attention first", "Score: high to low", "Score: low to high", "Daily move", "Ticker"),
+            key="watchlist_sort",
+        )
+    with _filter_cols[1]:
+        _case_filter = st.selectbox(
+            "View",
+            ("All", "Bullish", "Neutral", "Bearish", "No score"),
+            key="watchlist_case_filter",
+        )
+    with _filter_cols[2]:
+        _ticker_filter = st.text_input(
+            "Find in watchlist",
+            placeholder="Ticker or company name",
+            key="watchlist_ticker_filter",
+        ).strip().lower()
+
+    if _case_filter != "All":
+        _watchlist_view = [_r for _r in _watchlist_view if _r["_case"] == _case_filter]
+    if _ticker_filter:
+        _watchlist_view = [
+            _r for _r in _watchlist_view
+            if _ticker_filter in _r["ticker"].lower()
+            or _ticker_filter in TICKERS.get(_r["ticker"], {}).get("name", "").lower()
+        ]
+
+    _sorters = {
+        "Attention first": lambda _r: (not _r["_attention"], -abs(_r["_move"] or 0), _r["ticker"]),
+        "Score: high to low": lambda _r: (-(_r["_score"] if _r["_score"] is not None else -1), _r["ticker"]),
+        "Score: low to high": lambda _r: ((_r["_score"] if _r["_score"] is not None else 101), _r["ticker"]),
+        "Daily move": lambda _r: (-abs(_r["_move"] or 0), _r["ticker"]),
+        "Ticker": lambda _r: _r["ticker"],
+    }
+    _watchlist_view.sort(key=_sorters[_sort_mode])
+
+    if not _watchlist_view:
+        st.info("No watched securities match these filters.")
+
+    for row in _watchlist_view:
         ticker  = row["ticker"]
         q       = _watch_quotes.get(ticker, {})
         pp      = _prepost_quotes.get(ticker, {})
@@ -558,10 +666,10 @@ else:
                          help="Open chart viewer"):
                 st.session_state["chart_ticker"] = ticker
                 st.switch_page("pages/14_Stock_Chart.py")
+            st.caption(TICKERS.get(ticker, {}).get("name", "Tracked security"))
             st.caption(
-                f"Bull ≥ {row['score_bull_threshold']:.0f} · "
-                f"Bear ≤ {row['score_bear_threshold']:.0f} · "
-                f"Move ≥ {row['price_move_pct_threshold']:.1f}%"
+                f"Alerts: score ≥ {row['score_bull_threshold']:.0f} / ≤ {row['score_bear_threshold']:.0f} "
+                f"· price ±{row['price_move_pct_threshold']:.1f}%"
             )
             # Score history sparkline — shows 30-day confluence score trend.
             # Rising score while price is flat = early warning that macro
@@ -587,7 +695,7 @@ else:
                     _sh_fig = style_sparkline(_sh_fig, height=42, y_range=[0, 100])
                     st.markdown(
                         f'<div style="font-size:0.60rem;font-weight:600;color:#8892AA;margin-top:4px;letter-spacing:0.06em;text-transform:uppercase;">'
-                        f'Score 30d &nbsp;·&nbsp; <span style="color:{_sh_color};text-shadow:0 0 10px {_sh_color}50;">{_sh_scores[-1]:.0f}/100</span></div>',
+                        f'Score 30d &nbsp;·&nbsp; <span style="color:{_sh_color};">{_sh_scores[-1]:.0f}/100</span></div>',
                         unsafe_allow_html=True,
                     )
                     st.plotly_chart(_sh_fig, use_container_width=True,
@@ -619,7 +727,7 @@ else:
                 _pc = "#00D566" if (chg_pct or 0) > 0 else ("#FF4444" if (chg_pct or 0) < 0 else "#E8EEFF")
                 st.markdown(
                     f'<div class="ua-kpi-animate" style="font-size:1.35rem;font-weight:900;color:{_pc};'
-                    f'text-shadow:0 0 18px {_pc}35;line-height:1.2;margin-bottom:2px;">${price:,.2f}</div>',
+                    f'line-height:1.2;margin-bottom:2px;">${price:,.2f}</div>',
                     unsafe_allow_html=True,
                 )
             else:
@@ -747,28 +855,57 @@ except Exception as _share_err:
 
 st.divider()
 
-# ── Morning Digest Opt-In ─────────────────────────────────────────────────────
+# ── Email Intelligence ────────────────────────────────────────────────────────
 st.html(section_label("Email Settings", color="#F59E0B", dot="#F59E0B"))
 try:
     _current_optin = get_digest_optin(user_id)
+    _user_tier = get_user_tier(user_id)
+    _email_cols = st.columns(3)
+    _email_products = (
+        (
+            "MORNING INTELLIGENCE",
+            "Active" if _current_optin else "Off",
+            "Daily at 7 AM ET · live signal pulse, material flips, movers, and personalised watchlist research.",
+        ),
+        (
+            "WEEKLY RESEARCH",
+            "Included" if _current_optin and _user_tier == "pro" else ("Pro" if _user_tier != "pro" else "Off"),
+            "A higher-context weekly review for Pro members using the same real-data watchlist and score history.",
+        ),
+        (
+            "THRESHOLD ALERTS",
+            "Monitoring",
+            "Automatic alerts when tracked scores, prices, or differentiator signals cross a configured threshold.",
+        ),
+    )
+    for _col, (_name, _status, _description) in zip(_email_cols, _email_products):
+        with _col:
+            st.markdown(
+                f'<div style="background:#12151E;border:1px solid #252B3A;border-radius:8px;padding:14px 16px;min-height:130px;">'
+                f'<div style="font-size:.62rem;font-weight:700;color:#9CA3AF;letter-spacing:.09em;">{_name}</div>'
+                f'<div style="font-size:.84rem;font-weight:800;color:#F3F4F6;margin:7px 0;">{_status}</div>'
+                f'<div style="font-size:.74rem;line-height:1.55;color:#8892AA;">{_description}</div></div>',
+                unsafe_allow_html=True,
+            )
+
     _new_optin = st.toggle(
-        "Morning digest email (7 AM ET daily)",
+        "Daily intelligence and weekly research emails",
         value=_current_optin,
-        help="Receive a daily email with signal flips since yesterday and biggest score movers. "
-             "Sent via Resend to your account email. Unsubscribe any time by turning this off.",
+        help="Receive the 7 AM ET morning intelligence brief and the weekly Pro research note. "
+             "Threshold-crossing alerts continue automatically for monitored watchlist events.",
         key="digest_optin_toggle",
     )
     if _new_optin != _current_optin:
         set_digest_optin(user_id, _new_optin)
         if _new_optin:
-            st.success("Morning digest enabled — you'll receive your first email tomorrow at 7 AM ET.")
+            st.success("Email intelligence enabled. Your next morning brief will arrive at 7 AM ET.")
         else:
             st.info("Morning digest disabled.")
         st.rerun()
     if _current_optin:
-        st.caption("You'll receive a morning brief at 7 AM ET with signal flips and score movers.")
+        st.caption("Delivery is active. Every brief identifies live-source coverage and excludes unavailable data from scoring.")
     else:
-        st.caption("Turn on to receive a daily morning brief with the day's signal changes and top movers.")
+        st.caption("Turn on the research cadence above. Watchlist threshold alerts remain active for monitored events.")
 except Exception as _digest_err:
     st.caption(f"Could not load email settings: {_digest_err}")
 
@@ -844,7 +981,7 @@ st.divider()
 # ── Alerts (integrated into this page, not a separate page) ─────────────────
 st.html(section_label("Alerts for Your Watchlist", color="#00D566", dot="#00D566"))
 
-with st.expander("How alerts work — and what's not built yet"):
+with st.expander("How alert monitoring and delivery work"):
     st.markdown("""
     **Triggers checked for every watched ticker:**
 
@@ -855,10 +992,11 @@ with st.expander("How alerts work — and what's not built yet"):
     - **Differentiator signal changes** — insider buy/sell clustering, FINRA short interest trend, or
       curated-fund 13F positioning flipping between bullish/bearish/neutral.
 
-    **Delivery — in-app + morning email.** This is the in-app notification center.
-    A morning digest email (signal flips + score movers) goes out daily at 7 AM ET
-    to opted-in users — toggle that below. The "Check Watchlist Now" button above
-    runs the same evaluation logic on demand whenever you want a fresh read.
+    **Delivery — in-app, email, and Pro webhooks.** Threshold events are evaluated
+    hourly in the background and delivered by email; the morning intelligence brief
+    goes out daily at 7 AM ET to opted-in users. Pro members can also send the same
+    threshold events to Slack, Discord, or another webhook. The "Check Watchlist Now"
+    button runs the same evaluation logic on demand.
 
     **Nothing fires on the very first check** for a newly-watched ticker — there's no prior snapshot
     yet to compare against, so the first check just establishes a baseline silently.

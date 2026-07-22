@@ -120,7 +120,9 @@ services:
     name: unstructured-alpha-digest
     runtime: python
     rootDir: dashboard
-    schedule: "0 12 * * *"   # 12:00 UTC = 07:00 ET (UTC-5 winter) / 08:00 EDT
+    # Render schedules use UTC. Run at both DST possibilities; send_digest
+    # exits unless local New York time is exactly 07:xx.
+    schedule: "0 11,12 * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.send_digest
     envVars:
@@ -130,6 +132,8 @@ services:
         sync: false
       - key: RESEND_FROM_EMAIL
         sync: false
+      - key: APP_BASE_URL
+        value: https://app.unstructuredalpha.com
       - key: FRED_API_KEY
         sync: false
       - key: EIA_API_KEY

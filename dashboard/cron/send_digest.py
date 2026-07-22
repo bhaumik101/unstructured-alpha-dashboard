@@ -17,9 +17,11 @@
 # or:
 #   python cron/send_digest.py
 
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 # Ensure the dashboard/ directory is on sys.path so `utils.*` imports work
 # regardless of whether this is run as a module or a direct script.
@@ -43,22 +45,26 @@ _ADMIN_EMAILS: list[str] = [
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _compute_signal_pulse() -> tuple[dict, int, int, int, str]:
+def _compute_signal_pulse() -> tuple[dict, int, int, int, int, str]:
     """
     Score all signals without Streamlit's cache. Returns:
-        (scores_dict, bull_n, bear_n, neut_n, overall_bias_str)
+        (scores_dict, bull_n, bear_n, neut_n, unavailable_n, overall_bias_str)
     """
     from datetime import datetime
-    from utils.fetchers import fetch_signal_series
+    from utils.fetchers import fetch_signal_series, is_unavailable
     from utils.analysis import score_signal
 
     end   = datetime.now().strftime("%Y-%m-%d")
     start = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
 
-    scores, bull, bear, neut = {}, 0, 0, 0
+    scores, bull, bear, neut, unavailable = {}, 0, 0, 0, 0
     for sig_id, cfg in SIGNALS.items():
         try:
             s = fetch_signal_series(cfg, start, end)
+            if is_unavailable(s):
+                unavailable += 1
+                print(f"[digest] signal {sig_id} unavailable — excluded", flush=True)
+                continue
             scored = score_signal(s, inverse=cfg.get("inverse", False))
             status = scored.get("status", "neutral")
             scores[sig_id] = {
@@ -74,8 +80,7 @@ def _compute_signal_pulse() -> tuple[dict, int, int, int, str]:
                 neut += 1
         except Exception as exc:
             print(f"[digest] signal {sig_id} failed: {exc}", flush=True)
-            scores[sig_id] = {"name": cfg["name"], "score": 50, "status": "neutral"}
-            neut += 1
+            unavailable += 1
 
     total = bull + bear + neut or 1
     if bull / total >= 0.5:
@@ -85,7 +90,7 @@ def _compute_signal_pulse() -> tuple[dict, int, int, int, str]:
     else:
         bias = "Mixed"
 
-    return scores, bull, bear, neut, bias
+    return scores, bull, bear, neut, unavailable, bias
 
 
 def _get_score_movers(days_back: int = 7) -> list[dict]:
@@ -344,12 +349,24 @@ def _compute_watchlist_scores(
 def main() -> None:
     print(f"[digest] starting at {datetime.now(timezone.utc).isoformat()}", flush=True)
 
+    # Render cron schedules are UTC and do not observe US daylight saving
+    # time. The Blueprint invokes us at both possible UTC hours; only the
+    # genuine 7 AM America/New_York run proceeds.
+    now_et = datetime.now(ZoneInfo("America/New_York"))
+    if now_et.hour != 7 and os.environ.get("FORCE_DIGEST_SEND") != "1":
+        print(f"[digest] local time is {now_et:%H:%M %Z}; outside 7 AM window — skipping", flush=True)
+        return
+
     init_db()
 
     # 1. Compute signal pulse
     print("[digest] computing signal pulse…", flush=True)
-    signal_scores, bull_n, bear_n, neut_n, bias = _compute_signal_pulse()
-    print(f"[digest] pulse: bull={bull_n} bear={bear_n} neut={neut_n} bias={bias}", flush=True)
+    signal_scores, bull_n, bear_n, neut_n, unavailable_n, bias = _compute_signal_pulse()
+    print(
+        f"[digest] pulse: bull={bull_n} bear={bear_n} neut={neut_n} "
+        f"unavailable={unavailable_n} bias={bias}",
+        flush=True,
+    )
 
     # 2. Record signal snapshots (so flips are detectable tomorrow)
     from utils.score_history import record_signal_snapshot
@@ -417,6 +434,7 @@ def main() -> None:
                 bull_n=bull_n,
                 bear_n=bear_n,
                 neut_n=neut_n,
+                unavailable_n=unavailable_n,
                 signal_scores=signal_scores,
                 watchlist_items=watchlist_items or None,
                 watchlist_narrative=watchlist_narrative,
