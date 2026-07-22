@@ -159,9 +159,13 @@ def _generate_watchlist_narrative(
     ticker_lines = []
     for it in items:
         delta_str = f"{it['delta']:+.1f}pt 7d" if it.get("delta") is not None else "no 7d data"
+        weight_str = (
+            f", {float(it.get('weight_pct') or 0):.1f}% portfolio weight"
+            if float(it.get("weight_pct") or 0) > 0 else ""
+        )
         ticker_lines.append(
             f"  - {it['ticker']} ({it['name']}): score {it['score']:.0f}/100, "
-            f"{it['case']}, {delta_str}"
+            f"{it['case']}, {delta_str}{weight_str}"
         )
 
     flip_lines = []
@@ -173,7 +177,7 @@ def _generate_watchlist_narrative(
 
     prompt = (
         f"Today's macro regime: {bias}.\n"
-        f"The user's watched tickers:\n" + "\n".join(ticker_lines) + "\n"
+        f"The user's portfolio or watched positions:\n" + "\n".join(ticker_lines) + "\n"
     )
     if flip_lines:
         prompt += "Overnight signal flips:\n" + "\n".join(flip_lines) + "\n"
@@ -269,8 +273,35 @@ def _get_user_watchlist_tickers(user_id: int) -> list[str]:
         return []
 
 
+def _get_user_brief_positions(user_id: int) -> tuple[list[dict], bool]:
+    """Prefer up to five saved holdings; fall back to an equal-weight watchlist."""
+    try:
+        from utils.portfolio_workspace import get_default_holdings
+
+        holdings = get_default_holdings(user_id)[:5]
+        if holdings:
+            return [
+                {
+                    "ticker": str(row["ticker"]).upper(),
+                    "weight_pct": float(row.get("weight_pct") or 0),
+                }
+                for row in holdings
+            ], True
+    except Exception as exc:
+        print(f"[digest] portfolio lookup failed for user {user_id}: {exc}", flush=True)
+
+    tickers = _get_user_watchlist_tickers(user_id)
+    if not tickers:
+        return [], False
+    equal_weight = 100.0 / len(tickers)
+    return [
+        {"ticker": ticker, "weight_pct": equal_weight}
+        for ticker in tickers
+    ], False
+
+
 def _compute_watchlist_scores(
-    tickers: list[str],
+    positions: list[str | dict],
     all_signal_scores: dict,
 ) -> list[dict]:
     """
@@ -281,7 +312,7 @@ def _compute_watchlist_scores(
     point the same direction as the score.
 
     Returns list of:
-        {ticker, name, score, case, delta, aligned, total_relevant}
+        {ticker, name, score, case, delta, aligned, total_relevant, weight_pct}
     """
     from utils.analysis import compute_confluence
     from datetime import datetime, timedelta, timezone
@@ -289,7 +320,15 @@ def _compute_watchlist_scores(
     seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
     results = []
 
-    for ticker in tickers:
+    for position in positions:
+        if isinstance(position, str):
+            ticker = position.upper()
+            weight_pct = 0.0
+        else:
+            ticker = str(position.get("ticker", "")).upper()
+            weight_pct = max(0.0, float(position.get("weight_pct") or 0))
+        if not ticker:
+            continue
         meta = TICKERS.get(ticker, {})
         relevant_sids = set(meta.get("signals", list(SIGNALS.keys())))
 
@@ -340,6 +379,7 @@ def _compute_watchlist_scores(
             "delta":          delta,
             "aligned":        aligned,
             "total_relevant": total_rel,
+            "weight_pct":     round(weight_pct, 2),
         })
 
     return results
@@ -385,14 +425,14 @@ def main() -> None:
     movers = _get_score_movers()
     print(f"[digest] score movers: {len(movers)}", flush=True)
 
-    # 4. Load signal scores once — reused for all per-user watchlist lookups
+    # 4. Load signal scores once — reused for every personalised portfolio brief
     from utils.signals_cache import get_all_signal_scores
     all_signal_scores: dict = {}
     try:
         all_signal_scores = get_all_signal_scores()
         print(f"[digest] signal scores loaded: {len(all_signal_scores)} signals", flush=True)
     except Exception as exc:
-        print(f"[digest] signal scores cache failed: {exc} — watchlist scores skipped", flush=True)
+        print(f"[digest] signal scores cache failed: {exc} — personalised scores skipped", flush=True)
 
     # 5. Get opted-in users
     recipients = _get_opted_in_emails()
@@ -402,7 +442,7 @@ def main() -> None:
         print("[digest] no opted-in users — nothing to send. done.", flush=True)
         return
 
-    # 6. Send — personalised watchlist section per user
+    # 6. Send — weighted portfolio intelligence, with watchlist fallback
     from utils.email import send_digest_email, EmailSendError
 
     sent, failed = 0, 0
@@ -410,18 +450,25 @@ def main() -> None:
         # Per-user watchlist scores + AI narrative (best-effort — never blocks the send)
         watchlist_items: list[dict] = []
         watchlist_narrative: str | None = None
+        portfolio_mode = False
         if user_id is not None and all_signal_scores:
             try:
-                tickers = _get_user_watchlist_tickers(user_id)
-                if tickers:
-                    watchlist_items = _compute_watchlist_scores(tickers, all_signal_scores)
-                    print(f"[digest] watchlist for user {user_id}: {tickers} → {len(watchlist_items)} scored", flush=True)
+                positions, portfolio_mode = _get_user_brief_positions(user_id)
+                if positions:
+                    watchlist_items = _compute_watchlist_scores(positions, all_signal_scores)
+                    tickers = [row["ticker"] for row in positions]
+                    mode = "portfolio" if portfolio_mode else "watchlist fallback"
+                    print(
+                        f"[digest] {mode} for user {user_id}: {tickers} → "
+                        f"{len(watchlist_items)} scored",
+                        flush=True,
+                    )
                     if watchlist_items:
                         watchlist_narrative = _generate_watchlist_narrative(
                             watchlist_items, bias, flips
                         )
             except Exception as exc:
-                print(f"[digest] watchlist score failed for user {user_id}: {exc}", flush=True)
+                print(f"[digest] personalised score failed for user {user_id}: {exc}", flush=True)
 
         try:
             send_digest_email(
@@ -436,6 +483,7 @@ def main() -> None:
                 signal_scores=signal_scores,
                 watchlist_items=watchlist_items or None,
                 watchlist_narrative=watchlist_narrative,
+                portfolio_mode=portfolio_mode,
             )
             sent += 1
             print(f"[digest] sent to {email_addr!r}", flush=True)

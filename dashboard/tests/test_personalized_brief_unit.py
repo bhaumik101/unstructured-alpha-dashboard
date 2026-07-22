@@ -4,11 +4,13 @@ from utils.personalized_brief import build_priority_brief, render_priority_card_
 from utils.risk_profile import DEFAULT_PROFILE
 
 
-def _evidence(ticker, score=55.0, components=None):
+def _evidence(ticker, score=55.0, components=None, weight=0.0, source="portfolio"):
     return {
         "ticker": ticker,
         "snapshot": {"score": score, "case": "BULL" if score >= 65 else "NEUTRAL", "snapshot_date": "2026-07-21"},
         "components": components,
+        "weight_pct": weight,
+        "source": source,
     }
 
 
@@ -71,3 +73,18 @@ def test_card_renderer_escapes_account_evidence_text():
     assert "<script>" not in html
     assert "&lt;script&gt;" in html
     assert "<b>not trusted</b>" not in html
+
+
+def test_weighted_portfolio_score_and_position_size_influence_priority():
+    evidence = [
+        _evidence("A", 70, weight=10),
+        _evidence("B", 68, weight=90),
+    ]
+
+    out = build_priority_brief(evidence, DEFAULT_PROFILE)
+
+    assert [row["ticker"] for row in out["priorities"]] == ["B", "A"]
+    assert out["weighted_personal_score"] == 68.2
+    assert out["scored_weight_pct"] == 100.0
+    assert out["source"] == "portfolio"
+    assert "90.0% weight" in render_priority_card_html(out["priorities"][0], 1)

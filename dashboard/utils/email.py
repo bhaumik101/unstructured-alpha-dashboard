@@ -464,11 +464,16 @@ def _build_article_html(
     return article_html, subject
 
 
-def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> str:
+def _build_watchlist_html(
+    items: list[dict],
+    narrative: str | None = None,
+    *,
+    portfolio_mode: bool = False,
+) -> str:
     """
-    Build the personalised "Your Watchlist" section for the morning digest.
-    items:     [{ticker, name, score, case, delta, aligned, total_relevant}]
-               max 3 items expected.
+    Build personalised portfolio intelligence with a watchlist fallback.
+    items:     [{ticker, name, score, case, delta, aligned, total_relevant, weight_pct}]
+               max 5 items expected.
     narrative: optional AI-generated 2-3 sentence plain-English summary.
     """
     CASE_COLOR = {"BULL": "#00875A", "BEAR": "#C53030", "NEUTRAL": "#5A6472"}
@@ -506,6 +511,12 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
         item_name = str(item.get("name", item["ticker"]))
         name_short = item_name[:22] + "…" if len(item_name) > 24 else item_name
         name_short = _safe(name_short)
+        weight = max(0.0, float(item.get("weight_pct") or 0))
+        weight_str = (
+            f'<div style="font-size:0.62rem;color:#4B5563;margin-top:4px;">'
+            f'{weight:.1f}% of portfolio</div>'
+            if portfolio_mode and weight > 0 else ""
+        )
 
         # Conviction: signal alignment badge
         aligned   = item.get("aligned", 0)
@@ -551,6 +562,7 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
               {sym} {case}
             </div>
             <div style="margin-top:4px;">{delta_str}</div>
+            {weight_str}
             {conviction_str}
             <div style="margin-top:9px;">
               <a href="{_APP_URL}/ticker-deep-dive?ticker={ticker}"
@@ -583,12 +595,16 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
     except Exception:
         why_block = ""
 
+    section_title = "Your Portfolio Intelligence" if portfolio_mode else "Your Watchlist Intelligence"
+    action_url = f"{_APP_URL}/portfolio-suite" if portfolio_mode else f"{_APP_URL}/my-watchlist"
+    action_label = "Open Portfolio Intelligence →" if portfolio_mode else "Open Watchlist →"
+
     return f"""
     <div style="background:#F7F8FA;border-top:3px solid #7C3AED;padding:16px 24px 12px;">
       <div style="font-size:0.60rem;font-weight:700;color:#7C3AED;text-transform:uppercase;
                   letter-spacing:0.12em;margin-bottom:12px;
                   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-        Your Watchlist Intelligence
+        {section_title}
       </div>
       {narrative_html}
       <table style="border-collapse:collapse;width:100%;">
@@ -596,10 +612,10 @@ def _build_watchlist_html(items: list[dict], narrative: str | None = None) -> st
       </table>
       {why_block}
       <div style="margin-top:10px;text-align:right;">
-        <a href="{_APP_URL}/my-watchlist"
+        <a href="{action_url}"
            style="font-size:0.72rem;color:#7C3AED;text-decoration:none;
                   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-          Open Watchlist →
+          {action_label}
         </a>
       </div>
     </div>
@@ -618,6 +634,7 @@ def send_digest_email(
     signal_scores: dict | None = None,
     watchlist_items: list[dict] | None = None,
     watchlist_narrative: str | None = None,
+    portfolio_mode: bool = False,
 ) -> None:
     """
     Send the morning intelligence digest to a single opted-in user.
@@ -634,6 +651,8 @@ def send_digest_email(
                         None = no watchlist section (user has empty watchlist).
     watchlist_narrative: AI-generated 2-3 sentence plain-English summary of the user's
                         watchlist relative to today's macro environment. None = omitted.
+    portfolio_mode:      render holdings, weights, and the Portfolio Intelligence CTA.
+                         False preserves the watchlist fallback and older callers.
     """
     api_key, from_email = _get_resend_config()
     print(f"[digest] send_digest_email: to={to_email!r} bias={overall_bias}", flush=True)
@@ -648,9 +667,13 @@ def send_digest_email(
     if unavailable_n:
         coverage_text += f" · {unavailable_n} unavailable excluded"
 
-    # ── Personalised watchlist section ────────────────────────────────────
+    # ── Personalised portfolio section (watchlist fallback) ──────────────
     watchlist_html = (
-        _build_watchlist_html(watchlist_items, narrative=watchlist_narrative)
+        _build_watchlist_html(
+            watchlist_items,
+            narrative=watchlist_narrative,
+            portfolio_mode=portfolio_mode,
+        )
         if watchlist_items else ""
     )
 
@@ -777,7 +800,7 @@ def send_digest_email(
 <html>
 <body style="margin:0;padding:0;background:#F0F2F5;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-  {_safe(overall_bias)} signal pulse · {_safe(coverage_text)} · personalised watchlist intelligence
+  {_safe(overall_bias)} signal pulse · {_safe(coverage_text)} · {"weighted portfolio" if portfolio_mode else "personalised watchlist"} intelligence
 </div>
 <div style="max-width:600px;margin:0 auto;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 
@@ -828,7 +851,7 @@ def send_digest_email(
         </table>
     </div>
 
-    <!-- Personalised watchlist (only shown when user has watchlist tickers) -->
+    <!-- Personalised portfolio intelligence with watchlist fallback -->
     {watchlist_html}
 
     <!-- Article -->

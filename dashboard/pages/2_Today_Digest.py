@@ -58,13 +58,13 @@ init_db()
 if _brief_section == "My Priorities":
     from utils.personalized_brief import (
         build_priority_brief,
-        load_watchlist_evidence,
+        load_portfolio_evidence,
         render_priority_card_html,
     )
 
     _priority_user = st.session_state.get("user")
     if not _priority_user:
-        st.info("Sign in to turn Today's Brief into a priority view for your watchlist and research profile.")
+        st.info("Sign in to turn Today's Brief into a weighted priority view for your portfolio and research profile.")
         _anon_cols = st.columns([1, 1, 2])
         if _anon_cols[0].button("View market intelligence", type="primary", use_container_width=True):
             st.session_state["brief_section_rail"] = "Market Intelligence"
@@ -80,7 +80,7 @@ if _brief_section == "My Priorities":
         from utils.what_changed import build_what_changed
 
         _priority_profile = _get_priority_profile(_priority_user["id"])
-        _priority_evidence = load_watchlist_evidence(_priority_user["id"])
+        _priority_evidence = load_portfolio_evidence(_priority_user["id"])
         _priority_tickers = [row["ticker"] for row in _priority_evidence]
         try:
             _priority_changes = build_what_changed(
@@ -91,6 +91,7 @@ if _brief_section == "My Priorities":
         _priority_payload = build_priority_brief(
             _priority_evidence, _priority_profile, _priority_changes
         )
+        _priority_source = _priority_payload["source"]
 
         _priority_name = (
             _priority_user.get("display_name")
@@ -100,7 +101,8 @@ if _brief_section == "My Priorities":
             f'<div style="background:#11161E;border:1px solid rgba(255,255,255,.09);'
             f'border-radius:10px;padding:16px 18px;margin-bottom:18px;display:flex;'
             f'align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;">'
-            f'<div><div style="font-size:.66rem;color:#8F9AAD;text-transform:uppercase;letter-spacing:.11em;">Personal research view</div>'
+            f'<div><div style="font-size:.66rem;color:#8F9AAD;text-transform:uppercase;letter-spacing:.11em;">'
+            f'{"Portfolio intelligence" if _priority_source == "portfolio" else "Watchlist preview"}</div>'
             f'<div style="font-size:1.05rem;color:#EDF1F7;font-weight:730;margin-top:3px;">{_escape_priority(_priority_name)} · what deserves review</div></div>'
             f'<div style="font-size:.69rem;color:#A7B0BF;text-align:right;line-height:1.55;">'
             f'{TOLERANCE_LABELS[_priority_profile["tolerance"]]} · '
@@ -109,20 +111,39 @@ if _brief_section == "My Priorities":
             unsafe_allow_html=True,
         )
 
+        if _priority_payload["priorities"]:
+            _brief_metrics = st.columns(4)
+            _weighted_score = _priority_payload["weighted_personal_score"]
+            _brief_metrics[0].metric(
+                "Weighted portfolio score" if _priority_source == "portfolio" else "Equal-weight preview",
+                f"{_weighted_score:.0f}" if _weighted_score is not None else "—",
+            )
+            _brief_metrics[1].metric("Positions with evidence", _priority_payload["n_evidence"])
+            _brief_metrics[2].metric(
+                "Portfolio weight covered",
+                f'{min(_priority_payload["scored_weight_pct"], 100):.0f}%',
+            )
+            _brief_metrics[3].metric("Material changes", _priority_payload["material_changes"])
+            if _priority_source == "watchlist":
+                st.caption(
+                    "This is an equal-weight watchlist preview. Save your actual position weights in "
+                    "Portfolio Intelligence for a portfolio-accurate morning brief."
+                )
+
         if not _priority_evidence:
             st.html(empty_state(
                 "",
                 "Build your first priority view",
-                "Add stocks to your watchlist and this page will rank the evidence that matters to your profile.",
-                action="Start with the companies you actively follow.",
+                "Save the stocks you own and their weights to activate portfolio-accurate priorities.",
+                action="Your watchlist remains separate for ideas you only want to monitor.",
             ))
-            if st.button("Open My Watchlist", type="primary", use_container_width=True):
-                st.switch_page("pages/10_Watchlist.py")
+            if st.button("Build my portfolio", type="primary", use_container_width=True):
+                st.switch_page("pages/44_Portfolio_Suite.py")
         elif not _priority_payload["priorities"]:
             st.html(empty_state(
                 "",
-                "Your watchlist needs its first score snapshot",
-                "Open a watched ticker once in Ticker Deep Dive to record its evidence and activate this priority view.",
+                "Your portfolio needs its first score snapshot",
+                "Open a holding once in Ticker Deep Dive to record its evidence and activate this priority view.",
                 action="No placeholder score is shown here.",
             ))
             _missing_cols = st.columns(min(3, len(_priority_tickers)))
@@ -148,7 +169,7 @@ if _brief_section == "My Priorities":
 
             if _priority_payload["remaining"]:
                 with st.expander(
-                    f'{len(_priority_payload["remaining"])} additional watched name(s)',
+                    f'{len(_priority_payload["remaining"])} additional portfolio position(s)',
                     expanded=False,
                 ):
                     for _item in _priority_payload["remaining"]:
@@ -169,8 +190,8 @@ if _brief_section == "My Priorities":
 
             st.divider()
             _action_cols = st.columns(3)
-            if _action_cols[0].button("Open full watchlist", use_container_width=True):
-                st.switch_page("pages/10_Watchlist.py")
+            if _action_cols[0].button("Open Portfolio Intelligence", use_container_width=True):
+                st.switch_page("pages/44_Portfolio_Suite.py")
             if _action_cols[1].button("Edit research profile", use_container_width=True):
                 st.switch_page("pages/32_Profile.py")
             if _action_cols[2].button("View all market signals", use_container_width=True):

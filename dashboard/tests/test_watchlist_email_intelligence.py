@@ -54,6 +54,49 @@ def test_signal_pulse_excludes_unavailable_sources(monkeypatch):
     assert (bull, bear, neutral, unavailable, bias) == (1, 0, 1, 1, "Bullish")
 
 
+def test_digest_prefers_saved_weighted_holdings(monkeypatch):
+    from cron import send_digest
+    from utils import portfolio_workspace
+
+    monkeypatch.setattr(
+        portfolio_workspace,
+        "get_default_holdings",
+        lambda _user_id: [
+            {"ticker": "MSFT", "weight_pct": 60.0},
+            {"ticker": "AAPL", "weight_pct": 40.0},
+        ],
+    )
+    monkeypatch.setattr(
+        send_digest,
+        "_get_user_watchlist_tickers",
+        lambda _user_id: (_ for _ in ()).throw(AssertionError("watchlist fallback should not run")),
+    )
+
+    positions, portfolio_mode = send_digest._get_user_brief_positions(7)
+
+    assert portfolio_mode is True
+    assert positions == [
+        {"ticker": "MSFT", "weight_pct": 60.0},
+        {"ticker": "AAPL", "weight_pct": 40.0},
+    ]
+
+
+def test_digest_equal_weights_watchlist_when_portfolio_is_empty(monkeypatch):
+    from cron import send_digest
+    from utils import portfolio_workspace
+
+    monkeypatch.setattr(portfolio_workspace, "get_default_holdings", lambda _user_id: [])
+    monkeypatch.setattr(send_digest, "_get_user_watchlist_tickers", lambda _user_id: ["AAPL", "MSFT"])
+
+    positions, portfolio_mode = send_digest._get_user_brief_positions(9)
+
+    assert portfolio_mode is False
+    assert positions == [
+        {"ticker": "AAPL", "weight_pct": 50.0},
+        {"ticker": "MSFT", "weight_pct": 50.0},
+    ]
+
+
 def test_digest_email_has_coverage_deep_links_tags_and_idempotency(monkeypatch):
     from utils import email
 
@@ -128,3 +171,44 @@ def test_watchlist_alert_email_escapes_content_and_links_research(monkeypatch):
     assert "/ticker-deep-dive?ticker=MSFT" in payload["html"]
     assert "/my-watchlist" in payload["html"]
     assert "linear-gradient" not in payload["html"]
+
+
+def test_digest_email_renders_weighted_portfolio_intelligence(monkeypatch):
+    from utils import email
+
+    captured = {}
+
+    def _post(url, **kwargs):
+        captured.update(url=url, **kwargs)
+        return _FakeResponse()
+
+    monkeypatch.setattr(email, "_get_resend_config", lambda: ("re_test", "UA <mail@example.com>"))
+    monkeypatch.setattr(email.requests, "post", _post)
+
+    email.send_digest_email(
+        to_email="owner@example.com",
+        signal_flips=[],
+        score_movers=[],
+        overall_bias="Mixed",
+        bull_n=1,
+        bear_n=1,
+        neut_n=1,
+        watchlist_items=[{
+            "ticker": "MSFT",
+            "name": "Microsoft",
+            "score": 64.0,
+            "case": "BULL",
+            "delta": 1.5,
+            "aligned": 5,
+            "total_relevant": 7,
+            "weight_pct": 30.0,
+        }],
+        portfolio_mode=True,
+    )
+
+    body = captured["json"]["html"]
+    assert "Your Portfolio Intelligence" in body
+    assert "30.0% of portfolio" in body
+    assert "/portfolio-suite" in body
+    assert "Open Portfolio Intelligence" in body
+    assert "Open Watchlist" not in body
