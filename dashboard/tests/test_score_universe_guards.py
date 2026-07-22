@@ -144,6 +144,14 @@ def test_guard_is_checked_before_the_deadline():
     assert src.index("memory_guard_reached") < src.index("deadline_reached")
 
 
+def test_memory_is_checked_inside_each_chunk():
+    """A guard only between batches cannot prevent a mid-batch Render OOM."""
+    src = (DASHBOARD / "cron" / "score_universe.py").read_text()
+    assert "MEMORY_CHECK_EVERY" in src
+    assert "chunk_pos % MEMORY_CHECK_EVERY" in src
+    assert "fetch_prices_batch.clear()" in src
+
+
 # ── Convergence ───────────────────────────────────────────────────────────────
 # The guard alone does not fix coverage. Targets used to be alphabetical, so a
 # run that stopped early always stopped at the same place and the tail of the

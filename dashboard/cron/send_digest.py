@@ -2,7 +2,8 @@
 # cron/send_digest.py
 # Unstructured Alpha — Morning Digest Cron Script
 #
-# Designed to run as a Render Cron Job at 07:00 ET daily (12:00 UTC).
+# Designed to run as one Render Cron Job at 12:00 UTC daily (07:00 ET in
+# standard time, 08:00 ET in daylight time).
 # It computes the current signal pulse, fetches flips and score movers
 # from the DB, and emails every opted-in user.
 #
@@ -349,13 +350,10 @@ def _compute_watchlist_scores(
 def main() -> None:
     print(f"[digest] starting at {datetime.now(timezone.utc).isoformat()}", flush=True)
 
-    # Render cron schedules are UTC and do not observe US daylight saving
-    # time. The Blueprint invokes us at both possible UTC hours; only the
-    # genuine 7 AM America/New_York run proceeds.
+    # Render schedules are UTC. A single 12:00 UTC invocation avoids paying for
+    # a second daily boot solely to preserve an exact DST-adjusted wall time.
     now_et = datetime.now(ZoneInfo("America/New_York"))
-    if now_et.hour != 7 and os.environ.get("FORCE_DIGEST_SEND") != "1":
-        print(f"[digest] local time is {now_et:%H:%M %Z}; outside 7 AM window — skipping", flush=True)
-        return
+    print(f"[digest] local delivery window={now_et:%H:%M %Z}", flush=True)
 
     init_db()
 
