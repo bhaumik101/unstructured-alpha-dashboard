@@ -17,6 +17,7 @@ from utils.options_metrics import (
     days_to_expiration,
     summarize,
 )
+from utils.theme import PLOTLY_CONFIG
 
 st.set_page_config(page_title="Options Flow — UA", layout="wide")
 
@@ -24,7 +25,11 @@ from utils.billing import require_pro
 require_pro("Options Flow")
 
 render_header("Unusual Options Activity")
-render_sidebar_base()
+_options_section = render_sidebar_base(
+    page_title="Options Flow",
+    sections=("Market Snapshot", "Strike Positioning", "Unusual Activity", "Full Chain", "Methodology"),
+    section_key="options_flow_section_rail",
+)
 try:
     from utils.instrumentation import record_once
     record_once("options_flow_viewed")
@@ -271,190 +276,194 @@ st.caption(
     "'Unusual' = today's volume exceeds open interest, signalling fresh directional bets."
 )
 
-# ── Ticker selector ───────────────────────────────────────────────────────────
-col_pick, col_custom = st.columns([2, 1])
-with col_pick:
-    # Search the full US-listed universe (~12.6k) — options chains exist for far
-    # more than our scored tickers. index=None + placeholder (not a sentinel
-    # option, which Streamlit renders as the box's VALUE and breaks searching).
-    try:
-        from utils.symbols import get_symbol_index as _gsi
-        _of_idx = dict(_gsi())
-    except Exception:
-        _of_idx = {t: t for t in _POPULAR}
-    selected_popular = st.selectbox(
-        "Search any stock", list(_of_idx.keys()), index=None,
-        placeholder=" Symbol or company…",
-        format_func=lambda t: _of_idx.get(t, t), key="opts_popular",
+if _options_section != "Methodology":
+    # ── Ticker selector ───────────────────────────────────────────────────────────
+    col_pick, col_custom = st.columns([2, 1])
+    with col_pick:
+        # Search the full US-listed universe (~12.6k) — options chains exist for far
+        # more than our scored tickers. index=None + placeholder (not a sentinel
+        # option, which Streamlit renders as the box's VALUE and breaks searching).
+        try:
+            from utils.symbols import get_symbol_index as _gsi
+            _of_idx = dict(_gsi())
+        except Exception:
+            _of_idx = {t: t for t in _POPULAR}
+        selected_popular = st.selectbox(
+            "Search any stock", list(_of_idx.keys()), index=None,
+            placeholder=" Symbol or company…",
+            format_func=lambda t: _of_idx.get(t, t), key="opts_popular",
+        )
+    with col_custom:
+        custom_ticker = st.text_input(
+            "Or enter any ticker", value="", placeholder="e.g. PLTR",
+            key="opts_custom",
+        ).strip().upper()
+
+    ticker = (custom_ticker or selected_popular or "").strip().upper() or None
+
+    if not ticker:
+        st.info("Select a ticker above to view its options flow.")
+        st.stop()
+
+    # ── Load ──────────────────────────────────────────────────────────────────────
+    from utils.fetchers import fetch_options_chain  # noqa: E402 — deferred to avoid import at module level
+
+    # Per-user rate limit — options chains are provider-heavy (yfinance pulls up to 6
+    # expirations). Dedupe by distinct ticker so reruns for the SAME ticker (which hit
+    # the 30-min cache, no provider call) aren't throttled — only a new ticker counts.
+    from utils.ratelimit import guard  # noqa: E402
+    if st.session_state.get("_opts_rl_ticker") != ticker:
+        _rl_ok, _rl_retry = guard("options_flow")
+        st.session_state["_opts_rl_ticker"] = ticker
+        st.session_state["_opts_rl_blocked"] = (not _rl_ok, _rl_retry)
+    _opts_blocked, _opts_retry = st.session_state.get("_opts_rl_blocked", (False, 0))
+    if _opts_blocked:
+        st.warning(f"You're loading options chains quickly — give it about "
+                   f"{_opts_retry}s and try again.")
+        st.stop()
+
+    with st.spinner(f"Loading options chain for **{ticker}**…"):
+        chain = fetch_options_chain(ticker)
+
+    if not chain:
+        st.error(f"Could not load options data for **{ticker}**. The ticker may not have listed options, or data is temporarily unavailable.")
+        st.stop()
+
+    calls_raw = chain.get("calls", pd.DataFrame())
+    puts_raw  = chain.get("puts",  pd.DataFrame())
+    pcr       = chain.get("put_call_ratio", float("nan"))
+    spot      = chain.get("current_price", None)
+    expirations = chain.get("expirations", [])
+
+    calls_raw = _flag_unusual(calls_raw)
+    puts_raw  = _flag_unusual(puts_raw)
+
+    unusual_calls = calls_raw[calls_raw["unusual"]] if not calls_raw.empty else pd.DataFrame()
+    unusual_puts  = puts_raw[puts_raw["unusual"]]   if not puts_raw.empty  else pd.DataFrame()
+
+if _options_section == "Market Snapshot":
+    # ── Header metrics ────────────────────────────────────────────────────────────
+    st.markdown(f"### {ticker}" + (f" — ${spot:,.2f}" if spot else ""))
+
+    _S = summarize(calls_raw, puts_raw, spot,
+                   nearest_expiration=expirations[0] if expirations else None)
+
+
+    def _pct(x, dp: int = 0) -> str:
+        return f"{x * 100:.{dp}f}%" if x is not None else "—"
+
+
+    def _ratio(x) -> str:
+        return f"{x:.2f}x" if x is not None else "—"
+
+
+    def _usd(x) -> str:
+        return f"${_fmt_num(x)}" if x else "—"
+
+
+    # Row 1 — flow: what traded today, in contracts and in dollars.
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    m1.metric("P/C Ratio · Volume", _ratio(_S["pcr_volume"]),
+              help="Put volume / call volume across loaded expirations — today's flow.")
+    m2.metric("P/C Ratio · Open Int", _ratio(_S["pcr_oi"]),
+              help="Put OI / call OI — positions still held, not just today's trades. "
+                   "This routinely disagrees with the volume ratio.")
+    m3.metric("Call Premium", _usd(_S["call_premium"]),
+              help="Volume x last price x 100. Dollars behind call buying.")
+    m4.metric("Put Premium", _usd(_S["put_premium"]),
+              help="Volume x last price x 100. Dollars behind put buying.")
+    _bias = _S["net_premium_bias"]
+    m5.metric("Net Premium Bias",
+              ("Calls " if _bias > 0 else "Puts ") + _usd(abs(_bias)) if _bias else "—",
+              delta=("bullish tilt" if _bias > 0 else "bearish tilt") if _bias else None,
+              delta_color="normal" if _bias > 0 else "inverse",
+              help="Call premium minus put premium — which side the money is on.")
+    m6.metric("Max Pain", f"${_S['max_pain']:,.0f}" if _S["max_pain"] else "—",
+              delta=(f"{(_S['max_pain'] - spot) / spot * 100:+.1f}% vs spot"
+                     if _S["max_pain"] and spot else None),
+              delta_color="off",
+              help="Strike where the most open contracts expire worthless. "
+                   "A positioning statistic, not a price target.")
+
+    # Row 2 — structure: what is standing open, how it is priced, how tradeable it is.
+    n1, n2, n3, n4, n5, n6 = st.columns(6)
+    n1.metric("Call Volume", _fmt_num(_S["call_volume"]))
+    n2.metric("Put Volume", _fmt_num(_S["put_volume"]))
+    n3.metric("Call Open Int", _fmt_num(_S["call_oi"]),
+              help="Contracts still open — the standing position, versus volume's daily churn.")
+    n4.metric("Put Open Int", _fmt_num(_S["put_oi"]))
+    n5.metric("ATM IV",
+              f"{_S['atm_iv_call']:.1f}%" if _S["atm_iv_call"] is not None else "—",
+              delta=(f"puts {_S['atm_iv_put']:.1f}%" if _S["atm_iv_put"] is not None else None),
+              delta_color="off",
+              help="Implied vol at the strike nearest spot. A chain-wide average would be "
+                   "dominated by illiquid far-OTM contracts.")
+    n6.metric("Nearest Expiry",
+              f"{_S['dte']}d" if _S["dte"] is not None else "—",
+              delta=(expirations[0] if expirations else None), delta_color="off")
+
+    # Row 3 — positioning and liquidity context.
+    o1, o2, o3, o4, o5, o6 = st.columns(6)
+    o1.metric("Unusual Calls", f"{len(unusual_calls):,}")
+    o2.metric("Unusual Puts", f"{len(unusual_puts):,}")
+    o3.metric("Calls ITM", _pct(_S["itm_calls"]),
+              help="Share of call open interest currently in the money, OI-weighted.")
+    o4.metric("Puts ITM", _pct(_S["itm_puts"]))
+    o5.metric("Call Spread", f"{_S['call_spread_pct']:.1f}%" if _S["call_spread_pct"] is not None else "—",
+              help="Median bid-ask as a percent of mid. Wide spreads mean the quoted "
+                   "prices are not realistically tradeable.")
+    o6.metric("Put Spread", f"{_S['put_spread_pct']:.1f}%" if _S["put_spread_pct"] is not None else "—")
+
+    st.divider()
+
+    # ── Layout: gauge + IV smile ──────────────────────────────────────────────────
+    g_col, iv_col = st.columns([1, 3])
+    with g_col:
+        if pcr == pcr:
+            st.plotly_chart(_pcr_gauge(pcr), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        else:
+            st.markdown("**Put/Call Ratio:** unavailable")
+
+    with iv_col:
+        st.markdown("#### Implied Volatility Smile")
+        # Show only first 3 expirations for readability
+        c_sub = calls_raw[calls_raw["expiration"].isin(expirations[:3])] if not calls_raw.empty else pd.DataFrame()
+        p_sub = puts_raw[puts_raw["expiration"].isin(expirations[:3])]   if not puts_raw.empty  else pd.DataFrame()
+        st.plotly_chart(_iv_surface(c_sub, p_sub, spot), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+
+if _options_section == "Strike Positioning":
+    # ── Volume by strike ──────────────────────────────────────────────────────────
+    st.markdown("#### Positioning by Strike")
+    exp_options = ["All expirations"] + list(expirations[:6])
+    chosen_exp = st.selectbox("Expiration", exp_options, key="opts_exp")
+    exp_filter = None if chosen_exp == "All expirations" else chosen_exp
+
+    vol_col, oi_col = st.columns(2)
+    with vol_col:
+        st.caption("**Volume** — contracts traded today (one day of flow).")
+        st.plotly_chart(_volume_bars(calls_raw, puts_raw, exp_filter),
+                        use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    with oi_col:
+        st.caption("**Open interest** — contracts still held, with spot and max pain marked.")
+        st.plotly_chart(_oi_bars(calls_raw, puts_raw, exp_filter, spot, _S["max_pain"]),
+                        use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+
+    st.divider()
+
+if _options_section == "Unusual Activity":
+    # ── Unusual contracts table ───────────────────────────────────────────────────
+    st.markdown("####  Unusual Contracts — Volume > Open Interest")
+    st.caption(
+        f"Contracts where Vol/OI ≥ {_UNUSUAL_VOL_OI_THRESHOLD:.0f}x AND volume ≥ {_UNUSUAL_MIN_VOLUME:,}. "
+        "These suggest fresh positioning, not just rolling existing trades."
     )
-with col_custom:
-    custom_ticker = st.text_input(
-        "Or enter any ticker", value="", placeholder="e.g. PLTR",
-        key="opts_custom",
-    ).strip().upper()
 
-ticker = (custom_ticker or selected_popular or "").strip().upper() or None
-
-if not ticker:
-    st.info("Select a ticker above to view its options flow.")
-    st.stop()
-
-# ── Load ──────────────────────────────────────────────────────────────────────
-from utils.fetchers import fetch_options_chain  # noqa: E402 — deferred to avoid import at module level
-
-# Per-user rate limit — options chains are provider-heavy (yfinance pulls up to 6
-# expirations). Dedupe by distinct ticker so reruns for the SAME ticker (which hit
-# the 30-min cache, no provider call) aren't throttled — only a new ticker counts.
-from utils.ratelimit import guard  # noqa: E402
-if st.session_state.get("_opts_rl_ticker") != ticker:
-    _rl_ok, _rl_retry = guard("options_flow")
-    st.session_state["_opts_rl_ticker"] = ticker
-    st.session_state["_opts_rl_blocked"] = (not _rl_ok, _rl_retry)
-_opts_blocked, _opts_retry = st.session_state.get("_opts_rl_blocked", (False, 0))
-if _opts_blocked:
-    st.warning(f"You're loading options chains quickly — give it about "
-               f"{_opts_retry}s and try again.")
-    st.stop()
-
-with st.spinner(f"Loading options chain for **{ticker}**…"):
-    chain = fetch_options_chain(ticker)
-
-if not chain:
-    st.error(f"Could not load options data for **{ticker}**. The ticker may not have listed options, or data is temporarily unavailable.")
-    st.stop()
-
-calls_raw = chain.get("calls", pd.DataFrame())
-puts_raw  = chain.get("puts",  pd.DataFrame())
-pcr       = chain.get("put_call_ratio", float("nan"))
-spot      = chain.get("current_price", None)
-expirations = chain.get("expirations", [])
-
-calls_raw = _flag_unusual(calls_raw)
-puts_raw  = _flag_unusual(puts_raw)
-
-unusual_calls = calls_raw[calls_raw["unusual"]] if not calls_raw.empty else pd.DataFrame()
-unusual_puts  = puts_raw[puts_raw["unusual"]]   if not puts_raw.empty  else pd.DataFrame()
-
-# ── Header metrics ────────────────────────────────────────────────────────────
-st.markdown(f"### {ticker}" + (f" — ${spot:,.2f}" if spot else ""))
-
-_S = summarize(calls_raw, puts_raw, spot,
-               nearest_expiration=expirations[0] if expirations else None)
-
-
-def _pct(x, dp: int = 0) -> str:
-    return f"{x * 100:.{dp}f}%" if x is not None else "—"
-
-
-def _ratio(x) -> str:
-    return f"{x:.2f}x" if x is not None else "—"
-
-
-def _usd(x) -> str:
-    return f"${_fmt_num(x)}" if x else "—"
-
-
-# Row 1 — flow: what traded today, in contracts and in dollars.
-m1, m2, m3, m4, m5, m6 = st.columns(6)
-m1.metric("P/C Ratio · Volume", _ratio(_S["pcr_volume"]),
-          help="Put volume / call volume across loaded expirations — today's flow.")
-m2.metric("P/C Ratio · Open Int", _ratio(_S["pcr_oi"]),
-          help="Put OI / call OI — positions still held, not just today's trades. "
-               "This routinely disagrees with the volume ratio.")
-m3.metric("Call Premium", _usd(_S["call_premium"]),
-          help="Volume x last price x 100. Dollars behind call buying.")
-m4.metric("Put Premium", _usd(_S["put_premium"]),
-          help="Volume x last price x 100. Dollars behind put buying.")
-_bias = _S["net_premium_bias"]
-m5.metric("Net Premium Bias",
-          ("Calls " if _bias > 0 else "Puts ") + _usd(abs(_bias)) if _bias else "—",
-          delta=("bullish tilt" if _bias > 0 else "bearish tilt") if _bias else None,
-          delta_color="normal" if _bias > 0 else "inverse",
-          help="Call premium minus put premium — which side the money is on.")
-m6.metric("Max Pain", f"${_S['max_pain']:,.0f}" if _S["max_pain"] else "—",
-          delta=(f"{(_S['max_pain'] - spot) / spot * 100:+.1f}% vs spot"
-                 if _S["max_pain"] and spot else None),
-          delta_color="off",
-          help="Strike where the most open contracts expire worthless. "
-               "A positioning statistic, not a price target.")
-
-# Row 2 — structure: what is standing open, how it is priced, how tradeable it is.
-n1, n2, n3, n4, n5, n6 = st.columns(6)
-n1.metric("Call Volume", _fmt_num(_S["call_volume"]))
-n2.metric("Put Volume", _fmt_num(_S["put_volume"]))
-n3.metric("Call Open Int", _fmt_num(_S["call_oi"]),
-          help="Contracts still open — the standing position, versus volume's daily churn.")
-n4.metric("Put Open Int", _fmt_num(_S["put_oi"]))
-n5.metric("ATM IV",
-          f"{_S['atm_iv_call']:.1f}%" if _S["atm_iv_call"] is not None else "—",
-          delta=(f"puts {_S['atm_iv_put']:.1f}%" if _S["atm_iv_put"] is not None else None),
-          delta_color="off",
-          help="Implied vol at the strike nearest spot. A chain-wide average would be "
-               "dominated by illiquid far-OTM contracts.")
-n6.metric("Nearest Expiry",
-          f"{_S['dte']}d" if _S["dte"] is not None else "—",
-          delta=(expirations[0] if expirations else None), delta_color="off")
-
-# Row 3 — positioning and liquidity context.
-o1, o2, o3, o4, o5, o6 = st.columns(6)
-o1.metric("Unusual Calls", f"{len(unusual_calls):,}")
-o2.metric("Unusual Puts", f"{len(unusual_puts):,}")
-o3.metric("Calls ITM", _pct(_S["itm_calls"]),
-          help="Share of call open interest currently in the money, OI-weighted.")
-o4.metric("Puts ITM", _pct(_S["itm_puts"]))
-o5.metric("Call Spread", f"{_S['call_spread_pct']:.1f}%" if _S["call_spread_pct"] is not None else "—",
-          help="Median bid-ask as a percent of mid. Wide spreads mean the quoted "
-               "prices are not realistically tradeable.")
-o6.metric("Put Spread", f"{_S['put_spread_pct']:.1f}%" if _S["put_spread_pct"] is not None else "—")
-
-st.divider()
-
-# ── Layout: gauge + IV smile ──────────────────────────────────────────────────
-g_col, iv_col = st.columns([1, 3])
-with g_col:
-    if pcr == pcr:
-        st.plotly_chart(_pcr_gauge(pcr), use_container_width=True, theme=None)
-    else:
-        st.markdown("**Put/Call Ratio:** unavailable")
-
-with iv_col:
-    st.markdown("#### Implied Volatility Smile")
-    # Show only first 3 expirations for readability
-    c_sub = calls_raw[calls_raw["expiration"].isin(expirations[:3])] if not calls_raw.empty else pd.DataFrame()
-    p_sub = puts_raw[puts_raw["expiration"].isin(expirations[:3])]   if not puts_raw.empty  else pd.DataFrame()
-    st.plotly_chart(_iv_surface(c_sub, p_sub, spot), use_container_width=True, theme=None)
-
-# ── Volume by strike ──────────────────────────────────────────────────────────
-st.markdown("#### Positioning by Strike")
-exp_options = ["All expirations"] + list(expirations[:6])
-chosen_exp = st.selectbox("Expiration", exp_options, key="opts_exp")
-exp_filter = None if chosen_exp == "All expirations" else chosen_exp
-
-vol_col, oi_col = st.columns(2)
-with vol_col:
-    st.caption("**Volume** — contracts traded today (one day of flow).")
-    st.plotly_chart(_volume_bars(calls_raw, puts_raw, exp_filter),
-                    use_container_width=True, theme=None)
-with oi_col:
-    st.caption("**Open interest** — contracts still held, with spot and max pain marked.")
-    st.plotly_chart(_oi_bars(calls_raw, puts_raw, exp_filter, spot, _S["max_pain"]),
-                    use_container_width=True, theme=None)
-
-st.divider()
-
-# ── Unusual contracts table ───────────────────────────────────────────────────
-st.markdown("####  Unusual Contracts — Volume > Open Interest")
-st.caption(
-    f"Contracts where Vol/OI ≥ {_UNUSUAL_VOL_OI_THRESHOLD:.0f}x AND volume ≥ {_UNUSUAL_MIN_VOLUME:,}. "
-    "These suggest fresh positioning, not just rolling existing trades."
-)
-
-_unusual_view = st.segmented_control(
-    "Contract view",
-    ["Unusual Calls", "Unusual Puts", "Combined"],
-    default="Combined",
-    key="options_unusual_view",
-)
+    _unusual_view = st.segmented_control(
+        "Contract view",
+        ["Unusual Calls", "Unusual Puts", "Combined"],
+        default="Combined",
+        key="options_unusual_view",
+    )
 
 _DISPLAY_COLS = ["type", "expiration", "dte", "strike", "lastPrice", "bid", "ask",
                  "volume", "openInterest", "vol_oi_ratio", "premium",
@@ -511,88 +520,91 @@ def _prep_display(df: pd.DataFrame) -> pd.DataFrame:
     return out.sort_values("Vol/OI", ascending=False) if "Vol/OI" in out.columns else out
 
 
-if _unusual_view == "Unusual Calls":
-    if unusual_calls.empty:
-        st.info("No unusual call activity found with current thresholds.")
-    else:
-        st.dataframe(_prep_display(unusual_calls), use_container_width=True, hide_index=True)
+if _options_section == "Unusual Activity":
+    if _unusual_view == "Unusual Calls":
+        if unusual_calls.empty:
+            st.info("No unusual call activity found with current thresholds.")
+        else:
+            st.dataframe(_prep_display(unusual_calls), use_container_width=True, hide_index=True)
 
-if _unusual_view == "Unusual Puts":
-    if unusual_puts.empty:
-        st.info("No unusual put activity found with current thresholds.")
-    else:
-        st.dataframe(_prep_display(unusual_puts), use_container_width=True, hide_index=True)
+    if _unusual_view == "Unusual Puts":
+        if unusual_puts.empty:
+            st.info("No unusual put activity found with current thresholds.")
+        else:
+            st.dataframe(_prep_display(unusual_puts), use_container_width=True, hide_index=True)
 
-if _unusual_view == "Combined":
-    all_unusual = pd.DataFrame()
-    if not unusual_calls.empty:
-        c_tag = unusual_calls.copy()
-        c_tag["type"] = "Call"
-        all_unusual = pd.concat([all_unusual, c_tag], ignore_index=True)
-    if not unusual_puts.empty:
-        p_tag = unusual_puts.copy()
-        p_tag["type"] = "Put"
-        all_unusual = pd.concat([all_unusual, p_tag], ignore_index=True)
-    if all_unusual.empty:
-        st.info("No unusual activity found.")
-    else:
-        # Carry the Call/Put tag THROUGH _prep_display rather than pasting it on
-        # afterwards. _prep_display sorts by Vol/OI, so assigning a positional
-        # array of tags to the sorted frame paired every row with the wrong
-        # label — puts were shown as calls and vice versa, which on a
-        # directional-positioning table inverts the read entirely.
-        prep = _prep_display(all_unusual)
-        st.dataframe(prep, use_container_width=True, hide_index=True)
+    if _unusual_view == "Combined":
+        all_unusual = pd.DataFrame()
+        if not unusual_calls.empty:
+            c_tag = unusual_calls.copy()
+            c_tag["type"] = "Call"
+            all_unusual = pd.concat([all_unusual, c_tag], ignore_index=True)
+        if not unusual_puts.empty:
+            p_tag = unusual_puts.copy()
+            p_tag["type"] = "Put"
+            all_unusual = pd.concat([all_unusual, p_tag], ignore_index=True)
+        if all_unusual.empty:
+            st.info("No unusual activity found.")
+        else:
+            # Carry the Call/Put tag THROUGH _prep_display rather than pasting it on
+            # afterwards. _prep_display sorts by Vol/OI, so assigning a positional
+            # array of tags to the sorted frame paired every row with the wrong
+            # label — puts were shown as calls and vice versa, which on a
+            # directional-positioning table inverts the read entirely.
+            prep = _prep_display(all_unusual)
+            st.dataframe(prep, use_container_width=True, hide_index=True)
 
-# ── Full chain viewer ─────────────────────────────────────────────────────────
-st.divider()
-with st.expander("Full options chain (all contracts)"):
-    exp_chain = st.selectbox("Expiration", list(expirations[:6]), key="full_chain_exp")
-    _chain_side = st.segmented_control(
-        "Contract side",
-        ["Calls", "Puts"],
-        default="Calls",
-        key="options_chain_side",
-    )
+if _options_section == "Full Chain":
+    # ── Full chain viewer ─────────────────────────────────────────────────────────
+    st.divider()
+    with st.expander("Full options chain (all contracts)"):
+        exp_chain = st.selectbox("Expiration", list(expirations[:6]), key="full_chain_exp")
+        _chain_side = st.segmented_control(
+            "Contract side",
+            ["Calls", "Puts"],
+            default="Calls",
+            key="options_chain_side",
+        )
 
-    def _full_table(df: pd.DataFrame, exp: str):
-        sub = df[df["expiration"] == exp] if not df.empty else pd.DataFrame()
-        if sub.empty:
-            st.info("No data for this expiration.")
-            return
-        # _DISPLAY_COLS already contains vol_oi_ratio; appending it again
-        # produced a duplicated column, which pandas selects twice and renders
-        # as two identical "Vol/OI" columns. Reuse the shared formatter instead
-        # of maintaining a second, drifting copy of the same logic.
-        st.dataframe(_prep_display(sub), use_container_width=True, hide_index=True)
+        def _full_table(df: pd.DataFrame, exp: str):
+            sub = df[df["expiration"] == exp] if not df.empty else pd.DataFrame()
+            if sub.empty:
+                st.info("No data for this expiration.")
+                return
+            # _DISPLAY_COLS already contains vol_oi_ratio; appending it again
+            # produced a duplicated column, which pandas selects twice and renders
+            # as two identical "Vol/OI" columns. Reuse the shared formatter instead
+            # of maintaining a second, drifting copy of the same logic.
+            st.dataframe(_prep_display(sub), use_container_width=True, hide_index=True)
 
-    if _chain_side == "Calls":
-        _full_table(calls_raw, exp_chain)
-    if _chain_side == "Puts":
-        _full_table(puts_raw, exp_chain)
+        if _chain_side == "Calls":
+            _full_table(calls_raw, exp_chain)
+        if _chain_side == "Puts":
+            _full_table(puts_raw, exp_chain)
 
-# ── Methodology note ──────────────────────────────────────────────────────────
-with st.expander("Methodology & interpretation"):
-    st.markdown("""
-**What makes a contract "unusual"?**
+if _options_section == "Methodology":
+    # ── Methodology note ──────────────────────────────────────────────────────────
+    with st.expander("Methodology & interpretation"):
+        st.markdown("""
+    **What makes a contract "unusual"?**
 
-Volume-to-Open-Interest (Vol/OI) ratio ≥ 1.0 means today's traded volume equals or exceeds
-yesterday's total open interest. Since every new contract requires a buyer AND seller,
-a ratio >1 is only possible if entirely new positions are being opened — it cannot happen
-from existing holders simply closing positions.
+    Volume-to-Open-Interest (Vol/OI) ratio ≥ 1.0 means today's traded volume equals or exceeds
+    yesterday's total open interest. Since every new contract requires a buyer AND seller,
+    a ratio >1 is only possible if entirely new positions are being opened — it cannot happen
+    from existing holders simply closing positions.
 
-**Put/Call Ratio interpretation:**
-- < 0.7 = Sentiment is bullish; demand for calls far outpaces puts
-- 0.7–1.1 = Neutral / balanced market hedging
-- 1.1–1.5 = Elevated fear; put buying picking up
-- > 1.5 = Extreme fear / potential capitulation signal
+    **Put/Call Ratio interpretation:**
+    - < 0.7 = Sentiment is bullish; demand for calls far outpaces puts
+    - 0.7–1.1 = Neutral / balanced market hedging
+    - 1.1–1.5 = Elevated fear; put buying picking up
+    - > 1.5 = Extreme fear / potential capitulation signal
 
-Note: High P/C ratio is a CONTRARIAN signal — when everyone is hedging, it can mark bottoms.
+    Note: High P/C ratio is a CONTRARIAN signal — when everyone is hedging, it can mark bottoms.
 
-**IV Smile:** Implied volatility typically rises for deep out-of-the-money puts
-("put skew") as traders hedge tail risk more aggressively than calls. A flatter smile
-means the market sees symmetric risk in both directions.
+    **IV Smile:** Implied volatility typically rises for deep out-of-the-money puts
+    ("put skew") as traders hedge tail risk more aggressively than calls. A flatter smile
+    means the market sees symmetric risk in both directions.
 
-**Data:** yfinance options data is delayed approximately 15 minutes for equity options.
-Options data is not available for all tickers (ETFs, some small-caps, non-US listings).
-""")
+    **Data:** yfinance options data is delayed approximately 15 minutes for equity options.
+    Options data is not available for all tickers (ETFs, some small-caps, non-US listings).
+    """)
