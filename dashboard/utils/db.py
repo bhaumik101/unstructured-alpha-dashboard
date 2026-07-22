@@ -216,6 +216,20 @@ watchlist = Table(
     UniqueConstraint("user_id", "ticker", name="uq_watchlist_user_ticker"),
 )
 
+# User-scoped Stock Recommender presets. Only the bounded filter definition is
+# stored here — never result frames or provider responses — so reopening a
+# screen is instant without turning the database into a second analytics cache.
+saved_recommender_screens = Table(
+    "saved_recommender_screens", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("name", String(64), nullable=False),
+    Column("config_json", Text, nullable=False),
+    Column("created_at", String(64), nullable=False),
+    Column("updated_at", String(64), nullable=False),
+    UniqueConstraint("user_id", "name", name="uq_recommender_screen_user_name"),
+)
+
 # Persistent portfolio workspace. Watchlists answer "what do I monitor?";
 # portfolios answer "what do I actually own, and in what proportion?" Keeping
 # those concepts separate lets Portfolio Intelligence calculate weighted

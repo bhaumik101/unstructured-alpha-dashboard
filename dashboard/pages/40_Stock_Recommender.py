@@ -48,6 +48,7 @@ except Exception:
 inject_premium_css()
 
 require_pro(page_name="Stock Recommender")
+_recommender_user = st.session_state.get("user")
 
 render_page_header(
     "Stock Recommender",
@@ -71,25 +72,140 @@ if _recommender_section != "Track Record":
     # Configuration
     # ─────────────────────────────────────────────────────────────────────────────
 
+    from utils.recommender_screens import delete_screen, list_saved_screens, save_screen
+
+    _sector_options = sorted(set(m.get("sector", "Other") for m in TICKERS.values()))
+    _saved_screens = (
+        list_saved_screens(_recommender_user["id"], allowed_sectors=_sector_options)
+        if _recommender_user else []
+    )
+    _screen_by_id = {screen["id"]: screen for screen in _saved_screens}
+
+    # Saved presets restore only cheap filter state. Deep enrichment remains an
+    # explicit action so opening a preset can never start a burst of provider
+    # calls or surprise the single-core production service.
+    if _recommender_user:
+        with st.container(border=True):
+            _saved_c1, _saved_c2, _saved_c3 = st.columns([4, 1, 1])
+            with _saved_c1:
+                _selected_screen_id = st.selectbox(
+                    "Saved Pro screens",
+                    options=list(_screen_by_id),
+                    index=None,
+                    format_func=lambda screen_id: _screen_by_id[screen_id]["name"],
+                    placeholder="Choose a saved strategy…",
+                    key="rec_saved_screen_selector",
+                    help="Restore a complete Recommender filter setup without rerunning deep scoring.",
+                )
+            _apply_screen = _saved_c2.button(
+                "Apply", use_container_width=True, disabled=_selected_screen_id is None,
+                key="rec_apply_saved_screen",
+            )
+            _delete_screen = _saved_c3.button(
+                "Delete", use_container_width=True, disabled=_selected_screen_id is None,
+                key="rec_delete_saved_screen",
+            )
+            if _apply_screen and _selected_screen_id is not None:
+                _selected = _screen_by_id[_selected_screen_id]
+                _screen_cfg = _selected["config"]
+                st.session_state["rec_time_horizon"] = _screen_cfg["time_horizon"]
+                st.session_state["rec_n_show"] = _screen_cfg["n_show"]
+                st.session_state["rec_n_enrich"] = _screen_cfg["n_enrich"]
+                st.session_state["rec_min_signals"] = _screen_cfg["min_signals"]
+                st.session_state["rec_sector_filter"] = _screen_cfg["sectors"]
+                st.session_state["rec_active_screen_name"] = _selected["name"]
+                st.session_state["rec_screen_name_input"] = _selected["name"]
+                st.session_state["rec_screen_notice"] = f'Applied “{_selected["name"]}”.'
+                st.rerun()
+            if _delete_screen and _selected_screen_id is not None:
+                _selected = _screen_by_id[_selected_screen_id]
+                if delete_screen(_recommender_user["id"], _selected_screen_id):
+                    if st.session_state.get("rec_active_screen_name") == _selected["name"]:
+                        st.session_state.pop("rec_active_screen_name", None)
+                        st.session_state.pop("rec_screen_name_input", None)
+                    st.session_state.pop("rec_saved_screen_selector", None)
+                    st.session_state["rec_screen_notice"] = f'Deleted “{_selected["name"]}”.'
+                    st.rerun()
+            if st.session_state.get("rec_active_screen_name"):
+                st.caption(
+                    f'Active screen: **{st.session_state["rec_active_screen_name"]}** · '
+                    "Deep-score enrichment still runs only when you request it."
+                )
+        if st.session_state.get("rec_screen_notice"):
+            st.success(st.session_state.pop("rec_screen_notice"))
+
+    st.session_state.setdefault("rec_time_horizon", "All")
+    st.session_state.setdefault("rec_n_show", 8)
+    st.session_state.setdefault("rec_n_enrich", 10)
+    st.session_state.setdefault("rec_min_signals", 2)
+    st.session_state.setdefault("rec_sector_filter", [])
+    st.session_state["rec_sector_filter"] = [
+        sector for sector in st.session_state["rec_sector_filter"] if sector in _sector_options
+    ]
+
     cfg_c1, cfg_c2, cfg_c3 = st.columns([2, 2, 3])
     with cfg_c1:
         time_horizon = st.radio(
             "Time horizon",
             ["Short-term (1–2 wks)", "Medium-term (1–2 mo)", "Long-term (3+ mo)", "All"],
             help="Filters by signal lag_weeks — how far ahead each signal historically leads price.",
+            key="rec_time_horizon",
         )
     with cfg_c2:
-        n_show       = st.slider("Picks to show per side", 3, 15, 8)
-        n_enrich     = st.slider("Full-score enrichment depth", 5, 20, 10,
-                                  help="Top N per side enriched with insider/13F/short interest (slower).")
-        min_signals  = st.slider("Min signals required", 1, 8, 2)
+        n_show       = st.slider("Picks to show per side", 3, 15, key="rec_n_show")
+        n_enrich     = st.slider("Full-score enrichment depth", 5, 20,
+                                  help="Top N per side enriched with insider/13F/short interest (slower).",
+                                  key="rec_n_enrich")
+        min_signals  = st.slider("Min signals required", 1, 8, key="rec_min_signals")
     with cfg_c3:
         sector_filter = st.multiselect(
             "Filter by sector",
-            sorted(set(m.get("sector", "Other") for m in TICKERS.values())),
-            default=[],
+            _sector_options,
             placeholder="All sectors",
+            key="rec_sector_filter",
         )
+
+    if _recommender_user:
+        with st.expander("Save this setup as a Pro screen", expanded=False):
+            _save_c1, _save_c2 = st.columns([4, 1])
+            _screen_name = _save_c1.text_input(
+                "Screen name",
+                value=st.session_state.get("rec_active_screen_name", ""),
+                placeholder="e.g. Long-term energy leaders",
+                key="rec_screen_name_input",
+                max_chars=64,
+            )
+            _save_current_screen = _save_c2.button(
+                "Save", type="primary", use_container_width=True, key="rec_save_current_screen"
+            )
+            st.caption(
+                f"Save up to 10 private filter presets. Results are recomputed from current real data; "
+                "cached charts and provider responses are never stored in a preset."
+            )
+            if _save_current_screen:
+                try:
+                    _saved = save_screen(
+                        _recommender_user["id"],
+                        _screen_name,
+                        {
+                            "time_horizon": time_horizon,
+                            "n_show": n_show,
+                            "n_enrich": n_enrich,
+                            "min_signals": min_signals,
+                            "sectors": sector_filter,
+                        },
+                        allowed_sectors=_sector_options,
+                    )
+                    st.session_state["rec_active_screen_name"] = _saved["name"]
+                    st.session_state["rec_screen_notice"] = f'Saved “{_saved["name"]}”.'
+                    try:
+                        from utils.instrumentation import record
+                        record("recommender_screen_saved", sector_count=len(sector_filter))
+                    except Exception:
+                        pass
+                    st.rerun()
+                except ValueError as exc:
+                    st.error(str(exc))
 
     _horizon_weeks = {
         "Short-term (1–2 wks)":  (0, 3),
