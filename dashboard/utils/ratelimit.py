@@ -141,6 +141,7 @@ def check(key: str, limit: int, window: int) -> tuple[bool, int]:
 POLICIES: dict[str, tuple[int, int]] = {
     "ticker_analysis": (30, 300),
     "ai_research":     (10, 3600),
+    "portfolio_review": (3, 86400),  # explicit, cached Pro generation
     "options_flow":    (20, 300),   # provider-heavy (yfinance options chains)
     "export":          (10, 600),
     "checkout":        (5, 900),    # prevent duplicate Stripe sessions / scripted abuse

@@ -15,7 +15,7 @@ from utils.billing import require_pro
 render_header("Portfolio Intelligence")
 _portfolio_section = render_sidebar_base(
     page_title="Portfolio Intelligence",
-    sections=("Holdings", "Macro Exposure", "Stress Tester", "Portfolio Backtest", "Signal Backtester", "Basket Builder"),
+    sections=("Holdings", "Portfolio Review", "Macro Exposure", "Stress Tester", "Portfolio Backtest", "Signal Backtester", "Basket Builder"),
     section_key="portfolio_suite_section_rail",
 )
 try:
@@ -154,15 +154,121 @@ if _portfolio_section == "Holdings":
     if _workspace_holdings:
         st.markdown("---")
         st.markdown("#### Continue your workflow")
-        _next_cols = st.columns(3)
-        if _next_cols[0].button("Analyze macro exposure", use_container_width=True):
+        _next_cols = st.columns(4)
+        if _next_cols[0].button("Open portfolio review", use_container_width=True):
+            st.session_state["portfolio_suite_section_rail"] = "Portfolio Review"
+            st.rerun()
+        if _next_cols[1].button("Analyze macro exposure", use_container_width=True):
             st.session_state["portfolio_suite_section_rail"] = "Macro Exposure"
             st.rerun()
-        if _next_cols[1].button("Run a stress scenario", use_container_width=True):
+        if _next_cols[2].button("Run a stress scenario", use_container_width=True):
             st.session_state["portfolio_suite_section_rail"] = "Stress Tester"
             st.rerun()
-        if _next_cols[2].button("Open Today's Brief", use_container_width=True):
+        if _next_cols[3].button("Open Today's Brief", use_container_width=True):
             st.switch_page("pages/2_Today_Digest.py")
+
+
+if _portfolio_section == "Portfolio Review":
+    from utils.personalized_brief import load_portfolio_evidence
+    from utils.portfolio_review import (
+        build_review_input,
+        generate_portfolio_review,
+        get_cached_review,
+        render_portfolio_review_html,
+    )
+    from utils.risk_profile import get_risk_profile
+
+    st.markdown("#### Portfolio Review")
+    st.caption(
+        "An executive read of your saved holdings, position weights, personalized scores, "
+        "coverage gaps, and concentration exceptions. Generation is explicit and cached by "
+        "the underlying evidence, so reopening an unchanged review creates no model cost."
+    )
+
+    if not _portfolio_user or not _workspace_holdings:
+        st.info(
+            "Save your actual holdings in the Holdings section first. The review requires "
+            "position weights and never substitutes a generic or synthetic portfolio."
+        )
+    else:
+        _review_evidence = load_portfolio_evidence(_portfolio_user["id"], limit=25)
+        _review_profile = get_risk_profile(_portfolio_user["id"])
+        _review_input = build_review_input(_review_evidence, _review_profile)
+        _review_summary = _review_input["summary"]
+
+        _review_metrics = st.columns(4)
+        _review_metrics[0].metric("Saved holdings", len(_workspace_holdings))
+        _review_metrics[1].metric("Scored holdings", _review_summary["n_scored"])
+        _review_metrics[2].metric(
+            "Evidence coverage", f'{_review_summary["scored_weight_pct"]:.1f}%'
+        )
+        _weighted_review_score = _review_summary.get("weighted_your_score")
+        _review_metrics[3].metric(
+            "Weighted Your Score",
+            f"{_weighted_review_score:.1f}/100" if _weighted_review_score is not None else "Unavailable",
+        )
+
+        if not _review_input["holdings"]:
+            st.warning(
+                "None of these holdings has trustworthy recorded score evidence yet. Open each "
+                "holding in Ticker Deep Dive first; unavailable positions remain excluded."
+            )
+        else:
+            _review = get_cached_review(
+                _portfolio_user["id"], _review_input["input_hash"]
+            )
+            if _review is None:
+                with st.container(border=True):
+                    st.markdown("##### Generate the current executive review")
+                    st.caption(
+                        "This reads stored evidence only—no market-data provider calls. A maximum "
+                        "of three materially new reviews can be generated per account per day."
+                    )
+                    if st.button(
+                        "Generate portfolio review",
+                        type="primary",
+                        use_container_width=True,
+                        key="portfolio_review_generate",
+                    ):
+                        with st.status("Building an evidence-constrained review…", expanded=False) as _review_status:
+                            _review = generate_portfolio_review(
+                                _portfolio_user["id"], _review_input
+                            )
+                            if _review.get("status") == "limited":
+                                _retry_hours = max(1, int(_review.get("retry_after", 3600)) // 3600)
+                                _review_status.update(
+                                    label="Daily review limit reached", state="error", expanded=True
+                                )
+                                st.warning(
+                                    f"Review generation is limited for cost protection. Try again in "
+                                    f"about {_retry_hours} hour{'s' if _retry_hours != 1 else ''}."
+                                )
+                            else:
+                                _review_status.update(
+                                    label="Portfolio review ready", state="complete", expanded=False
+                                )
+                                try:
+                                    from utils.instrumentation import record
+                                    record(
+                                        "portfolio_review_generated",
+                                        model=_review.get("model"),
+                                        evidence_count=_review_summary["n_scored"],
+                                    )
+                                except Exception:
+                                    pass
+
+            if _review and _review.get("status") == "ready":
+                st.html(render_portfolio_review_html(_review))
+                _review_age = str(_review.get("updated_at") or "")[:19].replace("T", " ")
+                _review_mode = (
+                    "AI synthesis + deterministic evidence controls"
+                    if _review.get("model_synthesis")
+                    else "Deterministic evidence review"
+                )
+                st.caption(
+                    f"{_review_mode} · {_review_age or 'current evidence'} UTC · "
+                    "automatically invalidates when holdings, saved weights, risk profile, or recorded scores change."
+                )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

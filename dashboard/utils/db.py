@@ -263,6 +263,22 @@ portfolio_holdings = Table(
     UniqueConstraint("portfolio_id", "ticker", name="uq_portfolio_holding_ticker"),
 )
 
+# One cached executive review per user/input fingerprint. The fingerprint is
+# built from persisted holdings, score evidence, and risk profile, so repeated
+# opens are database reads rather than repeated model calls.
+portfolio_reviews = Table(
+    "portfolio_reviews", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False, unique=True),
+    Column("input_hash", String(64), nullable=False),
+    Column("review_json", Text, nullable=False),
+    Column("model", String(64), nullable=False),
+    Column("input_tokens", Integer),
+    Column("output_tokens", Integer),
+    Column("created_at", String(64), nullable=False),
+    Column("updated_at", String(64), nullable=False),
+)
+
 # One evolving investment thesis per user/security. This is deliberately
 # user-scoped: unlike the canonical Confluence Score, thesis language, horizon,
 # risk conditions, and outcome notes are private decision-journal data.

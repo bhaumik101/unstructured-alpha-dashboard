@@ -614,7 +614,7 @@ FREE_FEATS = [
     ("Morning email digest — personalized signal brief", False),
     ("Factor Exposure — Fama-French regression per ticker", False),
     ("Signal Backtester — test custom signal combos", False),
-    ("Portfolio Analyzer — macro exposure across holdings", False),
+    ("Portfolio Intelligence — weighted exposure and executive review", False),
     ("Unlimited watchlist tickers", False),
 ]
 
@@ -622,6 +622,7 @@ PRO_FEATS = [
     "Continuous watchlist monitoring — we watch the macro around your holdings when you're not there",
     "Alerts when a Confluence Score materially moves or a signal flips — email + Discord + Slack",
     "Portfolio macro-exposure shifts, flagged as they happen",
+    "Portfolio Review — cached executive read of concentration, coverage, and personalized score risk",
     "Personalized 7 AM morning digest on your holdings",
     "Score history + 30-day sparklines + factor exposure",
     "Signal Backtester — long/short returns for any signal combo",
@@ -900,7 +901,7 @@ st.markdown(f"""
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
 </tr>
 <tr>
-    <td>Portfolio Analyzer — macro exposure map</td>
+    <td>Portfolio Intelligence — exposure map + executive review</td>
     <td style="text-align:center;" class="comp-no">✗</td>
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
 </tr>

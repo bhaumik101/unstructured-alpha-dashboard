@@ -1751,8 +1751,9 @@ with _q2:
         st.markdown(
             "**Free** to browse signals, Today's Brief, Sector Map, Signal Dashboard, and Deep Dive — "
             "no account needed. A free account (email only, no card) unlocks the Watchlist and in-app alerts. "
-            "**Pro** ($20/mo, 7-day free trial) adds: morning email digest at 7 AM ET, hourly watchlist email alerts, "
+            "**Pro** ($20/mo, 7-day free trial) adds: morning email digest at 7 AM ET, watchlist alerts evaluated every two hours, "
             "Discord/Slack webhook delivery, daily signal-flip tweets via @UnstructuredAlpha, "
+            "saved-screen monitoring, Portfolio Intelligence with an evidence-constrained executive review, "
             "Signal Backtester, Factor Exposure, and all future Pro features. No long-term commitment."
         )
     with st.expander("Is this financial advice?"):
