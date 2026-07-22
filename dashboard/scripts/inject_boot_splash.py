@@ -6,8 +6,10 @@ WHY: Streamlit ships a single-page app whose ~MB JS bundle downloads BEFORE any 
 our Python runs. During that window the browser shows a blank (dark, via our theme)
 screen. Nothing in our app code can paint there — the only lever is the HTML page
 Streamlit itself serves. This injects a full-viewport, on-brand loader (exact app
-background #0B0D12, logo, animated bar) right after <body>, plus a self-removal
-script with multiple hard timeouts so it can NEVER permanently cover the app.
+background #0B0D12, logo, animated bar) right after <body>. The loader remains
+until Streamlit has rendered real page content, its run/spinner indicators are
+gone, and the DOM has settled; a hard timeout ensures it can never cover an error
+forever.
 
 SAFETY:
 - Idempotent (skips if the marker is already present).
@@ -115,17 +117,69 @@ def _build_splash() -> str:
     s.classList.add('ua-hide');
     setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},600);
   }
-  function ready(){
-    var app=document.querySelector('[data-testid="stAppViewContainer"]')
-            ||document.querySelector('section.main')
-            ||document.querySelector('.stApp');
-    return !!(app && app.querySelector('[data-testid="stVerticalBlock"], .main, .block-container, section'));
+  var started=Date.now();
+  var lastMutation=started;
+  var MIN_VISIBLE_MS=900;
+  var SETTLE_MS=450;
+  var HARD_TIMEOUT_MS=45000;
+
+  function appRoot(){
+    return document.querySelector('[data-testid="stAppViewContainer"]')
+      ||document.querySelector('.stApp');
   }
-  var tries=0;
-  var iv=setInterval(function(){tries++;if(ready()||tries>120){clearInterval(iv);hide();}},150);
-  // Hard fallbacks — the splash must never persist.
-  window.addEventListener('load',function(){setTimeout(hide,2500);});
-  setTimeout(function(){clearInterval(iv);hide();},15000);
+  function hasRenderedContent(){
+    var app=appRoot();
+    if(!app)return false;
+    var main=app.querySelector('[data-testid="stMainBlockContainer"], .block-container, section.main');
+    if(!main)return false;
+    // Streamlit mounts empty layout containers before the Python script has
+    // produced a page. Require an actual rendered element or meaningful text.
+    return main.querySelector(
+      '[data-testid="stMarkdownContainer"], [data-testid="stMetric"], '
+      +'[data-testid="stDataFrame"], [data-testid="stPlotlyChart"], '
+      +'[data-testid="stAlert"], [data-testid="stForm"], button, input, canvas, iframe'
+    )!==null || (main.textContent||'').trim().length>24;
+  }
+  function isStreamlitBusy(){
+    // The header running icon is Streamlit's authoritative script-run signal.
+    // Page-level spinners/skeletons cover long provider calls inside that run.
+    return !!document.querySelector(
+      '[data-testid="stStatusWidgetRunningIcon"], [data-testid="stSpinner"], '
+      +'[data-testid="stSkeleton"], [data-testid="stProgress"]'
+    );
+  }
+  function ready(){
+    var now=Date.now();
+    return now-started>=MIN_VISIBLE_MS
+      && hasRenderedContent()
+      && !isStreamlitBusy()
+      && now-lastMutation>=SETTLE_MS;
+  }
+
+  var observer=new MutationObserver(function(mutations){
+    // Ignore the splash's own rotating fact animation. Only application DOM
+    // changes extend the settling window.
+    for(var j=0;j<mutations.length;j++){
+      var target=mutations[j].target;
+      var targetEl=target.nodeType===1?target:target.parentElement;
+      if(!(targetEl && targetEl.closest && targetEl.closest('#ua-boot-splash'))){
+        lastMutation=Date.now();
+        break;
+      }
+    }
+  });
+  observer.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+
+  var iv=setInterval(function(){
+    if(ready()){
+      clearInterval(iv);
+      observer.disconnect();
+      hide();
+    }
+  },100);
+  // Safety only: never use window.load as readiness because it fires before
+  // Streamlit's websocket-backed Python run has completed.
+  setTimeout(function(){clearInterval(iv);observer.disconnect();hide();},HARD_TIMEOUT_MS);
 })();
 </script>
 """.replace("__UA_FACTS_JSON__", facts_json)

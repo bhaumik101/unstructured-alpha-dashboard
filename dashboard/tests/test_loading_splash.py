@@ -148,3 +148,25 @@ def test_boot_splash_fact_loader_never_raises():
     m = _load_boot_module()
     facts = m._load_facts()
     assert isinstance(facts, list) and len(facts) >= 3
+
+
+def test_boot_splash_waits_for_the_streamlit_run_to_finish():
+    """An empty mounted app shell is not a completed Streamlit page."""
+    m = _load_boot_module()
+    splash = m._build_splash()
+
+    assert 'stStatusWidgetRunningIcon' in splash
+    assert 'stSpinner' in splash
+    assert 'hasRenderedContent()' in splash
+    assert 'MutationObserver' in splash
+    assert 'now-lastMutation>=SETTLE_MS' in splash
+
+
+def test_boot_splash_has_no_early_window_load_dismissal():
+    """Browser load completes before Streamlit's websocket script run."""
+    m = _load_boot_module()
+    splash = m._build_splash()
+
+    assert "window.addEventListener('load'" not in splash
+    assert 'setTimeout(hide,2500)' not in splash
+    assert 'HARD_TIMEOUT_MS=45000' in splash
