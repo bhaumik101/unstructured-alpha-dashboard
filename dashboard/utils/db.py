@@ -273,6 +273,10 @@ alert_state = Table(
     Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
     Column("ticker", String(16), nullable=False),
     Column("last_score", Float),
+    # Identifies whether last_score was canonical or produced by a specific
+    # research profile. A basis change re-establishes the baseline instead of
+    # manufacturing a threshold crossing from two different score definitions.
+    Column("last_score_basis", String(96)),
     Column("last_price", Float),
     Column("last_52w_high", Float),
     Column("last_52w_low", Float),
@@ -661,6 +665,7 @@ def _migrate_alert_state_table() -> None:
     Currently handles:
       last_score_emailed FLOAT      — added 2026-07-04 for the score-moved cron
       last_velocity_alert_at TEXT   — added 2026-07-04 for velocity-alert cron
+      last_score_basis TEXT         — added 2026-07-22 to prevent profile-change alerts
     """
     inspector = inspect(engine)
     if "alert_state" not in inspector.get_table_names():

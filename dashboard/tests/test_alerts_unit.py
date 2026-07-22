@@ -90,6 +90,36 @@ def test_evaluate_ticker_score_crossing_into_bearish():
     assert result[0]["direction"] == "bearish"
 
 
+def test_profile_change_rebaselines_before_personalized_threshold_alert(monkeypatch):
+    profile = {"tolerance": "aggressive", "horizon": "short", "emphasis": "full"}
+    with patch("utils.alerts.compute_full_ticker_score", return_value=_fake_full(60.0, 100.0)):
+        alerts.evaluate_ticker(UID, "CCJ", _THRESHOLDS)
+
+    monkeypatch.setattr(
+        "utils.risk_profile.compute_personal_score",
+        lambda _full, _profile: {"ok": True, "score": 70.0, "profile": profile},
+    )
+    with patch("utils.alerts.compute_full_ticker_score", return_value=_fake_full(60.0, 100.0)):
+        result = alerts.evaluate_ticker(UID, "CCJ", _THRESHOLDS, profile=profile)
+
+    assert result == []
+    state = alerts_db.get_alert_state(UID, "CCJ")
+    assert state["last_score"] == 70.0
+    assert state["last_score_basis"] == "personal:aggressive:short:full"
+
+    monkeypatch.setattr(
+        "utils.risk_profile.compute_personal_score",
+        lambda _full, _profile: {"ok": True, "score": 30.0, "profile": profile},
+    )
+    with patch("utils.alerts.compute_full_ticker_score", return_value=_fake_full(60.0, 100.0)):
+        result = alerts.evaluate_ticker(UID, "CCJ", _THRESHOLDS, profile=profile)
+
+    score_alerts = [row for row in result if row["alert_type"] == "score_threshold"]
+    assert len(score_alerts) == 1
+    assert score_alerts[0]["direction"] == "bearish"
+    assert "Your Score" in score_alerts[0]["message"]
+
+
 def test_evaluate_ticker_price_move_above_threshold_fires():
     with patch("utils.alerts.compute_full_ticker_score", return_value=_fake_full(50.0, 100.0)):
         alerts.evaluate_ticker(UID, "CCJ", _THRESHOLDS)

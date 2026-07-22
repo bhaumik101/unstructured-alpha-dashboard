@@ -58,6 +58,8 @@ def evaluate_ticker(user_id: int, ticker: str, thresholds: dict,
     else:
         full = compute_full_ticker_score(ticker)
     current_score = full["confluence"]["overall_score"]
+    score_basis = "canonical"
+    score_label = "Confluence Score"
 
     # Alert on the score the user actually SEES. Showing a personalised
     # "Your Score" on Deep Dive while alerting off the generic Confluence Score
@@ -68,9 +70,8 @@ def evaluate_ticker(user_id: int, ticker: str, thresholds: dict,
     # Pure post-processing of `full` — no extra fetch. Fully defensive: any
     # problem falls back to the canonical score.
     #
-    # NOTE: alert_state stores the last-seen score, so changing your profile can
-    # produce one transitional alert as the basis shifts. That's a one-off and
-    # preferable to alerting on a number the user isn't looking at.
+    # alert_state also stores the score basis. Changing a profile establishes a
+    # fresh baseline and cannot create a crossing between unlike definitions.
     if profile:
         try:
             from utils.risk_profile import compute_personal_score, is_default
@@ -78,6 +79,12 @@ def evaluate_ticker(user_id: int, ticker: str, thresholds: dict,
                 _ps = compute_personal_score(full, profile)
                 if _ps.get("ok") and _ps.get("score") is not None:
                     current_score = float(_ps["score"])
+                    _profile = _ps.get("profile") or profile
+                    score_basis = "personal:" + ":".join(
+                        str(_profile.get(key, ""))
+                        for key in ("tolerance", "horizon", "emphasis")
+                    )
+                    score_label = "Your Score"
         except Exception:
             pass
     price_series = full["price_series"].dropna()
@@ -97,14 +104,17 @@ def evaluate_ticker(user_id: int, ticker: str, thresholds: dict,
         price_move_threshold = thresholds.get("price_move_pct_threshold", alerts_db.DEFAULT_PRICE_MOVE_PCT_THRESHOLD)
 
         prior_score = prior.get("last_score")
-        if prior_score is not None:
+        # Legacy NULL rows were canonical. A genuinely different basis is not
+        # comparable, so this check becomes the new baseline without alerting.
+        prior_basis = prior.get("last_score_basis") or "canonical"
+        if prior_score is not None and prior_basis == score_basis:
             crossed_bullish = prior_score < bull_threshold <= current_score
             crossed_bearish = prior_score > bear_threshold >= current_score
             if crossed_bullish:
-                msg = f"Confluence Score crossed into bullish territory: {prior_score:.0f} -> {current_score:.0f}"
+                msg = f"{score_label} crossed into bullish territory: {prior_score:.0f} -> {current_score:.0f}"
                 new_alerts.append(_record(user_id, ticker, "score_threshold", msg, "bullish"))
             elif crossed_bearish:
-                msg = f"Confluence Score crossed into bearish territory: {prior_score:.0f} -> {current_score:.0f}"
+                msg = f"{score_label} crossed into bearish territory: {prior_score:.0f} -> {current_score:.0f}"
                 new_alerts.append(_record(user_id, ticker, "score_threshold", msg, "bearish"))
 
         prior_price = prior.get("last_price")
@@ -152,6 +162,7 @@ def evaluate_ticker(user_id: int, ticker: str, thresholds: dict,
     alerts_db.set_alert_state(
         user_id, ticker,
         last_score=current_score,
+        last_score_basis=score_basis,
         last_price=current_price,
         last_52w_high=max(high_52w, current_price) if current_price is not None else high_52w,
         last_52w_low=min(low_52w, current_price) if current_price is not None else low_52w,

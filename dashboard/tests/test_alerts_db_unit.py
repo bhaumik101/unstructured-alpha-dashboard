@@ -70,10 +70,13 @@ def test_is_watched_false_for_unwatched_ticker():
 
 def test_alert_state_roundtrip():
     assert alerts_db.get_alert_state(UID, "AVGO") is None
-    alerts_db.set_alert_state(UID, "avgo", last_score=55.0, last_price=410.0)
+    alerts_db.set_alert_state(
+        UID, "avgo", last_score=55.0, last_score_basis="personal:balanced:long:macro", last_price=410.0
+    )
     state = alerts_db.get_alert_state(UID, "AVGO")
     assert state["last_score"] == 55.0
     assert state["last_price"] == 410.0
+    assert state["last_score_basis"] == "personal:balanced:long:macro"
     assert state["last_checked_at"]  # populated automatically
 
 
