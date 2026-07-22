@@ -131,3 +131,35 @@ def test_score_is_bounded():
     full = _full(momentum_score=1e9)
     out = rp.compute_personal_score(full, {"tolerance": "aggressive"})
     assert 0.0 <= out["score"] <= 100.0
+
+
+def test_component_snapshot_reuses_personalization_without_live_result():
+    signal_ids = _SHORT_IDS + _LONG_IDS
+    components = {
+        "final_score": 70.0,
+        "momentum_score": 90.0,
+        "signals": [
+            {"id": sid, "score": 65.0, "weight": 0.5, "significant": True}
+            for sid in signal_ids
+        ],
+        "components": [
+            {"id": "insider", "kind": "optional", "score": 80.0},
+        ],
+    }
+
+    out = rp.compute_personal_score_from_components(
+        components, {"tolerance": "aggressive", "horizon": "short", "emphasis": "full"}
+    )
+
+    assert out["ok"] is True
+    assert out["canonical"] == 70.0
+    assert out["momentum"] == 90.0
+    assert out["alt"] == 80.0
+    if _SHORT_IDS and _LONG_IDS:
+        assert out["n_signals"] == len(_SHORT_IDS)
+
+
+def test_component_snapshot_helper_degrades_on_missing_data():
+    out = rp.compute_personal_score_from_components(None, rp.DEFAULT_PROFILE)
+    assert out["ok"] is False
+    assert out["score"] is None

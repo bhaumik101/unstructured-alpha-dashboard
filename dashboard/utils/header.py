@@ -1977,14 +1977,17 @@ def render_header(page_subtitle: str = "") -> None:
 
     # ── Sticky Macro Regime Bar ────────────────────────────────────────────────
     # One slim line visible on every page so users never lose macro context.
-    # Uses the shared 2h cache — zero extra API cost.
+    # Reads persisted signal snapshots only. A previous version called the full
+    # 47-signal engine from global chrome, turning every cold page load into a
+    # hidden provider sweep even when the page itself needed no macro data.
     try:
-        from utils.signals_cache import get_all_signal_scores as _gss
-        _rs = _gss()
+        from utils.score_history import get_latest_signal_states as _glss
+        _rs = _glss()
         _rb  = sum(1 for v in _rs.values() if not v.get("error") and v.get("status") == "bullish")
         _rr  = sum(1 for v in _rs.values() if not v.get("error") and v.get("status") == "bearish")
         _rn  = sum(1 for v in _rs.values() if not v.get("error") and v.get("status") == "neutral")
         _rscored = _rb + _rr + _rn
+        _rs_date = max((str(v.get("snapshot_date") or "") for v in _rs.values()), default="")
         _rto = max(1, _rscored)
         # Signals in the registry that couldn't be scored this cycle (error /
         # insufficient recent data). Surfaced so the bar's numbers reconcile to
@@ -1992,7 +1995,9 @@ def render_header(page_subtitle: str = "") -> None:
         _runavail = max(0, SIGNAL_COUNT - _rscored)
         _rbp = _rb / _rto
         _rrp = _rr / _rto
-        if _rbp >= 0.58:
+        if not _rs:
+            _regime_lbl, _regime_col, _regime_bg = "AWAITING SNAPSHOT", "#8F9AAD", "rgba(143,154,173,0.05)"
+        elif _rbp >= 0.58:
             _regime_lbl, _regime_col, _regime_bg = "RISK-ON", "#00D566", "rgba(0,213,102,0.06)"
         elif _rrp >= 0.52:
             _regime_lbl, _regime_col, _regime_bg = "RISK-OFF", "#FF4444", "rgba(255,68,68,0.06)"
@@ -2015,7 +2020,8 @@ def render_header(page_subtitle: str = "") -> None:
             f' · <span style="color:#6B7FBF;">→ {_rn}</span>'
             + (f' · <span style="color:#5A6478;" title="Signals with insufficient recent data this cycle">⊘ {_runavail}</span>' if _runavail else "")
             + f'</span>'
-            f'<span style="font-size:0.60rem;color:#6B7FBF;margin-left:auto;">{SIGNAL_COUNT} signals · 2h cache</span>'
+            f'<span style="font-size:0.60rem;color:#6B7FBF;margin-left:auto;">'
+            f'{SIGNAL_COUNT} signals · {"snapshot " + _rs_date if _rs_date else "no snapshot yet"}</span>'
             f'</div>',
             unsafe_allow_html=True,
         )

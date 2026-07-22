@@ -42,27 +42,147 @@ st.set_page_config(page_title="Today's Brief — UA", layout="wide")
 render_header("Today's Brief")
 _brief_section = render_sidebar_base(
     page_title="Today's Brief",
-    sections=("Daily Intelligence", "Weekly Research"),
+    sections=("My Priorities", "Market Intelligence", "Weekly Research"),
     section_key="brief_section_rail",
 )
 inject_all_css()
 
 render_page_header(
     "Today's Brief",
-    "What the macro machine sees right now — signals, regime, and top opportunities.",
+    "Your priorities first, with the full market signal stack one section away.",
     icon="",
 )
 
-# Data-integrity disclosure: this page presents/acts on macro-signal scores. If
-# any underlying signal is synthetic (no FRED/EIA key or a failed live fetch),
-# that must be visible here, not only on the Signal Dashboard. Same cached call
-# the page's own logic uses, so no extra network cost.
-from utils.signals_cache import get_all_signal_scores as _gas_disc
-disclose_unavailable_signals(_gas_disc())
-
 init_db()
 
-if _brief_section == "Daily Intelligence":
+if _brief_section == "My Priorities":
+    from utils.personalized_brief import (
+        build_priority_brief,
+        load_watchlist_evidence,
+        render_priority_card_html,
+    )
+
+    _priority_user = st.session_state.get("user")
+    if not _priority_user:
+        st.info("Sign in to turn Today's Brief into a priority view for your watchlist and research profile.")
+        _anon_cols = st.columns([1, 1, 2])
+        if _anon_cols[0].button("View market intelligence", type="primary", use_container_width=True):
+            st.session_state["brief_section_rail"] = "Market Intelligence"
+            st.rerun()
+    else:
+        from html import escape as _escape_priority
+        from utils.risk_profile import (
+            EMPHASIS_LABELS,
+            HORIZON_LABELS,
+            TOLERANCE_LABELS,
+            get_profile as _get_priority_profile,
+        )
+        from utils.what_changed import build_what_changed
+
+        _priority_profile = _get_priority_profile(_priority_user["id"])
+        _priority_evidence = load_watchlist_evidence(_priority_user["id"])
+        _priority_tickers = [row["ticker"] for row in _priority_evidence]
+        try:
+            _priority_changes = build_what_changed(
+                get_signal_diff(days_back=1, persisted_only=True), watchlist=_priority_tickers
+            )
+        except Exception:
+            _priority_changes = {}
+        _priority_payload = build_priority_brief(
+            _priority_evidence, _priority_profile, _priority_changes
+        )
+
+        _priority_name = (
+            _priority_user.get("display_name")
+            or _priority_user.get("email", "Member").split("@", 1)[0]
+        )
+        st.markdown(
+            f'<div style="background:#11161E;border:1px solid rgba(255,255,255,.09);'
+            f'border-radius:10px;padding:16px 18px;margin-bottom:18px;display:flex;'
+            f'align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;">'
+            f'<div><div style="font-size:.66rem;color:#8F9AAD;text-transform:uppercase;letter-spacing:.11em;">Personal research view</div>'
+            f'<div style="font-size:1.05rem;color:#EDF1F7;font-weight:730;margin-top:3px;">{_escape_priority(_priority_name)} · what deserves review</div></div>'
+            f'<div style="font-size:.69rem;color:#A7B0BF;text-align:right;line-height:1.55;">'
+            f'{TOLERANCE_LABELS[_priority_profile["tolerance"]]} · '
+            f'{HORIZON_LABELS[_priority_profile["horizon"]]}<br>'
+            f'{EMPHASIS_LABELS[_priority_profile["emphasis"]]}</div></div>',
+            unsafe_allow_html=True,
+        )
+
+        if not _priority_evidence:
+            st.html(empty_state(
+                "",
+                "Build your first priority view",
+                "Add stocks to your watchlist and this page will rank the evidence that matters to your profile.",
+                action="Start with the companies you actively follow.",
+            ))
+            if st.button("Open My Watchlist", type="primary", use_container_width=True):
+                st.switch_page("pages/10_Watchlist.py")
+        elif not _priority_payload["priorities"]:
+            st.html(empty_state(
+                "",
+                "Your watchlist needs its first score snapshot",
+                "Open a watched ticker once in Ticker Deep Dive to record its evidence and activate this priority view.",
+                action="No placeholder score is shown here.",
+            ))
+            _missing_cols = st.columns(min(3, len(_priority_tickers)))
+            for _idx, _ticker in enumerate(_priority_tickers[:3]):
+                if _missing_cols[_idx].button(
+                    f"Analyze {_ticker}", key=f"priority_missing_{_ticker}", use_container_width=True
+                ):
+                    st.session_state["selected_ticker"] = _ticker
+                    st.switch_page("pages/3_Ticker_Deep_Dive.py")
+        else:
+            _top_priorities = _priority_payload["top_priorities"]
+            _priority_cols = st.columns(len(_top_priorities), gap="medium")
+            for _idx, (_col, _item) in enumerate(zip(_priority_cols, _top_priorities), start=1):
+                with _col:
+                    st.html(render_priority_card_html(_item, _idx))
+                    if st.button(
+                        f'Review {_item["ticker"]}',
+                        key=f'priority_open_{_item["ticker"]}',
+                        use_container_width=True,
+                    ):
+                        st.session_state["selected_ticker"] = _item["ticker"]
+                        st.switch_page("pages/3_Ticker_Deep_Dive.py")
+
+            if _priority_payload["remaining"]:
+                with st.expander(
+                    f'{len(_priority_payload["remaining"])} additional watched name(s)',
+                    expanded=False,
+                ):
+                    for _item in _priority_payload["remaining"]:
+                        _r1, _r2, _r3 = st.columns([1.1, 2.8, 1])
+                        _r1.markdown(f'**{_item["ticker"]}** · {_item["personal_score"]:.0f}')
+                        _r2.caption(_item["reason"])
+                        if _r3.button(
+                            "Review", key=f'priority_more_{_item["ticker"]}', use_container_width=True
+                        ):
+                            st.session_state["selected_ticker"] = _item["ticker"]
+                            st.switch_page("pages/3_Ticker_Deep_Dive.py")
+
+            if _priority_payload["missing"]:
+                st.caption(
+                    "Awaiting a real score snapshot: " + ", ".join(_priority_payload["missing"])
+                    + ". Open each ticker in Deep Dive to activate it; no estimate is substituted."
+                )
+
+            st.divider()
+            _action_cols = st.columns(3)
+            if _action_cols[0].button("Open full watchlist", use_container_width=True):
+                st.switch_page("pages/10_Watchlist.py")
+            if _action_cols[1].button("Edit research profile", use_container_width=True):
+                st.switch_page("pages/32_Profile.py")
+            if _action_cols[2].button("View all market signals", use_container_width=True):
+                st.session_state["brief_section_rail"] = "Market Intelligence"
+                st.rerun()
+
+elif _brief_section == "Market Intelligence":
+    # The expensive 47-signal fetch and integrity disclosure now run only when
+    # the member explicitly opens the full market view. My Priorities remains a
+    # fast persisted-data read on every normal return visit.
+    from utils.signals_cache import get_all_signal_scores as _gas_disc
+    disclose_unavailable_signals(_gas_disc())
 
     # ── Helpers ───────────────────────────────────────────────────────────────────
 

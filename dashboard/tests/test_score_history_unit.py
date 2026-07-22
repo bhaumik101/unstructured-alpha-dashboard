@@ -13,7 +13,13 @@ import pytest
 from sqlalchemy import create_engine
 
 from utils import db
-from utils.score_history import record_score_snapshot, get_score_history, compute_sector_percentile
+from utils.score_history import (
+    compute_sector_percentile,
+    get_latest_signal_states,
+    get_score_history,
+    record_all_signal_snapshots,
+    record_score_snapshot,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -57,6 +63,19 @@ def test_history_is_ticker_scoped():
     record_score_snapshot("BBB", 20.0, "BEAR", "High")
     assert [r["ticker"] for r in get_score_history("AAA")] == ["AAA"]
     assert [r["ticker"] for r in get_score_history("BBB")] == ["BBB"]
+
+
+def test_latest_signal_states_uses_persisted_batch_without_provider_fetch():
+    record_all_signal_snapshots({
+        "hy_spread": {"score": 28.0, "status": "bearish", "error": False},
+        "vix_term": {"score": 72.0, "status": "bullish", "error": False},
+    })
+
+    states = get_latest_signal_states()
+
+    assert states["hy_spread"]["score"] == 28.0
+    assert states["hy_spread"]["status"] == "bearish"
+    assert states["vix_term"]["status"] == "bullish"
 
 
 # ── compute_sector_percentile() ──────────────────────────────────────────────
