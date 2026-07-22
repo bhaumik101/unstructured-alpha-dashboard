@@ -6,7 +6,7 @@ arXiv quantum paper velocity. Federal contract awards for nuclear companies.
 RESTRUCTURED 2026-06-23: Previously 657 lines of 7 stacked sections all
 rendering on every page visit regardless of what the user came to see —
 the same clutter audit that split Ticker Deep Dive and Market Overview.
-Now uses st.segmented_control (lazy-loading via if/elif, not st.tabs which
+Now uses the shared sidebar section rail (lazy-loading via if/elif, not st.tabs which
 executes all branches) for the 6 detailed sections below the always-visible
 score banner and leg cards.
 """
@@ -31,7 +31,11 @@ from utils.theme import source_badge, inject_premium_css, inject_skeleton_css, s
 
 st.set_page_config(page_title="Power Supercycle — UA", layout="wide")
 render_header("Power Supercycle")
-render_sidebar_base()
+_supercycle_section = render_sidebar_base(
+    page_title="Power Supercycle",
+    sections=("Signal Trends", "Ticker Performance", "Copper COT", "Quantum", "Nuclear Contracts", "Confluence"),
+    section_key="psc_section",
+)
 inject_premium_css()
 inject_skeleton_css()
 
@@ -238,12 +242,7 @@ for col, (leg_name, leg_sigs) in zip(leg_cols, leg_map.items()):
 st.divider()
 
 # ── Segmented control: lazy-load the 6 detailed sections ─────────────────────
-section = st.segmented_control(
-    "View",
-    ["Signal Trends", "Ticker Performance", "Copper COT", "Quantum", "Nuclear Contracts", "Confluence"],
-    default="Signal Trends",
-    key="psc_section",
-)
+section = _supercycle_section or "Signal Trends"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB: Signal Trends

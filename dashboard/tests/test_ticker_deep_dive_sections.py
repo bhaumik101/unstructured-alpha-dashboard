@@ -5,10 +5,10 @@ Tests for the Ticker Deep Dive segmented-control restructuring
 Context: this page was originally one 1,351-line linear scroll. It was
 split into 4 sections (Overview / Insider & Short Interest / 13F &
 Federal Contracts / Deep Correlation Scan) selected via
-st.segmented_control -- chosen deliberately over st.tabs() because a
+sidebar section rail -- chosen deliberately over st.tabs() because a
 live check (not an assumption) confirmed st.tabs() executes every tab's
 code on every script run regardless of which tab is showing, while
-branching on segmented_control's return value with if/elif genuinely
+branching on the section rail's return value with if/elif genuinely
 skips code for unselected sections.
 
 The headline Confluence Score still depends on insider/short-interest/
@@ -138,8 +138,8 @@ def test_default_load_shows_overview_not_other_sections(app_test):
 
 def test_switching_to_insider_short_interest_section(app_test):
     at = app_test("pages/3_Ticker_Deep_Dive.py")
-    sc = next((s for s in at.segmented_control if s.key == "dive_section"), None)
-    assert sc is not None, "Section segmented_control not found"
+    sc = next((s for s in at.radio if s.key == "dive_section"), None)
+    assert sc is not None, "Section rail not found"
 
     sc.set_value("Insider & Short Interest").run()
     assert not at.exception, (
@@ -155,7 +155,7 @@ def test_switching_to_insider_short_interest_section(app_test):
 
 def test_switching_to_13f_federal_contracts_section(app_test):
     at = app_test("pages/3_Ticker_Deep_Dive.py")
-    sc = next((s for s in at.segmented_control if s.key == "dive_section"), None)
+    sc = next((s for s in at.radio if s.key == "dive_section"), None)
     sc.set_value("13F & Federal Contracts").run()
     assert not at.exception, (
         "Switching to 13F & Federal Contracts raised: " + "\n".join(str(e) for e in at.exception)
@@ -168,7 +168,7 @@ def test_switching_to_13f_federal_contracts_section(app_test):
 
 def test_switching_to_deep_correlation_scan_section(app_test):
     at = app_test("pages/3_Ticker_Deep_Dive.py")
-    sc = next((s for s in at.segmented_control if s.key == "dive_section"), None)
+    sc = next((s for s in at.radio if s.key == "dive_section"), None)
     sc.set_value("Deep Correlation Scan").run()
     assert not at.exception, (
         "Switching to Deep Correlation Scan raised: " + "\n".join(str(e) for e in at.exception)
@@ -206,7 +206,7 @@ def test_macro_lag_decay_button_runs_without_exception(app_test, monkeypatch):
     monkeypatch.setattr(fetchers_mod, "fetch_price", _fake_price)
 
     at = app_test("pages/3_Ticker_Deep_Dive.py")
-    sc = next((s for s in at.segmented_control if s.key == "dive_section"), None)
+    sc = next((s for s in at.radio if s.key == "dive_section"), None)
     sc.set_value("Deep Correlation Scan").run()
     assert not at.exception
 
@@ -246,7 +246,7 @@ def test_insider_history_fetch_only_runs_on_insider_section(app_test, monkeypatc
         f"fetch_insider_trades was called on Overview load, should be deferred: {calls}"
     )
 
-    sc = next((s for s in at.segmented_control if s.key == "dive_section"), None)
+    sc = next((s for s in at.radio if s.key == "dive_section"), None)
     sc.set_value("Insider & Short Interest").run()
     assert not at.exception, (
         "Switching to Insider & Short Interest raised: " + "\n".join(str(e) for e in at.exception)

@@ -41,7 +41,11 @@ def _clip(text: str, limit: int = 120) -> str:
 
 st.set_page_config(page_title="Signal Dashboard — UA", layout="wide")
 render_header("Signal Dashboard")
-render_sidebar_base()
+_signal_section = render_sidebar_base(
+    page_title="Signal Dashboard",
+    sections=("Signal Library", "Regime Playbook"),
+    section_key="signal_dashboard_section_rail",
+)
 
 # Credits the view_signals onboarding step, which had no call site anywhere and
 # so could never complete. record_once, not record: Streamlit reruns the whole
@@ -58,9 +62,7 @@ render_page_header(
     icon="",
 )
 
-tab_signals, tab_regime = st.tabs([" Signal Dashboard", " Regime Playbook"])
-
-with tab_signals:
+if _signal_section == "Signal Library":
     STATUS_COLOR = {"bullish": "#00D566", "bearish": "#FF4444", "neutral": "#6B7FBF", "insufficient_data": "#6B7FBF"}
     STATUS_LABEL = {"bullish": " Bullish", "bearish": " Bearish", "neutral": " Neutral", "insufficient_data": " No Data"}
     STATUS_SYM   = {"bullish": "▲", "bearish": "▼", "neutral": "●", "insufficient_data": "○"}
@@ -1089,7 +1091,7 @@ with tab_signals:
     st.html(render_disclaimer(compact=True))
 
 
-with tab_regime:
+if _signal_section == "Regime Playbook":
     import pandas as _pd_rp
     import plotly.graph_objects as _go_rp
     import yfinance as _yf_rp

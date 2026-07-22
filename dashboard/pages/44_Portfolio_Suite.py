@@ -13,7 +13,11 @@ from utils.theme import inject_premium_css, PLOTLY_CONFIG
 from utils.billing import require_pro
 
 render_header("Portfolio Suite")
-render_sidebar_base()
+_portfolio_section = render_sidebar_base(
+    page_title="Portfolio Suite",
+    sections=("Portfolio Backtest", "Stress Tester", "Signal Backtester", "Macro Exposure", "Basket Builder"),
+    section_key="portfolio_suite_section_rail",
+)
 try:
     from utils.instrumentation import record_once
     record_once("portfolio_suite_viewed")
@@ -37,18 +41,10 @@ from utils.signals_cache import get_all_signal_scores as _gas_disc
 disclose_unavailable_signals(_gas_disc())
 
 
-tab_bt, tab_stress, tab_sigbt, tab_macro, tab_basket = st.tabs([
-    " Portfolio Backtest",
-    " Stress Tester",
-    " Signal Backtester",
-    " Macro Exposure",
-    "Basket Builder",
-])
-
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 1 — PORTFOLIO BACKTEST  (core logic from 39_Portfolio_Backtest.py)
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_bt:
+if _portfolio_section == "Portfolio Backtest":
     import pandas as pd
     import plotly.graph_objects as go
     from datetime import datetime, timedelta, timezone
@@ -323,7 +319,7 @@ with tab_bt:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 2 — STRESS TESTER  (delegates to 36_Stress_Tester.py logic via st.switch_page hint)
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_stress:
+if _portfolio_section == "Stress Tester":
     import pandas as pd
 
     st.markdown("#### Macro Scenario Stress Tester")
@@ -414,7 +410,7 @@ with tab_stress:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 3 — SIGNAL BACKTESTER
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_sigbt:
+if _portfolio_section == "Signal Backtester":
     import pandas as pd
     import plotly.graph_objects as go
     from datetime import datetime, timedelta
@@ -523,7 +519,7 @@ with tab_sigbt:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 4 — MACRO EXPOSURE ANALYZER
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_macro:
+if _portfolio_section == "Macro Exposure":
     import pandas as pd
 
     st.markdown("#### Portfolio Macro Exposure")
@@ -715,7 +711,7 @@ with tab_macro:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 5 — BASKET BUILDER
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_basket:
+if _portfolio_section == "Basket Builder":
     import pandas as pd
     import plotly.graph_objects as go
 

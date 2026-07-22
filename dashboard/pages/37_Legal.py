@@ -15,14 +15,18 @@ import streamlit as st
 st.set_page_config(
     page_title="Privacy & Terms — Unstructured Alpha",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 from utils.header import render_header, render_sidebar_base, render_page_header
 from utils.theme import inject_premium_css
 
 render_header("Legal")
-render_sidebar_base()
+_legal_section = render_sidebar_base(
+    page_title="Privacy & Terms",
+    sections=("Privacy Policy", "Terms of Service", "Refund Policy"),
+    section_key="legal_section_rail",
+)
 inject_premium_css()
 
 render_page_header(
@@ -31,12 +35,8 @@ render_page_header(
     icon="",
 )
 
-_tab_priv, _tab_tos, _tab_refund = st.tabs(
-    ["Privacy Policy", "Terms of Service", "Refund Policy"]
-)
-
 # ── Privacy Policy ────────────────────────────────────────────────────────────
-with _tab_priv:
+if _legal_section == "Privacy Policy":
     st.markdown("""
 <div style="font-family:Inter,sans-serif;color:#C5CCDE;line-height:1.75;max-width:800px;">
 
@@ -159,7 +159,7 @@ Questions? Email <a href="mailto:privacy@unstructuredalpha.com" style="color:#00
 """, unsafe_allow_html=True)
 
 # ── Terms of Service ──────────────────────────────────────────────────────────
-with _tab_tos:
+if _legal_section == "Terms of Service":
     st.markdown("""
 <div style="font-family:Inter,sans-serif;color:#C5CCDE;line-height:1.75;max-width:800px;">
 
@@ -319,7 +319,7 @@ Questions about these terms:
 """, unsafe_allow_html=True)
 
 # ── Refund Policy ─────────────────────────────────────────────────────────────
-with _tab_refund:
+if _legal_section == "Refund Policy":
     st.markdown("""
 <div style="font-family:Inter,sans-serif;color:#C5CCDE;line-height:1.75;max-width:800px;">
 

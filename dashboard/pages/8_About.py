@@ -12,7 +12,11 @@ from utils.product_metrics import ACTIVE_SIGNAL_COUNT, ACTIVE_SOURCE_COUNT, SUPP
 
 st.set_page_config(page_title="About — Unstructured Alpha", layout="wide")
 render_header("About")
-render_sidebar_base()
+_about_section = render_sidebar_base(
+    page_title="About & Methodology",
+    sections=("Methodology", "Validation Evidence"),
+    section_key="about_section_rail",
+)
 
 render_page_header(
     "About Unstructured Alpha",
@@ -20,9 +24,7 @@ render_page_header(
     icon="",
 )
 
-tab_about, tab_val = st.tabs(["About & Methodology", "Model Validation"])
-
-with tab_about:
+if _about_section == "Methodology":
     # ── Helper ────────────────────────────────────────────────────────────────────
     def _section(title):
         st.markdown(
@@ -537,7 +539,7 @@ with tab_about:
     st.caption("Version: 2026 · Platform: unstructuredalpha.com · Builder: bpgiri2005@gmail.com")
 
 
-with tab_val:
+if _about_section == "Validation Evidence":
     from utils.config import SIGNALS, CATEGORIES as _VAL_CATEGORIES
     from utils.validation_status import validate_all_macro_signals, get_static_validation_summary
     from utils.theme import source_badge

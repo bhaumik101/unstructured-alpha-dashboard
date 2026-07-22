@@ -10,7 +10,11 @@ from utils.header import render_header, render_sidebar_base, render_page_header,
 from utils.theme import inject_premium_css
 
 render_header("Events & Forecasts")
-render_sidebar_base()
+_events_section = render_sidebar_base(
+    page_title="Events & Forecasts",
+    sections=("Macro Calendar", "Event Forecaster"),
+    section_key="events_forecasts_section_rail",
+)
 inject_premium_css()
 
 render_page_header(
@@ -26,12 +30,10 @@ render_page_header(
 from utils.signals_cache import get_all_signal_scores as _gas_disc
 disclose_unavailable_signals(_gas_disc())
 
-tab_cal, tab_forecast = st.tabs(["Macro Calendar", "Event Forecaster"])
-
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 1 — MACRO CALENDAR
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_cal:
+if _events_section == "Macro Calendar":
     from datetime import date, datetime, timedelta
     import pandas as pd
     import plotly.graph_objects as go
@@ -119,7 +121,7 @@ with tab_cal:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 2 — EVENT FORECASTER
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_forecast:
+if _events_section == "Event Forecaster":
     import plotly.graph_objects as go
 
     st.markdown("### UA Signal Alignment for Upcoming Events")

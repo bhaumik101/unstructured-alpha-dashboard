@@ -7,14 +7,14 @@ Full bull/bear case for any ticker:
   - SEC Form 4 insider transaction overlay
   - Narrative bull/bear case builder
 
-Layout (2026-06-22): split into 4 sections via st.segmented_control --
+Layout: split into focused sections via the shared sidebar section rail --
 Overview (score, price, prediction model, bull/bear case, signal table,
 export) / Insider & Short Interest / 13F & Federal Contracts / Deep
 Correlation Scan -- instead of one ~1,350-line linear scroll. Chose
-segmented_control over st.tabs() deliberately: a live AppTest check
+the section rail over st.tabs() deliberately: a live AppTest check
 confirmed st.tabs() executes every tab body on every script run
 regardless of which tab is visually selected (it's a pure CSS/display
-mechanism), while branching on segmented_control's return value with
+mechanism), while branching on the rail's return value with
 if/elif genuinely skips code for unselected sections -- see
 tests/test_ticker_deep_dive_sections.py.
 
@@ -89,7 +89,19 @@ from utils.score_history import record_score_snapshot, get_score_history, comput
 
 st.set_page_config(page_title="Ticker Deep Dive — UA", layout="wide")
 render_header("Ticker Deep Dive")
-render_sidebar_base()
+_tdd_section = render_sidebar_base(
+    page_title="Ticker Deep Dive",
+    sections=(
+        "Overview",
+        "Thesis Workspace",
+        "Deep Correlation Scan",
+        "Insider & Short Interest",
+        "13F & Federal Contracts",
+        "Earnings Track Record",
+        "Earnings Sentiment",
+    ),
+    section_key="dive_section",
+)
 inject_all_css()
 
 render_page_header(
@@ -336,13 +348,9 @@ if _rl_blocked:
 
 # Select the research workflow before scoring so public views never pay for
 # optional SEC, FINRA, USASpending, or 13F calls they do not display.
-section = st.selectbox(
-    "View",
-    ["Overview", "Deep Correlation Scan", "Insider & Short Interest", "13F & Federal Contracts", "Earnings Track Record", "Earnings Sentiment"],
-    index=0,
-    key="dive_section",
-)
+section = _tdd_section or "Overview"
 _pro_sections = {
+    "Thesis Workspace",
     "Deep Correlation Scan",
     "Insider & Short Interest",
     "13F & Federal Contracts",
@@ -472,7 +480,7 @@ render_data_unavailable_banner(
 )
 
 # Opportunistic score snapshot -- runs once per ticker view, regardless of
-# which segmented_control section a visitor lands on, since the score
+# which section a visitor lands on, since the score
 # itself is computed in compute_full_ticker_score() above either way (see
 # utils/score_history.py's module docstring for why this is the
 # foundation the Score History chart, future track-record page, and real
@@ -3029,6 +3037,121 @@ if section == "Overview":
             ):
                 st.session_state["export_ticker"] = ticker_input
                 st.switch_page("pages/28_Export.py")
+
+elif section == "Thesis Workspace":
+    st.html(section_label("THESIS WORKSPACE", color="#7C3AED", dot="#7C3AED"))
+    st.caption(
+        "Turn the live research into a durable decision record. Save what you believe, "
+        "what could change your mind, and the timeframe in which the thesis should work."
+    )
+
+    from utils.thesis import get_thesis, save_thesis
+
+    _thesis_user = st.session_state.get("user") or {}
+    _thesis_user_id = _thesis_user.get("id")
+    if not _thesis_user_id:
+        st.warning("Sign in to save a private investment thesis.")
+    else:
+        _saved_thesis = get_thesis(_thesis_user_id, ticker_input) or {}
+        _stance_options = ["Bullish", "Neutral", "Bearish"]
+        _status_options = ["active", "closed", "invalidated"]
+        _saved_stance = _saved_thesis.get("stance", "Neutral")
+        _saved_status = _saved_thesis.get("status", "active")
+        try:
+            _current_price = float(price_series.dropna().iloc[-1]) if not price_series.empty else None
+        except Exception:
+            _current_price = None
+        _entry_price = _saved_thesis.get("entry_price") or _current_price
+        _entry_score = _saved_thesis.get("entry_score") or float(confluence.get("overall_score", 50))
+
+        _summary_cols = st.columns(4)
+        _summary_cols[0].metric("Current Score", f"{confluence.get('overall_score', 50):.0f}/100")
+        _summary_cols[1].metric("Saved Stance", _saved_stance)
+        _summary_cols[2].metric("Status", _saved_status.title())
+        _summary_cols[3].metric(
+            "Decision Entry",
+            f"${_entry_price:,.2f}" if _entry_price else "Not recorded",
+        )
+
+        with st.form(f"thesis_form_{ticker_input}"):
+            _form_cols = st.columns([1, 1, 1])
+            with _form_cols[0]:
+                _stance = st.selectbox(
+                    "Stance",
+                    _stance_options,
+                    index=_stance_options.index(_saved_stance) if _saved_stance in _stance_options else 1,
+                )
+            with _form_cols[1]:
+                _horizon = st.number_input(
+                    "Expected horizon (weeks)",
+                    min_value=1,
+                    max_value=260,
+                    value=int(_saved_thesis.get("horizon_weeks") or 12),
+                )
+            with _form_cols[2]:
+                _status = st.selectbox(
+                    "Decision status",
+                    _status_options,
+                    index=_status_options.index(_saved_status) if _saved_status in _status_options else 0,
+                    format_func=lambda value: value.title(),
+                )
+
+            _thesis_text = st.text_area(
+                "Core thesis",
+                value=_saved_thesis.get("thesis", ""),
+                placeholder="What do you believe the market is underestimating or overestimating?",
+                height=130,
+            )
+            _detail_cols = st.columns(2)
+            with _detail_cols[0]:
+                _catalysts = st.text_area(
+                    "Catalysts",
+                    value=_saved_thesis.get("catalysts", ""),
+                    placeholder="Events that could confirm or accelerate the thesis",
+                    height=110,
+                )
+                _risks = st.text_area(
+                    "Primary risks",
+                    value=_saved_thesis.get("risks", ""),
+                    placeholder="What could impair the expected outcome?",
+                    height=110,
+                )
+            with _detail_cols[1]:
+                _invalidation = st.text_area(
+                    "What would change your mind?",
+                    value=_saved_thesis.get("invalidation", ""),
+                    placeholder="Define the evidence or threshold that invalidates this thesis",
+                    height=110,
+                )
+                _outcome = st.text_area(
+                    "Review and outcome notes",
+                    value=_saved_thesis.get("outcome_notes", ""),
+                    placeholder="Record what happened, what you learned, and whether the reasoning held",
+                    height=110,
+                )
+
+            _save_thesis = st.form_submit_button("Save Thesis", type="primary", use_container_width=True)
+
+        if _save_thesis:
+            try:
+                save_thesis(
+                    user_id=_thesis_user_id,
+                    ticker=ticker_input,
+                    stance=_stance,
+                    status=_status,
+                    horizon_weeks=int(_horizon),
+                    thesis=_thesis_text,
+                    catalysts=_catalysts,
+                    risks=_risks,
+                    invalidation=_invalidation,
+                    outcome_notes=_outcome,
+                    entry_price=_entry_price,
+                    entry_score=_entry_score,
+                )
+                st.success(f"{ticker_input} thesis saved to your private decision journal.")
+                st.rerun()
+            except ValueError as _thesis_error:
+                st.error(str(_thesis_error))
 
 elif section == "Insider & Short Interest":
     st.html(section_label("INSIDER AND SHORT INTEREST", color="#55A7D8", dot="#55A7D8"))

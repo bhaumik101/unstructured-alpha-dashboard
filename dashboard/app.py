@@ -87,6 +87,7 @@ pg = st.navigation(
         # ── Portfolio ─────────────────────────────────────────────────────────
         "Portfolio": [
             st.Page("pages/10_Watchlist.py",          title="My Watchlist",        url_path="my-watchlist"),
+            st.Page("pages/46_Thesis_Journal.py",     title="Thesis Journal",      url_path="thesis-journal"),
             st.Page("pages/44_Portfolio_Suite.py",    title="Portfolio Suite",     url_path="portfolio-suite"),
         ],
         # ── Research ──────────────────────────────────────────────────────────

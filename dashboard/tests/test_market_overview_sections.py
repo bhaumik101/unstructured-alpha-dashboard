@@ -1,13 +1,11 @@
 """
-Tests for the Market Overview segmented-control restructuring
-(pages/5_Market_Overview.py, split 2026-06-22).
+Tests for the Market Overview lazy section-rail restructuring.
 
 Context: same pattern and reasoning as
 tests/test_ticker_deep_dive_sections.py -- this page was an 854-line
 linear scroll across 11 distinct topics; it's now 2 sections ("Markets"
-and "Macro Indicators") via st.segmented_control, chosen because
-st.tabs() was confirmed (in the Ticker Deep Dive work, same day) to run
-every tab's code regardless of selection, while segmented_control lets
+and "Macro Indicators") via a sidebar radio, chosen because st.tabs()
+runs every tab's code regardless of selection, while the section rail lets
 if/elif genuinely skip the unselected branch.
 """
 
@@ -32,8 +30,8 @@ def test_default_load_shows_markets_not_macro_indicators(app_test):
 
 def test_switching_to_macro_indicators_section(app_test):
     at = app_test("pages/5_Market_Overview.py")
-    sc = next((s for s in at.segmented_control if s.key == "overview_section"), None)
-    assert sc is not None, "Section segmented_control not found"
+    sc = next((s for s in at.radio if s.key == "overview_section"), None)
+    assert sc is not None, "Section rail not found"
 
     sc.set_value("Macro Indicators").run()
     assert not at.exception, (

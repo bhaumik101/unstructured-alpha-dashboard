@@ -30,7 +30,11 @@ from utils.signals_cache import get_all_signal_scores
 
 st.set_page_config(page_title="Stock Screener — UA", layout="wide")
 render_header("Stock Screener")
-render_sidebar_base()
+_screener_section = render_sidebar_base(
+    page_title="Stock Screener",
+    sections=("Screen Securities", "Rankings", "Short Squeeze Radar"),
+    section_key="screener_section_rail",
+)
 try:
     from utils.instrumentation import record_once
     record_once("screener_viewed")
@@ -44,13 +48,7 @@ render_page_header(
     icon="",
 )
 
-tab_screener, tab_rank, tab_squeeze = st.tabs([
-    " Stock Screener",
-    " Rankings",
-    " Short Squeeze Radar",
-])
-
-with tab_screener:
+if _screener_section == "Screen Securities":
     st.markdown(
         '<div style="font-size:0.76rem;color:#6B7FBF;font-family:Inter,sans-serif;'
         'margin:-4px 0 12px;">The <b>Macro + Momentum Rank</b> orders tickers by current signal '
@@ -640,7 +638,7 @@ with tab_screener:
     )
 
 
-with tab_rank:
+if _screener_section == "Rankings":
     from utils.top_tickers import get_top_tickers as _get_top
     from utils.theme import inject_premium_css as _ipc2
 
@@ -700,7 +698,7 @@ with tab_rank:
         column_config={"Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.0f")},
     )
 
-with tab_squeeze:
+if _screener_section == "Short Squeeze Radar":
     import pandas as pd
     import yfinance as yf
     from datetime import datetime, timedelta, timezone

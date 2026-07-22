@@ -387,6 +387,7 @@ PRO_FEATURES = [
     "Options Flow — live unusual options activity feed",
     "AI Research Assistant — answers grounded in current live signals",
     "Ticker Deep Dive Pro — correlation, filings, contracts, and sentiment",
+    "Thesis Journal — private decisions, invalidation rules, and outcomes",
     "Unlimited watchlist tickers (Free: 5)",
     "Morning digest email with top signal moves",
 ]
@@ -404,6 +405,7 @@ _PAGE_BENEFIT = {
     "Signal Portfolio Backtest": "Backtest a signal-driven portfolio and compare it against the benchmark.",
     "AI Research Assistant":     "Use a live signal-aware research copilot grounded in the platform's current real-data state.",
     "Ticker Deep Dive Pro":      "Unlock lead-lag correlation, insider and short-interest evidence, 13F and federal-contract intelligence, and earnings sentiment.",
+    "Thesis Journal":            "Turn live research into a private decision record with catalysts, risks, invalidation rules, and outcome reviews.",
 }
 
 _PRO_GATE_CSS = """

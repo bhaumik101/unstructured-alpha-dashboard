@@ -40,7 +40,11 @@ from utils.theme import (
 
 st.set_page_config(page_title="Today's Brief — UA", layout="wide")
 render_header("Today's Brief")
-render_sidebar_base()
+_brief_section = render_sidebar_base(
+    page_title="Today's Brief",
+    sections=("Daily Intelligence", "Weekly Research"),
+    section_key="brief_section_rail",
+)
 inject_all_css()
 
 render_page_header(
@@ -58,9 +62,7 @@ disclose_unavailable_signals(_gas_disc())
 
 init_db()
 
-tab_today, tab_weekly = st.tabs([" Today's Brief", " Weekly Brief"])
-
-with tab_today:
+if _brief_section == "Daily Intelligence":
 
     # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -860,7 +862,7 @@ with tab_today:
     """, unsafe_allow_html=True)
 
 
-with tab_weekly:
+if _brief_section == "Weekly Research":
     from utils.narrative_engine import get_latest_note, get_note_archive, generate_weekly_note as _gen_note
 
     def _wb_regime_chip(regime: str) -> str:

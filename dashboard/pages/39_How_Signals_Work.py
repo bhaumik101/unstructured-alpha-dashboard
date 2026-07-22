@@ -17,7 +17,11 @@ from utils.theme import inject_all_css
 
 render_header("How Signals Work")
 inject_all_css()
-render_sidebar_base()
+_method_section = render_sidebar_base(
+    page_title="How Signals Work",
+    sections=("What Are Signals", "How Scores Work", "Signal Categories", "Data Sources", "Limitations", "FAQ"),
+    section_key="how_signals_section_rail",
+)
 
 try:
     from utils.analytics import track, Event
@@ -44,19 +48,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Navigation tabs ────────────────────────────────────────────────────────────
-_tab_what, _tab_scores, _tab_cats, _tab_sources, _tab_limits, _tab_faq = st.tabs([
-    "What are signals",
-    "How scores work",
-    "Signal categories",
-    "Data sources",
-    "Limitations",
-    "FAQ",
-])
-
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 1 — What are signals
 # ─────────────────────────────────────────────────────────────────────────────
-with _tab_what:
+if _method_section == "What Are Signals":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
 
@@ -114,7 +109,7 @@ with _tab_what:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 2 — How scores work
 # ─────────────────────────────────────────────────────────────────────────────
-with _tab_scores:
+if _method_section == "How Scores Work":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
 
@@ -184,7 +179,7 @@ with _tab_scores:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 3 — Signal categories
 # ─────────────────────────────────────────────────────────────────────────────
-with _tab_cats:
+if _method_section == "Signal Categories":
     st.markdown("""
 <div style="max-width:860px;margin:28px auto 0;font-family:Inter,sans-serif;">
   <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
@@ -276,7 +271,7 @@ with _tab_cats:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 4 — Data sources
 # ─────────────────────────────────────────────────────────────────────────────
-with _tab_sources:
+if _method_section == "Data Sources":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
   <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
@@ -355,7 +350,7 @@ with _tab_sources:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 5 — Limitations
 # ─────────────────────────────────────────────────────────────────────────────
-with _tab_limits:
+if _method_section == "Limitations":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
   <h2 style="font-size:1.15rem;font-weight:700;color:#E8EEFF;margin-bottom:10px;">
@@ -408,7 +403,7 @@ with _tab_limits:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 6 — FAQ
 # ─────────────────────────────────────────────────────────────────────────────
-with _tab_faq:
+if _method_section == "FAQ":
     st.markdown("<div style='max-width:780px;margin:28px auto 0;'>", unsafe_allow_html=True)
 
     _faqs = [

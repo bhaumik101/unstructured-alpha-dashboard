@@ -50,7 +50,11 @@ from utils.score_history import get_high_confidence_snapshot_calls
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Signal Call Log — Unstructured Alpha", layout="wide")
 render_header("Signal Call Log")
-render_sidebar_base()
+_track_section = render_sidebar_base(
+    page_title="Track Record",
+    sections=("Signal Track Record", "Earnings Track Record"),
+    section_key="track_record_section_rail",
+)
 try:
     from utils.instrumentation import record_once
     record_once("track_record_viewed")
@@ -65,9 +69,7 @@ render_page_header(
     icon="",
 )
 
-tab_track, tab_earnings = st.tabs([" Track Record", " Earnings Track Record"])
-
-with tab_track:
+if _track_section == "Signal Track Record":
     # ── Quietly resolve any pending predictions whose windows have expired ─────────
     try:
         resolve_pending(max_resolve=10)
@@ -684,7 +686,7 @@ with tab_track:
     """, unsafe_allow_html=True)
 
 
-with tab_earnings:
+if _track_section == "Earnings Track Record":
     from utils.fetchers import fetch_earnings_dates
     from utils.score_history import get_score_history
     import datetime as _dt

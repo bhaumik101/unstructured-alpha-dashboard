@@ -40,6 +40,30 @@ _CSS = """
     --ua-glow-cyan:  0 0 28px rgba(0,200,224,0.14);
 }
 
+/* ── Page-local section rail ─────────────────────────────────────────────── */
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] {
+    gap: 3px !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 7px 9px !important;
+    margin: 0 !important;
+    transition: background 120ms ease, border-color 120ms ease;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+    background: rgba(255,255,255,0.035);
+    border-color: rgba(255,255,255,0.06);
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
+    background: rgba(124,58,237,0.10);
+    border-color: rgba(124,58,237,0.28);
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label p {
+    font-size: 0.78rem !important;
+    font-weight: 650 !important;
+}
+
 /* ── Base typography ─────────────────────────────────────────────────────── */
 html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
@@ -1596,6 +1620,7 @@ a.ua-tnav-item.active { color: #00D566 !important; background: rgba(0,213,102,0.
       <span class="ua-tnav-trigger">Portfolio <span class="ua-tnav-caret">&#9660;</span></span>
       <div class="ua-tnav-drop">
         <a href="/my-watchlist">My Watchlist</a>
+        <a class="pro-link" href="/thesis-journal">Thesis Journal</a>
         <a class="pro-link" href="/portfolio-suite">Portfolio Suite</a>
       </div>
     </div>
@@ -2229,12 +2254,23 @@ def render_footer(page: str = "") -> None:
 """)
 
 
-def render_sidebar_base() -> None:
+def render_sidebar_base(
+    *,
+    page_title: str | None = None,
+    sections: list[str] | tuple[str, ...] | None = None,
+    section_key: str | None = None,
+    default_section: str | None = None,
+) -> str | None:
     """
     Render the standard sidebar content (account info, FRED key input, AI
-    assistant link, disclaimer). Call inside a `with st.sidebar:` block or
-    standalone.
+    assistant link, disclaimer) and, when supplied, a page-local section rail.
+
+    The section rail intentionally uses a radio + normal Python branching
+    instead of st.tabs(). Streamlit eagerly executes every tab body, while this
+    pattern executes only the selected section — reducing load time and keeping
+    long research pages focused. Existing call sites remain backward compatible.
     """
+    selected_section: str | None = None
     with st.sidebar:
         # Account info — most pages no longer require login (per explicit
         # user request), so an anonymous visitor is a completely normal,
@@ -2259,6 +2295,25 @@ def render_sidebar_base() -> None:
         render_dark_mode_toggle()
         st.divider()
 
+        if sections:
+            _options = list(sections)
+            _default = default_section if default_section in _options else _options[0]
+            st.markdown(
+                f'<div style="font-size:0.60rem;font-weight:800;color:#6B7FBF;'
+                f'letter-spacing:0.13em;text-transform:uppercase;margin:2px 0 5px;">'
+                f'{page_title or "On this page"}</div>',
+                unsafe_allow_html=True,
+            )
+            selected_section = st.radio(
+                "Page section",
+                _options,
+                index=_options.index(_default),
+                key=section_key or f"section_rail_{(page_title or 'page').lower().replace(' ', '_')}",
+                label_visibility="collapsed",
+            )
+            st.caption("Only this section is loaded.")
+            st.divider()
+
         # AI Assistant quick-access
         st.markdown(
             '<div style="background:rgba(184,134,11,0.13);border-radius:6px;padding:10px 12px;'
@@ -2280,3 +2335,4 @@ def render_sidebar_base() -> None:
             '</div>',
             unsafe_allow_html=True,
         )
+    return selected_section

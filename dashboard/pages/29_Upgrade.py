@@ -875,6 +875,11 @@ st.markdown(f"""
     <td style="text-align:center;" class="comp-pro-col comp-yes">Unlimited</td>
 </tr>
 <tr>
+    <td>Thesis Journal — decisions, invalidation rules, and outcomes</td>
+    <td style="text-align:center;" class="comp-no">—</td>
+    <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
+</tr>
+<tr>
     <td>Morning intelligence digest (email)</td>
     <td style="text-align:center;" class="comp-no">✗</td>
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>

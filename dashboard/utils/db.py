@@ -207,6 +207,29 @@ watchlist = Table(
     UniqueConstraint("user_id", "ticker", name="uq_watchlist_user_ticker"),
 )
 
+# One evolving investment thesis per user/security. This is deliberately
+# user-scoped: unlike the canonical Confluence Score, thesis language, horizon,
+# risk conditions, and outcome notes are private decision-journal data.
+investment_theses = Table(
+    "investment_theses", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("ticker", String(16), nullable=False),
+    Column("stance", String(16), nullable=False),
+    Column("status", String(16), nullable=False, server_default="active"),
+    Column("horizon_weeks", Integer, nullable=False, server_default="12"),
+    Column("entry_price", Float),
+    Column("entry_score", Float),
+    Column("thesis", Text, nullable=False),
+    Column("catalysts", Text),
+    Column("risks", Text),
+    Column("invalidation", Text),
+    Column("outcome_notes", Text),
+    Column("created_at", String(64), nullable=False),
+    Column("updated_at", String(64), nullable=False),
+    UniqueConstraint("user_id", "ticker", name="uq_thesis_user_ticker"),
+)
+
 alert_state = Table(
     "alert_state", metadata,
     Column("id", Integer, primary_key=True),

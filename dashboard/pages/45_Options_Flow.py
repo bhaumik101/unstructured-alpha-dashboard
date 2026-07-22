@@ -449,7 +449,12 @@ st.caption(
     "These suggest fresh positioning, not just rolling existing trades."
 )
 
-tab_calls, tab_puts, tab_combined = st.tabs(["Unusual Calls", "Unusual Puts", "Combined (all)"])
+_unusual_view = st.segmented_control(
+    "Contract view",
+    ["Unusual Calls", "Unusual Puts", "Combined"],
+    default="Combined",
+    key="options_unusual_view",
+)
 
 _DISPLAY_COLS = ["type", "expiration", "dte", "strike", "lastPrice", "bid", "ask",
                  "volume", "openInterest", "vol_oi_ratio", "premium",
@@ -506,19 +511,19 @@ def _prep_display(df: pd.DataFrame) -> pd.DataFrame:
     return out.sort_values("Vol/OI", ascending=False) if "Vol/OI" in out.columns else out
 
 
-with tab_calls:
+if _unusual_view == "Unusual Calls":
     if unusual_calls.empty:
         st.info("No unusual call activity found with current thresholds.")
     else:
         st.dataframe(_prep_display(unusual_calls), use_container_width=True, hide_index=True)
 
-with tab_puts:
+if _unusual_view == "Unusual Puts":
     if unusual_puts.empty:
         st.info("No unusual put activity found with current thresholds.")
     else:
         st.dataframe(_prep_display(unusual_puts), use_container_width=True, hide_index=True)
 
-with tab_combined:
+if _unusual_view == "Combined":
     all_unusual = pd.DataFrame()
     if not unusual_calls.empty:
         c_tag = unusual_calls.copy()
@@ -543,7 +548,12 @@ with tab_combined:
 st.divider()
 with st.expander("Full options chain (all contracts)"):
     exp_chain = st.selectbox("Expiration", list(expirations[:6]), key="full_chain_exp")
-    fc_tab_c, fc_tab_p = st.tabs(["Calls", "Puts"])
+    _chain_side = st.segmented_control(
+        "Contract side",
+        ["Calls", "Puts"],
+        default="Calls",
+        key="options_chain_side",
+    )
 
     def _full_table(df: pd.DataFrame, exp: str):
         sub = df[df["expiration"] == exp] if not df.empty else pd.DataFrame()
@@ -556,9 +566,9 @@ with st.expander("Full options chain (all contracts)"):
         # of maintaining a second, drifting copy of the same logic.
         st.dataframe(_prep_display(sub), use_container_width=True, hide_index=True)
 
-    with fc_tab_c:
+    if _chain_side == "Calls":
         _full_table(calls_raw, exp_chain)
-    with fc_tab_p:
+    if _chain_side == "Puts":
         _full_table(puts_raw, exp_chain)
 
 # ── Methodology note ──────────────────────────────────────────────────────────

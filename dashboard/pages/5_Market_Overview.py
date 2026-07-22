@@ -2,7 +2,7 @@
 Page 5 — Market Overview
 Bloomberg-style snapshot with selectable time periods: 1D / 5D / 1M / 3M / 6M / YTD / 1Y.
 
-Layout (2026-06-22): split into 2 sections via st.segmented_control --
+Layout: split into 2 sections via the shared sidebar section rail --
 "Markets" (indices, sector performance, rates, commodities, the
 performance chart, signal snapshot -- everything driven by the period
 selector) and "Macro Indicators" (growth, labor, consumer/inflation,
@@ -12,7 +12,7 @@ existed in the code before this split -- the two halves share zero
 helper functions or constants (verified directly, not assumed), so this
 was a low-risk mechanical move, same reasoning and tooling as the
 Ticker Deep Dive restructuring on the same day (see that page's
-docstring for why segmented_control was chosen over st.tabs()).
+docstring for why lazy Python branching was chosen over st.tabs()).
 
 Note: _render_live_index_quote (an st.fragment) lives inside the
 "Markets" branch -- AppTest does not exercise fragment bodies at all
@@ -34,7 +34,11 @@ from utils.theme import source_badge, inject_premium_css, inject_skeleton_css, s
 
 st.set_page_config(page_title="Market Overview — UA", layout="wide")
 render_header("Market Overview")
-render_sidebar_base()
+_overview_section = render_sidebar_base(
+    page_title="Market Overview",
+    sections=("Markets", "Macro Indicators"),
+    section_key="overview_section",
+)
 inject_premium_css()
 inject_skeleton_css()
 
@@ -46,13 +50,7 @@ render_page_header(
 
 st.divider()
 
-section = st.segmented_control(
-    "View",
-    ["Markets", "Macro Indicators"],
-    default="Markets",
-    key="overview_section",
-)
-section = section or "Markets"  # segmented_control returns None if deselected
+section = _overview_section or "Markets"
 
 if section == "Markets":
     # CBOE treasury "yield index" tickers quote the yield × 10 (e.g. a 4.30% yield

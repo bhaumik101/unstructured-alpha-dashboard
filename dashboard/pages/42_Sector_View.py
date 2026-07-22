@@ -10,7 +10,11 @@ from utils.header import render_header, render_sidebar_base, render_page_header,
 from utils.theme import inject_premium_css, source_badge, PLOTLY_CONFIG, empty_state
 
 render_header("Sector View")
-render_sidebar_base()
+_sector_section = render_sidebar_base(
+    page_title="Sector View",
+    sections=("Sector Rotation", "Market Heatmap", "Supply Chain"),
+    section_key="sector_view_section_rail",
+)
 inject_premium_css()
 
 render_page_header(
@@ -26,12 +30,6 @@ render_page_header(
 from utils.signals_cache import get_all_signal_scores as _gas_disc
 disclose_unavailable_signals(_gas_disc())
 
-
-tab_sector, tab_heatmap, tab_supply = st.tabs([
-    " Sector Rotation",
-    " Market Heatmap",
-    " Supply Chain",
-])
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Shared sector metadata (mirrors 12_Sector_Map.py)
@@ -76,7 +74,7 @@ def _sector_scores(_v: int = 1) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 1 — SECTOR ROTATION MAP
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_sector:
+if _sector_section == "Sector Rotation":
     import plotly.graph_objects as go
 
     with st.spinner("Scoring sectors…"):
@@ -136,7 +134,7 @@ with tab_sector:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 2 — MARKET HEATMAP
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_heatmap:
+if _sector_section == "Market Heatmap":
     import plotly.graph_objects as go
     from utils.config import TICKERS
     from utils.top_tickers import get_top_tickers
@@ -199,7 +197,7 @@ with tab_heatmap:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 3 — SUPPLY CHAIN
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_supply:
+if _sector_section == "Supply Chain":
     import plotly.graph_objects as go
 
     st.markdown("### Supply Chain Signal Network")

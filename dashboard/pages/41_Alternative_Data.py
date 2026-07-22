@@ -11,7 +11,11 @@ from utils.header import render_header, render_sidebar_base, render_page_header
 from utils.theme import inject_premium_css, PLOTLY_CONFIG
 
 render_header("Alternative Data")
-render_sidebar_base()
+_alt_section = render_sidebar_base(
+    page_title="Alternative Data",
+    sections=("Congress Trades", "Options Flow"),
+    section_key="alternative_data_section_rail",
+)
 inject_premium_css()
 
 render_page_header(
@@ -20,12 +24,10 @@ render_page_header(
     icon="",
 )
 
-tab_congress, tab_options = st.tabs(["Congress Trades", "Options Flow"])
-
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 1 — CONGRESS TRACKER
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_congress:
+if _alt_section == "Congress Trades":
     import html as _h
     from datetime import datetime, timedelta
     import pandas as pd
@@ -133,7 +135,7 @@ with tab_congress:
 # ─────────────────────────────────────────────────────────────────────────────
 # TAB 2 — OPTIONS FLOW
 # ─────────────────────────────────────────────────────────────────────────────
-with tab_options:
+if _alt_section == "Options Flow":
     from utils.billing import require_pro
     require_pro("Alternative Data")
 
