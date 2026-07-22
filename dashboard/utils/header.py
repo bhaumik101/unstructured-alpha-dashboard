@@ -1520,31 +1520,59 @@ def ticker_chips(tickers: list, key_prefix: str, per_row: int = 3) -> None:
                 go_to_ticker(t, key=f"chip_{key_prefix}_{t}")
 
 
+def _normalize_global_ticker_pick(value) -> str:
+    """Normalize an existing or user-entered ticker selection."""
+    return str(value or "").upper().strip()
+
+
+def _resolve_global_ticker_query(query, symbol_index: dict[str, str]) -> tuple[str | None, list[str]]:
+    """Resolve an exact ticker first, then a unique company-name match.
+
+    Returning ambiguous candidates instead of guessing prevents prefix collisions
+    such as AMD being silently replaced by AMDC.
+    """
+    raw = str(query or "").strip()
+    normalized = _normalize_global_ticker_pick(raw)
+    if not normalized:
+        return None, []
+    if normalized in symbol_index:
+        return normalized, []
+
+    folded = raw.casefold()
+    exact_label = [
+        symbol for symbol, label in symbol_index.items()
+        if str(label).casefold() == folded
+    ]
+    if len(exact_label) == 1:
+        return exact_label[0], []
+
+    matches = [
+        symbol for symbol, label in symbol_index.items()
+        if folded in str(label).casefold()
+    ]
+    if len(matches) == 1:
+        return matches[0], []
+    return None, matches[:5]
+
+
 def render_global_ticker_search() -> None:
     """
-    Persistent, type-to-filter ticker search shown in the header on every
-    page — jumps straight to Ticker Deep Dive on selection. Plain
-    st.selectbox over every tracked ticker; Streamlit's selectbox already
-    supports typing to filter a long option list, so this needed no
-    custom component or JS.
+    Persistent ticker/company search shown in the header on every page.
 
-    NAVIGATION-LOOP GUARD, verified live (not assumed) before shipping:
-    a naive "if picked: switch_page()" would redirect every single time
-    the header re-renders afterward, forever -- the selectbox's own
-    session_state value persists across reruns, so `picked` stays truthy
-    on every subsequent page load too. The fix is NOT to del the widget's
-    session_state key after navigating -- that was tried first and
-    crashes Streamlit's own widget-state bookkeeping on the next rerun
-    (confirmed against a real AppTest run, not a guess). Instead, this
-    compares the picked value against the last value actually acted on
-    and only navigates when it's genuinely new.
+    Resolution is server-side and exact-symbol-first. The previous 12,600-item
+    selectbox let Streamlit's fuzzy matcher replace AMD with AMDC when Enter was
+    pressed, and shipped the entire symbol directory to every browser session.
+    A compact form keeps Enter-to-open behavior, resolves unique company names,
+    and only scans the cached directory after submission.
+
+    NAVIGATION-LOOP GUARD: only a submitted form can navigate, and the last
+    resolved ticker is retained as a second line of defense against repeat
+    navigation during reruns.
     """
     # Search the FULL US-listed universe (~12.6k symbols via utils.symbols), not
-    # just our 280 scored tickers — matching on symbol AND company name, filtered
-    # client-side so it's instant per keystroke. Scored tickers are labeled Core.
-    # The option list is static, so Streamlit ships it once per session rather
-    # than on every rerun. Degrades to the tracked list if the directory is
-    # unavailable, so search never breaks.
+    # just our 280 scored tickers. The cached directory stays server-side and is
+    # scanned only after submission, avoiding a 12.6k-option browser payload.
+    # Degrades to the tracked list if the directory is unavailable.
     try:
         from utils.symbols import get_symbol_index
         _sym_idx = dict(get_symbol_index())
@@ -1554,24 +1582,34 @@ def render_global_ticker_search() -> None:
     except Exception:
         _sym_idx = {}
 
-    if _sym_idx:
-        options = list(_sym_idx.keys())
-        _fmt = lambda t: _sym_idx.get(t, t)          # noqa: E731
-    else:
-        options = sorted(TICKERS.keys())
-        _fmt = ticker_label
+    if not _sym_idx:
+        _sym_idx = {ticker: ticker_label(ticker) for ticker in sorted(TICKERS)}
 
     _, search_col, _ = st.columns([3, 2.2, 1.4])
     with search_col:
-        picked = st.selectbox(
-            "Jump to a ticker",
-            options,
-            index=None,
-            placeholder="Search ticker or company",
-            key="global_ticker_search",
-            label_visibility="collapsed",
-            format_func=_fmt,
-        )
+        with st.form("global_ticker_search_form", border=False):
+            query_col, submit_col = st.columns([4.2, 1.0], vertical_alignment="bottom")
+            with query_col:
+                query = st.text_input(
+                    "Jump to a ticker",
+                    placeholder="Ticker or company",
+                    key="global_ticker_search",
+                    label_visibility="collapsed",
+                )
+            with submit_col:
+                submitted = st.form_submit_button(
+                    "Open",
+                    key="global_ticker_submit",
+                    use_container_width=True,
+                )
+
+    if not submitted:
+        return
+    picked, candidates = _resolve_global_ticker_query(query, _sym_idx)
+    if not picked:
+        hint = f" Try one of: {', '.join(candidates)}." if candidates else ""
+        st.caption(f"Enter an exact ticker or a unique company name.{hint}")
+        return
     if picked and picked != st.session_state.get("_last_global_ticker_search"):
         st.session_state["_last_global_ticker_search"] = picked
         st.session_state["selected_ticker"] = picked
