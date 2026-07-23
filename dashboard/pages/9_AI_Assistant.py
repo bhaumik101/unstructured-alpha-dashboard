@@ -216,6 +216,12 @@ THE PAGES:
     every underlying control. Morning briefs and watchlist emails provide a calm Start Here cue
     and plain-language Why It Matters context; alerts remain research prompts, not trade instructions.
 
+17. Portfolio Checkup — A free, investor-friendly workflow for up to five entered tickers or
+    the signed-in user's watchlist. It reads recent persisted full-score evidence in one database
+    query, excludes stale or missing rows, explains supportive/mixed/challenging in plain English,
+    ranks the next research page to open, and shows bounded provisional earnings context. The list
+    is equally weighted and explicitly not a substitute for Pro weighted portfolio analysis.
+
 KEY SIGNALS:
 - ATA Trucking (PCS 9): Monthly freight tonnage. Leads ISM PMI by 6-8 weeks. FRED TRUCKD11.
 - Rail Traffic (PCS 9): Weekly intermodal volume. Leads trade data by 4-8 weeks. FRED RAILFRTINTERMODAL.

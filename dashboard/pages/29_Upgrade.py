@@ -611,6 +611,7 @@ FREE_FEATS = [
     ("Ticker Deep Dive — confluence score for any stock", True),
     ("Congress Trade Tracker — recent legislator filings", True),
     ("Watchlist — track up to 5 tickers with live scores", True),
+    ("Portfolio Checkup — plain-English orientation for 5 tickers", True),
     ("Morning email digest — personalized signal brief", False),
     ("Factor Exposure — Fama-French regression per ticker", False),
     ("Signal Backtester — test custom signal combos", False),
@@ -852,6 +853,11 @@ st.markdown(f"""
 </tr>
 <tr>
     <td>Ticker Deep Dive — any stock, any signal</td>
+    <td style="text-align:center;" class="comp-yes">✓</td>
+    <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
+</tr>
+<tr>
+    <td>Portfolio Checkup — plain-English orientation for up to five tickers</td>
     <td style="text-align:center;" class="comp-yes">✓</td>
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
 </tr>

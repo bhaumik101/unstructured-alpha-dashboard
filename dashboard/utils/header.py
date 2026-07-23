@@ -1898,6 +1898,7 @@ a.ua-tnav-item.active { color: #00D566 !important; background: rgba(0,213,102,0.
       <span class="ua-tnav-trigger">Portfolio <span class="ua-tnav-caret">&#9660;</span></span>
       <div class="ua-tnav-drop">
         <a href="/my-watchlist">My Watchlist</a>
+        <a href="/portfolio-checkup">Portfolio Checkup</a>
         <a class="pro-link" href="/decision-queue">Decision Queue</a>
         <a class="pro-link" href="/thesis-journal">Thesis Journal</a>
         <a class="pro-link" href="/portfolio-suite">Portfolio Intelligence</a>

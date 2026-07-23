@@ -27,6 +27,7 @@ LAZY_SECTION_PAGES = (
     "44_Portfolio_Suite.py",
     "45_Options_Flow.py",
     "46_Thesis_Journal.py",
+    "50_Investor_Checkup.py",
 )
 
 

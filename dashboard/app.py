@@ -88,6 +88,7 @@ pg = st.navigation(
         # ── Portfolio ─────────────────────────────────────────────────────────
         "Portfolio": [
             st.Page("pages/10_Watchlist.py",          title="My Watchlist",        url_path="my-watchlist"),
+            st.Page("pages/50_Investor_Checkup.py",   title="Portfolio Checkup",   url_path="portfolio-checkup"),
             st.Page("pages/49_Decision_Queue.py",     title="Decision Queue",      url_path="decision-queue"),
             st.Page("pages/46_Thesis_Journal.py",     title="Thesis Journal",      url_path="thesis-journal"),
             st.Page("pages/44_Portfolio_Suite.py",    title="Portfolio Intelligence", url_path="portfolio-suite"),
