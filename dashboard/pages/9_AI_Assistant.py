@@ -195,6 +195,12 @@ THE PAGES:
     coverage, and portfolio concentration. It never creates trade instructions or synthetic facts;
     completed work automatically reopens when the underlying evidence fingerprint changes.
 
+14. Portfolio Fit Lab — A pre-trade research simulation inside Portfolio Intelligence. It
+    models a candidate or resized holding at a proposed target weight, funds it pro rata from
+    the other saved holdings, and compares portfolio macro score, factor concentration, and
+    hidden factor overlap using matched persisted full-score components. It does not forecast
+    returns or recommend a position size.
+
 KEY SIGNALS:
 - ATA Trucking (PCS 9): Monthly freight tonnage. Leads ISM PMI by 6-8 weeks. FRED TRUCKD11.
 - Rail Traffic (PCS 9): Weekly intermodal volume. Leads trade data by 4-8 weeks. FRED RAILFRTINTERMODAL.

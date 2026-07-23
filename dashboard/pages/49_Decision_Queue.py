@@ -175,6 +175,7 @@ def _open_source(item: dict) -> None:
     if item["route"] == "thesis":
         st.switch_page("pages/46_Thesis_Journal.py")
     elif item["route"] == "portfolio":
+        st.session_state["portfolio_suite_section_rail"] = "Portfolio Fit Lab"
         st.switch_page("pages/44_Portfolio_Suite.py")
     else:
         st.switch_page("pages/3_Ticker_Deep_Dive.py")

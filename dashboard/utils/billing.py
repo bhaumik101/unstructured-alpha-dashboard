@@ -392,6 +392,7 @@ PRO_FEATURES = [
     "PDF Research Reports — one-click export for any equity",
     "Signal Backtester — build & backtest custom signal combinations",
     "Portfolio Analyzer — risk decomposition across your full portfolio",
+    "Portfolio Fit Lab — simulate a candidate's score, factor, and concentration impact",
     "Options Flow — live unusual options activity feed",
     "AI Research Assistant — answers grounded in current live signals",
     "Ticker Deep Dive Pro — correlation, filings, contracts, and sentiment",
@@ -405,6 +406,7 @@ PRO_FEATURES = [
 # so the gate reads like "here's what you're missing" instead of a generic pitch.
 _PAGE_BENEFIT = {
     "Portfolio Intelligence":  "Save weighted holdings and monitor macro exposure, scenario risk, and concentration across your real portfolio.",
+    "Portfolio Fit Lab":       "Test how a candidate or resized position changes portfolio-level macro concentration before editing your saved holdings.",
     "Portfolio Suite":         "See risk decomposition, factor exposure, and macro concentration across your whole portfolio in one view.",
     "Options Flow":            "Track live unusual options activity — large, aggressive trades as they print.",
     "Stock Recommender":       "Get ranked equity ideas screened by the macro signals currently in your favor.",

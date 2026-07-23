@@ -15,7 +15,7 @@ from utils.billing import require_pro
 render_header("Portfolio Intelligence")
 _portfolio_section = render_sidebar_base(
     page_title="Portfolio Intelligence",
-    sections=("Holdings", "Portfolio Review", "Macro Exposure", "Stress Tester", "Portfolio Backtest", "Signal Backtester", "Basket Builder"),
+    sections=("Holdings", "Portfolio Review", "Portfolio Fit Lab", "Macro Exposure", "Stress Tester", "Portfolio Backtest", "Signal Backtester", "Basket Builder"),
     section_key="portfolio_suite_section_rail",
 )
 try:
@@ -268,6 +268,198 @@ if _portfolio_section == "Portfolio Review":
                 st.caption(
                     f"{_review_mode} · {_review_age or 'current evidence'} UTC · "
                     "automatically invalidates when holdings, saved weights, risk profile, or recorded scores change."
+                )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PORTFOLIO FIT LAB — persisted-evidence pre-trade context
+# ─────────────────────────────────────────────────────────────────────────────
+if _portfolio_section == "Portfolio Fit Lab":
+    from html import escape as html_escape
+
+    import pandas as pd
+
+    from utils.portfolio_fit import load_fit_records, simulate_portfolio_fit
+
+    st.markdown("#### Portfolio Fit Lab")
+    st.caption(
+        "Model how a candidate position would change your saved portfolio's macro score, "
+        "factor concentration, and hidden overlap before you alter the real holdings. "
+        "The simulation uses persisted full-score components only."
+    )
+
+    if not _workspace_holdings:
+        st.info(
+            "Save the portfolio you actually own in Holdings first. Fit analysis needs real "
+            "position weights and never substitutes an example portfolio."
+        )
+        if st.button("Open Holdings", key="fit_open_holdings"):
+            st.session_state["portfolio_suite_section_rail"] = "Holdings"
+            st.rerun()
+    else:
+        fit_input, fit_weight = st.columns([2, 1])
+        candidate_ticker = fit_input.text_input(
+            "Candidate ticker",
+            placeholder="e.g. MSFT",
+            max_chars=15,
+            key="portfolio_fit_candidate",
+            help="You can also enter a holding you already own to simulate a new target weight.",
+        ).upper().strip().lstrip("$")
+        target_weight = fit_weight.slider(
+            "Proposed portfolio weight",
+            min_value=1,
+            max_value=50,
+            value=10,
+            step=1,
+            format="%d%%",
+            key="portfolio_fit_weight",
+        )
+        holding_fingerprint = tuple(
+            (row["ticker"], round(float(row["weight"]), 4)) for row in _workspace_holdings
+        )
+        fit_input_key = (candidate_ticker, int(target_weight), holding_fingerprint)
+
+        if st.button(
+            "Run portfolio fit simulation",
+            type="primary",
+            use_container_width=True,
+            disabled=not bool(candidate_ticker),
+            key="portfolio_fit_run",
+        ):
+            with st.spinner("Loading matched full-score evidence and simulating the portfolio…"):
+                fit_current, fit_candidate = load_fit_records(_saved_holdings, candidate_ticker)
+                fit_result = simulate_portfolio_fit(
+                    fit_current, fit_candidate, float(target_weight)
+                )
+            st.session_state["portfolio_fit_result"] = {
+                "input_key": fit_input_key,
+                "payload": fit_result,
+            }
+            try:
+                from utils.instrumentation import record
+                record(
+                    "portfolio_fit_simulated",
+                    candidate=candidate_ticker,
+                    target_weight=int(target_weight),
+                    state=fit_result.get("state"),
+                )
+            except Exception:
+                pass
+
+        stored_fit = st.session_state.get("portfolio_fit_result") or {}
+        fit_result = (
+            stored_fit.get("payload")
+            if stored_fit.get("input_key") == fit_input_key
+            else None
+        )
+        if fit_result:
+            if fit_result.get("state") == "candidate_unavailable":
+                reason = (fit_result.get("candidate") or {}).get("reason") or "Verified full-score evidence is unavailable."
+                st.warning(
+                    f"{candidate_ticker} cannot be simulated yet: {reason} "
+                    "Open Ticker Deep Dive to calculate and persist a current full score first."
+                )
+                if st.button("Open candidate Deep Dive", key="fit_missing_open"):
+                    st.session_state["selected_ticker"] = candidate_ticker
+                    st.switch_page("pages/3_Ticker_Deep_Dive.py")
+            elif fit_result.get("state") == "portfolio_unavailable":
+                st.warning(
+                    "The saved portfolio does not have enough current, reconciled full-score "
+                    "component evidence for a trustworthy before/after comparison."
+                )
+            elif fit_result.get("state") == "evidence_incompatible":
+                st.warning(fit_result["reason"])
+            elif fit_result.get("state") == "ready":
+                before = fit_result["before"]
+                after = fit_result["after"]
+                delta = float(fit_result["score_delta"])
+                metric_cols = st.columns(4)
+                metric_cols[0].metric("Current portfolio score", f'{before["portfolio_score"]:.1f}')
+                metric_cols[1].metric(
+                    "Simulated portfolio score",
+                    f'{after["portfolio_score"]:.1f}',
+                    delta=f"{delta:+.1f}",
+                )
+                metric_cols[2].metric(
+                    "Macro overlap",
+                    f'{float(fit_result["overlap_similarity"]) * 100:.0f}%'
+                )
+                metric_cols[3].metric(
+                    "Current evidence coverage",
+                    f'{fit_result["coverage_pct"]:.1f}%'
+                )
+
+                tone_color = {
+                    "differentiated": "#78A99A",
+                    "reinforces": "#C49A72",
+                    "mixed": "#8797AD",
+                }[fit_result["fit_tone"]]
+                st.markdown(
+                    f'<div style="background:linear-gradient(145deg,#111720,#0E131B);'
+                    f'border:1px solid rgba(255,255,255,.08);border-left:3px solid {tone_color};'
+                    f'border-radius:11px;padding:17px 19px;margin:14px 0;">'
+                    f'<div style="font-size:.61rem;color:{tone_color};font-weight:800;'
+                    f'letter-spacing:.12em;text-transform:uppercase;">Portfolio fit read</div>'
+                    f'<div style="font-size:1.08rem;color:#E7ECF5;font-weight:760;margin-top:5px;">'
+                    f'{html_escape(fit_result["candidate"])} · {html_escape(fit_result["fit_label"])}</div>'
+                    f'<div style="font-size:.76rem;color:#AAB4C2;line-height:1.55;margin-top:7px;">'
+                    f'{html_escape(fit_result["assumption"])}</div></div>',
+                    unsafe_allow_html=True,
+                )
+
+                st.markdown("##### Factor exposure changes")
+                shift_rows = [
+                    {
+                        "Macro factor": row["name"],
+                        "Current weight exposed": row["before_pct"],
+                        "Simulated weight exposed": row["after_pct"],
+                        "Change": row["delta_pct"],
+                    }
+                    for row in fit_result["factor_shifts"]
+                    if abs(float(row["delta_pct"])) >= 0.1
+                ]
+                if shift_rows:
+                    st.dataframe(
+                        pd.DataFrame(shift_rows),
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Current weight exposed": st.column_config.NumberColumn(format="%.1f%%"),
+                            "Simulated weight exposed": st.column_config.NumberColumn(format="%.1f%%"),
+                            "Change": st.column_config.NumberColumn(format="%+.1f pp"),
+                        },
+                    )
+                else:
+                    st.info("No material factor-concentration change is detected at this weight.")
+
+                detail_cols = st.columns(2)
+                with detail_cols[0]:
+                    st.markdown("##### Exposure this candidate adds")
+                    if fit_result["new_factors"]:
+                        for factor in fit_result["new_factors"]:
+                            st.markdown(f"- {factor}")
+                    else:
+                        st.caption("No new macro-factor family clears the material exposure threshold.")
+                with detail_cols[1]:
+                    st.markdown("##### Exposure this candidate repeats")
+                    if fit_result["shared_factors"]:
+                        for factor in fit_result["shared_factors"][:5]:
+                            st.markdown(
+                                f'- **{factor["name"]}** — {factor["candidate_exposure"]:.1f}% of candidate evidence; '
+                                f'{factor["portfolio_pct"]:.1f}% of current portfolio weight exposed'
+                            )
+                    else:
+                        st.caption("No material shared factor is detected in the current evidence.")
+
+                if fit_result["unavailable"]:
+                    missing_names = ", ".join(row["ticker"] for row in fit_result["unavailable"])
+                    st.warning(
+                        f"Coverage limitation: {missing_names} could not be included. The displayed "
+                        "before/after scores are normalized across covered holdings only."
+                    )
+                st.caption(
+                    "Research context only. This simulation does not model returns, volatility, "
+                    "taxes, transaction costs, correlations of security returns, or a recommended position size."
                 )
 
 

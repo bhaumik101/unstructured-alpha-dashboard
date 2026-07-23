@@ -64,6 +64,7 @@ class Event:
     WATCHLIST_UPDATED      = "watchlist_updated"
     PORTFOLIO_SAVED        = "portfolio_saved"
     DECISION_QUEUE_VIEWED  = "decision_queue_viewed"
+    PORTFOLIO_FIT_SIMULATED = "portfolio_fit_simulated"
 
     # Conversion events
     UPGRADE_CTA_CLICKED    = "upgrade_cta_clicked"
