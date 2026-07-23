@@ -312,6 +312,27 @@ decision_queue_states = Table(
     UniqueConstraint("user_id", "item_key", name="uq_decision_queue_user_item"),
 )
 
+# Private pre-event research plans. Event keys contain only public identifiers
+# (release/ticker/date); all user-authored cases and review notes remain scoped
+# to the owning account.
+catalyst_plans = Table(
+    "catalyst_plans", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("event_key", String(128), nullable=False),
+    Column("event_date", String(10), nullable=False),
+    Column("title", String(160), nullable=False),
+    Column("base_case", Text),
+    Column("upside_case", Text),
+    Column("downside_case", Text),
+    Column("watch_for", Text),
+    Column("status", String(16), nullable=False, server_default="planned"),
+    Column("outcome_notes", Text),
+    Column("created_at", String(64), nullable=False),
+    Column("updated_at", String(64), nullable=False),
+    UniqueConstraint("user_id", "event_key", name="uq_catalyst_plan_user_event"),
+)
+
 # One evolving investment thesis per user/security. This is deliberately
 # user-scoped: unlike the canonical Confluence Score, thesis language, horizon,
 # risk conditions, and outcome notes are private decision-journal data.

@@ -1932,7 +1932,7 @@ a.ua-tnav-item.active { color: #00D566 !important; background: rgba(0,213,102,0.
       <span class="ua-tnav-trigger">Monitoring <span class="ua-tnav-caret">&#9660;</span></span>
       <div class="ua-tnav-drop">
         <a href="/my-watchlist">Watchlist Alerts</a>
-        <a href="/events-forecasts">Events &amp; Forecasts</a>
+        <a class="pro-link" href="/events-forecasts">Catalyst Command Center</a>
       </div>
     </div>
 

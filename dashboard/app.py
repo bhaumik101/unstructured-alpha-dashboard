@@ -120,7 +120,7 @@ pg = st.navigation(
         ],
         # ── Monitoring ────────────────────────────────────────────────────────
         "Monitoring": [
-            st.Page("pages/43_Events_Forecasts.py",   title="Events & Forecasts",  url_path="events-forecasts"),
+            st.Page("pages/43_Events_Forecasts.py",   title="Catalyst Command Center", url_path="events-forecasts"),
             # merged out of visible nav (external-feed data):
             st.Page("pages/41_Alternative_Data.py",   title="Alternative Data",    url_path="alternative-data"),
         ],

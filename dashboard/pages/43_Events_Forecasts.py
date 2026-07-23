@@ -1,187 +1,288 @@
-# pages/43_Events_Forecasts.py
-# Unstructured Alpha — Events & Forecasts
-# Combines Macro Calendar and Event Impact Forecaster into one page.
+"""Catalyst Command Center: verified dates, portfolio exposure, and event plans."""
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date, timedelta
+
+import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Events & Forecasts — UA", layout="wide")
+st.set_page_config(page_title="Catalyst Command Center — UA", layout="wide")
 
-from utils.header import render_header, render_sidebar_base, render_page_header, disclose_unavailable_signals
+from utils.billing import require_pro
+from utils.catalyst_center import (
+    build_portfolio_catalysts,
+    fetch_fred_release_calendar,
+    get_catalyst_plan,
+    list_catalyst_plans,
+    save_catalyst_plan,
+)
+from utils.header import (
+    disclose_unavailable_signals,
+    render_footer,
+    render_guided_steps,
+    render_header,
+    render_page_header,
+    render_sidebar_base,
+)
 from utils.theme import inject_premium_css
 
-render_header("Events & Forecasts")
-_events_section = render_sidebar_base(
-    page_title="Events & Forecasts",
-    sections=("Macro Calendar", "Event Forecaster"),
-    section_key="events_forecasts_section_rail",
+
+render_header("Catalyst Command Center")
+section = render_sidebar_base(
+    page_title="Catalyst Command Center",
+    sections=("Portfolio Catalysts", "Macro Calendar", "Event Forecaster", "Review Plans"),
+    section_key="catalyst_command_center_section_rail",
 )
 inject_premium_css()
+try:
+    from utils.instrumentation import record_once
+    record_once("catalyst_center_viewed")
+except Exception:
+    pass
 
 render_page_header(
-    "Events & Forecasts",
-    "Upcoming macro events with UA signal alignment and historical market impact.",
+    "Catalyst Command Center",
+    "Verified event dates, weighted portfolio exposure, and a disciplined pre/post-event workflow.",
     icon="",
 )
+render_guided_steps(
+    "Prepare for the event without pretending to predict it",
+    [
+        ("See what is dated", "Start with official macro releases and provider-supplied company events."),
+        ("Measure exposure", "See which saved holdings and how much portfolio weight may be affected."),
+        ("Write the plan", "Record scenarios and evidence to watch, then review the outcome after the event."),
+    ],
+    eyebrow="Catalyst workflow",
+    intro="The calendar never invents a missing date and the signal read never predicts the release outcome.",
+)
 
-# Data-integrity disclosure: this page presents/acts on macro-signal scores. If
-# any underlying signal is synthetic (no FRED/EIA key or a failed live fetch),
-# that must be visible here, not only on the Signal Dashboard. Same cached call
-# the page's own logic uses, so no extra network cost.
-from utils.signals_cache import get_all_signal_scores as _gas_disc
-disclose_unavailable_signals(_gas_disc())
+TODAY = date.today()
+END_DAY = TODAY + timedelta(days=45)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TAB 1 — MACRO CALENDAR
-# ─────────────────────────────────────────────────────────────────────────────
-if _events_section == "Macro Calendar":
-    from datetime import date, datetime, timedelta
-    import pandas as pd
-    import plotly.graph_objects as go
 
-    TODAY = date.today()
+def _calendar() -> dict:
+    from utils.fetchers import _get_fred_key
+    return fetch_fred_release_calendar(TODAY.isoformat(), END_DAY.isoformat(), _get_fred_key())
 
-    EVENTS = [
-        dict(name="CPI Release",    category="Inflation",   color="#F59E0B", icon="", series="CPIAUCSL",
-             description="Consumer Price Index — the Fed's core inflation gauge.",
-             signals=["ten_year_yield","hy_spread","tips_breakeven"],
-             dates=["2026-01-15","2026-02-12","2026-03-12","2026-04-10","2026-05-13",
-                    "2026-06-11","2026-07-15","2026-08-12","2026-09-11","2026-10-14"]),
-        dict(name="FOMC Meeting",   category="Fed Policy",  color="#3B82F6", icon="", series="FEDFUNDS",
-             description="Federal Reserve rate decision and policy statement.",
-             signals=["ten_year_yield","yield_curve","hy_spread"],
-             dates=["2026-01-29","2026-03-19","2026-05-07","2026-06-18","2026-07-30",
-                    "2026-09-17","2026-11-05","2026-12-17"]),
-        dict(name="NFP Report",     category="Labor",       color="#10B981", icon="", series="PAYEMS",
-             description="Non-Farm Payrolls — broadest measure of US labor market strength.",
-             signals=["jobless_claims","retail_sales","consumer_sentiment"],
-             dates=["2026-01-10","2026-02-07","2026-03-07","2026-04-04","2026-05-09",
-                    "2026-06-06","2026-07-11","2026-08-08","2026-09-05","2026-10-03"]),
-        dict(name="GDP Advance",    category="Growth",      color="#8B5CF6", icon="", series="GDPC1",
-             description="Advance estimate of real GDP growth — the broadest economic measure.",
-             signals=["ism_pmi","retail_sales","durable_goods"],
-             dates=["2026-01-30","2026-04-30","2026-07-30","2026-10-29"]),
-        dict(name="PCE Release",    category="Inflation",   color="#EC4899", icon="", series="PCEPI",
-             description="Personal Consumption Expenditures — the Fed's preferred inflation metric.",
-             signals=["tips_breakeven","ten_year_yield"],
-             dates=["2026-01-31","2026-02-28","2026-03-31","2026-04-30","2026-05-29",
-                    "2026-06-30","2026-07-31","2026-08-29","2026-09-30","2026-10-30"]),
-    ]
 
-    upcoming = []
-    for ev in EVENTS:
-        for d_str in ev["dates"]:
-            d = date.fromisoformat(d_str)
-            if d >= TODAY:
-                days_away = (d - TODAY).days
-                upcoming.append({**ev, "next_date": d, "days_away": days_away, "date_str": d_str})
-                break
+@st.cache_data(ttl=21_600, show_spinner=False, max_entries=24)
+def _earnings_for(symbols: tuple[str, ...]) -> dict[str, dict | None]:
+    from utils.earnings_awareness import next_earnings
+    output: dict[str, dict | None] = {ticker: None for ticker in symbols}
+    if not symbols:
+        return output
+    with ThreadPoolExecutor(max_workers=min(6, len(symbols))) as pool:
+        futures = {pool.submit(next_earnings, ticker, 45): ticker for ticker in symbols}
+        for future in as_completed(futures):
+            ticker = futures[future]
+            try:
+                output[ticker] = future.result()
+            except Exception:
+                output[ticker] = None
+    return output
 
-    upcoming.sort(key=lambda x: x["days_away"])
 
-    st.markdown("#### Next 30 Days")
-    if not upcoming:
-        st.info("No upcoming events in schedule.")
+def _ticker_signal_map(symbols: tuple[str, ...]) -> dict[str, list[str]]:
+    from utils.config import SIGNALS
+    mapping = {ticker: [] for ticker in symbols}
+    for signal_id, config in SIGNALS.items():
+        for ticker in config.get("relevant_tickers") or []:
+            symbol = str(ticker).upper()
+            if symbol in mapping:
+                mapping[symbol].append(signal_id)
+    return mapping
+
+
+def _save_plan_form(event: dict, user_id: int) -> None:
+    current = get_catalyst_plan(user_id, event["event_key"]) or {}
+    key = event["event_key"].replace(":", "_")
+    with st.form(f"catalyst_plan_{key}"):
+        base = st.text_area("Base case", value=current.get("base_case") or "", key=f"base_{key}")
+        upside = st.text_area("Upside case", value=current.get("upside_case") or "", key=f"up_{key}")
+        downside = st.text_area("Downside case", value=current.get("downside_case") or "", key=f"down_{key}")
+        watch_for = st.text_area(
+            "Evidence to watch",
+            value=current.get("watch_for") or "",
+            help="Write the specific print, guidance, or signal change that would alter your view.",
+            key=f"watch_{key}",
+        )
+        if st.form_submit_button("Save private event plan", type="primary"):
+            save_catalyst_plan(
+                user_id=user_id,
+                event_key=event["event_key"],
+                event_date=event["date"],
+                title=event["title"],
+                base_case=base,
+                upside_case=upside,
+                downside_case=downside,
+                watch_for=watch_for,
+            )
+            try:
+                from utils.instrumentation import record
+                record("catalyst_plan_saved", user_id=user_id, event_type=event.get("event_type"))
+            except Exception:
+                pass
+            st.success("Private event plan saved.")
+
+
+calendar = _calendar()
+
+
+if section == "Macro Calendar":
+    st.markdown("#### Official macro release calendar")
+    st.caption("High-impact releases scheduled during the next 45 days, sourced directly from FRED.")
+    if not calendar.get("available"):
+        st.warning(
+            "The official macro calendar is unavailable right now. No replacement or estimated dates are being shown. "
+            "Configure a FRED API key in Setup, then refresh."
+        )
+    elif not calendar["events"]:
+        st.info("FRED returned no mapped high-impact releases in this date window.")
     else:
-        for ev in upcoming[:8]:
-            urgency = "" if ev["days_away"] <= 7 else "" if ev["days_away"] <= 14 else ""
-            countdown = f"**Tomorrow**" if ev["days_away"] == 1 else (f"**Today**" if ev["days_away"] == 0 else f"in **{ev['days_away']} days**")
-            st.markdown(
-                f'<div style="background:rgba(255,255,255,0.025);border:0.5px solid rgba(255,255,255,0.08);'
-                f'border-left:4px solid {ev["color"]};border-radius:8px;padding:12px 16px;margin-bottom:8px;'
-                f'display:flex;justify-content:space-between;align-items:center;">'
-                f'<div>'
-                f'<span style="font-size:0.85rem;font-weight:600;color:#E8EEFF;">{ev["icon"]} {ev["name"]}</span>'
-                f'<span style="font-size:0.65rem;color:#6B7FBF;margin-left:10px;padding:2px 7px;background:rgba(255,255,255,0.05);border-radius:8px;">{ev["category"]}</span>'
-                f'<div style="font-size:0.65rem;color:#8892AA;margin-top:3px;">{ev["description"]}</div>'
-                f'</div>'
-                f'<div style="text-align:right;flex-shrink:0;margin-left:20px;">'
-                f'<div style="font-size:0.85rem;color:#E8EEFF;">{ev["date_str"]}</div>'
-                f'<div style="font-size:0.68rem;color:{ev["color"]};">{urgency} {countdown}</div>'
-                f'</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+        rows = [
+            {
+                "Date": event["date_str"],
+                "Release": event["title"],
+                "Official FRED name": event["official_name"],
+                "Category": event["category"],
+                "Signals monitored": ", ".join(event["signals"]),
+            }
+            for event in calendar["events"]
+        ]
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        st.caption(
+            "Source: Federal Reserve Bank of St. Louis FRED API. A publisher's scheduled release date does not "
+            "guarantee that the new observation will already be available on FRED that day."
+        )
 
-        st.markdown("---")
-        st.markdown("#### Full Calendar")
-        all_rows = []
-        for ev in EVENTS:
-            for d_str in ev["dates"]:
-                d = date.fromisoformat(d_str)
-                all_rows.append({
-                    "Date": d_str, "Event": f"{ev['icon']} {ev['name']}",
-                    "Category": ev["category"],
-                    "Days Away": (d - TODAY).days,
-                    "Key Signals": ", ".join(ev.get("signals", [])[:3]),
-                })
-        cal_df = pd.DataFrame(all_rows).sort_values("Date")
-        cal_df = cal_df[cal_df["Days Away"] >= -7]
-        st.dataframe(cal_df.drop(columns=["Days Away"]), use_container_width=True, hide_index=True)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TAB 2 — EVENT FORECASTER
-# ─────────────────────────────────────────────────────────────────────────────
-if _events_section == "Event Forecaster":
-    import plotly.graph_objects as go
-
-    st.markdown("### UA Signal Alignment for Upcoming Events")
+elif section == "Event Forecaster":
+    st.markdown("#### Pre-event signal regime")
     st.caption(
-        "Before each major release, UA checks which signals are aligned with a bullish or bearish outcome. "
-        "This is not a point prediction — it's the signal regime heading into the release."
+        "This read describes the live macro regime around verified upcoming releases. It does not forecast the print."
     )
-
-    with st.spinner("Loading signal alignment…"):
+    if not calendar.get("available") or not calendar.get("events"):
+        st.warning("A verified upcoming release is required. The product will not substitute a generic or hardcoded date.")
+    else:
         from utils.signals_cache import get_all_signal_scores
-        all_sv = get_all_signal_scores()
+        with st.spinner("Loading current signal evidence…"):
+            all_scores = get_all_signal_scores()
+        disclose_unavailable_signals(all_scores)
+        seen_titles: set[str] = set()
+        for event in calendar["events"]:
+            if event["title"] in seen_titles:
+                continue
+            seen_titles.add(event["title"])
+            available = [
+                all_scores[sid] for sid in event["signals"]
+                if sid in all_scores and not all_scores[sid].get("error") and not all_scores[sid].get("synthetic")
+            ]
+            if not available:
+                continue
+            bullish = sum(item.get("status") == "bullish" for item in available)
+            bearish = sum(item.get("status") == "bearish" for item in available)
+            regime = "Supportive" if bullish > bearish else "Challenging" if bearish > bullish else "Mixed"
+            with st.expander(f'{event["date"].strftime("%b %-d")} · {event["title"]} · {regime}', expanded=True):
+                st.write(f'{len(available)} verified signals available · {bullish} supportive · {bearish} challenging')
+                columns = st.columns(min(4, len(available)))
+                for index, signal in enumerate(available[:4]):
+                    columns[index].metric(signal.get("name", "Signal"), f'{float(signal.get("score", 50)):.0f}/100')
+                excluded = len(event["signals"]) - len(available)
+                if excluded:
+                    st.caption(f"{excluded} unavailable signal(s) excluded rather than imputed.")
 
-    EVENT_SIGNAL_MAP = {
-        "CPI / Inflation":  ["tips_breakeven","ten_year_yield","hy_spread","michigan_sentiment","food_cpi"],
-        "FOMC / Fed":       ["yield_curve","ten_year_yield","hy_spread","vix","copper_gold"],
-        "NFP / Labor":      ["jobless_claims","retail_sales","consumer_sentiment","ata_trucking","retail_job_openings"],
-        "GDP / Growth":     ["ism_pmi","durable_goods","retail_sales","ata_trucking","rail_traffic"],
-        "PCE / Inflation":  ["tips_breakeven","ten_year_yield","vix","consumer_sentiment"],
-    }
 
-    for event_name, signal_ids in EVENT_SIGNAL_MAP.items():
-        sigs = [sid for sid in signal_ids if sid in all_sv and not all_sv[sid].get("error")]
-        if not sigs:
-            continue
-        bulls = [sid for sid in sigs if all_sv[sid].get("status") == "bullish"]
-        bears = [sid for sid in sigs if all_sv[sid].get("status") == "bearish"]
-        score = len(bulls) / max(len(sigs), 1) * 100
-
-        if score >= 60:
-            lean_color = "#00D566"; lean_text = "Bullish lean"
-        elif score <= 40:
-            lean_color = "#FF4444"; lean_text = "Bearish lean"
-        else:
-            lean_color = "#6B7FBF"; lean_text = "Mixed / uncertain"
-
-        with st.expander(f"{event_name}  —  {lean_text} ({score:.0f}/100)", expanded=(score >= 60 or score <= 40)):
-            cols = st.columns(len(sigs) if len(sigs) <= 5 else 5)
-            for i, sid in enumerate(sigs[:5]):
-                sv = all_sv[sid]
-                sc = float(sv.get("score", 50))
-                st_status = sv.get("status", "neutral")
-                c = "#00D566" if st_status=="bullish" else "#FF4444" if st_status=="bearish" else "#6B7FBF"
-                with cols[i]:
-                    st.markdown(
-                        f'<div style="background:rgba(255,255,255,0.03);border:0.5px solid {c}44;'
-                        f'border-radius:8px;padding:8px 10px;text-align:center;">'
-                        f'<div style="font-size:0.60rem;color:#8892AA;">{sv.get("name",sid)[:20]}</div>'
-                        f'<div style="font-size:1.1rem;font-weight:700;color:{c};">{sc:.0f}</div>'
-                        f'</div>',
-                        unsafe_allow_html=True,
-                    )
-            st.markdown(
-                f'<div style="margin-top:8px;font-size:0.70rem;color:#8892AA;">'
-                f'▲ {len(bulls)} signals bullish · ▼ {len(bears)} bearish · '
-                f'{len(sigs)-len(bulls)-len(bears)} neutral heading into this release.</div>',
-                unsafe_allow_html=True,
+elif section == "Portfolio Catalysts":
+    require_pro(page_name="Catalyst Command Center")
+    user = st.session_state.get("user")
+    if not user:
+        st.stop()
+    from utils.portfolio_workspace import get_default_holdings
+    try:
+        holdings = get_default_holdings(user["id"])
+        plans = list_catalyst_plans(user["id"])
+    except Exception:
+        holdings = []
+        plans = []
+        st.warning("Your private catalyst workspace is temporarily unavailable. The public calendar remains accessible.")
+    if not holdings:
+        st.info("Save your weighted holdings in Portfolio Intelligence to activate personalized catalyst ranking.")
+    else:
+        symbols = tuple(row["ticker"] for row in holdings)
+        with st.spinner("Ranking verified events against your saved portfolio…"):
+            earnings = _earnings_for(symbols)
+            catalysts = build_portfolio_catalysts(
+                holdings,
+                calendar.get("events") or [],
+                earnings,
+                _ticker_signal_map(symbols),
+                today=TODAY,
             )
+        metrics = st.columns(4)
+        metrics[0].metric("Next 21 days", sum(event["days_until"] <= 21 for event in catalysts))
+        metrics[1].metric("Company events", sum(event["event_type"] == "earnings" for event in catalysts))
+        metrics[2].metric("Macro releases", sum(event["event_type"] == "macro" for event in catalysts))
+        metrics[3].metric("Saved plans", len(plans))
+        if not calendar.get("available"):
+            st.warning("Official macro dates are unavailable, so this ranking currently contains company events only.")
+        if not catalysts:
+            st.info("No dated catalyst was found for these holdings in the next 45 days.")
+        for event in catalysts[:12]:
+            estimate = " · provisional date" if event.get("is_estimate") else ""
+            tickers = ", ".join(event["affected_tickers"][:8])
+            with st.expander(
+                f'{event["date"].strftime("%b %-d")} · {event["title"]} · {event["affected_weight"]:.1f}% affected weight',
+                expanded=event["days_until"] <= 7,
+            ):
+                st.write(f'{event["days_until"]} days away{estimate}')
+                st.write(f"Affected holdings: {tickers}")
+                st.caption(f'Source: {event["source"]}')
+                _save_plan_form(event, user["id"])
+        st.caption(
+            "Earnings dates come from the market-data provider and remain labeled provisional until company-confirmed. "
+            "Macro dates come from FRED; missing dates are never synthesized."
+        )
 
-    st.caption(
-        "Signal alignment does not predict the release outcome — it shows the macro regime heading in. "
-        "A bullish-leaning signal regime into CPI means macro data generally supports lower inflation; "
-        "the actual print can still surprise."
-    )
+
+elif section == "Review Plans":
+    require_pro(page_name="Catalyst Command Center")
+    user = st.session_state.get("user")
+    if not user:
+        st.stop()
+    try:
+        plans = list_catalyst_plans(user["id"])
+    except Exception:
+        plans = []
+        st.warning("Your private review book is temporarily unavailable. Try again shortly.")
+    st.markdown("#### Private pre/post-event review book")
+    st.caption("Compare what you expected with what happened. Plans are visible only to your account.")
+    if not plans:
+        st.info("No plans yet. Open Portfolio Catalysts and save a plan before an upcoming event.")
+    for plan in plans:
+        with st.expander(f'{plan["event_date"]} · {plan["title"]} · {plan["status"]}', expanded=False):
+            st.markdown("**Base case**")
+            st.write(plan.get("base_case") or "Not recorded")
+            st.markdown("**Upside case**")
+            st.write(plan.get("upside_case") or "Not recorded")
+            st.markdown("**Downside case**")
+            st.write(plan.get("downside_case") or "Not recorded")
+            st.markdown("**Evidence to watch**")
+            st.write(plan.get("watch_for") or "Not recorded")
+            with st.form(f'review_{plan["id"]}'):
+                status = st.selectbox(
+                    "Review status",
+                    ("planned", "reviewed"),
+                    index=1 if plan["status"] == "reviewed" else 0,
+                )
+                outcome = st.text_area("What happened and what changed?", value=plan.get("outcome_notes") or "")
+                if st.form_submit_button("Update review"):
+                    save_catalyst_plan(
+                        user_id=user["id"], event_key=plan["event_key"], event_date=plan["event_date"],
+                        title=plan["title"], base_case=plan.get("base_case") or "",
+                        upside_case=plan.get("upside_case") or "", downside_case=plan.get("downside_case") or "",
+                        watch_for=plan.get("watch_for") or "", status=status, outcome_notes=outcome,
+                    )
+                    st.success("Review updated.")
+
+
+render_footer()

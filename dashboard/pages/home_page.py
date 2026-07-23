@@ -1755,7 +1755,8 @@ with _q2:
             "Discord/Slack webhook delivery, daily signal-flip tweets via @UnstructuredAlpha, "
             "saved-screen monitoring, Portfolio Intelligence with an evidence-constrained executive review, "
             "Portfolio Fit Lab for candidate-impact simulation, a daily Decision Queue across holdings, "
-            "catalysts, and theses, read-only score API access, "
+            "catalysts, and theses, a Catalyst Command Center with verified event dates, portfolio-weighted "
+            "exposure, and private review plans, read-only score API access, "
             "Signal Backtester, Factor Exposure, and all future Pro features. "
             "No long-term commitment."
         )

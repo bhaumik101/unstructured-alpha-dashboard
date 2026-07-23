@@ -397,6 +397,7 @@ PRO_FEATURES = [
     "AI Research Assistant — answers grounded in current live signals",
     "Ticker Deep Dive Pro — correlation, filings, contracts, and sentiment",
     "Decision Queue — daily evidence triage across holdings, catalysts, and theses",
+    "Catalyst Command Center — verified events, portfolio exposure, and private review plans",
     "Thesis Journal — private decisions, invalidation rules, and outcomes",
     "Unlimited watchlist tickers (Free: 5)",
     "Morning digest email with top signal moves",
@@ -418,6 +419,7 @@ _PAGE_BENEFIT = {
     "AI Research Assistant":     "Use a live signal-aware research copilot grounded in the platform's current real-data state.",
     "Ticker Deep Dive Pro":      "Unlock lead-lag correlation, insider and short-interest evidence, 13F and federal-contract intelligence, and earnings sentiment.",
     "Decision Queue":            "See which holdings need review now, why they moved up the queue, and which source workflow to open next.",
+    "Catalyst Command Center":    "Rank verified macro and company events by affected portfolio weight, then save private pre/post-event plans.",
     "Thesis Journal":            "Turn live research into a private decision record with catalysts, risks, invalidation rules, and outcome reviews.",
 }
 
