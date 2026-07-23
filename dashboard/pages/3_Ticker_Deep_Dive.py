@@ -610,6 +610,13 @@ if section == "Overview":
     conviction = confluence["conviction"]
     case       = confluence["case"]
 
+    # De-correlated conviction read (see utils/signal_independence). Raw
+    # agreement over-counts signals that proxy the same macro factor; the
+    # effective read is what we actually trust and surface honestly below.
+    _indep = confluence.get("independence", {}) or {}
+    _eff_sig = confluence.get("effective_signals")
+    _conv_eff = confluence.get("conviction_effective", conviction)
+
     score_color = "#00D566" if case == "BULL" else ("#FF4444" if case == "BEAR" else "#6B7FBF")
 
     # Conviction context: signal alignment + historical forward return
@@ -705,6 +712,29 @@ if section == "Overview":
       </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # ── De-correlated conviction (honest independent-evidence read) ───────────
+    # Raw agreement counts every aligned signal as one vote, but signals proxying
+    # the same macro factor (VIX + put/call = risk appetite) are one bet counted
+    # twice. Surfacing the EFFECTIVE independent count stops "9 agree" from
+    # reading as nine independent confirmations when it's really ~3 — the single
+    # most credibility-relevant qualifier on a confluence score.
+    try:
+        _raw_align = _indep.get("raw", 0)
+        _nfac = _indep.get("n_factors", 0)
+        if _raw_align >= 2 and _eff_sig is not None and _nfac:
+            _side = "bullish" if case == "BULL" else ("bearish" if case == "BEAR" else "mixed")
+            _cap_note = (
+                f" · conviction, adjusted for correlation: **{_conv_eff}**"
+                if _conv_eff != conviction else ""
+            )
+            st.caption(
+                f"{_raw_align} signals aligned {_side} across **~{_nfac} independent "
+                f"macro factors** — effective evidence ≈ **{_eff_sig:g} of {_raw_align}** "
+                f"(correlated signals counted once){_cap_note}."
+            )
+    except Exception:
+        pass
 
     # ── Your Score — personalized by the user's risk profile ──────────────────
     # ADDITIVE by design: the canonical Confluence Score above is never changed

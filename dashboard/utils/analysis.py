@@ -922,6 +922,44 @@ def compute_confluence(
     else:
         conviction = "Low / Mixed"
 
+    # ── Effective independent signals (de-correlated conviction) ──────────────
+    # Raw agreement counts each agreeing signal as one piece of evidence, but
+    # signals sharing a macro factor (VIX + put/call = risk appetite; HY + IG =
+    # credit) are the same bet counted twice. Recompute conviction on the
+    # EFFECTIVE number of independent signals so "9 agree" can't masquerade as
+    # nine independent votes when it's really ~3. Additive: the Confluence Score
+    # value and the raw `conviction` above are unchanged; this only adds an
+    # honest, de-correlated read alongside them. See utils/signal_independence.
+    _CONV_ORDER = ["Low / Mixed", "Moderate", "High", "Very High"]
+    try:
+        from utils.signal_independence import effective_signal_count, independence
+        _winner = bull if len(bull) >= len(bear) else bear
+        _eff_win = effective_signal_count(_winner)
+        # Correlation weakens EVIDENCE STRENGTH, not the agreement fraction: if
+        # all 7 agree, 100% agree either way, but 7 signals across 2 factors are
+        # ~2 independent votes. So conviction is CAPPED by the absolute effective
+        # count — high conviction needs both broad agreement AND enough truly
+        # independent evidence.
+        if _eff_win >= 5.0:
+            _evidence_cap = "Very High"
+        elif _eff_win >= 3.5:
+            _evidence_cap = "High"
+        elif _eff_win >= 2.0:
+            _evidence_cap = "Moderate"
+        else:
+            _evidence_cap = "Low / Mixed"
+        _conviction_eff = _CONV_ORDER[min(_CONV_ORDER.index(conviction),
+                                          _CONV_ORDER.index(_evidence_cap))]
+        _independence = independence(_winner)
+        _eff_ratio = _independence["ratio"]
+    except Exception:
+        # Independence is a qualifier, never load-bearing — degrade to raw.
+        _eff_win, _eff_ratio = float(max(len(bull), len(bear))), 1.0
+        _conviction_eff = conviction
+        _independence = {"raw": max(len(bull), len(bear)),
+                         "effective": float(max(len(bull), len(bear))),
+                         "ratio": 1.0, "n_factors": 0, "factors": {}}
+
     if overall >= 62:
         case = "BULL"
     elif overall <= 38:
@@ -939,6 +977,14 @@ def compute_confluence(
         "bull_signals":    bull,
         "bear_signals":    bear,
         "neutral_signals": neutral,
+        # De-correlated read (see block above). effective_signals is the
+        # independent-signal count on the winning side; conviction_effective is
+        # conviction recomputed on effective agreement; independence carries the
+        # per-factor breakdown for display ("9 aligned across ~3 factors").
+        "effective_signals":     round(_eff_win, 2),
+        "independence_ratio":    round(_eff_ratio, 3),
+        "conviction_effective":  _conviction_eff,
+        "independence":          _independence,
     }
 
 
