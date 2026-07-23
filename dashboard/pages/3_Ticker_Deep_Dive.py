@@ -736,6 +736,42 @@ if section == "Overview":
     except Exception:
         pass
 
+    # ── Macro Conviction Curve (research preview) ─────────────────────────────
+    # Projects each signal's CURRENT reading to its researched lead time and
+    # aggregates into a forward profile: not "bullish today" but "macro support
+    # peaks ~week 6 and fades after". Clearly labelled directional/unvalidated —
+    # it is a research preview, never a forecast (see utils/conviction_curve).
+    try:
+        from utils.conviction_curve import conviction_curve, summary_sentence
+        _curve = conviction_curve(signal_scores, relevant_sig_ids)
+        if _curve.has_signal:
+            with st.expander("Macro Conviction Curve — when the backdrop peaks (research preview)"):
+                st.markdown(f"**{summary_sentence(_curve)}**")
+                _cols = st.columns(len(_curve.points))
+                for _c, _p in zip(_cols, _curve.points):
+                    _col = ("#00D566" if _p.direction == "bullish"
+                            else "#FF4444" if _p.direction == "bearish" else "#3A4256")
+                    _h = max(6, int(abs(_p.conviction) * 44)) if _p.n_signals else 4
+                    _eff_lbl = (f"{_p.effective_signals:g}/{_p.n_signals}"
+                                if _p.n_signals else "—")
+                    with _c:
+                        st.markdown(
+                            f'<div style="text-align:center;font-family:Inter,sans-serif;">'
+                            f'<div style="height:52px;display:flex;align-items:flex-end;justify-content:center;">'
+                            f'<div style="width:60%;height:{_h}px;background:{_col};border-radius:3px;"></div></div>'
+                            f'<div style="font-size:0.62rem;color:#8892AA;margin-top:4px;">{_p.label}</div>'
+                            f'<div style="font-size:0.56rem;color:#5A6478;">{_eff_lbl}</div>'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
+                st.caption(
+                    "Bar height = directional strength; the small number is effective / "
+                    "raw signals in that horizon (correlated signals discounted). "
+                    + _curve.disclaimer
+                )
+    except Exception:
+        pass
+
     # ── Your Score — personalized by the user's risk profile ──────────────────
     # ADDITIVE by design: the canonical Confluence Score above is never changed
     # (it has to stay comparable across users, snapshots and alerts). This is a
