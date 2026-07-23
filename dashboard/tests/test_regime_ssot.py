@@ -122,3 +122,81 @@ def test_home_hero_no_longer_claims_2h_cache_for_snapshot_regime():
     src = (DASHBOARD / "pages" / "home_page.py").read_text(encoding="utf-8")
     # The regime block's freshness label was corrected to 'daily snapshot'.
     assert "daily snapshot" in src
+
+
+# ── The narrative ("MACHINE READS THE MARKET") must agree with the regime ─────
+# The second phase of the SSOT bug: header + hero were reconciled, but the
+# narrative summary still read the LIVE cache and rendered a DIFFERENT split
+# (live "15 bullish, 8 bearish, 16 neutral" under a header/hero saying 14/8/22).
+# These guard the fix: the narrative is fed the SAME snapshot, so its counts and
+# label can never diverge from compute_macro_regime again.
+
+def _snapshot(bull=0, bear=0, neutral=0):
+    """A snapshot-shaped dict (id -> {status, score}) like get_latest_signal_states."""
+    d, i = {}, 0
+    for _ in range(bull):
+        d[f"s{i}"] = {"status": "bullish", "score": 72.0}; i += 1
+    for _ in range(bear):
+        d[f"s{i}"] = {"status": "bearish", "score": 28.0}; i += 1
+    for _ in range(neutral):
+        d[f"s{i}"] = {"status": "neutral", "score": 51.0}; i += 1
+    return d
+
+
+@pytest.mark.parametrize("bull,bear,neutral", [
+    (14, 8, 22),   # the exact live-site split the bug produced
+    (30, 5, 5),
+    (5, 25, 10),
+    (12, 12, 16),
+])
+def test_narrative_counts_match_regime_on_same_source(bull, bear, neutral):
+    """Given ONE snapshot, generate_narrative and compute_macro_regime must
+    report identical bull/bear/neutral counts. This is the invariant that was
+    broken on the landing page (narrative off live cache, regime off snapshot)."""
+    from utils.narrative import generate_narrative
+
+    snap = _snapshot(bull=bull, bear=bear, neutral=neutral)
+    reg = compute_macro_regime(snap, total=47)
+    nar = generate_narrative(snap)
+
+    assert nar["bull_count"] == reg.bullish
+    assert nar["bear_count"] == reg.bearish
+    assert nar["neut_count"] == reg.neutral
+
+
+@pytest.mark.parametrize("bull,bear,neutral,label", [
+    (30, 5, 5, "RISK-ON"),
+    (5, 25, 10, "RISK-OFF"),
+    (12, 12, 16, "MIXED SIGNALS"),
+])
+def test_narrative_label_matches_regime_label(bull, bear, neutral, label):
+    """Same thresholds, same source → identical regime label on both surfaces."""
+    from utils.narrative import generate_narrative
+
+    snap = _snapshot(bull=bull, bear=bear, neutral=neutral)
+    reg = compute_macro_regime(snap, total=47)
+    nar = generate_narrative(snap)
+    assert reg.label == label
+    assert nar["regime"] == reg.label
+
+
+def test_home_narrative_is_fed_the_snapshot_not_live_cache():
+    """The narrative must be built from the enriched snapshot, never the live
+    cache — otherwise the 'MACHINE READS' summary drifts from the header again."""
+    src = (DASHBOARD / "pages" / "home_page.py").read_text(encoding="utf-8")
+    assert "generate_narrative(_snap_rich)" in src
+    assert "generate_narrative(_raw_scores)" not in src, (
+        "narrative fed the live cache reintroduces the landing-page regime drift"
+    )
+
+
+def test_home_availability_banner_uses_canonical_excluded_count():
+    """The 'REAL DATA UNAVAILABLE — N of 47' banner must render from the same
+    regime object as the header (_reg.excluded), not a separate live-cache count
+    — that mismatch is what made the banner say 4 while the bar said 3."""
+    src = (DASHBOARD / "pages" / "home_page.py").read_text(encoding="utf-8")
+    assert "render_data_unavailable_banner(_reg.excluded" in src
+    assert "disclose_unavailable_signals(get_all_signal_scores())" not in src, (
+        "the top-of-page banner off the live cache is the source of the 3-vs-4 "
+        "excluded mismatch; render it from the canonical regime instead"
+    )

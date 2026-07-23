@@ -25,7 +25,7 @@ st.set_page_config(
 
 import html as _h
 import pandas as pd
-from utils.header import render_header, render_sidebar_base, render_footer, disclose_unavailable_signals
+from utils.header import render_header, render_sidebar_base, render_footer
 from utils.signals_cache import get_all_signal_scores
 from utils.config import SIGNALS, CATEGORIES
 from utils.narrative import generate_narrative
@@ -37,14 +37,22 @@ render_header("Home")
 inject_all_css()
 render_sidebar_base()
 
-# Data-integrity disclosure: the landing page summarises regime and top signals.
-# If any signal is synthetic (no FRED/EIA key or a failed fetch), the very first
-# thing a visitor sees would otherwise present fabricated readings as live.
-disclose_unavailable_signals(get_all_signal_scores())
+# Data-integrity disclosure is rendered AFTER the canonical regime is computed
+# (see below), so the "N of 47 excluded" count matches the header bar and hero
+# exactly. Rendering it here off the live cache is what made the banner say 4
+# while the regime bar said 3 — same fact, two numbers. See [[macro_regime_ssot_bug]].
 
-# ── Load live signal data (shared cache — no extra API cost) ──────────────────
-def _build_home_data() -> dict:
-    _all = get_all_signal_scores()
+# ── Load signal data ──────────────────────────────────────────────────────────
+# SSOT NOTE: everything on this page that reports a REGIME COUNT (the header bar,
+# the hero split, the "MACHINE READS THE MARKET" narrative, and the data-
+# availability banner) must read from ONE source, or the landing page shows the
+# same fact with different numbers — the exact trust-destroying bug fought in
+# [[macro_regime_ssot_bug]]. The canonical source is the persisted daily snapshot
+# (score_history.get_latest_signal_states) because the header must stay cheap on
+# every route. The live cache (get_all_signal_scores) is still used below for
+# TICKER SCORING only (portfolio check, top movers) — those surface names/scores,
+# never a regime count, so they can't contradict the headline.
+def _build_home_data(_all: dict) -> dict:
     bull, bear, neut, buckets = [], [], [], {}
     for sid, sv in _all.items():
         if sv.get("error"):
@@ -68,19 +76,36 @@ def _build_home_data() -> dict:
     }
 
 try:
-    with st.spinner(""):
-        _raw_scores = get_all_signal_scores()
-        _hd = _build_home_data()
-        _narrative  = generate_narrative(_raw_scores)
-        _top_tkrs   = get_top_tickers(len(_raw_scores))
-    # Regime HEADLINE (counts + label) comes from the SAME snapshot source and
-    # SSOT function as the sticky header bar, so the two macro reads on the
-    # landing page can never disagree again. The ticker lists below still use the
-    # live scores — those show signal names, not counts, so there's no visible
-    # contradiction. See utils/regime.py and [[macro_regime_ssot_bug]].
     from utils.regime import compute_macro_regime as _cmr
     from utils.score_history import get_latest_signal_states as _glss_home
-    _reg = _cmr(_glss_home(), total=len(SIGNALS))
+
+    with st.spinner(""):
+        # ── THE canonical macro read for this page ────────────────────────────
+        # One snapshot, enriched with names/categories from config (the snapshot
+        # table only persists id/score/status). EVERY regime count on the page —
+        # header, hero, narrative, banner — is derived from this one dict.
+        _snap = _glss_home()
+        _snap_rich = {
+            sid: {
+                **row,
+                "name":     SIGNALS.get(sid, {}).get("name", sid.replace("_", " ").title()),
+                "category": SIGNALS.get(sid, {}).get("category", "macro"),
+            }
+            for sid, row in _snap.items()
+        }
+        _reg = _cmr(_snap, total=len(SIGNALS))
+
+        # Narrative + home aggregates read the SAME snapshot, so the "MACHINE
+        # READS THE MARKET" summary ("N bullish, M bearish, K neutral") is
+        # guaranteed to match the header bar and hero split.
+        _hd = _build_home_data(_snap_rich)
+        _narrative  = generate_narrative(_snap_rich)
+
+        # Live cache is used ONLY for ticker scoring (names/scores, never a
+        # regime count), so it can't contradict the headline.
+        _raw_scores = get_all_signal_scores()
+        _top_tkrs   = get_top_tickers(len(_raw_scores))
+
     _nb, _nr, _nn = _reg.bullish, _reg.bearish, _reg.neutral
     _total = _reg.scored
     _bias_label = _reg.label
@@ -95,6 +120,13 @@ except Exception:
     _nb = _nr = _nn = _total = 0
     _bias_label = "LOADING…"
     _data_loaded = False
+
+# Data-integrity disclosure, rendered from the CANONICAL regime so the excluded
+# count matches the header bar and hero exactly (both derive from _reg.excluded =
+# total - scored on the same snapshot). See [[macro_regime_ssot_bug]].
+if _data_loaded and _reg.excluded > 0:
+    from utils.header import render_data_unavailable_banner
+    render_data_unavailable_banner(_reg.excluded, _reg.total)
 
 
 # ── FLIP ALERT HELPER ─────────────────────────────────────────────────────────
