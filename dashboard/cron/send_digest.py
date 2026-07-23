@@ -385,6 +385,53 @@ def _compute_watchlist_scores(
     return results
 
 
+def _get_user_catalyst_items(
+    user_id: int,
+    positions: list[dict],
+    macro_events: list[dict],
+    earnings_cache: dict[str, dict | None],
+    *,
+    today=None,
+) -> list[dict]:
+    """Build a bounded catalyst brief while reusing provider calls across users."""
+    from utils.catalyst_center import (
+        build_catalyst_digest_items,
+        build_portfolio_catalysts,
+        list_catalyst_plans,
+    )
+    from utils.earnings_awareness import next_earnings
+
+    symbols = tuple(str(row.get("ticker", "")).upper() for row in positions if row.get("ticker"))
+    for ticker in symbols:
+        if ticker not in earnings_cache:
+            try:
+                earnings_cache[ticker] = next_earnings(ticker, lookahead_days=7)
+            except Exception:
+                earnings_cache[ticker] = None
+
+    ticker_signal_map = {ticker: set(TICKERS.get(ticker, {}).get("signals") or []) for ticker in symbols}
+    # Some curated config entries declare relevance from the signal side only.
+    for signal_id, config in SIGNALS.items():
+        for ticker in config.get("relevant_tickers") or []:
+            symbol = str(ticker).upper()
+            if symbol in ticker_signal_map:
+                ticker_signal_map[symbol].add(signal_id)
+
+    catalysts = build_portfolio_catalysts(
+        positions,
+        macro_events,
+        {ticker: earnings_cache.get(ticker) for ticker in symbols},
+        ticker_signal_map,
+        today=today,
+    )
+    try:
+        plans = list_catalyst_plans(user_id)
+    except Exception as exc:
+        print(f"[digest] catalyst plans unavailable for user {user_id}: {exc}", flush=True)
+        plans = []
+    return build_catalyst_digest_items(catalysts, plans, today=today, horizon_days=7, limit=4)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -434,7 +481,23 @@ def main() -> None:
     except Exception as exc:
         print(f"[digest] signal scores cache failed: {exc} — personalised scores skipped", flush=True)
 
-    # 5. Get opted-in users
+    # 5. Fetch the official macro calendar once for every recipient. Earnings
+    # are cached by ticker below, so shared holdings never repeat a provider call.
+    from utils.catalyst_center import fetch_fred_release_calendar
+    digest_today = datetime.now(timezone.utc).date()
+    calendar = fetch_fred_release_calendar(
+        digest_today.isoformat(),
+        (digest_today + timedelta(days=7)).isoformat(),
+        os.environ.get("FRED_API_KEY", ""),
+    )
+    macro_events = calendar.get("events") or []
+    print(
+        f"[digest] catalyst calendar available={calendar.get('available')} events={len(macro_events)}",
+        flush=True,
+    )
+    earnings_cache: dict[str, dict | None] = {}
+
+    # 6. Get opted-in users
     recipients = _get_opted_in_emails()
     print(f"[digest] opted-in recipients: {len(recipients)}", flush=True)
 
@@ -442,7 +505,7 @@ def main() -> None:
         print("[digest] no opted-in users — nothing to send. done.", flush=True)
         return
 
-    # 6. Send — weighted portfolio intelligence, with watchlist fallback
+    # 7. Send — weighted portfolio intelligence, with watchlist fallback
     from utils.email import send_digest_email, EmailSendError
 
     sent, failed = 0, 0
@@ -450,22 +513,36 @@ def main() -> None:
         # Per-user watchlist scores + AI narrative (best-effort — never blocks the send)
         watchlist_items: list[dict] = []
         watchlist_narrative: str | None = None
+        catalyst_items: list[dict] = []
         portfolio_mode = False
-        if user_id is not None and all_signal_scores:
+        if user_id is not None:
             try:
                 positions, portfolio_mode = _get_user_brief_positions(user_id)
                 if positions:
-                    watchlist_items = _compute_watchlist_scores(positions, all_signal_scores)
                     tickers = [row["ticker"] for row in positions]
                     mode = "portfolio" if portfolio_mode else "watchlist fallback"
-                    print(
-                        f"[digest] {mode} for user {user_id}: {tickers} → "
-                        f"{len(watchlist_items)} scored",
-                        flush=True,
-                    )
-                    if watchlist_items:
-                        watchlist_narrative = _generate_watchlist_narrative(
-                            watchlist_items, bias, flips
+                    if all_signal_scores:
+                        watchlist_items = _compute_watchlist_scores(positions, all_signal_scores)
+                        print(
+                            f"[digest] {mode} for user {user_id}: {tickers} → "
+                            f"{len(watchlist_items)} scored",
+                            flush=True,
+                        )
+                        if watchlist_items:
+                            watchlist_narrative = _generate_watchlist_narrative(
+                                watchlist_items, bias, flips
+                            )
+                    if portfolio_mode:
+                        catalyst_items = _get_user_catalyst_items(
+                            user_id,
+                            positions,
+                            macro_events,
+                            earnings_cache,
+                            today=digest_today,
+                        )
+                        print(
+                            f"[digest] catalyst items for user {user_id}: {len(catalyst_items)}",
+                            flush=True,
                         )
             except Exception as exc:
                 print(f"[digest] personalised score failed for user {user_id}: {exc}", flush=True)
@@ -484,6 +561,7 @@ def main() -> None:
                 watchlist_items=watchlist_items or None,
                 watchlist_narrative=watchlist_narrative,
                 portfolio_mode=portfolio_mode,
+                catalyst_items=catalyst_items or None,
             )
             sent += 1
             print(f"[digest] sent to {email_addr!r}", flush=True)

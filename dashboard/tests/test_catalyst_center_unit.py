@@ -8,6 +8,7 @@ from sqlalchemy import delete
 
 from utils import catalyst_center, db
 from utils.catalyst_center import (
+    build_catalyst_digest_items,
     build_portfolio_catalysts,
     get_catalyst_plan,
     list_catalyst_plans,
@@ -113,6 +114,39 @@ def test_private_plans_are_user_scoped_and_update_in_place():
     assert len(list_catalyst_plans(USER_A)) == 1
     assert get_catalyst_plan(USER_A, "macro:10:2026-08-12")["status"] == "reviewed"
     assert list_catalyst_plans(USER_B) == []
+
+
+def test_digest_selects_near_events_and_recent_overdue_reviews():
+    catalysts = [
+        {
+            "event_key": "earnings:AAA:2026-08-03", "event_type": "earnings",
+            "date": date(2026, 8, 3), "date_str": "2026-08-03", "title": "AAA Earnings",
+            "days_until": 2, "affected_weight": 45.0, "affected_tickers": ["AAA"],
+            "is_estimate": True, "priority": 118,
+        },
+        {
+            "event_key": "macro:10:2026-08-20", "event_type": "macro",
+            "date": date(2026, 8, 20), "date_str": "2026-08-20", "title": "CPI",
+            "days_until": 19, "affected_weight": 80.0, "affected_tickers": ["AAA", "BBB"],
+            "is_estimate": False, "priority": 90,
+        },
+    ]
+    plans = [
+        {"event_key": "earnings:AAA:2026-08-03", "event_date": "2026-08-03", "title": "AAA Earnings",
+         "status": "planned", "watch_for": "Guidance"},
+        {"event_key": "macro:9:2026-07-30", "event_date": "2026-07-30", "title": "GDP",
+         "status": "planned", "watch_for": "Consumption"},
+        {"event_key": "macro:8:2026-07-01", "event_date": "2026-07-01", "title": "Old event",
+         "status": "planned", "watch_for": "Too old"},
+    ]
+
+    items = build_catalyst_digest_items(catalysts, plans, today=date(2026, 8, 1))
+
+    assert [item["delivery_type"] for item in items] == ["review_due", "upcoming"]
+    assert items[0]["days_overdue"] == 2
+    assert items[1]["plan_saved"] is True
+    assert items[1]["watch_for"] == "Guidance"
+    assert all(item["title"] not in {"CPI", "Old event"} for item in items)
 
 
 def test_page_has_no_hardcoded_event_schedule_and_navigation_is_upgraded():

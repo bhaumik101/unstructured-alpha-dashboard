@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 import re
+from threading import Lock
+import time
 from typing import Iterable
 
-import streamlit as st
 from sqlalchemy import select
 
 from utils.db import catalyst_plans, engine, upsert_stmt
@@ -15,6 +16,10 @@ from utils.resilience import resilient_get
 
 FRED_RELEASE_DATES_URL = "https://api.stlouisfed.org/fred/releases/dates"
 VALID_PLAN_STATUSES = {"planned", "reviewed"}
+_CALENDAR_CACHE_TTL = 21_600
+_CALENDAR_CACHE_MAX = 8
+_calendar_cache: dict[tuple[str, str, str], tuple[float, dict]] = {}
+_calendar_cache_lock = Lock()
 
 # Ordered from more specific to broader phrases. The FRED response supplies the
 # authoritative release name and date; this mapping only selects high-impact
@@ -125,8 +130,7 @@ def parse_fred_release_calendar(
     return events
 
 
-@st.cache_data(ttl=21_600, show_spinner=False, max_entries=8)
-def fetch_fred_release_calendar(
+def _fetch_fred_release_calendar_uncached(
     start: str, end: str, api_key: str = ""
 ) -> dict:
     """Fetch official future release dates; failures stay explicitly unavailable."""
@@ -171,6 +175,26 @@ def fetch_fred_release_calendar(
             "error": type(exc).__name__,
             "fetched_at": _now(),
         }
+
+
+def fetch_fred_release_calendar(start: str, end: str, api_key: str = "") -> dict:
+    """Six-hour process cache shared by Streamlit pages and background jobs."""
+    key = (str(start), str(end), str(api_key))
+    now = time.monotonic()
+    with _calendar_cache_lock:
+        cached = _calendar_cache.get(key)
+        if cached and cached[0] > now:
+            return cached[1]
+    result = _fetch_fred_release_calendar_uncached(start, end, api_key)
+    with _calendar_cache_lock:
+        if len(_calendar_cache) >= _CALENDAR_CACHE_MAX:
+            oldest = min(_calendar_cache, key=lambda item: _calendar_cache[item][0])
+            _calendar_cache.pop(oldest, None)
+        _calendar_cache[key] = (now + _CALENDAR_CACHE_TTL, result)
+    return result
+
+
+fetch_fred_release_calendar.__wrapped__ = _fetch_fred_release_calendar_uncached
 
 
 def build_portfolio_catalysts(
@@ -254,6 +278,71 @@ def build_portfolio_catalysts(
 
     catalysts.sort(key=lambda row: (-row["priority"], row["date"], row["title"]))
     return catalysts
+
+
+def build_catalyst_digest_items(
+    catalysts: Iterable[dict],
+    plans: Iterable[dict],
+    *,
+    today: date | None = None,
+    horizon_days: int = 7,
+    limit: int = 4,
+) -> list[dict]:
+    """Select near-term exposure and overdue plan reviews for one digest."""
+    day = today or datetime.now(timezone.utc).date()
+    plans_by_key = {str(row.get("event_key")): dict(row) for row in (plans or [])}
+    items: list[dict] = []
+    included_keys: set[str] = set()
+
+    for catalyst in catalysts or []:
+        days_until = int(catalyst.get("days_until", 9999))
+        if not 0 <= days_until <= max(0, int(horizon_days)):
+            continue
+        item = dict(catalyst)
+        plan = plans_by_key.get(str(item.get("event_key")))
+        item.update({
+            "delivery_type": "upcoming",
+            "plan_saved": bool(plan),
+            "plan_status": plan.get("status") if plan else None,
+            "watch_for": plan.get("watch_for") if plan else None,
+        })
+        items.append(item)
+        included_keys.add(str(item.get("event_key")))
+
+    for plan in plans_by_key.values():
+        if plan.get("status") != "planned" or str(plan.get("event_key")) in included_keys:
+            continue
+        try:
+            event_day = date.fromisoformat(str(plan.get("event_date"))[:10])
+        except ValueError:
+            continue
+        days_overdue = (day - event_day).days
+        if not 1 <= days_overdue <= 7:
+            continue
+        items.append({
+            "event_key": plan["event_key"],
+            "event_type": "review",
+            "delivery_type": "review_due",
+            "date": event_day,
+            "date_str": event_day.isoformat(),
+            "title": plan["title"],
+            "days_until": -days_overdue,
+            "days_overdue": days_overdue,
+            "affected_weight": 0.0,
+            "affected_tickers": [],
+            "is_estimate": False,
+            "plan_saved": True,
+            "plan_status": "planned",
+            "watch_for": plan.get("watch_for"),
+            "priority": 120 - days_overdue,
+        })
+
+    items.sort(key=lambda row: (
+        0 if row.get("delivery_type") == "review_due" else 1,
+        -float(row.get("priority", 0)),
+        str(row.get("date_str", "")),
+    ))
+    return items[: max(1, int(limit))]
 
 
 def save_catalyst_plan(

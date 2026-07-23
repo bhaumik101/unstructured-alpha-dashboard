@@ -204,8 +204,9 @@ THE PAGES:
 15. Catalyst Command Center — A live event workflow that uses official FRED macro release
     dates and provider-supplied, explicitly provisional earnings dates. Pro members see which
     saved holdings and portfolio weight are affected, can write private base/upside/downside
-    plans, and compare them with post-event outcomes. Missing dates and signals are excluded,
-    never replaced with synthetic calendar entries or predictions.
+    plans, and compare them with post-event outcomes. The existing Pro morning digest includes
+    events inside seven days and recent plans awaiting review without adding another cron job.
+    Missing dates and signals are excluded, never replaced with synthetic calendar entries or predictions.
 
 KEY SIGNALS:
 - ATA Trucking (PCS 9): Monthly freight tonnage. Leads ISM PMI by 6-8 weeks. FRED TRUCKD11.

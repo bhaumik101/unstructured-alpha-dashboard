@@ -97,6 +97,35 @@ def test_digest_equal_weights_watchlist_when_portfolio_is_empty(monkeypatch):
     ]
 
 
+def test_digest_reuses_earnings_lookup_across_recipients(monkeypatch):
+    from datetime import date
+    from cron import send_digest
+    from utils import catalyst_center, earnings_awareness
+
+    calls = []
+    monkeypatch.setattr(
+        earnings_awareness,
+        "next_earnings",
+        lambda ticker, lookahead_days=7: calls.append(ticker) or {
+            "date": date(2026, 8, 3), "is_estimate": True,
+        },
+    )
+    monkeypatch.setattr(catalyst_center, "list_catalyst_plans", lambda _user_id: [])
+    cache = {}
+    positions = [{"ticker": "AAPL", "weight_pct": 100.0}]
+
+    first = send_digest._get_user_catalyst_items(
+        1, positions, [], cache, today=date(2026, 8, 1)
+    )
+    second = send_digest._get_user_catalyst_items(
+        2, positions, [], cache, today=date(2026, 8, 1)
+    )
+
+    assert calls == ["AAPL"]
+    assert first[0]["title"] == "AAPL Earnings"
+    assert second[0]["affected_weight"] == 100.0
+
+
 def test_digest_email_has_coverage_deep_links_tags_and_idempotency(monkeypatch):
     from utils import email
 
@@ -241,3 +270,36 @@ def test_digest_email_renders_weighted_portfolio_intelligence(monkeypatch):
     assert "/portfolio-suite" in body
     assert "Open Portfolio Intelligence" in body
     assert "Open Watchlist" not in body
+
+
+def test_digest_email_renders_escaped_catalyst_agenda(monkeypatch):
+    from utils import email
+
+    captured = {}
+
+    def _post(url, **kwargs):
+        captured.update(url=url, **kwargs)
+        return _FakeResponse()
+
+    monkeypatch.setattr(email, "_get_resend_config", lambda: ("re_test", "UA <mail@example.com>"))
+    monkeypatch.setattr(email.requests, "post", _post)
+
+    email.send_digest_email(
+        to_email="owner@example.com",
+        signal_flips=[], score_movers=[], overall_bias="Mixed",
+        bull_n=1, bear_n=1, neut_n=1,
+        catalyst_items=[{
+            "title": "ACME <script> Earnings", "delivery_type": "upcoming", "days_until": 1,
+            "affected_weight": 42.5, "affected_tickers": ["ACME"], "is_estimate": True,
+            "plan_saved": True, "watch_for": "Margins > estimates",
+        }],
+    )
+
+    body = captured["json"]["html"]
+    assert "Your Catalyst Agenda" in body
+    assert "ACME &lt;script&gt; Earnings" in body
+    assert "42.5% portfolio weight" in body
+    assert "provisional date" in body
+    assert "Plan saved" in body
+    assert "Margins &gt; estimates" in body
+    assert "/events-forecasts" in body

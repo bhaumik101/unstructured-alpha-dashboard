@@ -622,6 +622,71 @@ def _build_watchlist_html(
     """
 
 
+def _build_catalyst_digest_html(items: list[dict] | None) -> str:
+    """Render a compact, escaped catalyst agenda for the morning brief."""
+    if not items:
+        return ""
+    rows = ""
+    for item in items[:4]:
+        review_due = item.get("delivery_type") == "review_due"
+        days = int(item.get("days_until", 0))
+        if review_due:
+            timing = f'Review due · {int(item.get("days_overdue", abs(days)))}d after event'
+            accent = "#D97706"
+            detail = "Compare the saved scenario with the outcome while the evidence is fresh."
+        else:
+            timing = "Today" if days == 0 else "Tomorrow" if days == 1 else f"In {days} days"
+            accent = "#7C3AED"
+            weight = max(0.0, float(item.get("affected_weight") or 0))
+            tickers = ", ".join(str(value) for value in (item.get("affected_tickers") or [])[:5])
+            detail_parts = []
+            if weight:
+                detail_parts.append(f"{weight:.1f}% portfolio weight")
+            if tickers:
+                detail_parts.append(tickers)
+            if item.get("is_estimate"):
+                detail_parts.append("provisional date")
+            detail = " · ".join(detail_parts) or "Portfolio event"
+
+        plan_badge = (
+            '<span style="color:#00875A;font-weight:700;">Plan saved</span>'
+            if item.get("plan_saved") else
+            '<span style="color:#6B7280;">No plan yet</span>'
+        )
+        watch_for = str(item.get("watch_for") or "").strip()
+        watch_html = (
+            f'<div style="font-size:0.70rem;color:#4B5563;margin-top:4px;">'
+            f'Watch: {_safe(watch_for[:160])}</div>'
+            if watch_for else ""
+        )
+        rows += f"""
+        <div style="border-left:3px solid {accent};padding:9px 12px;margin-bottom:8px;
+                    background:#FFFFFF;border-radius:0 6px 6px 0;">
+          <table style="width:100%;border-collapse:collapse;"><tr>
+            <td style="vertical-align:top;">
+              <div style="font-size:0.82rem;font-weight:750;color:#111827;">{_safe(item.get('title', 'Catalyst'))}</div>
+              <div style="font-size:0.70rem;color:#6B7280;margin-top:2px;">{_safe(detail)}</div>
+              {watch_html}
+            </td>
+            <td style="text-align:right;vertical-align:top;white-space:nowrap;padding-left:12px;">
+              <div style="font-size:0.72rem;font-weight:700;color:{accent};">{_safe(timing)}</div>
+              <div style="font-size:0.66rem;margin-top:4px;">{plan_badge}</div>
+            </td>
+          </tr></table>
+        </div>"""
+
+    return f"""
+    <div style="background:#F8F7FF;border-top:1px solid #E9E5FF;padding:16px 24px 12px;">
+      <div style="font-size:0.60rem;font-weight:700;color:#7C3AED;text-transform:uppercase;
+                  letter-spacing:0.12em;margin-bottom:10px;">Your Catalyst Agenda</div>
+      {rows}
+      <div style="margin-top:9px;text-align:right;">
+        <a href="{_APP_URL}/events-forecasts" style="font-size:0.72rem;color:#7C3AED;
+           text-decoration:none;font-weight:700;">Open Catalyst Command Center →</a>
+      </div>
+    </div>"""
+
+
 def send_digest_email(
     to_email: str,
     signal_flips: list[dict],
@@ -635,6 +700,7 @@ def send_digest_email(
     watchlist_items: list[dict] | None = None,
     watchlist_narrative: str | None = None,
     portfolio_mode: bool = False,
+    catalyst_items: list[dict] | None = None,
 ) -> None:
     """
     Send the morning intelligence digest to a single opted-in user.
@@ -653,6 +719,7 @@ def send_digest_email(
                         watchlist relative to today's macro environment. None = omitted.
     portfolio_mode:      render holdings, weights, and the Portfolio Intelligence CTA.
                          False preserves the watchlist fallback and older callers.
+    catalyst_items:      near-term weighted events and overdue saved-plan reviews.
     """
     api_key, from_email = _get_resend_config()
     print(f"[digest] send_digest_email: to={to_email!r} bias={overall_bias}", flush=True)
@@ -676,6 +743,7 @@ def send_digest_email(
         )
         if watchlist_items else ""
     )
+    catalyst_html = _build_catalyst_digest_html(catalyst_items)
 
     # ── Seeking Alpha-style macro article ──────────────────────────────────
     if signal_scores:
@@ -853,6 +921,9 @@ def send_digest_email(
 
     <!-- Personalised portfolio intelligence with watchlist fallback -->
     {watchlist_html}
+
+    <!-- Verified portfolio catalysts and saved-plan review prompts -->
+    {catalyst_html}
 
     <!-- Article -->
     {article_html}

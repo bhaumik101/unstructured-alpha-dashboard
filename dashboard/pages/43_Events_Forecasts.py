@@ -223,6 +223,10 @@ elif section == "Portfolio Catalysts":
         metrics[1].metric("Company events", sum(event["event_type"] == "earnings" for event in catalysts))
         metrics[2].metric("Macro releases", sum(event["event_type"] == "macro" for event in catalysts))
         metrics[3].metric("Saved plans", len(plans))
+        st.caption(
+            "Pro morning briefs automatically include catalysts inside seven days and recent plans awaiting review. "
+            "The existing digest schedule is reused, so this adds no separate alert job or duplicated provider sweep."
+        )
         if not calendar.get("available"):
             st.warning("Official macro dates are unavailable, so this ranking currently contains company events only.")
         if not catalysts:
