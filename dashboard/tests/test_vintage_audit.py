@@ -12,6 +12,7 @@ Two layers:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -19,7 +20,8 @@ import pytest
 
 from utils.fetchers import fetch_fred, fetch_fred_asof, is_unavailable
 from utils.vintage_audit import (
-    revision_stats, fred_backed_signals, audit_series_asof, REVISION_EPS_PCT,
+    revision_stats, fred_backed_signals, audit_series_asof,
+    audit_series_first_print, audit_all_fred_signals, REVISION_EPS_PCT,
 )
 
 
@@ -200,6 +202,81 @@ def test_audit_series_reports_unavailable_without_fabricating():
     assert r["error"] == "unavailable"
     assert r["available"] is False
     assert r["series_id"] == "INDPRO"
+
+
+# ── first-print audit + portfolio aggregate ──────────────────────────────────
+
+def test_audit_series_first_print_reports_revision_magnitude():
+    idx = pd.to_datetime(["2020-06-01", "2020-07-01"])
+    latest = pd.Series([91.59, 92.0], index=idx, name="INDPRO")
+    first = pd.Series([97.46, 92.1], index=idx, name="INDPRO")
+    with patch("utils.fetchers.fetch_fred", return_value=latest), \
+         patch("utils.fetchers.fetch_fred_first_print", return_value=first):
+        r = audit_series_first_print("INDPRO", "2020-01-01", "2020-12-31", api_key="k")
+    assert r["error"] is None and r["available"] and r["n_compared"] == 2
+    assert r["is_revised"] is True
+    assert r["series_id"] == "INDPRO"
+
+
+def test_audit_series_first_print_unavailable_is_honest():
+    empty = pd.Series(dtype=float); empty.attrs["fetch_error"] = True
+    with patch("utils.fetchers.fetch_fred", return_value=empty), \
+         patch("utils.fetchers.fetch_fred_first_print", return_value=empty):
+        r = audit_series_first_print("X", "2020-01-01", "2020-12-31", api_key="k")
+    assert r["error"] == "unavailable" and r["available"] is False
+
+
+def test_audit_all_fred_signals_rolls_up_summary():
+    signals = {
+        "a": {"source": "fred", "series_id": "INDPRO", "name": "Industrial Production"},
+        "b": {"source": "fred", "series_id": "DGS10", "name": "10-Year Treasury"},
+        "c": {"source": "yfinance", "series_id": "SPY", "name": "S&P 500"},  # excluded
+    }
+
+    def _fake_audit(series_id, start, end, api_key=""):
+        if series_id == "INDPRO":
+            return {"series_id": "INDPRO", "error": None, "available": True,
+                    "n_compared": 78, "mean_abs_pct": 4.26, "is_revised": True}
+        if series_id == "DGS10":
+            return {"series_id": "DGS10", "error": None, "available": True,
+                    "n_compared": 125, "mean_abs_pct": 0.0, "is_revised": False}
+        return {"series_id": series_id, "error": "unavailable", "available": False,
+                "n_compared": 0, "mean_abs_pct": 0.0, "is_revised": False}
+
+    with patch("utils.vintage_audit.audit_series_first_print", side_effect=_fake_audit):
+        res = audit_all_fred_signals("2018-01-01", "2024-06-30", api_key="k", signals=signals)
+
+    s = res["summary"]
+    assert s["n_signals"] == 2                 # only FRED-backed
+    assert s["n_measured"] == 2
+    assert s["n_revised"] == 1                 # only INDPRO exceeded the noise floor
+    assert s["worst_series"] == "INDPRO"
+    assert s["max_abs_pct"] == 4.26
+    assert s["mean_abs_pct"] == pytest.approx((4.26 + 0.0) / 2, abs=1e-6)
+    # per_signal is sorted worst-first
+    assert res["per_signal"][0]["series_id"] == "INDPRO"
+
+
+def test_audit_all_fred_signals_counts_unavailable_not_zero_revision():
+    signals = {"a": {"source": "fred", "series_id": "INDPRO", "name": "IP"}}
+
+    def _unavail(series_id, start, end, api_key=""):
+        return {"series_id": series_id, "error": "unavailable", "available": False,
+                "n_compared": 0, "mean_abs_pct": 0.0, "is_revised": False}
+
+    with patch("utils.vintage_audit.audit_series_first_print", side_effect=_unavail):
+        res = audit_all_fred_signals("2018-01-01", "2024-06-30", api_key="", signals=signals)
+    s = res["summary"]
+    assert s["n_measured"] == 0 and s["n_unavailable"] == 1
+    assert s["worst_series"] is None  # absence of data is not "no revision"
+
+
+def test_data_trust_page_wires_the_revision_audit():
+    """The Data Trust 'Revision Bias' section must actually call the aggregate —
+    keeps the marketed page coupled to the real measurement."""
+    page = (Path(__file__).resolve().parent.parent / "pages" / "48_Data_Trust.py").read_text(encoding="utf-8")
+    assert "Revision Bias" in page
+    assert "audit_all_fred_signals" in page
 
 
 # ── Live contract (opt-in): ALFRED still revises a known series ───────────────

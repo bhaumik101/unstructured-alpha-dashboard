@@ -21,7 +21,7 @@ st.set_page_config(page_title="Data Trust Center — UA", layout="wide")
 render_header("Data Trust Center")
 section = render_sidebar_base(
     page_title="Data Trust Center",
-    sections=("Coverage Overview", "Provider Health", "Signal Freshness", "Methodology"),
+    sections=("Coverage Overview", "Provider Health", "Signal Freshness", "Revision Bias", "Methodology"),
     section_key="data_trust_section_rail",
 )
 render_page_header(
@@ -52,7 +52,7 @@ def _time_label(value: str | None) -> str:
         return str(value)[:19].replace("T", " ")
 
 
-signals = {} if section == "Methodology" else get_all_signal_scores()
+signals = {} if section in ("Methodology", "Revision Bias") else get_all_signal_scores()
 
 if section == "Coverage Overview":
     quality = summarize_signal_quality(signals)
@@ -142,6 +142,72 @@ elif section == "Signal Freshness":
         rows = [row for row in rows if row["State"] == state_filter]
     st.caption("Freshness thresholds respect each signal's release frequency; a monthly series is not judged like a daily market price.")
     st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+
+elif section == "Revision Bias":
+    st.markdown("### Revision bias — are we scoring on hindsight?")
+    st.markdown(
+        "Government macro data gets **revised** after its first release. A backtest "
+        "that uses today's revised numbers gives a signal credit for values nobody "
+        "actually had at the time — look-ahead bias. Our validation runs on "
+        "**first-print** data (the value published at the time) precisely to avoid "
+        "that. This page measures how much each FRED-backed signal is actually "
+        "revised, so the size of the problem is out in the open rather than assumed "
+        "away."
+    )
+    st.caption(
+        "Method: for each FRED-backed signal we compare every observation's initial "
+        "release (ALFRED first print) with its latest-revised value over a multi-year "
+        "window, and report the average absolute revision. Series that are never "
+        "revised (e.g. market rates) correctly show ~0%. Nothing is imputed — a signal "
+        "whose vintage can't be read is reported as unavailable, not as zero revision."
+    )
+
+    _audit = st.session_state.get("_revision_audit")
+    if st.button("Run revision audit", key="run_revision_audit",
+                 help="Compares first-print vs revised data across every FRED signal. "
+                      "Makes a couple of network calls per signal; slow the first time, "
+                      "then cached."):
+        try:
+            from datetime import timedelta
+            from utils.fetchers import _get_fred_key
+            from utils.vintage_audit import audit_all_fred_signals
+            _end = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+            _start = (datetime.now() - timedelta(days=365 * 7)).strftime("%Y-%m-%d")
+            with st.spinner("Auditing first-print vs revised data across FRED signals…"):
+                _audit = audit_all_fred_signals(_start, _end, api_key=_get_fred_key())
+                st.session_state["_revision_audit"] = _audit
+        except Exception as _e:
+            st.warning(f"Revision audit unavailable right now: {_e}")
+
+    if _audit:
+        _s = _audit["summary"]
+        cols = st.columns(4)
+        cols[0].metric("FRED signals", _s["n_signals"])
+        cols[1].metric("Measured", _s["n_measured"])
+        cols[2].metric("Materially revised", _s["n_revised"])
+        cols[3].metric("Avg revision", f"{_s['mean_abs_pct']:.2f}%")
+        if _s["worst_series"]:
+            st.caption(
+                f"Most-revised signal: **{_s.get('worst_signal_name') or _s['worst_series']}** "
+                f"({_s['worst_series']}) at {_s['max_abs_pct']:.2f}% average absolute revision. "
+                f"Our backtests never see these revisions — they run on the first print."
+            )
+        _rows = [{
+            "Signal": r.get("signal_name", r.get("series_id")),
+            "Series": r.get("series_id"),
+            "Avg revision %": (f"{r['mean_abs_pct']:.2f}" if not r.get("error") else "—"),
+            "Max revision %": (f"{r['max_abs_pct']:.2f}" if not r.get("error") else "—"),
+            "Obs compared": (r.get("n_compared", 0) if not r.get("error") else "—"),
+            "Status": ("revised" if r.get("is_revised") else "stable") if not r.get("error") else "unavailable",
+        } for r in _audit["per_signal"]]
+        st.dataframe(pd.DataFrame(_rows), hide_index=True, width="stretch")
+        if _s["n_unavailable"]:
+            st.caption(
+                f"{_s['n_unavailable']} signal(s) could not be read this run and are shown as "
+                f"unavailable — excluded from the averages, never counted as zero revision."
+            )
+    else:
+        st.info("Click **Run revision audit** to measure how much each FRED signal is revised.")
 
 else:
     st.markdown("### What each state means")
