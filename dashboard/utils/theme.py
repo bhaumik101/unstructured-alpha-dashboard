@@ -148,7 +148,7 @@ def style_chart(
     Usage:
         fig = go.Figure(...)
         fig = style_chart(fig, height=400, title="Signal vs. Price")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     """
     _axis = dict(
         showgrid=True,
@@ -494,7 +494,7 @@ def style_area_chart(fig, line_color: str = GREEN, fill_opacity: float = 0.12,
         fig = go.Figure([go.Scatter(x=dates, y=values, name="Price",
                                     line=dict(color="#00D566", width=2))])
         fig = style_area_chart(fig, line_color="#00D566")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     """
     import re
     # Parse hex color to rgba fill
@@ -537,7 +537,7 @@ def style_timeseries_chart(
 
         fig = go.Figure([go.Scatter(x=dates, y=values, ...)])
         fig = style_timeseries_chart(fig, title="Signal History", height=380)
-        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG_TIMESERIES)
+        st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG_TIMESERIES)
     """
     fig = style_chart(fig, height=height, title=title)
 
@@ -2340,7 +2340,7 @@ def chart_insight_caption(text: str, icon: str = "", muted: bool = False) -> str
     Returns an HTML string.
 
     Usage::
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
         st.markdown(chart_insight_caption("HY spreads are narrowing — risk appetite is
                     improving across credit markets."), unsafe_allow_html=True)
     """

@@ -227,7 +227,7 @@ if _strategy_section == "Equity Curve":
     fig.update_yaxes(title_text="Score (0–100)", row=2, col=1, range=[0, 100])
     fig.update_yaxes(title_text="Exposure (%)", row=3, col=1, range=[0, 110])
 
-    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
 if _strategy_section == "Signal Scores":
     # ── Individual signal scores ──────────────────────────────────────────────────
@@ -288,7 +288,7 @@ if _strategy_section == "Methodology":
             f"{bench_m['calmar']:.2f}",
         ],
     })
-    st.dataframe(metrics_df.set_index("Metric"), use_container_width=True)
+    st.dataframe(metrics_df.set_index("Metric"), width="stretch")
 
     # ── Methodology note ──────────────────────────────────────────────────────────
     with st.expander(" Methodology & Limitations"):

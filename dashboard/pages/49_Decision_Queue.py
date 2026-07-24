@@ -82,7 +82,7 @@ if section == "Methodology":
                 "Position size increases the portfolio consequence of otherwise unchanged evidence.",
             ],
         },
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
     render_footer()
@@ -222,13 +222,13 @@ def _render_item(item: dict) -> None:
             f"Evidence fingerprint: {item['evidence_hash'][:10]}"
         )
     controls = st.columns([1.5, 1, 1, 1])
-    if controls[0].button("Open source research", key=f"open_{section}_{item['item_key']}", use_container_width=True):
+    if controls[0].button("Open source research", key=f"open_{section}_{item['item_key']}", width="stretch"):
         _open_source(item)
-    if controls[1].button("Watch", key=f"watch_{section}_{item['item_key']}", use_container_width=True):
+    if controls[1].button("Watch", key=f"watch_{section}_{item['item_key']}", width="stretch"):
         _set(item, "watching")
-    if controls[2].button("Complete", key=f"done_{section}_{item['item_key']}", use_container_width=True):
+    if controls[2].button("Complete", key=f"done_{section}_{item['item_key']}", width="stretch"):
         _set(item, "done")
-    if controls[3].button("Snooze 7d", key=f"snooze_{section}_{item['item_key']}", use_container_width=True):
+    if controls[3].button("Snooze 7d", key=f"snooze_{section}_{item['item_key']}", width="stretch"):
         _set(item, "snoozed")
 
 

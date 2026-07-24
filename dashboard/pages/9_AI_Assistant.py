@@ -530,7 +530,7 @@ quick_topics = [
     ("Getting started", "How do I get started with the platform?"),
 ]
 for i, (label, prompt) in enumerate(quick_topics):
-    if topic_cols[i % 4].button(label, key=f"qt_{i}", use_container_width=True):
+    if topic_cols[i % 4].button(label, key=f"qt_{i}", width="stretch"):
         if "messages" not in st.session_state:
             st.session_state.messages = []
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -630,7 +630,7 @@ with st.expander("More suggested questions"):
         "Which signals are the most reliable historically?",
     ]
     for s in suggestions:
-        if st.button(s, key=f"sug_{s[:20]}", use_container_width=True):
+        if st.button(s, key=f"sug_{s[:20]}", width="stretch"):
             st.session_state.messages.append({"role": "user", "content": s})
             answer = find_quick_answer(s) or try_claude_api(
                 [{"role": "user", "content": s}], _get_system_prompt()

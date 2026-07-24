@@ -66,7 +66,7 @@ if _brief_section == "My Priorities":
     if not _priority_user:
         st.info("Sign in to turn Today's Brief into a weighted priority view for your portfolio and research profile.")
         _anon_cols = st.columns([1, 1, 2])
-        if _anon_cols[0].button("View market intelligence", type="primary", use_container_width=True):
+        if _anon_cols[0].button("View market intelligence", type="primary", width="stretch"):
             st.session_state["brief_section_rail"] = "Market Intelligence"
             st.rerun()
     else:
@@ -137,7 +137,7 @@ if _brief_section == "My Priorities":
                 "Save the stocks you own and their weights to activate portfolio-accurate priorities.",
                 action="Your watchlist remains separate for ideas you only want to monitor.",
             ))
-            if st.button("Build my portfolio", type="primary", use_container_width=True):
+            if st.button("Build my portfolio", type="primary", width="stretch"):
                 st.switch_page("pages/44_Portfolio_Suite.py")
         elif not _priority_payload["priorities"]:
             st.html(empty_state(
@@ -149,7 +149,7 @@ if _brief_section == "My Priorities":
             _missing_cols = st.columns(min(3, len(_priority_tickers)))
             for _idx, _ticker in enumerate(_priority_tickers[:3]):
                 if _missing_cols[_idx].button(
-                    f"Analyze {_ticker}", key=f"priority_missing_{_ticker}", use_container_width=True
+                    f"Analyze {_ticker}", key=f"priority_missing_{_ticker}", width="stretch"
                 ):
                     st.session_state["selected_ticker"] = _ticker
                     st.switch_page("pages/3_Ticker_Deep_Dive.py")
@@ -162,7 +162,7 @@ if _brief_section == "My Priorities":
                     if st.button(
                         f'Review {_item["ticker"]}',
                         key=f'priority_open_{_item["ticker"]}',
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         st.session_state["selected_ticker"] = _item["ticker"]
                         st.switch_page("pages/3_Ticker_Deep_Dive.py")
@@ -177,7 +177,7 @@ if _brief_section == "My Priorities":
                         _r1.markdown(f'**{_item["ticker"]}** · {_item["personal_score"]:.0f}')
                         _r2.caption(_item["reason"])
                         if _r3.button(
-                            "Review", key=f'priority_more_{_item["ticker"]}', use_container_width=True
+                            "Review", key=f'priority_more_{_item["ticker"]}', width="stretch"
                         ):
                             st.session_state["selected_ticker"] = _item["ticker"]
                             st.switch_page("pages/3_Ticker_Deep_Dive.py")
@@ -190,11 +190,11 @@ if _brief_section == "My Priorities":
 
             st.divider()
             _action_cols = st.columns(3)
-            if _action_cols[0].button("Open Portfolio Intelligence", use_container_width=True):
+            if _action_cols[0].button("Open Portfolio Intelligence", width="stretch"):
                 st.switch_page("pages/44_Portfolio_Suite.py")
-            if _action_cols[1].button("Edit research profile", use_container_width=True):
+            if _action_cols[1].button("Edit research profile", width="stretch"):
                 st.switch_page("pages/32_Profile.py")
-            if _action_cols[2].button("View all market signals", use_container_width=True):
+            if _action_cols[2].button("View all market signals", width="stretch"):
                 st.session_state["brief_section_rail"] = "Market Intelligence"
                 st.rerun()
 
@@ -989,10 +989,10 @@ elif _brief_section == "Market Intelligence":
         with _nc1:
             _btn_label = "→ Get it in my inbox" if _cur_user else " Create free account"
             _btn_page  = "pages/29_Upgrade.py" if _cur_user else "pages/home_page.py"
-            if st.button(_btn_label, use_container_width=True, type="primary", key="digest_signup_cta"):
+            if st.button(_btn_label, width="stretch", type="primary", key="digest_signup_cta"):
                 st.switch_page(_btn_page)
         with _nc2:
-            if st.button("See what's included →", use_container_width=True, key="digest_pro_cta"):
+            if st.button("See what's included →", width="stretch", key="digest_pro_cta"):
                 st.switch_page("pages/29_Upgrade.py")
 
     st.markdown("""

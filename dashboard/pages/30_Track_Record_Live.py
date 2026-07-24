@@ -708,7 +708,7 @@ if _track_section == "Earnings Track Record":
             label_visibility="collapsed",
         ).upper().strip()
     with _tr_col2:
-        _tr_run = st.button("Analyze", use_container_width=True, type="primary", key="tr_tab_run")
+        _tr_run = st.button("Analyze", width="stretch", type="primary", key="tr_tab_run")
 
     if _tr_ticker:
         with st.spinner(f"Loading earnings history for {_tr_ticker}…"):
@@ -771,7 +771,7 @@ if _track_section == "Earnings Track Record":
                     _acc = _hits / _called * 100
                     st.metric(f"Accuracy on {_tr_ticker}", f"{_acc:.0f}%",
                               help=f"{_hits}/{_called} directional calls correct (excludes No call)")
-                st.dataframe(_res_df, use_container_width=True, hide_index=True)
+                st.dataframe(_res_df, width="stretch", hide_index=True)
                 st.caption(
                     "Score ≥60 → predicted Beat · Score ≤40 → predicted Miss · 40-60 → No call. "
                     "Small samples dominate — treat as exploratory context, not a validated edge."

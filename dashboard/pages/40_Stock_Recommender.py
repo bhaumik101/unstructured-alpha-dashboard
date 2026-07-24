@@ -103,11 +103,11 @@ if _recommender_section != "Track Record":
                     help="Restore a complete Recommender filter setup without rerunning deep scoring.",
                 )
             _apply_screen = _saved_c2.button(
-                "Apply", use_container_width=True, disabled=_selected_screen_id is None,
+                "Apply", width="stretch", disabled=_selected_screen_id is None,
                 key="rec_apply_saved_screen",
             )
             _delete_screen = _saved_c3.button(
-                "Delete", use_container_width=True, disabled=_selected_screen_id is None,
+                "Delete", width="stretch", disabled=_selected_screen_id is None,
                 key="rec_delete_saved_screen",
             )
             _selected_monitoring = bool(
@@ -116,7 +116,7 @@ if _recommender_section != "Track Record":
             )
             _monitor_screen = _saved_c4.button(
                 "Pause" if _selected_monitoring else "Monitor",
-                use_container_width=True,
+                width="stretch",
                 disabled=_selected_screen_id is None,
                 key="rec_monitor_saved_screen",
                 help=(
@@ -207,7 +207,7 @@ if _recommender_section != "Track Record":
                 max_chars=64,
             )
             _save_current_screen = _save_c2.button(
-                "Save", type="primary", use_container_width=True, key="rec_save_current_screen"
+                "Save", type="primary", width="stretch", key="rec_save_current_screen"
             )
             st.caption(
                 f"Save up to 10 private filter presets. Results are recomputed from current real data; "
@@ -393,7 +393,7 @@ if _recommender_section != "Track Record":
         _ec1, _ec2 = st.columns([1, 3])
         _do_enrich = _ec1.button(
             f" Deep-score top {len(enrich_set)}",
-            type="primary", use_container_width=True,
+            type="primary", width="stretch",
             help="Adds insider activity, 13F positioning, and short interest to the top "
                  "candidates. Heavier — runs on demand so the page stays fast.",
         )
@@ -762,12 +762,12 @@ if _recommender_section == "Track Record":
                 margin=dict(t=20, b=80, l=50, r=20),
                 height=280,
             )
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
         st.dataframe(
             tr_df[[c for c in ["Ticker", "Call Date", "Score", "Direction",
                                 "30d Return (%)", "Model P&L (%)", "Correct"] if c in tr_df.columns]],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -796,7 +796,7 @@ if _recommender_section == "Ranked Universe":
 
         st.dataframe(
             table_df,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Score": st.column_config.ProgressColumn(
@@ -833,6 +833,6 @@ if _recommender_section == "Score Distribution":
                        color="#4A5568", title="# Tickers"),
             margin=dict(t=20, b=40, l=50, r=20), height=250, bargap=0.08,
         )
-        st.plotly_chart(fig2, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig2, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
 render_footer()

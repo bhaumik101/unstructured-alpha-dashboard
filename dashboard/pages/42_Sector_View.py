@@ -128,7 +128,7 @@ if _sector_section == "Sector Rotation":
             yaxis=dict(range=[0,100], showgrid=True, gridcolor="rgba(255,255,255,0.06)", color="#4A5568"),
             margin=dict(t=10, b=60, l=50, r=20), height=260,
         )
-        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, theme=None)
         source_badge("FRED · EIA · SEC EDGAR")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -190,7 +190,7 @@ if _sector_section == "Market Heatmap":
             paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#E8EEFF", family="Inter", size=11),
             margin=dict(t=10, b=10, l=0, r=0), height=480,
         )
-        st.plotly_chart(fig2, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig2, width="stretch", config=PLOTLY_CONFIG, theme=None)
         st.caption("Color = Confluence Score. Green ≥65 bullish · Red ≤35 bearish. Scores via macro signal cache (fast, no price fetch).")
         source_badge("FRED · EIA · UA Signals Cache")
 
@@ -259,7 +259,7 @@ if _sector_section == "Supply Chain":
         xaxis=dict(visible=False), yaxis=dict(visible=False),
         margin=dict(t=20, b=20, l=20, r=20), height=420,
     )
-    st.plotly_chart(fig3, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    st.plotly_chart(fig3, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
     st.markdown("#### Supply Chain Signal Scores")
     with st.spinner("Loading supply chain signals…"):
@@ -281,6 +281,6 @@ if _sector_section == "Supply Chain":
         if rows:
             import pandas as pd
             sc_df = pd.DataFrame(rows).sort_values("Score", ascending=False)
-            st.dataframe(sc_df, use_container_width=True, hide_index=True,
+            st.dataframe(sc_df, width="stretch", hide_index=True,
                          column_config={"Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.0f")})
         source_badge("FRED · EIA")

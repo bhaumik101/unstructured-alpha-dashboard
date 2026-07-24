@@ -307,7 +307,7 @@ if stripe_session_id:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("Open Today's Brief", use_container_width=True, type="primary", key="cta_brief"):
+            if st.button("Open Today's Brief", width="stretch", type="primary", key="cta_brief"):
                 st.switch_page("pages/2_Today_Digest.py")
         with col2:
             st.markdown(f"""
@@ -321,7 +321,7 @@ if stripe_session_id:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("Open Deep Dive", use_container_width=True, key="cta_tdd"):
+            if st.button("Open Deep Dive", width="stretch", key="cta_tdd"):
                 st.switch_page("pages/3_Ticker_Deep_Dive.py")
         with col3:
             st.markdown(f"""
@@ -335,7 +335,7 @@ if stripe_session_id:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("Open Factor Exposure", use_container_width=True, key="cta_factor"):
+            if st.button("Open Factor Exposure", width="stretch", key="cta_factor"):
                 st.switch_page("pages/27_Factor_Exposure.py")
 
         st.query_params.clear()
@@ -376,7 +376,7 @@ if user:
         """, unsafe_allow_html=True)
         col1, col2 = st.columns([1, 1])
         with col1:
-            if customer_id and st.button("Manage Subscription ↗", use_container_width=True, type="primary"):
+            if customer_id and st.button("Manage Subscription ↗", width="stretch", type="primary"):
                 try:
                     portal_url = create_portal_session(customer_id, return_url=_page_url())
                     st.markdown(f"""
@@ -388,7 +388,7 @@ if user:
                 except Exception as e:
                     st.error(f"Could not open portal: {e}")
         with col2:
-            if st.button("Re-sync subscription status", use_container_width=True):
+            if st.button("Re-sync subscription status", width="stretch"):
                 with st.spinner("Checking Stripe…"):
                     live_tier = check_and_sync_subscription(user["id"])
                     st.session_state[cache_key] = live_tier
@@ -400,13 +400,13 @@ if user:
 
         st.markdown("### Your Pro workspace")
         _p1, _p2, _p3, _p4 = st.columns(4)
-        if _p1.button("Deep Research", use_container_width=True, key="pro_deep"):
+        if _p1.button("Deep Research", width="stretch", key="pro_deep"):
             st.switch_page("pages/3_Ticker_Deep_Dive.py")
-        if _p2.button("Signal Backtests", use_container_width=True, key="pro_backtest"):
+        if _p2.button("Signal Backtests", width="stretch", key="pro_backtest"):
             st.switch_page("pages/35_Signal_Strategy.py")
-        if _p3.button("Portfolio Intelligence", use_container_width=True, key="pro_portfolio"):
+        if _p3.button("Portfolio Intelligence", width="stretch", key="pro_portfolio"):
             st.switch_page("pages/44_Portfolio_Suite.py")
-        if _p4.button("AI Assistant", use_container_width=True, key="pro_ai"):
+        if _p4.button("AI Assistant", width="stretch", key="pro_ai"):
             st.switch_page("pages/9_AI_Assistant.py")
 
         # ── Referral section (Pro users only) ────────────────────────────────
@@ -573,7 +573,7 @@ col_l, col_m, col_r = st.columns([1.2, 1.2, 1.2])
 with col_l:
     if st.button(
         "Monthly — $20/mo",
-        use_container_width=True,
+        width="stretch",
         type="secondary" if st.session_state.upgrade_plan == "annual" else "primary",
         key="toggle_monthly",
     ):
@@ -582,7 +582,7 @@ with col_l:
 with col_m:
     if st.button(
         "  Annual  —  Save 20% ($192/yr)  ✦ BEST VALUE",
-        use_container_width=True,
+        width="stretch",
         type="primary" if st.session_state.upgrade_plan == "annual" else "secondary",
         key="toggle_annual",
     ):
@@ -698,7 +698,7 @@ if not user:
             Create a free account first — it takes 30 seconds.
         </div>
         """, unsafe_allow_html=True)
-        if st.button("Create Free Account to Start Trial →", use_container_width=True, type="primary"):
+        if st.button("Create Free Account to Start Trial →", width="stretch", type="primary"):
             st.switch_page("pages/home_page.py")
         st.markdown("""
         <div class="secure-note">
@@ -720,7 +720,7 @@ else:
             checkout_disabled = True
             btn_display = "Stripe not configured yet"
 
-        if st.button(btn_display, type="primary", use_container_width=True, disabled=checkout_disabled):
+        if st.button(btn_display, type="primary", width="stretch", disabled=checkout_disabled):
             try:
                 checkout_url = _create_limited_checkout(user, plan, _trial_days)
                 st.markdown(
@@ -962,7 +962,7 @@ with col:
     if st.button(
         f"Start {_trial_days}-Day Free Trial — {monthly_price}/mo after",
         type="primary",
-        use_container_width=True,
+        width="stretch",
         key="bottom_cta_btn",
     ):
         if not user:

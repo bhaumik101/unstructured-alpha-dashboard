@@ -264,7 +264,7 @@ if section == "Markets":
             if "series" in q and len(q["series"]) >= 3:
                 col.plotly_chart(
                     mini_sparkline(q["series"], color, period_sel),
-                    use_container_width=True,
+                    width="stretch",
                     config=PLOTLY_CONFIG,
                     theme=None,
                 )
@@ -320,7 +320,7 @@ if section == "Markets":
         yaxis=dict(tickfont=dict(color="#E8EEFF")),
         margin=dict(l=0, r=60, t=10, b=0),
     )
-    st.plotly_chart(fig_sectors, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    st.plotly_chart(fig_sectors, width="stretch", config=PLOTLY_CONFIG, theme=None)
     st.markdown(f"&nbsp; {source_badge('yfinance', 'Sector ETF returns')}", unsafe_allow_html=True)
 
     # ── Section 3: Rates & Fixed Income + Commodities ─────────────────────────────
@@ -363,7 +363,7 @@ if section == "Markets":
             # Highlight the selected period column
             st.dataframe(
                 rate_df,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 column_config={
                     period_sel: st.column_config.TextColumn(period_sel, width="small"),
@@ -421,7 +421,7 @@ if section == "Markets":
             comm_df = pd.DataFrame(comm_rows)
             st.dataframe(
                 comm_df,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 column_config={
                     period_sel: st.column_config.TextColumn(period_sel, width="small"),
@@ -498,7 +498,7 @@ if section == "Markets":
         )
         fig_perf.update_yaxes(ticksuffix="%", title_text=f"Return ({period_label(period_sel)})")
         fig_perf = style_timeseries_chart(fig_perf, height=300, y_title=f"Return ({period_label(period_sel)})")
-        st.plotly_chart(fig_perf, use_container_width=True, config=PLOTLY_CONFIG_INTERACTIVE, theme=None)
+        st.plotly_chart(fig_perf, width="stretch", config=PLOTLY_CONFIG_INTERACTIVE, theme=None)
         st.markdown(f"&nbsp; {source_badge('yfinance', 'Daily OHLCV')}", unsafe_allow_html=True)
     else:
         st.info("Performance chart unavailable — yfinance data not loading.")
@@ -709,7 +709,7 @@ elif section == "Macro Indicators":
                 x=ata.index, y=ata.values, mode="lines", line=dict(color="#7C3AED", width=1.8),
                 fill="tozeroy", fillcolor="rgba(28,43,74,0.09)",
             ))
-            st.plotly_chart(_light_chart(fig, 200, "ATA Trucking Index"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_light_chart(fig, 200, "ATA Trucking Index"), width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.markdown(f"Latest: **{last_v:,.1f}** &nbsp; 4-week change: {chg:+.1f}% &nbsp; {chip} &nbsp; {source_badge('fred','TRUCKD11')}", unsafe_allow_html=True)
         else:
             st.info("Trucking data unavailable. Add FRED API key.")
@@ -721,7 +721,7 @@ elif section == "Macro Indicators":
             chip   = _status_chip(last_v, (47, 53), ("Expanding (>50)", "Contracting (<50)", "Near 50"))
             fig = go.Figure(go.Scatter(x=ism.index, y=ism.values, mode="lines", line=dict(color="#F59E0B", width=1.8)))
             fig.add_hline(y=50, line=dict(color="#6B7FBF", dash="dot", width=1.5))
-            st.plotly_chart(_light_chart(fig, 200, "ISM Manufacturing PMI"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_light_chart(fig, 200, "ISM Manufacturing PMI"), width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.markdown(f"Latest: **{last_v:.1f}** &nbsp; {chip} &nbsp; {source_badge('fred','GACDFSA066MSFRBPHI','Philly Fed')}", unsafe_allow_html=True)
         else:
             st.info("ISM PMI unavailable. Add FRED API key.")
@@ -735,7 +735,7 @@ elif section == "Macro Indicators":
             chip   = _status_chip(mom, (-1, 1), ("Growing", "Declining", "Flat"))
             fig = go.Figure(go.Bar(x=dgo.index, y=dgo.values,
                                     marker_color=["#00D566" if v > 0 else "#FF4444" for v in dgo.values]))
-            st.plotly_chart(_light_chart(fig, 200, "Durable Goods Orders (MoM %)"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_light_chart(fig, 200, "Durable Goods Orders (MoM %)"), width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.markdown(f"Latest: **{last_v:+.2f}%** &nbsp; {chip} &nbsp; {source_badge('fred','DGORDER')}", unsafe_allow_html=True)
         else:
             st.info("Durable Goods unavailable. Add FRED API key.")
@@ -750,7 +750,7 @@ elif section == "Macro Indicators":
             last_v = float(ic.iloc[-1])
             chip   = _status_chip(last_v, (220000, 280000), ("Healthy (<220K)", "Elevated (>280K)", "Normal"), inverse=True)
             fig = go.Figure(go.Scatter(x=ic.index, y=ic.values, mode="lines", line=dict(color="#FF4444", width=1.8)))
-            st.plotly_chart(_light_chart(fig, 200, "Initial Jobless Claims (4-Week Avg)"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_light_chart(fig, 200, "Initial Jobless Claims (4-Week Avg)"), width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.markdown(f"Latest: **{last_v:,.0f}** claims &nbsp; {chip} &nbsp; {source_badge('fred','IC4WSA')}", unsafe_allow_html=True)
         else:
             st.info("Jobless claims unavailable. Add FRED API key.")
@@ -761,7 +761,7 @@ elif section == "Macro Indicators":
             last_v = float(jolts_ld.iloc[-1])
             chip   = _status_chip(last_v, (1.0, 2.5), ("High demand (>2.5)", "Low demand (<1.0)", "Normal"))
             fig = go.Figure(go.Scatter(x=jolts_ld.index, y=jolts_ld.values, mode="lines", line=dict(color="#00D566", width=1.8)))
-            st.plotly_chart(_light_chart(fig, 200, "JOLTS — Layoffs & Discharges Rate"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_light_chart(fig, 200, "JOLTS — Layoffs & Discharges Rate"), width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.markdown(f"Latest: **{last_v:.2f}%** &nbsp; {chip} &nbsp; {source_badge('fred','JTSLDR')}", unsafe_allow_html=True)
         else:
             st.info("JOLTS data unavailable. Add FRED API key.")
@@ -774,7 +774,7 @@ elif section == "Macro Indicators":
             chip   = _status_chip(last_v - mean_v, (-5000, 5000), ("Above avg", "Below avg", "Near avg"))
             fig = go.Figure(go.Scatter(x=rail.index, y=rail.values, mode="lines", line=dict(color="#7C3AED", width=1.8)))
             fig.add_hline(y=mean_v, line=dict(color="#F59E0B", dash="dot", width=1))
-            st.plotly_chart(_light_chart(fig, 200, "Rail Intermodal Traffic"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_light_chart(fig, 200, "Rail Intermodal Traffic"), width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.markdown(f"Latest: **{last_v:,.0f}** units &nbsp; {chip} &nbsp; {source_badge('fred','RAILFRTINTERMODAL')}", unsafe_allow_html=True)
         else:
             st.info("Rail freight data unavailable. Add FRED API key.")
@@ -791,7 +791,7 @@ elif section == "Macro Indicators":
             chip   = _status_chip(last_v - mean_v, (-5, 5), ("Above avg", "Below avg", "Near avg"))
             fig = go.Figure(go.Scatter(x=umcs.index, y=umcs.values, mode="lines", line=dict(color="#F59E0B", width=1.8)))
             fig.add_hline(y=mean_v, line=dict(color="#7C3AED", dash="dot", width=1))
-            st.plotly_chart(_light_chart(fig, 200, "U. Michigan Consumer Sentiment"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_light_chart(fig, 200, "U. Michigan Consumer Sentiment"), width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.markdown(f"Latest: **{last_v:.1f}** &nbsp; {chip} &nbsp; {source_badge('fred','UMCSENT')}", unsafe_allow_html=True)
         else:
             st.info("Consumer sentiment unavailable.")
@@ -805,7 +805,7 @@ elif section == "Macro Indicators":
             chip   = _status_chip(mom, (-0.5, 0.5), ("Growing", "Declining", "Flat"))
             fig = go.Figure(go.Bar(x=rsxfs.index, y=rsxfs.values,
                                     marker_color=["#00D566" if v > 0 else "#FF4444" for v in rsxfs.values]))
-            st.plotly_chart(_light_chart(fig, 200, "Retail Sales ex-Autos (MoM %)"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_light_chart(fig, 200, "Retail Sales ex-Autos (MoM %)"), width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.markdown(f"Latest: **{last_v:+.2f}%** &nbsp; {chip} &nbsp; {source_badge('fred','RSXFS')}", unsafe_allow_html=True)
         else:
             st.info("Retail sales unavailable.")
@@ -817,7 +817,7 @@ elif section == "Macro Indicators":
             yoy = ((last_v / float(cpi_food.iloc[-13])) - 1) * 100 if len(cpi_food) > 13 else float("nan")
             chip = _status_chip(yoy if not pd.isna(yoy) else 0, (2, 5), ("Stable (<2%)", "High (>5%)", "Moderate"), inverse=True)
             fig = go.Figure(go.Scatter(x=cpi_food.index, y=cpi_food.values, mode="lines", line=dict(color="#FF4444", width=1.8)))
-            st.plotly_chart(_light_chart(fig, 200, "CPI — Food at Home (Index Level)"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_light_chart(fig, 200, "CPI — Food at Home (Index Level)"), width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.markdown(f"Index: **{last_v:.1f}** &nbsp; YoY: **{yoy:+.1f}%** &nbsp; {chip} &nbsp; {source_badge('fred','CPIUFDSL')}", unsafe_allow_html=True)
         else:
             st.info("CPI food data unavailable.")
@@ -835,7 +835,7 @@ elif section == "Macro Indicators":
             if yc.iloc[i] < 0:
                 fig_yc.add_vrect(x0=yc.index[i - 1], x1=yc.index[i], fillcolor="rgba(123,16,16,0.09)", line_width=0)
         fig_yc.add_hline(y=0, line=dict(color="#FF4444", width=1.5))
-        st.plotly_chart(_light_chart(fig_yc, 240, "10Y–2Y Treasury Yield Curve Spread"), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(_light_chart(fig_yc, 240, "10Y–2Y Treasury Yield Curve Spread"), width="stretch", config=PLOTLY_CONFIG, theme=None)
         last_spread = float(yc.iloc[-1])
         st.markdown(
             f"Current spread: **{last_spread:+.2f}%** &nbsp; "

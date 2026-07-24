@@ -56,7 +56,7 @@ with _new_action_col:
     if st.button(
         "Start Thesis in Deep Dive",
         type="primary",
-        use_container_width=True,
+        width="stretch",
         disabled=not bool(_new_thesis_ticker),
     ):
         st.session_state["selected_ticker"] = _new_thesis_ticker
@@ -118,7 +118,7 @@ else:
                     f"Entry {_entry} · score {_score} · horizon {_item['horizon_weeks']} weeks · updated {_updated}"
                 )
             with _action_col:
-                if st.button("Review", key=f"review_thesis_{_item['ticker']}", use_container_width=True):
+                if st.button("Review", key=f"review_thesis_{_item['ticker']}", width="stretch"):
                     st.session_state["selected_ticker"] = _item["ticker"]
                     st.session_state["dive_section"] = "Thesis Workspace"
                     st.switch_page("pages/3_Ticker_Deep_Dive.py")

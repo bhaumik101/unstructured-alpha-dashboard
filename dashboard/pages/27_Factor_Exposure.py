@@ -351,7 +351,7 @@ if _factor_section == "Exposure Summary":
             font=dict(family="Inter, sans-serif"),
             showlegend=False,
         )
-        st.plotly_chart(fig_bar, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig_bar, width="stretch", config=PLOTLY_CONFIG, theme=None)
         st.markdown(
             source_badge("yfinance", "ETF factor proxies") + "&nbsp;" +
             source_badge("yfinance", ticker_input),
@@ -510,7 +510,7 @@ if _factor_section == "Rolling Beta":
             showlegend=False,
             font=dict(family="Inter, sans-serif"),
         )
-        st.plotly_chart(fig_roll, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig_roll, width="stretch", config=PLOTLY_CONFIG, theme=None)
         st.caption(
             f"63-day (quarterly) rolling OLS beta against SPY. Current: {cur_beta:.2f}. "
             "High market beta means the stock amplifies index moves; below 1.0 means it dampens them."
@@ -608,7 +608,7 @@ if _factor_section == "Risk Decomposition":
             x=0.5, y=0.5, showarrow=False,
             font=dict(color="#E8EEFF", size=11, family="Inter"),
         )
-        st.plotly_chart(fig_pie, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig_pie, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
     with interp_col2:
         # Factor description cards
@@ -698,7 +698,7 @@ if _factor_section == "Compare Tickers":
                 legend=dict(font=dict(color="#E8EEFF", size=10), bgcolor="rgba(18,21,30,0.85)"),
                 font=dict(family="Inter, sans-serif"),
             )
-            st.plotly_chart(fig_cmp, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(fig_cmp, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
             # Summary table
             rows = []
@@ -708,7 +708,7 @@ if _factor_section == "Compare Tickers":
                 for i, fname in enumerate(factor_names):
                     row[FACTOR_META[fname]["label"]] = f"{cr2['coefs'][i]:+.2f}"
                 rows.append(row)
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
         else:
             st.info("Could not fetch enough data for comparison tickers. Try different ones.")
 

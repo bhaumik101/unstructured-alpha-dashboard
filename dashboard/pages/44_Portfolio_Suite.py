@@ -81,7 +81,7 @@ if _portfolio_section == "Holdings":
         ])
         st.dataframe(
             _holdings_frame,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Portfolio weight": st.column_config.ProgressColumn(
@@ -114,7 +114,7 @@ if _portfolio_section == "Holdings":
             help="Use TICKER, weight%. If weights are omitted, positions are equal-weighted.",
         )
         _save_portfolio = st.form_submit_button(
-            "Save portfolio", type="primary", use_container_width=True
+            "Save portfolio", type="primary", width="stretch"
         )
 
     if _save_portfolio:
@@ -155,16 +155,16 @@ if _portfolio_section == "Holdings":
         st.markdown("---")
         st.markdown("#### Continue your workflow")
         _next_cols = st.columns(4)
-        if _next_cols[0].button("Open portfolio review", use_container_width=True):
+        if _next_cols[0].button("Open portfolio review", width="stretch"):
             st.session_state["portfolio_suite_section_rail"] = "Portfolio Review"
             st.rerun()
-        if _next_cols[1].button("Analyze macro exposure", use_container_width=True):
+        if _next_cols[1].button("Analyze macro exposure", width="stretch"):
             st.session_state["portfolio_suite_section_rail"] = "Macro Exposure"
             st.rerun()
-        if _next_cols[2].button("Run a stress scenario", use_container_width=True):
+        if _next_cols[2].button("Run a stress scenario", width="stretch"):
             st.session_state["portfolio_suite_section_rail"] = "Stress Tester"
             st.rerun()
-        if _next_cols[3].button("Open Today's Brief", use_container_width=True):
+        if _next_cols[3].button("Open Today's Brief", width="stretch"):
             st.switch_page("pages/2_Today_Digest.py")
 
 
@@ -227,7 +227,7 @@ if _portfolio_section == "Portfolio Review":
                     if st.button(
                         "Generate portfolio review",
                         type="primary",
-                        use_container_width=True,
+                        width="stretch",
                         key="portfolio_review_generate",
                     ):
                         with st.status("Building an evidence-constrained review…", expanded=False) as _review_status:
@@ -322,7 +322,7 @@ if _portfolio_section == "Portfolio Fit Lab":
         if st.button(
             "Run portfolio fit simulation",
             type="primary",
-            use_container_width=True,
+            width="stretch",
             disabled=not bool(candidate_ticker),
             key="portfolio_fit_run",
         ):
@@ -421,7 +421,7 @@ if _portfolio_section == "Portfolio Fit Lab":
                 if shift_rows:
                     st.dataframe(
                         pd.DataFrame(shift_rows),
-                        use_container_width=True,
+                        width="stretch",
                         hide_index=True,
                         column_config={
                             "Current weight exposed": st.column_config.NumberColumn(format="%.1f%%"),
@@ -717,14 +717,14 @@ if _portfolio_section == "Portfolio Backtest":
                 legend=dict(bgcolor="rgba(0,0,0,0)", borderwidth=0),
                 margin=dict(t=20, b=40, l=50, r=20), height=300,
             )
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
             if result["contributions"]:
                 import pandas as pd
                 contrib_df = pd.DataFrame([{"Ticker":k,"Contribution (%)":round(v*100,1)}
                                             for k,v in result["contributions"].items()])
                 st.markdown("**Top contributing tickers**")
-                st.dataframe(contrib_df, use_container_width=True, hide_index=True)
+                st.dataframe(contrib_df, width="stretch", hide_index=True)
 
         st.caption(
             "Walk-forward: at each rebalance the most recent score dated **at or "
@@ -793,7 +793,7 @@ if _portfolio_section == "Stress Tester":
 
     if holdings:
         h_df = pd.DataFrame(holdings)
-        st.dataframe(h_df, use_container_width=True, hide_index=True)
+        st.dataframe(h_df, width="stretch", hide_index=True)
         total_w = sum(h["weight"] for h in holdings)
 
         st.markdown("**Run scenario**")
@@ -827,7 +827,7 @@ if _portfolio_section == "Stress Tester":
                 f'</div>',
                 unsafe_allow_html=True,
             )
-            st.dataframe(res_df, use_container_width=True, hide_index=True)
+            st.dataframe(res_df, width="stretch", hide_index=True)
             st.caption("Impacts are estimated from historical sector sensitivities to macro regime shifts. Not a price prediction.")
     else:
         st.info("Add some holdings above to run a stress test.")
@@ -931,7 +931,7 @@ if _portfolio_section == "Signal Backtester":
                                            color="#4A5568", range=[0,100]),
                                 margin=dict(t=20, b=40, l=50, r=20), height=250,
                             )
-                            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+                            st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, theme=None)
                             st.caption("Accuracy = % of times the combined score ≥ threshold was followed by positive price return 4 weeks later.")
             except Exception as e:
                 st.error(f"Error running backtest: {e}")
@@ -1129,7 +1129,7 @@ if _portfolio_section == "Macro Exposure":
                  "Direction": " Bullish" if v > 0.01 else " Bearish" if v < -0.01 else " Neutral"}
                 for k, v in exp_sorted
             ])
-            st.dataframe(exp_df, use_container_width=True, hide_index=True,
+            st.dataframe(exp_df, width="stretch", hide_index=True,
                          column_config={"Net Exposure": st.column_config.ProgressColumn(
                              "Net Exposure", min_value=-30, max_value=30, format="%.1f%%")})
             st.caption("Net Exposure = how much each macro signal moves your portfolio's expected return, weighted by holding size.")
@@ -1203,7 +1203,7 @@ if _portfolio_section == "Basket Builder":
 
         st.dataframe(
             basket_df,
-            use_container_width=True, hide_index=True,
+            width="stretch", hide_index=True,
             column_config={"Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.0f")},
         )
 
@@ -1224,6 +1224,6 @@ if _portfolio_section == "Basket Builder":
                        range=[0,100], title="Score"),
             margin=dict(t=10, b=40, l=50, r=20), height=220,
         )
-        st.plotly_chart(fig_bk, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig_bk, width="stretch", config=PLOTLY_CONFIG, theme=None)
     else:
         st.info("Select a theme or pick custom tickers above.")

@@ -532,7 +532,7 @@ def require_pro(page_name: str = "this page", benefit: str | None = None) -> Non
 
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        if st.button(f"Unlock {page_name} with Pro →", type="primary", use_container_width=True, key="pro_gate_upgrade_btn"):
+        if st.button(f"Unlock {page_name} with Pro →", type="primary", width="stretch", key="pro_gate_upgrade_btn"):
             st.switch_page("pages/29_Upgrade.py")
 
     with st.expander("What's included in Pro?"):

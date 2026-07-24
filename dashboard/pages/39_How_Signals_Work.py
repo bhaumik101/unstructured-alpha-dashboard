@@ -534,7 +534,7 @@ st.markdown("""
 
 _c1, _c2, _c3 = st.columns([2, 1.5, 2])
 with _c2:
-    if st.button("→ Open Signal Dashboard", type="primary", use_container_width=True, key="hsw_cta"):
+    if st.button("→ Open Signal Dashboard", type="primary", width="stretch", key="hsw_cta"):
         st.switch_page("pages/1_Signal_Dashboard.py")
 
 st.markdown("""

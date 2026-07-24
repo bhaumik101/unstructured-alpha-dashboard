@@ -276,7 +276,7 @@ if _watchlist_section == "Securities":
         with _col:
             _p = QUICK_ADD_PRESETS[_preset_name]
             if st.button(_preset_name, key=f"quick_add_{_preset_name.replace(' ', '_')}",
-                         use_container_width=True, disabled=not new_ticker,
+                         width="stretch", disabled=not new_ticker,
                          help=f"{_PRESET_BLURB[_preset_name]} Alerts at score ≥{_p['score_bull_threshold']:.0f}, "
                               f"≤{_p['score_bear_threshold']:.0f}, or a {_p['price_move_pct_threshold']:.0f}% price move."):
                 alerts_db.add_to_watchlist(user_id, new_ticker, **_p)
@@ -302,7 +302,7 @@ if _watchlist_section == "Securities":
             f"or when price moves **≥{price_thresh:.1f}%** in a day."
         )
         if st.button("Add with these thresholds", type="primary", disabled=not new_ticker,
-                     use_container_width=True):
+                     width="stretch"):
             alerts_db.add_to_watchlist(
                 user_id, new_ticker,
                 score_bull_threshold=bull_thresh,
@@ -421,7 +421,7 @@ if _watchlist_section == "Securities":
                         with _csp_cols[1]:
                             st.caption("30-day composite score trend")
                             st.plotly_chart(
-                                _csp_fig, use_container_width=True,
+                                _csp_fig, width="stretch",
                                 config=PLOTLY_CONFIG,
                                 key="composite_sparkline",
                              theme=None)
@@ -783,7 +783,7 @@ if _watchlist_section == "Securities":
                             f'&nbsp;·&nbsp; <span style="color:{_sh_color};">{_sh_scores[-1]:.0f}/100</span></div>',
                             unsafe_allow_html=True,
                         )
-                        st.plotly_chart(_sh_fig, use_container_width=True,
+                        st.plotly_chart(_sh_fig, width="stretch",
                                         config=PLOTLY_CONFIG,
                                         key=f"score_spark_{ticker}", theme=None)
                     else:
@@ -853,7 +853,7 @@ if _watchlist_section == "Securities":
                     _spark_color = "#00D566" if (chg_pct or 0) >= 0 else "#FF4444"
                     st.plotly_chart(
                         mini_sparkline(series, _spark_color, "3M", show_axes=True),
-                        use_container_width=True,
+                        width="stretch",
                         config=PLOTLY_CONFIG,
                         key=f"watch_spark_{ticker}",
                      theme=None)

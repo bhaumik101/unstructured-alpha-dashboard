@@ -189,7 +189,7 @@ if _screener_section == "Screen Securities":
         _btn_col, _ = st.columns([1, 3])
         with _btn_col:
             if st.button(f"Open {r['symbol']} in Deep Dive →", type="primary",
-                         use_container_width=True, key=f"cust_tdd_{r['symbol']}"):
+                         width="stretch", key=f"cust_tdd_{r['symbol']}"):
                 st.session_state["selected_ticker"] = r["symbol"]
                 st.switch_page("pages/3_Ticker_Deep_Dive.py")
 
@@ -213,7 +213,7 @@ if _screener_section == "Screen Securities":
             label_visibility="collapsed",
         ).strip().upper()
     with _qa2:
-        run_quick = st.button("→ Analyze", type="primary", key="run_quick_btn", use_container_width=True)
+        run_quick = st.button("→ Analyze", type="primary", key="run_quick_btn", width="stretch")
 
     if custom_ticker and run_quick:
         with st.spinner(f"Analyzing {custom_ticker}…"):
@@ -453,7 +453,7 @@ if _screener_section == "Screen Securities":
         margin=dict(l=8, r=8, t=10, b=8),
         font=dict(family="Inter, sans-serif", color="#8892AA"),
     )
-    st.plotly_chart(fig_dist, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    st.plotly_chart(fig_dist, width="stretch", config=PLOTLY_CONFIG, theme=None)
     st.markdown(
         f"&nbsp; {source_badge('yfinance', 'Live quotes · price history')} "
         f"&nbsp; {source_badge('ua', 'Macro + Momentum Rank · UA internal')}",
@@ -472,7 +472,7 @@ if _screener_section == "Screen Securities":
 
     event = st.dataframe(
         display_df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         on_select="rerun",
         selection_mode="single-row",
@@ -607,11 +607,11 @@ if _screener_section == "Screen Securities":
         _btn_l, _btn_r, _ = st.columns([1, 1, 2])
         with _btn_l:
             if st.button(f"Ticker Deep Dive: {sel_ticker} →", type="primary",
-                         use_container_width=True, key="scr_tdd_btn"):
+                         width="stretch", key="scr_tdd_btn"):
                 st.query_params["ticker"] = sel_ticker
                 st.switch_page("pages/3_Ticker_Deep_Dive.py")
         with _btn_r:
-            if st.button(f"Chart: {sel_ticker} →", use_container_width=True, key="scr_chart_btn"):
+            if st.button(f"Chart: {sel_ticker} →", width="stretch", key="scr_chart_btn"):
                 st.session_state["chart_ticker"] = sel_ticker
                 st.switch_page("pages/14_Stock_Chart.py")
 
@@ -679,7 +679,7 @@ if _screener_section == "Rankings":
             yaxis=dict(range=[0,100], gridcolor="rgba(255,255,255,0.06)", showgrid=True, color="#4A5568"),
             xaxis=dict(showgrid=False, color="#4A5568"),
             margin=dict(t=10,b=40,l=40,r=10), height=220)
-        st.plotly_chart(_fig_top, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(_fig_top, width="stretch", config=PLOTLY_CONFIG, theme=None)
     with _r2:
         st.markdown("**Bottom 25 Bearish**")
         _fig_bot = _go_r.Figure(_go_r.Bar(
@@ -691,10 +691,10 @@ if _screener_section == "Rankings":
             yaxis=dict(range=[0,100], gridcolor="rgba(255,255,255,0.06)", showgrid=True, color="#4A5568"),
             xaxis=dict(showgrid=False, color="#4A5568"),
             margin=dict(t=10,b=40,l=40,r=10), height=220)
-        st.plotly_chart(_fig_bot, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(_fig_bot, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
     st.dataframe(
-        _rank_df, use_container_width=True, hide_index=True,
+        _rank_df, width="stretch", hide_index=True,
         column_config={"Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.0f")},
     )
 
@@ -764,7 +764,7 @@ if _screener_section == "Short Squeeze Radar":
     if _sq_rows:
         _sq_df = pd.DataFrame(_sq_rows).sort_values("Squeeze Score", ascending=False).head(20)
         st.dataframe(
-            _sq_df, use_container_width=True, hide_index=True,
+            _sq_df, width="stretch", hide_index=True,
             column_config={"Squeeze Score": st.column_config.ProgressColumn("Squeeze Score", min_value=0, max_value=100, format="%.0f")},
         )
         _src_badge("FINRA · yfinance · EDGAR")

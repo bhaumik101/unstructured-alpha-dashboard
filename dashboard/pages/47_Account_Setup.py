@@ -68,7 +68,7 @@ if not needs_account_setup(user_id):
         '<p>Your account preferences are saved and can be changed anytime in My Profile.</p></div>',
         unsafe_allow_html=True,
     )
-    if st.button("Open today's brief", type="primary", use_container_width=True):
+    if st.button("Open today's brief", type="primary", width="stretch"):
         _go_to_brief()
     st.stop()
 
@@ -107,7 +107,7 @@ if step == 1:
             'Your display name is used only to make the product feel personal.</div>',
             unsafe_allow_html=True,
         )
-        next_step = st.form_submit_button("Continue", type="primary", use_container_width=True)
+        next_step = st.form_submit_button("Continue", type="primary", width="stretch")
     if next_step:
         normalized_name = " ".join(display_name.split())
         if not 2 <= len(normalized_name) <= 48:
@@ -139,8 +139,8 @@ elif step == 2:
             format_func=lambda value: EMPHASIS_LABELS[value],
         )
         prev_col, next_col = st.columns(2)
-        back = prev_col.form_submit_button("Back", use_container_width=True)
-        next_step = next_col.form_submit_button("Continue", type="primary", use_container_width=True)
+        back = prev_col.form_submit_button("Back", width="stretch")
+        next_step = next_col.form_submit_button("Continue", type="primary", width="stretch")
     if back:
         st.session_state["_account_setup_step"] = 1
         st.rerun()
@@ -169,8 +169,8 @@ else:
         )
         st.caption("Morning email delivery is a Pro feature. In-app alerts remain available on Free.")
         prev_col, finish_col = st.columns(2)
-        back = prev_col.form_submit_button("Back", use_container_width=True)
-        finish = finish_col.form_submit_button("Finish setup", type="primary", use_container_width=True)
+        back = prev_col.form_submit_button("Back", width="stretch")
+        finish = finish_col.form_submit_button("Finish setup", type="primary", width="stretch")
     if back:
         st.session_state["_setup_tickers"] = tickers
         st.session_state["_setup_digest"] = (
@@ -210,7 +210,7 @@ else:
             st.error("We couldn't save your setup. Please try again.")
 
 st.divider()
-if st.button("Skip for now", use_container_width=True, key="skip_account_setup"):
+if st.button("Skip for now", width="stretch", key="skip_account_setup"):
     try:
         skip_account_setup(user_id)
         track(
