@@ -119,7 +119,7 @@ def test_backtest_returns_an_entry_for_every_signal(monkeypatch):
     # happen to fail due to no network access in this environment.
     monkeypatch.setattr(
         "utils.validation_status.fetch_signal_series",
-        lambda cfg, start, end: (_ for _ in ()).throw(RuntimeError("no network")),
+        lambda cfg, start, end, point_in_time=False: (_ for _ in ()).throw(RuntimeError("no network")),
     )
     backtest_all_macro_signals.clear()  # bypass the 24h cache for this test
     results = backtest_all_macro_signals()
@@ -133,7 +133,7 @@ def test_backtest_returns_an_entry_for_every_signal(monkeypatch):
 def test_backtest_result_shape_is_consistent_on_failure(monkeypatch):
     monkeypatch.setattr(
         "utils.validation_status.fetch_signal_series",
-        lambda cfg, start, end: (_ for _ in ()).throw(RuntimeError("no network")),
+        lambda cfg, start, end, point_in_time=False: (_ for _ in ()).throw(RuntimeError("no network")),
     )
     backtest_all_macro_signals.clear()
     results = backtest_all_macro_signals()
@@ -195,7 +195,7 @@ def _patch_fake_universe(monkeypatch, strong_seed=7, noise_seed=11):
     monkeypatch.setattr("utils.validation_status.SIGNALS", _FAKE_SIGNALS)
     monkeypatch.setattr(
         "utils.validation_status.fetch_signal_series",
-        lambda cfg, start, end: signal_lookup.get(
+        lambda cfg, start, end, point_in_time=False: signal_lookup.get(
             next(k for k, v in _FAKE_SIGNALS.items() if v is cfg), pd.Series(dtype=float)
         ),
     )

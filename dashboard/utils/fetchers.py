@@ -205,6 +205,59 @@ def fetch_fred_asof(series_id: str, start: str, end: str, as_of: str, api_key: s
         return _empty_series_with_error(series_id, "fred", type(exc).__name__)
 
 
+@st.cache_data(ttl=604800, show_spinner=False, max_entries=60)  # 7d — first prints are immutable
+def fetch_fred_first_print(series_id: str, start: str, end: str, api_key: str = "") -> pd.Series:
+    """First-print FRED series over [start, end]: every observation's INITIAL
+    release value, in a single call, via ALFRED output_type=4.
+
+    Where fetch_fred_asof() answers "what did the vintage on ONE date look like",
+    this answers "for each observation, what was FIRST published" across the
+    whole range — which is exactly the real-time series a walk-forward backtest
+    should see. It removes revision bias from historical inputs (e.g. INDPRO
+    2020-06 stays 97.46, its first print, instead of today's revised 91.59).
+
+    realtime_start/realtime_end are pinned to FRED's full sentinel window so
+    output_type=4 returns the initial release for every observation. Missing key
+    or provider failure returns an explicitly-unavailable empty series; never
+    fabricates.
+    """
+    if not api_key:
+        return _empty_series_with_error(series_id, "fred", "MissingAPIKey")
+
+    url = "https://api.stlouisfed.org/fred/series/observations"
+    params = {
+        "series_id": series_id,
+        "api_key": api_key,
+        "file_type": "json",
+        "observation_start": start,
+        "observation_end": end,
+        "output_type": 4,                 # initial release only
+        "realtime_start": "1776-07-04",
+        "realtime_end": "9999-12-31",
+    }
+    try:
+        r = resilient_get(url, provider="fred", params=params, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        df = pd.DataFrame(data.get("observations", []))
+        if df.empty:
+            return _empty_series_with_error(series_id, "fred", "NoFirstPrint")
+        df["date"] = pd.to_datetime(df["date"])
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        # output_type=4 can emit multiple rows per observation date across
+        # revisions; keep the EARLIEST realtime row = the genuine first print.
+        if "realtime_start" in df.columns:
+            df = df.sort_values(["date", "realtime_start"])
+        s = (df.dropna(subset=["value"])
+               .drop_duplicates(subset=["date"], keep="first")
+               .set_index("date")["value"])
+        s.name = series_id
+        s.attrs["first_print"] = True
+        return s
+    except Exception as exc:
+        return _empty_series_with_error(series_id, "fred", type(exc).__name__)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # EIA — Energy Information Administration (crude stocks, gas storage)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -443,25 +496,39 @@ def fetch_live_quote(ticker: str) -> dict:
         }
 
 
-def fetch_signal_series(cfg: dict, start: str, end: str) -> pd.Series:
+def fetch_signal_series(cfg: dict, start: str, end: str,
+                        point_in_time: bool = False) -> pd.Series:
     """
     Single dispatch point for fetching a signal's raw data series, used by
     every page that scores signals from SIGNALS config entries. Keeping this
     in one place means adding a new source type (like "arxiv") only has to
     happen once instead of being duplicated across five page-level loops.
+
+    `point_in_time=True` returns the REAL-TIME (first-print) history for
+    revisable sources instead of today's latest-revised values — the honest
+    input for backtests/validation, which must only see data as it was known at
+    the time. Today only FRED supports this (via fetch_fred_first_print); prices
+    are not revised, and the other providers have no clean vintage API, so those
+    sources are returned unchanged and the flag makes NO false point-in-time
+    claim about them. Live scoring must keep point_in_time=False: the current
+    reading IS the latest revision.
     """
     src = str(cfg.get("source") or "unknown")
     ids = cfg.get("series_ids") or [cfg.get("series_id", "")]
     if isinstance(ids, str):
         ids = [ids]
-    cache_key = f"{src}:{'|'.join(str(item) for item in ids)}:{start}:{end}"
+    pit_tag = "pit" if point_in_time else "live"
+    cache_key = f"{src}:{'|'.join(str(item) for item in ids)}:{start}:{end}:{pit_tag}"
     # Most sources report transport health in resilient_get/post. These two
     # clients manage their own HTTP internally, so dispatch is their only
     # privacy-safe telemetry boundary. Avoid double-counting other providers.
     records_dispatch_health = src.startswith("yfinance") or src == "google_trends"
     try:
         if src == "fred":
-            result = fetch_fred(cfg["series_id"], start, end, api_key=_get_fred_key())
+            if point_in_time:
+                result = fetch_fred_first_print(cfg["series_id"], start, end, api_key=_get_fred_key())
+            else:
+                result = fetch_fred(cfg["series_id"], start, end, api_key=_get_fred_key())
         elif src == "eia":
             result = fetch_eia(cfg["series_id"], start, end, api_key=_get_eia_key())
         elif src == "yfinance":

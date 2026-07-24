@@ -55,7 +55,10 @@ def backtest_all_macro_signals(_v: int = 2) -> Dict[str, dict]:
     out = {}
     for sig_id, cfg in SIGNALS.items():
         try:
-            sig_series = fetch_signal_series(cfg, start, end)
+            # Point-in-time: backtest on first-print data (see get_all_signal
+            # _validation below) so revised-in-hindsight FRED values can't inflate
+            # a signal's historical PCS.
+            sig_series = fetch_signal_series(cfg, start, end, point_in_time=True)
             test_tickers = (cfg.get("relevant_tickers") or [])[:5]
             price_series_list = [fetch_price(t, start, end) for t in test_tickers]
             out[sig_id] = compute_backtested_pcs(
@@ -115,7 +118,12 @@ def validate_all_macro_signals(_v: int = 1) -> Dict[str, dict]:
             continue
 
         try:
-            sig_series = fetch_signal_series(cfg, start, end)
+            # POINT-IN-TIME: validation must only ever see data as it was known
+            # at the time. For FRED signals this returns first-print (initial
+            # release) values instead of today's revised numbers, removing
+            # look-ahead/revision bias from the backtest inputs. Live scoring
+            # elsewhere keeps latest-revised (the current reading IS the latest).
+            sig_series = fetch_signal_series(cfg, start, end, point_in_time=True)
         except Exception:
             sig_series = pd.Series(dtype=float)
 

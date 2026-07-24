@@ -3865,7 +3865,9 @@ elif section == "Deep Correlation Scan":
                 _decay_end = datetime.now().strftime("%Y-%m-%d")
                 _decay_start = (datetime.now() - timedelta(days=365 * 10)).strftime("%Y-%m-%d")
                 try:
-                    _decay_sig = fetch_signal_series(deep_cfg, _decay_start, _decay_end)
+                    # Backward-looking lead-time analysis → point-in-time inputs
+                    # (first-print for FRED; no-op for non-revisable sources).
+                    _decay_sig = fetch_signal_series(deep_cfg, _decay_start, _decay_end, point_in_time=True)
                 except Exception:
                     _decay_sig = pd.Series(dtype=float)
                 try:

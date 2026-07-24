@@ -72,6 +72,17 @@ else:
                "capped conservatively (a Core signal never shows 'High' without a measured "
                "out-of-sample pass). Click **Run out-of-sample validation** for measured scores.")
 
+st.caption(
+    "**Point-in-time inputs.** The validation runs on *first-print* data — each "
+    "FRED macro signal is fed the value that was actually published at the time "
+    "(via ALFRED initial-release vintages), not today's revised numbers. This "
+    "removes look-ahead/revision bias: a signal only gets credit for what it could "
+    "have told you with the data available then. (Example: US Industrial Production "
+    "for Jun-2020 was first printed at 97.5 but reads 91.6 after revisions — a 6% "
+    "gap the model never sees here.) Non-revisable sources (prices, short interest) "
+    "are used as-is; no point-in-time claim is made where we can't back it."
+)
+
 # ── Per-signal table ──────────────────────────────────────────────────────────
 _df = pd.DataFrame([{
     "Signal": r["name"],
