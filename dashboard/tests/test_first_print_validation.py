@@ -92,6 +92,36 @@ def test_first_print_unavailable_without_key():
     assert is_unavailable(s) and s.empty
 
 
+def test_first_print_falls_back_to_latest_for_never_revised_series():
+    """FRED returns HTTP 400 for output_type=4 on never-revised series (e.g.
+    DGS10). Those have no separate vintage, so latest == first print — the
+    function must fall back to a plain fetch, not report unavailable (which would
+    silently drop the signal from validation)."""
+    import utils.fetchers as F
+    F.fetch_fred_first_print.clear()
+    good = pd.Series([0.66, 0.67], index=pd.to_datetime(["2020-01-02", "2020-01-03"]), name="DGS10")
+    with patch("utils.fetchers.resilient_get", side_effect=Exception("400 Bad Request")), \
+         patch.object(F, "fetch_fred", return_value=good) as latest:
+        s = F.fetch_fred_first_print("DGS10", "2020-01-01", "2020-06-30", api_key="k")
+    assert not is_unavailable(s)
+    assert len(s) == 2
+    assert s.attrs.get("first_print") is True
+    assert s.attrs.get("first_print_source") == "latest_equals_first_print"
+    latest.assert_called_once()
+
+
+def test_first_print_unavailable_when_both_paths_fail():
+    """A genuinely bad series id (both output_type=4 AND plain fetch fail) must
+    still report unavailable — the fallback must not mask real failures."""
+    import utils.fetchers as F
+    F.fetch_fred_first_print.clear()
+    with patch("utils.fetchers.resilient_get", side_effect=Exception("400")), \
+         patch.object(F, "fetch_fred",
+                      return_value=F._empty_series_with_error("BADID", "fred", "Boom")):
+        s = F.fetch_fred_first_print("BADID", "2020-01-01", "2020-06-30", api_key="k")
+    assert is_unavailable(s)
+
+
 def test_first_print_unavailable_on_empty_and_exception():
     fetch_fred_first_print.clear()
     with patch("utils.fetchers.resilient_get", return_value=_mock_response({"observations": []})):

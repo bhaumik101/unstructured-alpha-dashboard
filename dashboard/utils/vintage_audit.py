@@ -139,3 +139,92 @@ def audit_series_asof(series_id: str, start: str, end: str, as_of: str,
     stats = revision_stats(latest, vintage)
     stats.update({"series_id": series_id, "as_of": as_of, "error": None})
     return stats
+
+
+def audit_series_first_print(series_id: str, start: str, end: str,
+                             api_key: str = "") -> dict:
+    """Measure revision bias for one FRED series across a whole window by
+    comparing every observation's FIRST print to its latest-revised value.
+
+    Unlike audit_series_asof (one vintage date), this uses fetch_fred_first_print
+    (ALFRED initial-release), so the statistics describe how much the series is
+    revised per observation over [start, end] — the honest, marketable magnitude.
+    Returns revision_stats() enriched with series_id and an ``error`` key when a
+    read was unavailable (never fabricated).
+    """
+    from utils.fetchers import fetch_fred, fetch_fred_first_print, is_unavailable
+
+    latest = fetch_fred(series_id, start, end, api_key=api_key)
+    first_print = fetch_fred_first_print(series_id, start, end, api_key=api_key)
+
+    if is_unavailable(latest) or is_unavailable(first_print):
+        stats = revision_stats(pd.Series(dtype=float), pd.Series(dtype=float))
+        stats.update({"series_id": series_id, "error": "unavailable"})
+        return stats
+
+    stats = revision_stats(latest, first_print)
+    stats.update({"series_id": series_id, "error": None})
+    return stats
+
+
+def audit_all_fred_signals(start: str, end: str, api_key: str = "",
+                           signals: Optional[dict] = None) -> dict:
+    """Revision-bias profile across every FRED-backed signal.
+
+    Runs audit_series_first_print for each revision-prone signal and rolls the
+    results into an honest summary. Signals whose data is unavailable are counted
+    as ``n_unavailable`` and excluded from magnitude stats — never imputed.
+
+    Returns:
+        {
+          "per_signal": [ {signal_id, series_id, ...revision_stats..., error} ],
+          "summary": {
+            "n_signals"      : FRED-backed signals considered
+            "n_measured"     : signals with a well-defined revision measurement
+            "n_unavailable"  : signals whose data could not be read
+            "n_revised"      : measured signals revised beyond the noise floor
+            "mean_abs_pct"   : average |revision| across measured signals
+            "max_abs_pct"    : largest single-signal mean |revision|
+            "worst_series"   : series_id of that largest, or None
+          }
+        }
+
+    `signals` maps signal_id -> config (defaults to the live SIGNALS). When no
+    API key is present, everything is reported unavailable rather than zero
+    revision — absence of data is not evidence of no revision.
+    """
+    if signals is None:
+        from utils.config import SIGNALS as signals
+
+    fred_map = fred_backed_signals(signals)  # {signal_id: series_id}
+    per_signal: list = []
+    measured: list = []
+
+    for sig_id, series_id in fred_map.items():
+        stats = audit_series_first_print(series_id, start, end, api_key=api_key)
+        stats["signal_id"] = sig_id
+        stats["signal_name"] = (signals.get(sig_id, {}) or {}).get("name", sig_id)
+        per_signal.append(stats)
+        if not stats.get("error") and stats.get("available") and stats.get("n_compared", 0) > 0:
+            measured.append(stats)
+
+    n_signals = len(fred_map)
+    n_measured = len(measured)
+    n_unavailable = sum(1 for s in per_signal if s.get("error") == "unavailable")
+    n_revised = sum(1 for s in measured if s.get("is_revised"))
+    mean_abs = round(sum(s["mean_abs_pct"] for s in measured) / n_measured, 4) if n_measured else 0.0
+    worst = max(measured, key=lambda s: s["mean_abs_pct"], default=None)
+
+    return {
+        "per_signal": sorted(per_signal, key=lambda s: s.get("mean_abs_pct", 0.0), reverse=True),
+        "summary": {
+            "n_signals": n_signals,
+            "n_measured": n_measured,
+            "n_unavailable": n_unavailable,
+            "n_revised": n_revised,
+            "mean_abs_pct": mean_abs,
+            "max_abs_pct": worst["mean_abs_pct"] if worst else 0.0,
+            "worst_series": worst["series_id"] if worst else None,
+            "worst_signal_name": worst.get("signal_name") if worst else None,
+        },
+    }

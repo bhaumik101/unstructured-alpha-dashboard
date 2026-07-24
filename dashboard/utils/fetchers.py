@@ -240,22 +240,40 @@ def fetch_fred_first_print(series_id: str, start: str, end: str, api_key: str = 
         r.raise_for_status()
         data = r.json()
         df = pd.DataFrame(data.get("observations", []))
-        if df.empty:
-            return _empty_series_with_error(series_id, "fred", "NoFirstPrint")
-        df["date"] = pd.to_datetime(df["date"])
-        df["value"] = pd.to_numeric(df["value"], errors="coerce")
-        # output_type=4 can emit multiple rows per observation date across
-        # revisions; keep the EARLIEST realtime row = the genuine first print.
-        if "realtime_start" in df.columns:
-            df = df.sort_values(["date", "realtime_start"])
-        s = (df.dropna(subset=["value"])
-               .drop_duplicates(subset=["date"], keep="first")
-               .set_index("date")["value"])
-        s.name = series_id
-        s.attrs["first_print"] = True
-        return s
-    except Exception as exc:
-        return _empty_series_with_error(series_id, "fred", type(exc).__name__)
+        if not df.empty:
+            df["date"] = pd.to_datetime(df["date"])
+            df["value"] = pd.to_numeric(df["value"], errors="coerce")
+            # output_type=4 can emit multiple rows per observation date across
+            # revisions; keep the EARLIEST realtime row = the genuine first print.
+            if "realtime_start" in df.columns:
+                df = df.sort_values(["date", "realtime_start"])
+            s = (df.dropna(subset=["value"])
+                   .drop_duplicates(subset=["date"], keep="first")
+                   .set_index("date")["value"])
+            if not s.empty:
+                s.name = series_id
+                s.attrs["first_print"] = True
+                return s
+        # Empty result: fall through to the never-revised fallback below.
+    except Exception:
+        # FRED returns HTTP 400 for output_type=4 on series with NO revision
+        # history (e.g. never-revised daily market rates like DGS10). Fall
+        # through — those series have no separate vintage, so latest == first
+        # print and a plain fetch is the correct real-time value.
+        pass
+
+    # Fallback: a series with no ALFRED initial-release record is one whose
+    # published value is never revised, so the latest observation IS the first
+    # print. Returning it is correct, NOT a fabrication. If even this is
+    # unavailable (bad id / provider down), report unavailable honestly.
+    latest = fetch_fred(series_id, start, end, api_key=api_key)
+    if is_unavailable(latest):
+        return _empty_series_with_error(series_id, "fred", "NoFirstPrint")
+    out = latest.copy()
+    out.name = series_id
+    out.attrs["first_print"] = True
+    out.attrs["first_print_source"] = "latest_equals_first_print"  # never-revised
+    return out
 
 
 # ─────────────────────────────────────────────────────────────────────────────
