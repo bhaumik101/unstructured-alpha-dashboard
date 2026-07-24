@@ -19,7 +19,7 @@ render_header("How Signals Work")
 inject_all_css()
 _method_section = render_sidebar_base(
     page_title="How Signals Work",
-    sections=("What Are Signals", "How Scores Work", "Signal Categories", "Data Sources", "Limitations", "FAQ"),
+    sections=("What Are Signals", "How Scores Work", "Why It Works", "Signal Categories", "Data Sources", "Limitations", "FAQ"),
     section_key="how_signals_section_rail",
 )
 
@@ -65,7 +65,7 @@ if _method_section == "What Are Signals":
     and how aggressively corporate insiders are buying their own company stock.
   </p>
   <p style="color:#8892AA;line-height:1.8;margin-bottom:28px;">
-    Unstructured Alpha tracks 43 of these signals across six categories.
+    Unstructured Alpha tracks 47 of these signals across six categories.
     Each one is scored daily on a 0–100 scale. The goal is not to predict individual stock prices —
     it is to give you a clear read on whether the <em>macro environment</em> is supportive
     or hostile to risk assets at any given time.
@@ -172,6 +172,83 @@ if _method_section == "How Scores Work":
       (yesterday's score drives today's position) to prevent lookahead bias.
     </div>
   </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TAB 2.5 — Why it works (mechanism + honest expectations)
+# ─────────────────────────────────────────────────────────────────────────────
+if _method_section == "Why It Works":
+    st.markdown("""
+<div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
+  <h2 style="font-size:1.25rem;font-weight:700;color:#E8EEFF;margin-bottom:10px;">
+    Why a signal can lead price — and what that's honestly worth
+  </h2>
+  <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
+    A signal is only worth watching if there's a <em>reason</em> it moves before price does,
+    and only worth trusting if we're honest about how large that edge really is. Both matter,
+    so both are spelled out here.
+  </p>
+
+  <div style="background:rgba(18,21,30,0.55);border:1px solid rgba(255,255,255,0.06);
+       border-left:3px solid rgba(0,200,224,0.5);border-radius:0 12px 12px 0;
+       padding:18px 22px;margin-bottom:14px;">
+    <div style="font-size:0.9rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">
+      The mechanism: markets under-react to slow-moving information
+    </div>
+    <div style="font-size:0.82rem;color:#9AA4BC;line-height:1.8;">
+      Prices don't instantly and fully absorb every new macro data point. Information about the
+      real economy — freight volumes, credit conditions, energy inventories, hiring — spreads
+      through the market gradually as more participants notice it and act. That slow diffusion is
+      why a shift in, say, high-yield spreads or trucking tonnage can show up in equity prices
+      <em>weeks</em> later rather than the same day. It's the same well-documented effect behind
+      <strong style="color:#B7DCE2;">time-series momentum</strong> (Moskowitz, Ooi &amp; Pedersen,
+      2012) and gradual information diffusion (Hong &amp; Stein, 1999). It's also why every signal
+      here carries a <em>researched lead time</em> instead of being treated as instantaneous — the
+      edge lives in the lag.
+    </div>
+  </div>
+
+  <div style="background:rgba(18,21,30,0.55);border:1px solid rgba(255,255,255,0.06);
+       border-left:3px solid rgba(255,180,60,0.5);border-radius:0 12px 12px 0;
+       padding:18px 22px;margin-bottom:14px;">
+    <div style="font-size:0.9rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">
+      What to realistically expect: small, stackable edges — not forecasts
+    </div>
+    <div style="font-size:0.82rem;color:#9AA4BC;line-height:1.8;">
+      The honest academic picture is sobering: most macro predictors explain only a small and
+      unstable fraction of future returns out-of-sample, and many that look strong in-sample fail
+      to hold up (Welch &amp; Goyal, 2008). We don't claim to beat that. A high Confluence Score
+      <strong style="color:#E8C97B;">tilts the odds modestly</strong> in your favour; it is not a
+      prediction, and it will be wrong a meaningful share of the time. The value isn't any single
+      call — it's stacking several individually-weak, <em>de-correlated</em> signals and staying
+      disciplined about the horizon. That's why the score also reports how many <em>effectively
+      independent</em> signals stand behind it, not just a raw count.
+    </div>
+  </div>
+
+  <div style="background:rgba(18,21,30,0.55);border:1px solid rgba(255,255,255,0.06);
+       border-left:3px solid rgba(0,213,102,0.5);border-radius:0 12px 12px 0;
+       padding:18px 22px;margin-bottom:14px;">
+    <div style="font-size:0.9rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">
+      How we hold ourselves to it
+    </div>
+    <div style="font-size:0.82rem;color:#9AA4BC;line-height:1.8;">
+      Every signal's lead time and out-of-sample validation — <em>including the ones that don't
+      hold up</em> — is published on the Model Validation page. Those backtests run on
+      <strong style="color:#8FE3AD;">first-print data</strong>: each macro series is fed the value
+      that was actually published at the time, not today's revised number, so a signal only gets
+      credit for what was knowable then. Where the evidence is thin, we label it thin rather than
+      dressing it up. The point of this page is that you shouldn't have to take any of it on faith.
+    </div>
+  </div>
+
+  <p style="color:#6B7FBF;line-height:1.7;font-size:0.8rem;margin-top:6px;">
+    See the measured, per-signal numbers on the <strong style="color:#9EDBE3;">Model Validation</strong>
+    page, and how much independent evidence stands behind any score on a ticker's
+    <strong style="color:#9EDBE3;">Deep Dive</strong>.
+  </p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -426,7 +503,7 @@ if _method_section == "FAQ":
          "The backtest uses a strict no-lookahead rule (yesterday's score drives today's position), includes 0.1% round-trip transaction costs, and compares performance to a buy-and-hold SPY benchmark. However, backtest performance is inherently optimistic — it does not capture liquidity, slippage, behavioral friction, or regime changes that break historical patterns. Treat it as exploratory context, not a proof of future returns."),
 
         ("Why isn't [specific signal X] included?",
-         "We only add signals that clear two bars: (1) the data must be consistently available from a public source, and (2) the signal must show statistically meaningful lead time in our lag-scan analysis. Many popular indicators fail one or both of these requirements. We prefer 43 well-validated signals over 200 noisy ones."),
+         "We only add signals that clear two bars: (1) the data must be consistently available from a public source, and (2) the signal must show statistically meaningful lead time in our lag-scan analysis. Many popular indicators fail one or both of these requirements. We prefer 47 well-validated signals over 200 noisy ones."),
 
         ("What's the difference between this and a Bloomberg Terminal?",
          "Bloomberg Terminal costs approximately $27,000/year and is designed for professional institutional desks. It provides real-time pricing, news, messaging, and a full universe of financial data tools. Unstructured Alpha focuses specifically on the macro signal layer — the 'should I be risk-on or risk-off right now' question — at $20/month for active individual investors. Different scope, different audience, very different price."),
