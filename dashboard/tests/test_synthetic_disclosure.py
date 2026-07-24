@@ -34,14 +34,30 @@ def test_banner_suppressed_when_all_sources_available(monkeypatch):
     assert calls == []
 
 
-def test_banner_states_missing_rows_are_excluded(monkeypatch):
+def test_banner_minor_outage_is_calm_but_still_honest(monkeypatch):
+    """A few signals down out of 47 gets the proportionate 'PARTIAL DATA' notice
+    — still discloses the exact count, exclusion, and no-synthetic promise, but
+    without the full-red alarm that caused disclosure fatigue on every load."""
     import utils.header as h
     calls = []
     monkeypatch.setattr(h.st, "markdown", lambda *a, **k: calls.append(a[0]))
     h.render_data_unavailable_banner(3, 47)
     assert "3 of 47" in calls[0]
-    assert "REAL DATA UNAVAILABLE" in calls[0]
+    assert "PARTIAL DATA" in calls[0]
+    assert "REAL DATA UNAVAILABLE" not in calls[0]     # not alarmist for 94% coverage
     assert "excluded" in calls[0]
+    assert "No placeholder" in calls[0]
+
+
+def test_banner_major_outage_escalates_to_loud_red(monkeypatch):
+    """When a material share (>=15%) is unavailable, coverage really is
+    compromised, so the loud 'REAL DATA UNAVAILABLE' treatment returns."""
+    import utils.header as h
+    calls = []
+    monkeypatch.setattr(h.st, "markdown", lambda *a, **k: calls.append(a[0]))
+    h.render_data_unavailable_banner(20, 47)
+    assert "20 of 47" in calls[0]
+    assert "REAL DATA UNAVAILABLE" in calls[0]
     assert "No placeholder" in calls[0]
 
 

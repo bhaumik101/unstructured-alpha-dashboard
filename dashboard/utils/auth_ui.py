@@ -151,7 +151,7 @@ def _render_verification_form(cookies: CookieManager, key_prefix: str = "") -> N
 
     with st.form(f"{key_prefix}verify_form"):
         code = st.text_input("Verification code", max_chars=6, key=f"{key_prefix}verify_code")
-        submitted = st.form_submit_button("Verify", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Verify", type="primary", width="stretch")
     if submitted:
         if not code:
             st.error("Enter the 6-digit code from your email.")
@@ -176,14 +176,14 @@ def _render_verification_form(cookies: CookieManager, key_prefix: str = "") -> N
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Resend code", use_container_width=True, key=f"{key_prefix}resend_code"):
+        if st.button("Resend code", width="stretch", key=f"{key_prefix}resend_code"):
             try:
                 resend_verification_code(email)
                 st.success("A new code is on its way.")
             except (AuthError, EmailSendError) as e:
                 st.error(str(e))
     with col2:
-        if st.button("Use a different email", use_container_width=True, key=f"{key_prefix}diff_email"):
+        if st.button("Use a different email", width="stretch", key=f"{key_prefix}diff_email"):
             st.session_state.pop("pending_verification_email", None)
             st.rerun()
 
@@ -193,7 +193,7 @@ def _render_password_reset_request(key_prefix: str = "") -> None:
     st.info("Enter the email address for your account and we'll send a 6-digit reset code.")
     with st.form(f"{key_prefix}reset_request_form"):
         email = st.text_input("Email", key=f"{key_prefix}reset_email")
-        submitted = st.form_submit_button("Send reset code", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Send reset code", type="primary", width="stretch")
     if submitted:
         if not email:
             st.error("Enter your email address.")
@@ -206,7 +206,7 @@ def _render_password_reset_request(key_prefix: str = "") -> None:
             st.session_state["_reset_email"] = email.strip().lower()
             st.session_state["_reset_step"] = "confirm"
             st.rerun()
-    if st.button("← Back to login", key=f"{key_prefix}reset_back", use_container_width=True):
+    if st.button("← Back to login", key=f"{key_prefix}reset_back", width="stretch"):
         st.session_state.pop("_reset_step", None)
         st.session_state.pop("_reset_email", None)
         st.rerun()
@@ -223,7 +223,7 @@ def _render_password_reset_confirm(key_prefix: str = "") -> None:
         code = st.text_input("Reset code", max_chars=6, key=f"{key_prefix}reset_code")
         new_pw = st.text_input("New password (min 8 characters)", type="password", key=f"{key_prefix}reset_new_pw")
         new_pw2 = st.text_input("Confirm new password", type="password", key=f"{key_prefix}reset_new_pw2")
-        submitted = st.form_submit_button("Reset password", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Reset password", type="primary", width="stretch")
     if submitted:
         if not code or not new_pw:
             st.error("Enter both the reset code and a new password.")
@@ -237,7 +237,7 @@ def _render_password_reset_confirm(key_prefix: str = "") -> None:
                 st.session_state.pop("_reset_email", None)
             except AuthError as e:
                 st.error(str(e))
-    if st.button("← Back", key=f"{key_prefix}reset_confirm_back", use_container_width=True):
+    if st.button("← Back", key=f"{key_prefix}reset_confirm_back", width="stretch"):
         st.session_state["_reset_step"] = "request"
         st.rerun()
 
@@ -274,7 +274,7 @@ def render_auth_forms(cookies: CookieManager, key_prefix: str = "") -> None:
             remember_me = st.checkbox(
                 "Remember me on this device", value=True, key=f"{key_prefix}login_remember_me",
             )
-            submitted = st.form_submit_button("Log In", type="primary", use_container_width=True)
+            submitted = st.form_submit_button("Log In", type="primary", width="stretch")
         if submitted:
             if not email or not password:
                 st.error("Enter both your email and password.")
@@ -311,7 +311,7 @@ def render_auth_forms(cookies: CookieManager, key_prefix: str = "") -> None:
         if st.button(
             "Forgot password?",
             key=f"{key_prefix}forgot_pw",
-            use_container_width=True,
+            width="stretch",
         ):
             st.session_state["_reset_step"] = "request"
             st.rerun()
@@ -321,7 +321,7 @@ def render_auth_forms(cookies: CookieManager, key_prefix: str = "") -> None:
             email = st.text_input("Email", key=f"{key_prefix}signup_email")
             password = st.text_input("Password (min 8 characters)", type="password", key=f"{key_prefix}signup_password")
             password2 = st.text_input("Confirm password", type="password", key=f"{key_prefix}signup_password2")
-            submitted = st.form_submit_button("Create Account", type="primary", use_container_width=True)
+            submitted = st.form_submit_button("Create Account", type="primary", width="stretch")
         if submitted:
             _su_ok, _su_retry = True, 0
             try:
@@ -423,12 +423,12 @@ def render_account_widget() -> None:
     with widget_col:
         if user:
             # Email is already shown in the header pill — just expose Log Out here
-            with st.popover("⚙ Account", use_container_width=True):
-                if st.button("Log Out", key="topright_logout", use_container_width=True):
+            with st.popover("⚙ Account", width="stretch"):
+                if st.button("Log Out", key="topright_logout", width="stretch"):
                     logout()
                     st.rerun()
         else:
-            with st.popover("Sign In", use_container_width=True):
+            with st.popover("Sign In", width="stretch"):
                 render_auth_forms(cookies, key_prefix="widget_")
 
 

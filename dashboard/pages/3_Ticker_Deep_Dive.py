@@ -201,7 +201,7 @@ with col_top2:
 with col_top3:
     st.markdown("&nbsp;")
     for t in theme_options[theme_sel]:
-        if st.button(ticker_label(t), key=f"quick_{t}", use_container_width=True):
+        if st.button(ticker_label(t), key=f"quick_{t}", width="stretch"):
             st.session_state.selected_ticker = t
             st.rerun()
 
@@ -263,7 +263,7 @@ try:
     if _wl_uid:
         if is_watched(_wl_uid, ticker_input):
             if _wl_c1.button("Watching", key=f"wl_rm_{ticker_input}",
-                             use_container_width=True,
+                             width="stretch",
                              help="Remove this ticker from your watchlist"):
                 remove_from_watchlist(_wl_uid, ticker_input)
                 st.toast(f"Removed {ticker_input} from your watchlist")
@@ -271,14 +271,14 @@ try:
             _wl_c2.caption("On your watchlist — you'll get score-move and price alerts.")
         else:
             if _wl_c1.button("＋ Add to Watchlist", key=f"wl_add_{ticker_input}",
-                             type="primary", use_container_width=True,
+                             type="primary", width="stretch",
                              help="Track this ticker and get score/price alerts"):
                 add_to_watchlist(_wl_uid, ticker_input)
                 st.toast(f"Added {ticker_input} to your watchlist")
                 st.rerun()
     else:
         _wl_c1.button("＋ Add to Watchlist", key=f"wl_add_anon_{ticker_input}",
-                      disabled=True, use_container_width=True)
+                      disabled=True, width="stretch")
         _wl_c2.caption("Sign in to track this ticker and get alerts.")
 except Exception:
     pass
@@ -297,7 +297,7 @@ if _workflow_thesis.button(
     "Create or Update Thesis",
     key=f"open_thesis_workspace_{ticker_input}",
     type="primary",
-    use_container_width=True,
+    width="stretch",
     help="Open the private thesis form for this ticker",
 ):
     st.session_state["dive_section"] = "Thesis Workspace"
@@ -305,14 +305,14 @@ if _workflow_thesis.button(
 if _workflow_journal.button(
     "Open Thesis Journal",
     key=f"open_thesis_journal_{ticker_input}",
-    use_container_width=True,
+    width="stretch",
     help="Review every saved active, closed, or invalidated thesis",
 ):
     st.switch_page("pages/46_Thesis_Journal.py")
 if _workflow_export.button(
     "Export PDF Report",
     key=f"open_pdf_export_{ticker_input}",
-    use_container_width=True,
+    width="stretch",
     help="Open the PDF exporter with this ticker already selected",
 ):
     st.session_state["export_ticker"] = ticker_input
@@ -1194,17 +1194,17 @@ if section == "Overview":
             mime="image/png",
             key="card_dl_btn",
             help="Download a shareable PNG card to post on Twitter, Reddit, or Discord",
-            use_container_width=True,
+            width="stretch",
         )
     with _share_c2:
         if st.button("Share Link", key="share_btn",
                      help="Copy a direct link to this ticker's analysis",
-                     use_container_width=True):
+                     width="stretch"):
             st.session_state["_tdd_show_share"] = True
     with _share_c3:
         if st.button("Watchlist", key="add_wl_btn",
                      help="Track this ticker with score + price alerts",
-                     use_container_width=True):
+                     width="stretch"):
             st.session_state["chart_ticker"] = ticker_input
             st.switch_page("pages/10_Watchlist.py")
     if st.session_state.get("_tdd_show_share"):
@@ -1355,7 +1355,7 @@ if section == "Overview":
             _fig_radar = style_chart(
                 _fig_radar, height=300, hovermode="closest", legend=False,
             )
-            st.plotly_chart(_fig_radar, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_fig_radar, width="stretch", config=PLOTLY_CONFIG, theme=None)
     except Exception:
         pass  # Radar chart failure must never crash the rest of the page
 
@@ -1463,7 +1463,7 @@ if section == "Overview":
             margin=dict(l=0, r=0, t=10, b=0),
         )
         _fig_hist = style_chart(_fig_hist, height=220, hovermode="x unified", legend=False)
-        st.plotly_chart(_fig_hist, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(_fig_hist, width="stretch", config=PLOTLY_CONFIG, theme=None)
         st.caption(
             f"{len(_score_hist)} recorded day(s) for {ticker_input}. Core coverage is refreshed by "
             "scheduled scoring passes; on-demand names also build history when researched, so a short "
@@ -1497,7 +1497,7 @@ if section == "Overview":
                 "each row keeps its actual as-of date and no missing peer is estimated."
             )
             st.dataframe(
-                pd.DataFrame(_sector_pct["peer_scores"]), use_container_width=True, hide_index=True,
+                pd.DataFrame(_sector_pct["peer_scores"]), width="stretch", hide_index=True,
             )
     else:
         st.caption(f"Sector percentile not yet available for {ticker_input}: {_sector_pct['error']}.")
@@ -1530,7 +1530,7 @@ if section == "Overview":
                     f'</div>',
                     unsafe_allow_html=True,
                 )
-                if st.button(f"Explore {_pt} →", key=f"peer_nav_{_pt}", use_container_width=True):
+                if st.button(f"Explore {_pt} →", key=f"peer_nav_{_pt}", width="stretch"):
                     st.session_state.selected_ticker = _pt
                     st.rerun()
 
@@ -1829,7 +1829,7 @@ if section == "Overview":
                 )
 
                 st.plotly_chart(
-                    _fig_ov, use_container_width=True,
+                    _fig_ov, width="stretch",
                     config=PLOTLY_CONFIG_INTERACTIVE, theme=None,
                 )
 
@@ -2093,7 +2093,7 @@ if section == "Overview":
                     margin=dict(l=0, r=0, t=10, b=0), showlegend=False,
                 )
                 st.plotly_chart(
-                    fig_vol, use_container_width=True,
+                    fig_vol, width="stretch",
                     config=PLOTLY_CONFIG_INTERACTIVE, theme=None,
                 )
                 st.caption(
@@ -2128,7 +2128,7 @@ if section == "Overview":
                     margin=dict(l=0, r=0, t=10, b=0), showlegend=False,
                 )
                 st.plotly_chart(
-                    fig_rsi, use_container_width=True,
+                    fig_rsi, width="stretch",
                     config=PLOTLY_CONFIG_INTERACTIVE, theme=None,
                 )
                 _latest_rsi = rsi_full.dropna()
@@ -2308,11 +2308,11 @@ if section == "Overview":
                 _gu_c1, _gu_c2, _ = st.columns([1.2, 1.2, 3])
                 with _gu_c1:
                     if st.button("Start Free Trial →", type="primary", key="tdd_upgrade_cta",
-                                 use_container_width=True):
+                                 width="stretch"):
                         st.switch_page("pages/29_Upgrade.py")
                 with _gu_c2:
                     if st.button("Add to Watchlist", key="tdd_wl_cta2",
-                                 use_container_width=True):
+                                 width="stretch"):
                         st.session_state["chart_ticker"] = ticker_input
                         st.switch_page("pages/10_Watchlist.py")
             else:
@@ -2334,11 +2334,11 @@ if section == "Overview":
                 _au_c1, _au_c2, _ = st.columns([1.2, 1.2, 3])
                 with _au_c1:
                     if st.button("Create Free Account", type="primary", key="tdd_signup_cta",
-                                 use_container_width=True):
+                                 width="stretch"):
                         st.switch_page("pages/home_page.py")
                 with _au_c2:
                     if st.button("See Pro features →", key="tdd_pro_peek_cta",
-                                 use_container_width=True):
+                                 width="stretch"):
                         st.switch_page("pages/29_Upgrade.py")
     except Exception:
         pass  # Never let this crash the page
@@ -2685,7 +2685,7 @@ if section == "Overview":
                                 unsafe_allow_html=True,
                             )
                             _pb_df = pd.DataFrame(_playbook_rows)
-                            st.dataframe(_pb_df, use_container_width=True, hide_index=True)
+                            st.dataframe(_pb_df, width="stretch", hide_index=True)
                             st.caption("Small sample: treat this as illustrative context, not statistical proof. Score history only accumulates when this page is visited.")
                         else:
                             st.info("Could not compute forward returns for the crossing dates found.")
@@ -2812,7 +2812,7 @@ if section == "Overview":
                                 legend=dict(font=dict(size=9)),
                             )
                             fig_dist = style_distribution_chart(fig_dist, height=380)
-                            st.plotly_chart(fig_dist, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+                            st.plotly_chart(fig_dist, width="stretch", config=PLOTLY_CONFIG, theme=None)
                             st.caption(
                                 f"Box plot of {ticker_input}'s actual forward returns at each time horizon "
                                 f"when its score was in each bucket. Current score bucket highlighted. "
@@ -2992,7 +2992,7 @@ if section == "Overview":
         st.markdown(f"##### Statistically Significant Signals for {ticker_input} (p < 0.05)")
         st.dataframe(
             table_df.drop(columns=["N"]),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Score":  st.column_config.ProgressColumn(
@@ -3093,7 +3093,7 @@ if section == "Overview":
                 )
                 st.dataframe(
                     nonsig_display,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                     column_config={
                         "Corr (r)": st.column_config.NumberColumn("Corr (r)", format="%.2f"),
@@ -3126,13 +3126,13 @@ if section == "Overview":
                 csv_b,
                 file_name=f"UA_{ticker_input}_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
-                use_container_width=True,
+                width="stretch",
             )
         with _ecol2:
             if st.button(
                 "Export Full PDF Report",
                 key="tdd_to_pdf",
-                use_container_width=True,
+                width="stretch",
                 help="Opens the Export page pre-filled with this ticker",
             ):
                 st.session_state["export_ticker"] = ticker_input
@@ -3230,7 +3230,7 @@ elif section == "Thesis Workspace":
                     height=110,
                 )
 
-            _save_thesis = st.form_submit_button("Save Thesis", type="primary", use_container_width=True)
+            _save_thesis = st.form_submit_button("Save Thesis", type="primary", width="stretch")
 
         if _save_thesis:
             try:
@@ -3341,7 +3341,7 @@ elif section == "Insider & Short Interest":
             "insider": "Insider", "role": "Role", "code": "Type",
             "shares": "Shares", "price": "Price", "value": "Value",
         })
-        st.dataframe(tx_display, use_container_width=True, hide_index=True)
+        st.dataframe(tx_display, width="stretch", hide_index=True)
         st.caption("**Trade Date** = when the transaction occurred. **Filed (Known As Of)** = when SEC received the disclosure — the earliest a market participant could have acted on this. STOCK Act requires filing within 45 days of the trade; late filers are common.")
         render_evidence_expander(_insider_score.get("evidence", []))
     else:
@@ -3358,7 +3358,7 @@ elif section == "Insider & Short Interest":
             if "date" in display_insider.columns:
                 display_insider["date"] = display_insider["date"].dt.strftime("%Y-%m-%d")
 
-            st.dataframe(display_insider, use_container_width=True, hide_index=True)
+            st.dataframe(display_insider, width="stretch", hide_index=True)
             st.caption(f"Showing {min(10, len(insider_df))} most recent Form 4 filings from SEC EDGAR. [View all on SEC EDGAR →](https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company={ticker_input}&type=4&dateb=&owner=include&count=40)")
         else:
             st.info(f"No recent Form 4 filings found for {ticker_input} in EDGAR search. This may indicate low insider activity or the EDGAR search returned no results. [Search manually →](https://efts.sec.gov/LATEST/search-index?q={ticker_input}&forms=4)")
@@ -3401,7 +3401,7 @@ elif section == "Insider & Short Interest":
         st.dataframe(
             si_display.rename(columns={"short_shares": "short_shares", "change_pct": "period_change",
                                          "days_to_cover": "days_to_cover", "avg_daily_volume": "avg_daily_volume"}),
-            use_container_width=True, hide_index=True,
+            width="stretch", hide_index=True,
         )
         render_evidence_expander(_short_interest_score.get("evidence", []))
     else:
@@ -3491,7 +3491,7 @@ elif section == "13F & Federal Contracts":
                     margin=dict(l=0, r=0, t=30, b=0),
                 )
                 fig_c = style_chart(fig_c, height=270, hovermode="x unified")
-                st.plotly_chart(fig_c, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+                st.plotly_chart(fig_c, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
             # Contract table
             display_cols = [c for c in ["date", "agency", "amount", "description"] if c in contracts_df.columns]
@@ -3501,7 +3501,7 @@ elif section == "13F & Federal Contracts":
                         date=lambda x: x["date"].dt.strftime("%Y-%m-%d") if "date" in x.columns else x.get("date",""),
                         amount=lambda x: x["amount"].apply(lambda v: f"${v:,.0f}" if pd.notnull(v) else "—") if "amount" in x.columns else x.get("amount",""),
                     ),
-                    use_container_width=True, hide_index=True,
+                    width="stretch", hide_index=True,
                 )
         else:
             st.info(f"No federal contract data found for '{company_search}'. Try a broader company name (e.g., 'Cameco' vs 'CCJ').")
@@ -3560,7 +3560,7 @@ elif section == "13F & Federal Contracts":
                 "As of": _row["latest_period"].strftime("%Y-%m-%d") if pd.notna(_row["latest_period"]) else "—",
                 "Trend": _trend,
             })
-        st.dataframe(pd.DataFrame(_fund_display_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(_fund_display_rows), width="stretch", hide_index=True)
         st.caption("Source: SEC EDGAR Form 13F-HR, fetched live from each fund's actual filing. \"As of\" is the real reporting period, not the filing date — those can be ~45 days apart.")
         render_evidence_expander(_thirteenf_score.get("evidence", []))
     else:
@@ -3795,7 +3795,7 @@ elif section == "Deep Correlation Scan":
                     margin=dict(l=0, r=0, t=10, b=0),
                 )
                 fig_lag = style_chart(fig_lag, height=280, hovermode="closest", legend=False)
-                st.plotly_chart(fig_lag, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+                st.plotly_chart(fig_lag, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
             # Rolling 26-week correlation
             rolling = deep_corr.get("rolling_corr", pd.Series(dtype=float))
@@ -3816,7 +3816,7 @@ elif section == "Deep Correlation Scan":
                     margin=dict(l=0, r=0, t=30, b=0),
                 )
                 fig_roll = style_area_chart(fig_roll, line_color="#8187F7", height=240)
-                st.plotly_chart(fig_roll, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+                st.plotly_chart(fig_roll, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
             # Signal + price overlay
             aligned = deep_corr.get("aligned", pd.DataFrame())
@@ -3849,7 +3849,7 @@ elif section == "Deep Correlation Scan":
                     y1_title="Signal (indexed)", y2_title=f"{ticker_input} price (indexed)",
                     y1_color="#8187F7", y2_color="#D6A34A",
                 )
-                st.plotly_chart(fig_ov, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+                st.plotly_chart(fig_ov, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
         st.divider()
         st.markdown("##### Is this signal's lead time stable, or is it decaying?")
@@ -4179,7 +4179,7 @@ elif section == "Earnings Sentiment":
             font=dict(family="Inter, sans-serif", color="#cccccc"),
         )
         _fig = style_distribution_chart(_fig, height=380)
-        st.plotly_chart(_fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(_fig, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
         # ── Bull / Bear scoring ───────────────────────────────────────────────
         _latest   = _sent_df["sentiment_score"].iloc[-1]

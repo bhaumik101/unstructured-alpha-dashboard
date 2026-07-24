@@ -136,7 +136,7 @@ if section == "Profile & Preferences":
             save_identity = st.form_submit_button(
                 "Save display name",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
             )
         if save_identity:
             try:
@@ -177,7 +177,7 @@ if section == "Profile & Preferences":
             )
             save_preferences = st.form_submit_button(
                 "Save research preferences",
-                use_container_width=True,
+                width="stretch",
             )
         if save_preferences:
             updated_profile = {
@@ -268,7 +268,7 @@ elif section == "Notifications":
                     if st.button(
                         preset_label,
                         key=f"notification_preset_{preset_key}",
-                        use_container_width=True,
+                        width="stretch",
                         type="primary" if preset_key == "balanced" else "secondary",
                     ):
                         save_notification_policy(user["id"], POLICY_PRESETS[preset_key])
@@ -308,7 +308,7 @@ elif section == "Notifications":
                 save_policy = st.form_submit_button(
                     "Save notification policy",
                     type="primary",
-                    use_container_width=True,
+                    width="stretch",
                 )
             if save_policy:
                 try:
@@ -346,7 +346,7 @@ elif section == "Security":
             'Other devices remain signed in until their own token expires or they log out.</div>',
             unsafe_allow_html=True,
         )
-        if st.button("Log out this device", key="profile_security_logout", use_container_width=True):
+        if st.button("Log out this device", key="profile_security_logout", width="stretch"):
             logout()
             st.rerun()
 
@@ -360,7 +360,7 @@ elif section == "Security":
             save_password = st.form_submit_button(
                 "Update password",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
             )
         if save_password:
             if not current_password or not new_password or not confirm_password:
@@ -410,7 +410,7 @@ elif section == "API Access":
                     help="Use a name that identifies the integration or device.",
                 )
                 _create_key = st.form_submit_button(
-                    "Create API key", type="primary", use_container_width=True
+                    "Create API key", type="primary", width="stretch"
                 )
             if _create_key:
                 try:
@@ -447,7 +447,7 @@ elif section == "API Access":
                     if _key_action.button(
                         "Revoke",
                         key=f'profile_revoke_api_{_key["id"]}',
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         if revoke_api_key(user["id"], _key["id"]):
                             st.success("API key revoked immediately.")
@@ -488,13 +488,13 @@ elif section == "Plan & Referrals":
                         customer_id,
                         return_url=f"{base_url}/my-profile",
                     )
-                    st.link_button("Manage subscription", portal_url, use_container_width=True)
+                    st.link_button("Manage subscription", portal_url, width="stretch")
                 except Exception:
                     st.caption("Billing management is temporarily unavailable. Try the Upgrade page.")
             else:
                 st.caption("This Pro access is managed outside Stripe.")
         else:
-            if st.button("Upgrade to Pro", type="primary", use_container_width=True):
+            if st.button("Upgrade to Pro", type="primary", width="stretch"):
                 st.switch_page("pages/29_Upgrade.py")
             st.caption("Unlock personalized research, Thesis Journal, exports, alerts, and morning intelligence.")
 

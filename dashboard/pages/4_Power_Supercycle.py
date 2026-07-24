@@ -352,7 +352,7 @@ if section == "Signal Trends":
     fig_legs.update_xaxes(showgrid=True, gridcolor="rgba(255,255,255,0.04)", tickfont=dict(size=9, color="#8892AA"))
     fig_legs.update_yaxes(showgrid=True, gridcolor="rgba(255,255,255,0.04)", tickfont=dict(size=9, color="#8892AA"))
     fig_legs.update_annotations(font=dict(size=11, color="#7C3AED"))
-    st.plotly_chart(fig_legs, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    st.plotly_chart(fig_legs, width="stretch", config=PLOTLY_CONFIG, theme=None)
     st.markdown(
         f"&nbsp; {source_badge('fred')} &nbsp; {source_badge('yfinance')}",
         unsafe_allow_html=True,
@@ -398,7 +398,7 @@ elif section == "Ticker Performance":
         legend=dict(font=dict(size=10, color="#E8EEFF"), bgcolor="rgba(18,21,30,0.90)"),
         hovermode="x unified", margin=dict(l=0, r=0, t=10, b=0),
     )
-    st.plotly_chart(perf_fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    st.plotly_chart(perf_fig, width="stretch", config=PLOTLY_CONFIG, theme=None)
     st.markdown(f"&nbsp; {source_badge('yfinance')}", unsafe_allow_html=True)
 
     st.caption("Click any ticker to open its full Ticker Deep Dive analysis:")
@@ -471,7 +471,7 @@ elif section == "Copper COT":
             legend=dict(font=dict(color="#E8EEFF"), bgcolor="rgba(18,21,30,0.90)"),
             margin=dict(l=0, r=0, t=30, b=0),
         )
-        st.plotly_chart(fig_cot, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig_cot, width="stretch", config=PLOTLY_CONFIG, theme=None)
         st.markdown(f"&nbsp; {source_badge('cftc', 'CFTC Commitment of Traders')}", unsafe_allow_html=True)
     else:
         st.info("CFTC COT data temporarily unavailable.")
@@ -537,7 +537,7 @@ elif section == "Quantum":
             legend=dict(font=dict(color="#E8EEFF"), bgcolor="rgba(18,21,30,0.90)"),
             margin=dict(l=0, r=0, t=30, b=0),
         )
-        st.plotly_chart(fig_arx, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig_arx, width="stretch", config=PLOTLY_CONFIG, theme=None)
         st.caption("Source: arXiv.org API — papers in quant-ph category matching 'qubit', 'error correction', 'fault tolerant'. [Browse arXiv →](https://arxiv.org/list/quant-ph/recent)")
     else:
         st.info("arXiv data temporarily unavailable. The API occasionally rate-limits; try refreshing in a few minutes.")
@@ -631,7 +631,7 @@ elif section == "Confluence":
     if rows:
         sum_df = pd.DataFrame(rows).sort_values("Score", ascending=False)
         st.dataframe(
-            sum_df, use_container_width=True, hide_index=True,
+            sum_df, width="stretch", hide_index=True,
             column_config={
                 "Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.0f"),
             },

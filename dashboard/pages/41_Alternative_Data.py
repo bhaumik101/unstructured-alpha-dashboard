@@ -104,7 +104,7 @@ if _alt_section == "Congress Trades":
         cols_show = [c for c in ["transaction_date","disclosure_date","representative","chamber","ticker","type","amount"] if c in cdf.columns]
         disp = cdf[cols_show].sort_values("transaction_date", ascending=False).head(100)
         disp.columns = [c.replace("_"," ").title() for c in disp.columns]
-        st.dataframe(disp, use_container_width=True, hide_index=True)
+        st.dataframe(disp, width="stretch", hide_index=True)
 
         st.caption(
             "**Trade Date** = when the transaction occurred. **Disclosure Date** = when the SEC received it. "
@@ -128,7 +128,7 @@ if _alt_section == "Congress Trades":
                 yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)", color="#4A5568"),
                 margin=dict(t=40, b=40, l=40, r=20), height=280,
             )
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, theme=None)
     else:
         st.info("No trades found for the selected filters.")
 
@@ -185,7 +185,7 @@ if _alt_section == "Options Flow":
         st.markdown("<div style='padding-top:28px'>", unsafe_allow_html=True)
         pop_cols = st.columns(len(_POPULAR[:9]))
         for i, t in enumerate(_POPULAR[:9]):
-            if pop_cols[i].button(t, key=f"opt_pop_{t}", use_container_width=True):
+            if pop_cols[i].button(t, key=f"opt_pop_{t}", width="stretch"):
                 ticker_input = t
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -234,7 +234,7 @@ if _alt_section == "Options Flow":
                 if "Vol/OI" in show.columns:
                     show["Vol/OI"] = show["Vol/OI"].round(2)
                 st.dataframe(show.sort_values("Volume", ascending=False).head(20),
-                             use_container_width=True, hide_index=True)
+                             width="stretch", hide_index=True)
 
         st.caption(
             "Volume > Open Interest (Vol/OI ≥ 1.0) on a contract signals fresh directional positioning "

@@ -44,7 +44,7 @@ _reliabilities = st.session_state.get("_mv_reliabilities")
 
 cta1, cta2 = st.columns([3, 1])
 with cta2:
-    if st.button("Run out-of-sample validation", use_container_width=True,
+    if st.button("Run out-of-sample validation", width="stretch",
                  key="run_validated_lag_scan_all_signals",
                  help="Runs the real lag-scan across each signal's relevant tickers. "
                       "Slow (~a minute) the first time, then cached for 24h."):
@@ -98,7 +98,7 @@ _df = pd.DataFrame([{
 } for r in records])
 
 st.dataframe(
-    _df, use_container_width=True, hide_index=True,
+    _df, width="stretch", hide_index=True,
     column_config={
         "Signal": st.column_config.TextColumn("Signal", width="medium"),
         "Validation status": st.column_config.TextColumn("Validation status", width="large"),

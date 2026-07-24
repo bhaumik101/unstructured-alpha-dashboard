@@ -1438,10 +1438,23 @@ def render_dark_mode_toggle() -> None:
 
 
 def render_data_unavailable_banner(n_unavailable: int, n_total: int) -> None:
-    """Explain that missing providers were excluded, never replaced or scored."""
+    """Disclose that missing providers were excluded, never replaced or scored.
+
+    The treatment is PROPORTIONATE to impact. A few signals down out of 47 is a
+    minor, routine degradation (weekly/monthly series between releases, a brief
+    provider hiccup) — a calm amber notice keeps the disclosure honest without
+    the alarm fatigue of a full-red "everything is broken" box on every load.
+    Only when a material share is unavailable does it escalate to the loud red
+    treatment, because at that point coverage really is compromised. The honest
+    content — exact counts, "excluded", "no synthetic" — is identical either way.
+    """
     if n_unavailable <= 0:
         return
-    st.markdown(f"""
+
+    _major = n_unavailable >= max(1, round(0.15 * max(1, n_total)))  # ~15%+ down
+
+    if _major:
+        st.markdown(f"""
     <div style="background:rgba(255,68,68,0.08);color:#FF8888;border-radius:10px;padding:12px 18px;
                 margin-bottom:14px;font-family:Inter,sans-serif;font-size:0.83rem;
                 border:1px solid rgba(255,68,68,0.3);border-left:3px solid #FF4444;">
@@ -1449,6 +1462,17 @@ def render_data_unavailable_banner(n_unavailable: int, n_total: int) -> None:
         loaded from their source and have been excluded from scores, rankings, and
         exports. No placeholder or synthetic observations are used. Check provider
         credentials under Setup or try again after the source recovers.
+    </div>
+    """, unsafe_allow_html=True)
+    else:
+        _live = n_total - n_unavailable
+        st.markdown(f"""
+    <div style="background:rgba(224,169,59,0.06);color:#D8C08A;border-radius:10px;padding:11px 16px;
+                margin-bottom:14px;font-family:Inter,sans-serif;font-size:0.8rem;
+                border:1px solid rgba(224,169,59,0.28);border-left:3px solid #E0A93B;">
+        <b style="color:#E7C063;">PARTIAL DATA</b> — {n_unavailable} of {n_total} signals are temporarily
+        unavailable from their source and have been excluded from scores and rankings;
+        the other {_live} are live. No placeholder or synthetic observations are used.
     </div>
     """, unsafe_allow_html=True)
 
@@ -1519,7 +1543,7 @@ def go_to_ticker(ticker: str, key: str) -> None:
     On click: set session_state.selected_ticker and switch to Ticker Deep Dive.
     `key` must be globally unique across the page.
     """
-    if st.button(ticker_label(ticker), key=key, help=f"Deep dive: {ticker}", use_container_width=True):
+    if st.button(ticker_label(ticker), key=key, help=f"Deep dive: {ticker}", width="stretch"):
         st.session_state["selected_ticker"] = ticker
         st.switch_page("pages/3_Ticker_Deep_Dive.py")
 
@@ -1619,7 +1643,7 @@ def render_global_ticker_search() -> None:
                 submitted = st.form_submit_button(
                     "Analyze ticker",
                     key="global_ticker_submit",
-                    use_container_width=True,
+                    width="stretch",
                 )
 
     if not submitted:
@@ -2243,7 +2267,7 @@ def render_header(page_subtitle: str = "") -> None:
                 if st.button(
                     f"Notifications{_badge_text}",
                     key="_notification_tray_toggle",
-                    use_container_width=True,
+                    width="stretch",
                 ):
                     st.session_state["_notification_tray_open"] = not st.session_state.get(
                         "_notification_tray_open", False
@@ -2256,17 +2280,17 @@ def render_header(page_subtitle: str = "") -> None:
         if _hdr_user:
             _identity_name = (_hdr_user.get("display_name") or "Account").strip()
             _identity_button = _identity_name if len(_identity_name) <= 20 else f"{_identity_name[:19]}…"
-            with st.popover(_identity_button, use_container_width=True):
+            with st.popover(_identity_button, width="stretch"):
                 if _hdr_user.get("display_name"):
                     st.text(_hdr_user["display_name"])
                     st.caption(_hdr_user.get("email", ""))
-                if st.button("My Profile", key="topright_profile", use_container_width=True):
+                if st.button("My Profile", key="topright_profile", width="stretch"):
                     st.switch_page("pages/32_Profile.py")
-                if st.button("Log Out", key="topright_logout", use_container_width=True):
+                if st.button("Log Out", key="topright_logout", width="stretch"):
                     logout()
                     st.rerun()
         else:
-            with st.popover("Sign In", use_container_width=True):
+            with st.popover("Sign In", width="stretch"):
                 render_auth_forms(_cookies, key_prefix="widget_")
 
     # A compact, fixed-height tray in normal page flow. Keeping it outside a
@@ -2316,14 +2340,14 @@ def render_header(page_subtitle: str = "") -> None:
                     if _unread > 0 and _read_col.button(
                         "Mark read",
                         key="_notif_mark_read",
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         _mark_all_read(_uid)
                         st.rerun()
                     if _clear_col.button(
                         "Clear",
                         key="_notif_clear",
-                        use_container_width=True,
+                        width="stretch",
                         help="Remove all current notifications from your feed",
                     ):
                         if _clear_notifications(_uid):
@@ -2683,7 +2707,7 @@ def render_sidebar_base(
                 f'Signed in as<br><b style="color:#E8EEFF;">{_sidebar_identity}</b></div>',
                 unsafe_allow_html=True,
             )
-            if st.button("Log Out", key="sidebar_logout", use_container_width=True):
+            if st.button("Log Out", key="sidebar_logout", width="stretch"):
                 from utils.auth_ui import logout
                 logout()
                 st.rerun()

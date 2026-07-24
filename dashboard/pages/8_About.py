@@ -583,7 +583,7 @@ Most platforms that show a composite "smart score" disclose none of this.
             })
         _val_df = pd.DataFrame(_val_rows).sort_values("Sig. Rate %", ascending=False)
         st.dataframe(
-            _val_df, use_container_width=True, hide_index=True,
+            _val_df, width="stretch", hide_index=True,
             column_config={
                 "Sig. Rate %": st.column_config.ProgressColumn("Sig. Rate %", min_value=0, max_value=100, format="%.0f%%"),
                 "Avg |r|": st.column_config.NumberColumn("Avg |r|", format="%.3f"),

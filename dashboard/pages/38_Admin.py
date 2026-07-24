@@ -347,7 +347,7 @@ else:
         yaxis={"showgrid": True, "gridcolor": "rgba(255,255,255,0.08)"},
         margin={"t": 40, "b": 40, "l": 40, "r": 10}, height=260,
     )
-    st.plotly_chart(figv, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    st.plotly_chart(figv, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
     tp_col, ev_col = st.columns(2)
     with tp_col:
@@ -356,7 +356,7 @@ else:
             import pandas as pd
             st.dataframe(
                 pd.DataFrame(tr["top_pages"], columns=["Page", "Views"]),
-                use_container_width=True, hide_index=True,
+                width="stretch", hide_index=True,
             )
         else:
             st.caption("No page data yet.")
@@ -366,7 +366,7 @@ else:
             import pandas as pd
             st.dataframe(
                 pd.DataFrame(tr["event_breakdown"], columns=["Event", "Count"]),
-                use_container_width=True, hide_index=True,
+                width="stretch", hide_index=True,
             )
         else:
             st.caption("No events yet.")
@@ -414,7 +414,7 @@ if m["total"] > 0:
         margin={"t": 20, "b": 20, "l": 0, "r": 0},
         height=280,
     )
-    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, theme=None)
 else:
     st.info("No users yet — funnel will appear once signups arrive.")
 
@@ -445,7 +445,7 @@ if m["daily_counts"]:
         margin={"t": 10, "b": 40, "l": 40, "r": 10},
         height=240,
     )
-    st.plotly_chart(fig2, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+    st.plotly_chart(fig2, width="stretch", config=PLOTLY_CONFIG, theme=None)
 else:
     st.info("No signups in the last 30 days.")
 
@@ -479,7 +479,7 @@ if m["recent"]:
         })
 
     df = pd.DataFrame(rows)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width="stretch", hide_index=True)
 else:
     st.info("No users yet.")
 

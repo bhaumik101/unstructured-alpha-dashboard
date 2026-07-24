@@ -79,7 +79,7 @@ if _signal_section == "Signal Library":
             unsafe_allow_html=True,
         )
     with _ref_col:
-        if st.button("↺ Refresh", key="sd_refresh", use_container_width=True):
+        if st.button("↺ Refresh", key="sd_refresh", width="stretch"):
             st.cache_data.clear()
             st.rerun()
 
@@ -772,7 +772,7 @@ if _signal_section == "Signal Library":
                                        tickfont=dict(size=8, color="#8892AA")),
                             showlegend=False,
                         )
-                        st.plotly_chart(spark, use_container_width=True, config=PLOTLY_CONFIG, key=f"spark_{sig_id}_{mode}", theme=None)
+                        st.plotly_chart(spark, width="stretch", config=PLOTLY_CONFIG, key=f"spark_{sig_id}_{mode}", theme=None)
 
                         # Insight caption below the sparkline
                         _cur_val  = sv.get("current", float("nan"))
@@ -908,7 +908,7 @@ if _signal_section == "Signal Library":
             yaxis=dict(tickfont=dict(size=10, color="#E8EEFF")),
             margin=dict(l=60, r=20, t=10, b=80),
         )
-        st.plotly_chart(fig_heat, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(fig_heat, width="stretch", config=PLOTLY_CONFIG, theme=None)
         st.caption(
             "Each cell is a 0–100 macro signal score for that ticker's relevant indicators. "
             " ≥65 = elevated bullish signal ·  ≤35 = bearish · gray = neutral or no relevant data. "
@@ -1056,7 +1056,7 @@ if _signal_section == "Signal Library":
                 yaxis=dict(tickfont=dict(size=8, color="#8892AA"), autorange="reversed"),
                 font=dict(family="Inter, sans-serif"),
             )
-            st.plotly_chart(_fig_corr, use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_fig_corr, width="stretch", config=PLOTLY_CONFIG, theme=None)
             st.caption(
                 "Pearson correlation of weekly signal values over the trailing 2-year window. "
                 "Pairs with r ≥ 0.70 (dark green) are measuring similar phenomena — "
@@ -1196,7 +1196,7 @@ if _signal_section == "Regime Playbook":
             "90d %":  _ret90.reindex(_ret30.index).values.round(1) if not _ret90.empty else [None]*len(_ret30),
         }).sort_values("30d %", ascending=False)
         st.dataframe(
-            _etf_df, use_container_width=True, hide_index=True,
+            _etf_df, width="stretch", hide_index=True,
             column_config={
                 "30d %": st.column_config.NumberColumn("30d %", format="%.1f%%"),
                 "90d %": st.column_config.NumberColumn("90d %", format="%.1f%%"),

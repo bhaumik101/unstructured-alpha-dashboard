@@ -149,7 +149,7 @@ if section == "Macro Calendar":
             }
             for event in calendar["events"]
         ]
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
         st.caption(
             "Source: Federal Reserve Bank of St. Louis FRED API. A publisher's scheduled release date does not "
             "guarantee that the new observation will already be available on FRED that day."

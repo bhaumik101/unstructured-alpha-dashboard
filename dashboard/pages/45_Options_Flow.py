@@ -420,7 +420,7 @@ if _options_section == "Market Snapshot":
     g_col, iv_col = st.columns([1, 3])
     with g_col:
         if pcr == pcr:
-            st.plotly_chart(_pcr_gauge(pcr), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+            st.plotly_chart(_pcr_gauge(pcr), width="stretch", config=PLOTLY_CONFIG, theme=None)
         else:
             st.markdown("**Put/Call Ratio:** unavailable")
 
@@ -429,7 +429,7 @@ if _options_section == "Market Snapshot":
         # Show only first 3 expirations for readability
         c_sub = calls_raw[calls_raw["expiration"].isin(expirations[:3])] if not calls_raw.empty else pd.DataFrame()
         p_sub = puts_raw[puts_raw["expiration"].isin(expirations[:3])]   if not puts_raw.empty  else pd.DataFrame()
-        st.plotly_chart(_iv_surface(c_sub, p_sub, spot), use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+        st.plotly_chart(_iv_surface(c_sub, p_sub, spot), width="stretch", config=PLOTLY_CONFIG, theme=None)
 
 if _options_section == "Strike Positioning":
     # ── Volume by strike ──────────────────────────────────────────────────────────
@@ -442,11 +442,11 @@ if _options_section == "Strike Positioning":
     with vol_col:
         st.caption("**Volume** — contracts traded today (one day of flow).")
         st.plotly_chart(_volume_bars(calls_raw, puts_raw, exp_filter),
-                        use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+                        width="stretch", config=PLOTLY_CONFIG, theme=None)
     with oi_col:
         st.caption("**Open interest** — contracts still held, with spot and max pain marked.")
         st.plotly_chart(_oi_bars(calls_raw, puts_raw, exp_filter, spot, _S["max_pain"]),
-                        use_container_width=True, config=PLOTLY_CONFIG, theme=None)
+                        width="stretch", config=PLOTLY_CONFIG, theme=None)
 
     st.divider()
 
@@ -525,13 +525,13 @@ if _options_section == "Unusual Activity":
         if unusual_calls.empty:
             st.info("No unusual call activity found with current thresholds.")
         else:
-            st.dataframe(_prep_display(unusual_calls), use_container_width=True, hide_index=True)
+            st.dataframe(_prep_display(unusual_calls), width="stretch", hide_index=True)
 
     if _unusual_view == "Unusual Puts":
         if unusual_puts.empty:
             st.info("No unusual put activity found with current thresholds.")
         else:
-            st.dataframe(_prep_display(unusual_puts), use_container_width=True, hide_index=True)
+            st.dataframe(_prep_display(unusual_puts), width="stretch", hide_index=True)
 
     if _unusual_view == "Combined":
         all_unusual = pd.DataFrame()
@@ -552,7 +552,7 @@ if _options_section == "Unusual Activity":
             # label — puts were shown as calls and vice versa, which on a
             # directional-positioning table inverts the read entirely.
             prep = _prep_display(all_unusual)
-            st.dataframe(prep, use_container_width=True, hide_index=True)
+            st.dataframe(prep, width="stretch", hide_index=True)
 
 if _options_section == "Full Chain":
     # ── Full chain viewer ─────────────────────────────────────────────────────────
@@ -575,7 +575,7 @@ if _options_section == "Full Chain":
             # produced a duplicated column, which pandas selects twice and renders
             # as two identical "Vol/OI" columns. Reuse the shared formatter instead
             # of maintaining a second, drifting copy of the same logic.
-            st.dataframe(_prep_display(sub), use_container_width=True, hide_index=True)
+            st.dataframe(_prep_display(sub), width="stretch", hide_index=True)
 
         if _chain_side == "Calls":
             _full_table(calls_raw, exp_chain)

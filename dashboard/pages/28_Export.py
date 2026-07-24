@@ -626,7 +626,7 @@ st.markdown(f"""
 # ── Generate PDF ──────────────────────────────────────────────────────────────
 with col_btn:
     st.markdown("<br>", unsafe_allow_html=True)
-    generate = st.button("Generate PDF Report", type="primary", use_container_width=True,
+    generate = st.button("Generate PDF Report", type="primary", width="stretch",
                          key="gen_pdf")
 
 # Rate-limit actual PDF generation (not the cached re-display of a ready report).
@@ -684,7 +684,7 @@ if _pdf_payload.get("ticker") == ticker_input and _pdf_payload.get("bytes"):
         data=pdf_bytes,
         file_name=_pdf_payload["file_name"],
         mime="application/pdf",
-        use_container_width=True,
+        width="stretch",
         key="pdf_dl",
     )
     st.caption(
@@ -730,7 +730,7 @@ if preview_rows:
     import pandas as pd
     st.dataframe(
         pd.DataFrame(preview_rows),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "Score": st.column_config.ProgressColumn(

@@ -252,7 +252,7 @@ st.markdown(f"""
 # ── Hero CTA row ───────────────────────────────────────────────────────────────
 _hcta1, _hcta2, _hcta3 = st.columns([2, 1.4, 2])
 with _hcta2:
-    if st.button("→ See Today's Signal Brief", type="primary", use_container_width=True, key="hero_cta_brief"):
+    if st.button("→ See Today's Signal Brief", type="primary", width="stretch", key="hero_cta_brief"):
         st.switch_page("pages/2_Today_Digest.py")
 
 # ── Animated stat counter strip ────────────────────────────────────────────────
@@ -408,7 +408,7 @@ st.markdown(
 st.markdown("<div style='text-align:center;margin:24px 0 8px;'>", unsafe_allow_html=True)
 _hcol1, _hcol2, _hcol3 = st.columns([2, 1.4, 2])
 with _hcol2:
-    if st.button("→ See Today's Full Signal Brief", type="primary", use_container_width=True, key="hero_cta"):
+    if st.button("→ See Today's Full Signal Brief", type="primary", width="stretch", key="hero_cta"):
         st.switch_page("pages/2_Today_Digest.py")
 st.markdown(
     "<div style='text-align:center;font-size:0.72rem;color:#8892AA;margin-top:6px;"
@@ -645,7 +645,7 @@ try:
                     if st.button(
                         f'{_next_step["icon"]} {_next_step["label"]}',
                         type="primary",
-                        use_container_width=True,
+                        width="stretch",
                         key="onboarding_cta",
                     ):
                         track(Event.ONBOARDING_STEP, user_id=_uid,
@@ -862,7 +862,7 @@ if _data_loaded:
                 key="pf_ticker_input",
             )
         with _pf_cb:
-            _pf_submitted = st.form_submit_button("→ Check", type="primary", use_container_width=True)
+            _pf_submitted = st.form_submit_button("→ Check", type="primary", width="stretch")
 
     if _pf_submitted and _pf_input.strip():
         _pf_results = _score_tickers_from_cache(_pf_input, _raw_scores)
@@ -956,10 +956,10 @@ if _data_loaded:
             st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
             _pf_cta1, _pf_cta2, _pf_cta3 = st.columns([1.5, 1.5, 1])
             with _pf_cta1:
-                if st.button("Full signal breakdown →", use_container_width=True, key="pf_cta_dive"):
+                if st.button("Full signal breakdown →", width="stretch", key="pf_cta_dive"):
                     st.switch_page("pages/3_Ticker_Deep_Dive.py")
             with _pf_cta2:
-                if st.button("Save to Watchlist (free) →", use_container_width=True, key="pf_cta_wl"):
+                if st.button("Save to Watchlist (free) →", width="stretch", key="pf_cta_wl"):
                     st.switch_page("pages/10_Watchlist.py")
             st.markdown(
                 '<div style="font-size:0.62rem;color:#434E6A;margin-top:5px;font-family:Inter,sans-serif;">'
@@ -1126,7 +1126,7 @@ try:
             f'</div>',
             unsafe_allow_html=True,
         )
-        if st.button("Read Full Note →", key="home_note_cta", use_container_width=False):
+        if st.button("Read Full Note →", key="home_note_cta", width="content"):
             st.switch_page("pages/2_Today_Digest.py")
 except Exception:
     pass
@@ -1158,7 +1158,7 @@ with _sp1:
     </div>
 </div>
 """, unsafe_allow_html=True)
-    if st.button("Read Today's Brief →", use_container_width=True, key="cta_brief"):
+    if st.button("Read Today's Brief →", width="stretch", key="cta_brief"):
         st.switch_page("pages/2_Today_Digest.py")
 
 with _sp2:
@@ -1175,7 +1175,7 @@ with _sp2:
     </div>
 </div>
 """, unsafe_allow_html=True)
-    if st.button("Try Ticker Deep Dive →", use_container_width=True, key="cta_dive"):
+    if st.button("Try Ticker Deep Dive →", width="stretch", key="cta_dive"):
         st.switch_page("pages/3_Ticker_Deep_Dive.py")
 
 with _sp3:
@@ -1192,7 +1192,7 @@ with _sp3:
     </div>
 </div>
 """, unsafe_allow_html=True)
-    if st.button("Build Your Watchlist →", use_container_width=True, key="cta_watchlist"):
+    if st.button("Build Your Watchlist →", width="stretch", key="cta_watchlist"):
         st.switch_page("pages/10_Watchlist.py")
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -1335,7 +1335,7 @@ try:
 
     _smc, _ = st.columns([1, 3])
     with _smc:
-        if st.button("Full Sector View →", use_container_width=True, key="cta_sector"):
+        if st.button("Full Sector View →", width="stretch", key="cta_sector"):
             st.switch_page("pages/42_Sector_View.py")
 except Exception:
     st.caption("Sector preview unavailable. Open the Sector View page directly.")
@@ -1443,7 +1443,7 @@ for _col, (_n, _ac, _icon, _title, _body, _page, _btn, _key) in zip(_st_cols, _s
     <div class="ua-step-body">{_body}</div>
 </div>
 """, unsafe_allow_html=True)
-        if st.button(_btn, use_container_width=True, key=_key):
+        if st.button(_btn, width="stretch", key=_key):
             st.switch_page(_page)
 
 st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
@@ -1547,7 +1547,7 @@ for _col, (_ac, _icon, _title, _body) in zip([_al1, _al2, _al3, _al4], _alert_ca
 st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 _ac1, _ac2, _ac3 = st.columns([2, 1.4, 2])
 with _ac2:
-    if st.button("Get All Alerts →", type="primary", use_container_width=True, key="cta_alerts_section"):
+    if st.button("Get All Alerts →", type="primary", width="stretch", key="cta_alerts_section"):
         st.switch_page("pages/29_Upgrade.py")
 
 st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
@@ -1596,7 +1596,7 @@ st.markdown("""
 
 _strat_c1, _strat_c2, _strat_c3 = st.columns([2, 1.4, 2])
 with _strat_c2:
-    if st.button("Run the Backtest →", use_container_width=True, key="cta_strat_hero"):
+    if st.button("Run the Backtest →", width="stretch", key="cta_strat_hero"):
         st.switch_page("pages/35_Signal_Strategy.py")
 
 st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
@@ -1655,7 +1655,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 _pro_col1, _pro_col2, _pro_col3 = st.columns([2.5, 1.2, 2.5])
 with _pro_col2:
-    if st.button("Start 7-Day Free Trial →", type="primary", use_container_width=True, key="cta_pro_mid"):
+    if st.button("Start 7-Day Free Trial →", type="primary", width="stretch", key="cta_pro_mid"):
         st.switch_page("pages/29_Upgrade.py")
 
 st.divider()
@@ -1739,19 +1739,19 @@ st.markdown("""
 
 _t1, _t2, _t3, _t4, _t5 = st.columns(5)
 with _t1:
-    if st.button("Signal Dashboard", use_container_width=True, key="cta_signals"):
+    if st.button("Signal Dashboard", width="stretch", key="cta_signals"):
         st.switch_page("pages/1_Signal_Dashboard.py")
 with _t2:
-    if st.button("Market Overview", use_container_width=True, key="cta_market"):
+    if st.button("Market Overview", width="stretch", key="cta_market"):
         st.switch_page("pages/5_Market_Overview.py")
 with _t3:
-    if st.button("Stock Screener", use_container_width=True, key="cta_screener"):
+    if st.button("Stock Screener", width="stretch", key="cta_screener"):
         st.switch_page("pages/6_Stock_Screener.py")
 with _t4:
-    if st.button("Model Validation", use_container_width=True, key="cta_validation"):
+    if st.button("Model Validation", width="stretch", key="cta_validation"):
         st.switch_page("pages/11_Model_Validation.py")
 with _t5:
-    if st.button("Signal Strategy", use_container_width=True, key="cta_strategy"):
+    if st.button("Signal Strategy", width="stretch", key="cta_strategy"):
         st.switch_page("pages/35_Signal_Strategy.py")
 
 st.divider()

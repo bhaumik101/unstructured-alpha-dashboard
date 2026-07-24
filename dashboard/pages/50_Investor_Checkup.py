@@ -148,7 +148,7 @@ if section == "Overview":
             "Change": row.get("delta_30d"),
             "Evidence date": row.get("snapshot_date") or "No current record",
         })
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
     st.caption("Unavailable tickers are excluded from the group score, not filled with neutral or placeholder values.")
 
 
