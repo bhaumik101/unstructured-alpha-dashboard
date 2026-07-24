@@ -151,6 +151,60 @@ def fetch_fred(series_id: str, start: str, end: str, api_key: str = "") -> pd.Se
     return _empty_series_with_error(series_id, "fred", "MissingAPIKey")
 
 
+@st.cache_data(ttl=604800, show_spinner=False, max_entries=60)  # 7d — a published vintage is immutable, cache hard
+def fetch_fred_asof(series_id: str, start: str, end: str, as_of: str, api_key: str = "") -> pd.Series:
+    """Point-in-time FRED fetch: the observations for [start, end] AS THEY WERE
+    FIRST KNOWN on `as_of` (ALFRED vintage), NOT today's revised numbers.
+
+    This is the honest input for any backtest or validation. The live scoring
+    engine at time T only ever saw the data vintage available at T; fetch_fred()
+    (which omits realtime params) returns the LATEST revision, so using it to
+    reconstruct history bakes in revision / look-ahead bias. Ground-truth
+    example that motivated this: INDPRO for 2020-06 was first printed at 97.46
+    but reads 91.59 today — a 6% revision the model could not have known.
+
+    `as_of` is an ISO date (YYYY-MM-DD). FRED's realtime_start/realtime_end are
+    set to that single day, so the series returned is exactly the vintage in
+    effect then; observations not yet published as of that date are correctly
+    ABSENT (you did not know them yet), never invented. Missing key or a
+    provider failure returns an explicitly-unavailable empty series — this
+    function never fabricates data.
+    """
+    if not api_key:
+        return _empty_series_with_error(series_id, "fred", "MissingAPIKey")
+    if not as_of:
+        return _empty_series_with_error(series_id, "fred", "MissingAsOf")
+
+    url = "https://api.stlouisfed.org/fred/series/observations"
+    params = {
+        "series_id": series_id,
+        "api_key": api_key,
+        "file_type": "json",
+        "observation_start": start,
+        "observation_end": end,
+        "realtime_start": as_of,
+        "realtime_end": as_of,
+    }
+    try:
+        r = resilient_get(url, provider="fred", params=params, timeout=12)
+        r.raise_for_status()
+        data = r.json()
+        df = pd.DataFrame(data.get("observations", []))
+        if df.empty:
+            # No vintage existed on as_of (series unreleased then) — unavailable,
+            # not an error to paper over.
+            return _empty_series_with_error(series_id, "fred", "NoVintageAsOf")
+        df["date"] = pd.to_datetime(df["date"])
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        s = df.dropna(subset=["value"]).set_index("date")["value"]
+        s.name = series_id
+        s.attrs["as_of"] = as_of
+        s.attrs["vintage"] = True
+        return s
+    except Exception as exc:
+        return _empty_series_with_error(series_id, "fred", type(exc).__name__)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # EIA — Energy Information Administration (crude stocks, gas storage)
 # ─────────────────────────────────────────────────────────────────────────────
