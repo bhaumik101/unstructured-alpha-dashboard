@@ -533,16 +533,16 @@ div[data-testid="stExpander"] { background: rgba(18,21,30,0.6) !important; borde
     word-break: keep-all !important;
 }
 .stButton > button:hover {
-    border-color: rgba(0,213,102,0.4) !important; color: #00D566 !important;
-    box-shadow: 0 0 14px rgba(0,213,102,0.12) !important;
+    border-color: rgba(100,112,245,0.45) !important; color: #B7BEFB !important;
+    box-shadow: 0 0 14px rgba(100,112,245,0.14) !important;
     transform: translateY(-1px);
 }
 .stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #00D566, #00A847) !important;
-    color: #001A0D !important; border: none !important; font-weight: 700 !important;
+    background: linear-gradient(135deg, #6470F5, #4B54D8) !important;
+    color: #FFFFFF !important; border: none !important; font-weight: 700 !important;
 }
 .stButton > button[kind="primary"]:hover {
-    box-shadow: 0 0 22px rgba(0,213,102,0.35) !important; filter: brightness(1.05);
+    box-shadow: 0 0 22px rgba(100,112,245,0.40) !important; filter: brightness(1.06);
 }
 
 /* Inputs */
@@ -553,8 +553,8 @@ div[data-testid="stExpander"] { background: rgba(18,21,30,0.6) !important; borde
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .stTextInput > div > div > input:focus {
-    border-color: rgba(0,213,102,0.5) !important;
-    box-shadow: 0 0 0 3px rgba(0,213,102,0.08) !important; outline: none !important;
+    border-color: rgba(100,112,245,0.55) !important;
+    box-shadow: 0 0 0 3px rgba(100,112,245,0.10) !important; outline: none !important;
 }
 .stTextInput > div > div > input::placeholder { color: #8892AA !important; }
 
@@ -650,18 +650,18 @@ ul[data-baseweb="menu"] {
 }
 [data-baseweb="option"]:hover,
 [data-baseweb="option"][aria-selected="true"] {
-    background: rgba(0,213,102,0.09) !important;
+    background: rgba(100,112,245,0.12) !important;
     color: #E8EEFF !important;
 }
 
 /* ── Focus-visible keyboard ring ────────────────────────────────────────── */
 *:focus-visible {
-    outline: 2px solid rgba(0,213,102,0.55) !important;
+    outline: 2px solid rgba(100,112,245,0.60) !important;
     outline-offset: 2px !important;
     border-radius: 6px;
 }
 .stButton > button:focus-visible {
-    box-shadow: 0 0 0 3px rgba(0,213,102,0.25) !important;
+    box-shadow: 0 0 0 3px rgba(100,112,245,0.30) !important;
     outline: none !important;
 }
 
@@ -834,7 +834,7 @@ code, pre {
 
 /* ── Animated gradient text ─────────────────────────────────────────────── */
 .ua-gradient-text {
-    background: linear-gradient(135deg, #00D566 0%, #00C8E0 50%, #7C3AED 100%);
+    background: linear-gradient(135deg, #6470F5 0%, #8B7BF7 52%, #D4B26A 118%);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -938,16 +938,16 @@ code, pre {
 
 /* ── Better primary button gradient ─────────────────────────────────────── */
 .stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #00D566 0%, #00B857 40%, #00A847 100%) !important;
-    color: #001A0D !important;
+    background: linear-gradient(135deg, #6470F5 0%, #5A52E0 45%, #4B54D8 100%) !important;
+    color: #FFFFFF !important;
     border: none !important;
     font-weight: 700 !important;
     letter-spacing: 0.01em !important;
-    box-shadow: 0 2px 14px rgba(0,213,102,0.28), 0 1px 3px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 2px 14px rgba(100,112,245,0.30), 0 1px 3px rgba(0,0,0,0.3) !important;
     transition: all 0.18s cubic-bezier(0.4,0,0.2,1) !important;
 }
 .stButton > button[kind="primary"]:hover {
-    box-shadow: 0 4px 22px rgba(0,213,102,0.42), 0 2px 6px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 4px 22px rgba(100,112,245,0.44), 0 2px 6px rgba(0,0,0,0.4) !important;
     filter: brightness(1.06) !important;
     transform: translateY(-1px) !important;
 }
@@ -1779,7 +1779,7 @@ header[data-testid="stHeader"]            { display: none !important; }
 }
 .ua-tnav-brand-text em {
   font-style: normal;
-  background: linear-gradient(135deg, #00D566, #00C8E0);
+  background: linear-gradient(135deg, #6470F5, #8B7BF7 60%, #D4B26A 120%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
@@ -1796,7 +1796,7 @@ a.ua-tnav-item {
   transition: color .12s ease, background .12s ease;
 }
 a.ua-tnav-item:hover { color: #E8EEFF; background: rgba(255,255,255,0.06); }
-a.ua-tnav-item.active { color: #00D566 !important; background: rgba(0,213,102,0.08) !important; }
+a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(100,112,245,0.12) !important; }
 
 /* ── Dropdown group ───────────────────────────────────────────────────────── */
 .ua-tnav-group { position: relative; display: inline-flex; align-items: center; }
