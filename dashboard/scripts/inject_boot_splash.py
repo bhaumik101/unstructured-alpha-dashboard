@@ -217,6 +217,72 @@ def _inject_or_replace(html: str, splash: str) -> tuple[str, int, str]:
     return updated, count, "injected"
 
 
+# ── Server-side social / SEO meta ────────────────────────────────────────────
+# WHY: Streamlit sets the page <title> and every OG/Twitter tag via JavaScript
+# (see utils.header). Social crawlers — X/Twitter, Reddit, Slack, iMessage — do
+# NOT execute JS, so they see Streamlit's raw served head: <title>Streamlit</title>
+# and no description. Every link preview is therefore broken (and X had cached an
+# ancient "43 signals" guess). Injecting real <title> + <meta> into the served
+# index.html at build time is the only thing crawlers can read. JS-capable clients
+# (Googlebot) still get the richer JS-set tags; this is the crawler floor.
+META_START = "<!-- ua-meta:start -->"
+META_END = "<!-- ua-meta:end -->"
+META_TITLE = "Unstructured Alpha — 47-signal macro intelligence"
+META_DESC = (
+    "47 macro and alt-data signals scored daily on first-print data — no hindsight, "
+    "no synthetic values. Public out-of-sample validation and a live revision audit. "
+    "Free to browse."
+)
+META_URL = "https://unstructuredalpha.com"
+
+
+def _build_meta() -> str:
+    def esc(s: str) -> str:
+        return s.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+    t, d, u = esc(META_TITLE), esc(META_DESC), esc(META_URL)
+    return (
+        f"{META_START}"
+        f'<meta name="description" content="{d}">'
+        f'<meta property="og:site_name" content="Unstructured Alpha">'
+        f'<meta property="og:type" content="website">'
+        f'<meta property="og:url" content="{u}">'
+        f'<meta property="og:title" content="{t}">'
+        f'<meta property="og:description" content="{d}">'
+        f'<meta name="twitter:card" content="summary">'
+        f'<meta name="twitter:title" content="{t}">'
+        f'<meta name="twitter:description" content="{d}">'
+        f"{META_END}"
+    )
+
+
+def _inject_meta(html: str) -> tuple[str, str]:
+    """Set a crawler-visible <title> and inject/replace the OG/meta block. Both
+    operations are idempotent, so re-running on an already-patched file is safe."""
+    action = []
+
+    # 1) Replace the served <title> (Streamlit ships "<title>Streamlit</title>").
+    new_html, n_title = re.subn(
+        r"<title>.*?</title>", f"<title>{META_TITLE}</title>", html, count=1, flags=re.DOTALL
+    )
+    if n_title:
+        action.append("title")
+        html = new_html
+
+    # 2) Inject or replace our meta block just before </head>.
+    meta = _build_meta()
+    if META_START in html and META_END in html:
+        pattern = re.escape(META_START) + r".*?" + re.escape(META_END)
+        html, n_meta = re.subn(pattern, lambda _m: meta, html, count=1, flags=re.DOTALL)
+        if n_meta:
+            action.append("meta-updated")
+    else:
+        html, n_meta = re.subn(r"(</head>)", lambda m: meta + m.group(1), html, count=1)
+        if n_meta:
+            action.append("meta-injected")
+
+    return html, "+".join(action) if action else "meta-skipped"
+
+
 def main() -> None:
     try:
         import streamlit
@@ -226,14 +292,18 @@ def main() -> None:
             return
         with open(index_path, "r", encoding="utf-8") as fh:
             html = fh.read()
+
         splash = _build_splash()
         new_html, n, action = _inject_or_replace(html, splash)
         if n != 1:
             print("[boot-splash] injection target not found — skipping (left untouched)", flush=True)
             return
+
+        new_html, meta_action = _inject_meta(new_html)
+
         with open(index_path, "w", encoding="utf-8") as fh:
             fh.write(new_html)
-        print(f"[boot-splash] {action} branded splash in {index_path}", flush=True)
+        print(f"[boot-splash] {action} branded splash + {meta_action} in {index_path}", flush=True)
     except Exception as exc:  # never fail the build
         print(f"[boot-splash] skipped due to error: {exc}", flush=True)
 
