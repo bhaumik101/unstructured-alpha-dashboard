@@ -251,8 +251,39 @@ def _build_meta() -> str:
         f'<meta name="twitter:card" content="summary">'
         f'<meta name="twitter:title" content="{t}">'
         f'<meta name="twitter:description" content="{d}">'
+        f'<link rel="canonical" href="{u}">'
+        f'<script type="application/ld+json">{_JSONLD}</script>'
         f"{META_END}"
     )
+
+
+# JSON-LD structured data — crawlers (incl. Google rich results and LLM crawlers)
+# read this regardless of JS. Describes the site + the product as a free web app.
+_JSONLD = json.dumps({
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "WebSite",
+            "name": "Unstructured Alpha",
+            "url": "https://unstructuredalpha.com",
+            "description": META_DESC,
+        },
+        {
+            "@type": "SoftwareApplication",
+            "name": "Unstructured Alpha",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web",
+            "url": "https://unstructuredalpha.com",
+            "description": META_DESC,
+            "offers": [
+                {"@type": "Offer", "price": "0", "priceCurrency": "USD",
+                 "description": "Free to browse"},
+                {"@type": "Offer", "price": "20", "priceCurrency": "USD",
+                 "description": "Pro (monthly)"},
+            ],
+        },
+    ],
+}, separators=(",", ":"))
 
 
 def _inject_meta(html: str) -> tuple[str, str]:
@@ -283,6 +314,61 @@ def _inject_meta(html: str) -> tuple[str, str]:
     return html, "+".join(action) if action else "meta-skipped"
 
 
+# ── Crawlable body content ───────────────────────────────────────────────────
+# WHY: Streamlit serves a JS single-page app — the raw HTML a crawler fetches has
+# NO page content, just "enable JavaScript". So Google (and LLM crawlers) index an
+# effectively empty site even though the sitemap lists real routes. This injects a
+# <noscript> block with genuine product prose and internal links, so non-JS
+# crawlers get substantive, keyword-relevant content and a link graph to the key
+# pages. It's inside <noscript>, so real (JS-enabled) users never see it — the
+# Streamlit app renders normally for them. This is the crawler floor; full per-URL
+# prerendering would need a bot-serving proxy (Cloudflare Worker / Prerender.io),
+# which is infra, not code.
+SEO_START = "<!-- ua-seo:start -->"
+SEO_END = "<!-- ua-seo:end -->"
+_SEO_LINKS = [
+    ("Signal_Dashboard", "Signal Dashboard — all 47 signals scored live"),
+    ("Model_Validation", "Model Validation — out-of-sample results, including the signals that fail"),
+    ("Ticker_Deep_Dive", "Ticker Deep Dive — score any stock against the macro backdrop"),
+    ("Stock_Screener", "Stock Screener — rank stocks by macro tailwind"),
+    ("Today_Digest", "Today's Brief — the day's macro read in plain English"),
+    ("About", "About & methodology"),
+]
+
+
+def _build_seo_body() -> str:
+    links = "".join(
+        f'<li><a href="https://unstructuredalpha.com/{slug}">{text}</a></li>'
+        for slug, text in _SEO_LINKS
+    )
+    return (
+        f"{SEO_START}"
+        '<noscript><div>'
+        "<h1>Unstructured Alpha — 47-signal macro intelligence</h1>"
+        "<p>Unstructured Alpha scores 47 macro and alternative-data signals daily — "
+        "Fed liquidity, credit spreads, the yield-curve slope, energy inventories, "
+        "insider buying, short interest, put/call sentiment, the copper/gold ratio and "
+        "more — into a single 0–100 Confluence Score for each stock. Backtests run on "
+        "first-print (point-in-time) data, so a signal only earns credit for what was "
+        "knowable at the time: no revised hindsight and no synthetic values. "
+        "Out-of-sample validation and a per-signal revision audit are published in the "
+        "open. Free to browse.</p>"
+        f"<ul>{links}</ul>"
+        "</div></noscript>"
+        f"{SEO_END}"
+    )
+
+
+def _inject_seo_body(html: str) -> str:
+    seo = _build_seo_body()
+    if SEO_START in html and SEO_END in html:
+        pattern = re.escape(SEO_START) + r".*?" + re.escape(SEO_END)
+        html, n = re.subn(pattern, lambda _m: seo, html, count=1, flags=re.DOTALL)
+        return html if n else html
+    html, n = re.subn(r"(</body>)", lambda m: seo + m.group(1), html, count=1)
+    return html
+
+
 def main() -> None:
     try:
         import streamlit
@@ -300,10 +386,11 @@ def main() -> None:
             return
 
         new_html, meta_action = _inject_meta(new_html)
+        new_html = _inject_seo_body(new_html)
 
         with open(index_path, "w", encoding="utf-8") as fh:
             fh.write(new_html)
-        print(f"[boot-splash] {action} branded splash + {meta_action} in {index_path}", flush=True)
+        print(f"[boot-splash] {action} splash + {meta_action} + seo-body in {index_path}", flush=True)
     except Exception as exc:  # never fail the build
         print(f"[boot-splash] skipped due to error: {exc}", flush=True)
 
