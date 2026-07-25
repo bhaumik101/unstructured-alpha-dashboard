@@ -33,7 +33,11 @@ from utils.top_tickers import get_top_tickers
 from utils.convergence import get_convergence_events, render_convergence_events
 from utils.theme import inject_all_css, render_platform_note
 
-render_header("Home")
+render_header(
+    "Home",
+    hero_title="Know the macro backdrop before you trade.",
+    hero_sub="47 macro signals scored daily on first-print data — no hindsight, no synthetic values.",
+)
 inject_all_css()
 render_sidebar_base()
 
