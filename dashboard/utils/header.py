@@ -290,6 +290,15 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
     margin-top: 3px; letter-spacing: 0.02em;
     display: flex; align-items: center; gap: 6px;
 }
+.ua-hero-title {
+    font-size: 1.55rem; font-weight: 700; color: #F3F6FC;
+    font-family: 'Inter', sans-serif; letter-spacing: -0.6px; line-height: 1.12;
+    max-width: 560px;
+}
+.ua-hero-sub {
+    font-size: 0.82rem; color: #8892AA; font-family: 'Inter', sans-serif;
+    margin-top: 6px; line-height: 1.55; max-width: 520px; font-weight: 400;
+}
 .ua-header-right {
     text-align: right; font-size: 0.73rem; color: #8892AA; font-family: 'Inter', sans-serif;
 }
@@ -2028,7 +2037,7 @@ def _track_page_view(page_label: str) -> None:
         pass
 
 
-def render_header(page_subtitle: str = "") -> None:
+def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str = "") -> None:
     """
     Inject global CSS and render the Unstructured Alpha masthead.
     Call this immediately after st.set_page_config() on every page.
@@ -2183,11 +2192,25 @@ def render_header(page_subtitle: str = "") -> None:
         + (f"<br><div style='margin-top:5px;'>{_user_pill}</div>" if _user_pill else "")
     )
 
+    # The left side is the brand wordmark on every page EXCEPT where a caller
+    # passes a hero_title. The top nav already carries the wordmark, so on the
+    # landing page repeating it here is pure duplication; leading with the value
+    # proposition instead is both less redundant and a stronger first read.
+    if hero_title:
+        _left_html = (
+            f'<div class="ua-hero-title">{hero_title}</div>'
+            + (f'<div class="ua-hero-sub">{hero_sub}</div>' if hero_sub else "")
+        )
+    else:
+        _left_html = (
+            '<div class="ua-wordmark">UNSTRUCTURED <span>ALPHA</span></div>'
+            '<div class="ua-tagline">Alternative Data Intelligence &mdash; what&rsquo;s coming, not what happened</div>'
+        )
+
     st.markdown(f"""
     <div class="ua-header">
         <div class="ua-header-left">
-            <div class="ua-wordmark">UNSTRUCTURED <span>ALPHA</span></div>
-            <div class="ua-tagline">Alternative Data Intelligence &mdash; what&rsquo;s coming, not what happened</div>
+            {_left_html}
         </div>
         <div class="ua-header-right">{right_html}</div>
     </div>
