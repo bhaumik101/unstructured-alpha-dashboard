@@ -13,7 +13,7 @@ from utils.config import TICKERS, SIGNAL_COUNT
 _CSS = """
 <style>
 /* preconnect hints injected via JS below for max speed */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap&font-display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700;800&display=swap&font-display=swap');
 
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root {
@@ -40,6 +40,50 @@ _CSS = """
     --ua-glow-green: 0 0 28px rgba(0,213,102,0.18);
     --ua-glow-red:   0 0 28px rgba(255,68,68,0.18);
     --ua-glow-cyan:  0 0 28px rgba(0,200,224,0.14);
+
+    /* ── Redesign 2026-07: royal palette + editorial serif + chart tokens.
+       Additive — existing surfaces keep their tokens; new/migrated surfaces
+       use these. See memory redesign_2026_07. */
+    --ua-serif:      'Fraunces', Georgia, 'Times New Roman', serif;
+    --ua-royal:      #6470F5;
+    --ua-royal-2:    #8B7BF7;
+    --ua-royal-deep: #3B45C9;
+    --ua-royal-soft: rgba(100,112,245,0.14);
+    --ua-gold:       #D4B26A;
+    --ua-text:       #ECEEF9;
+    --ua-muted:      #9AA0BE;
+    --ua-faint:      #646A88;
+    --ua-line-2:     rgba(255,255,255,0.16);
+    --ua-pos:        #48BC90;
+    --ua-neg:        #E27767;
+    --ua-neutral:    #7C84A8;
+}
+
+/* Light mode: overrides both the legacy tokens and the redesign tokens. Applied
+   when <html data-ua-theme="light">. Nothing sets it yet (dark stays default);
+   surfaces migrate to variables progressively so the flip stays clean. */
+html[data-ua-theme="light"] {
+    --ua-bg:         #F6F5FB;
+    --ua-bg-card:    #FFFFFF;
+    --ua-bg-raised:  #FBFAF7;
+    --ua-text-hi:    #161A2E;
+    --ua-text-mid:   #2C3149;
+    --ua-text-lo:    #4A5069;
+    --ua-text-cap:   #6A7189;
+    --ua-border:     rgba(20,22,44,0.10);
+    --ua-border-lo:  rgba(20,22,44,0.05);
+    --ua-grid:       rgba(20,22,44,0.09);
+    --ua-royal:      #4048C6;
+    --ua-royal-2:    #5A46C0;
+    --ua-royal-soft: rgba(64,72,198,0.10);
+    --ua-gold:       #9C7A2C;
+    --ua-text:       #161A2E;
+    --ua-muted:      #5A6079;
+    --ua-faint:      #8A90A6;
+    --ua-line-2:     rgba(20,22,44,0.17);
+    --ua-pos:        #1E9E6E;
+    --ua-neg:        #C9503E;
+    --ua-neutral:    #6A7189;
 }
 
 /* ── Guided workflow cards ───────────────────────────────────────────────── */
@@ -291,9 +335,9 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
     display: flex; align-items: center; gap: 6px;
 }
 .ua-hero-title {
-    font-size: 1.55rem; font-weight: 700; color: #F3F6FC;
-    font-family: 'Inter', sans-serif; letter-spacing: -0.6px; line-height: 1.12;
-    max-width: 560px;
+    font-size: 2.05rem; font-weight: 600; color: var(--ua-text, #F3F6FC);
+    font-family: var(--ua-serif); letter-spacing: -0.4px; line-height: 1.08;
+    max-width: 620px;
 }
 .ua-hero-sub {
     font-size: 0.82rem; color: #8892AA; font-family: 'Inter', sans-serif;
@@ -2082,6 +2126,14 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     # Inject modern UI system (pill tabs, glass buttons, metrics, etc.) globally
     # so every page that calls render_header() gets it automatically.
     st.markdown(_MODERN_UI_CSS, unsafe_allow_html=True)
+
+    # Redesign 2026-07: chart primitives so utils.ua_charts SVGs are styled
+    # everywhere (colors read the --ua-* theme vars, so they follow light/dark).
+    try:
+        from utils.ua_charts import CHART_CSS as _UA_CHART_CSS
+        st.markdown(_UA_CHART_CSS, unsafe_allow_html=True)
+    except Exception:
+        pass
 
     # ── OpenGraph / social meta tags (JS injection) ────────────────────────────
     # Reddit's link scraper is server-side and won't execute this JS, but
