@@ -227,30 +227,52 @@ _top_bear = _hd["bear"][0][0] if _hd["bear"] else None
 
 # ── HERO ──────────────────────────────────────────────────────────────────────
 st.markdown(f"""
-<div style="text-align:center;padding:44px 0 4px;font-family:'Inter',sans-serif;">
-    <div class="ua-slide-up-d1" style="margin-bottom:22px;">
-        <span class="ua-live-label">
-            <span class="ua-pulse-dot"></span>
-            INSTITUTIONAL-GRADE MACRO INTELLIGENCE · FREE
-        </span>
-    </div>
-    <div class="ua-slide-up-d2" style="font-size:clamp(2.2rem,4.5vw,3.1rem);font-weight:900;color:#E8EEFF;
-                line-height:1.08;max-width:780px;margin:0 auto 18px;letter-spacing:-1.8px;">
-        Before the market moves,<br>
-        <span class="ua-gradient-text">the signals already did.</span>
-    </div>
-    <div class="ua-slide-up-d3" style="font-size:0.97rem;color:#8892AA;margin:0 auto;max-width:560px;
-                line-height:1.75;font-weight:400;">
-        47 macro signals — Fed policy, energy flows, credit spreads, insider buying,
-        put/call sentiment — scored in real time and mapped to the stocks you actually hold.
-    </div>
-    <div class="ua-slide-up-d3" style="margin-top:22px;display:flex;justify-content:center;
-                align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="font-size:0.75rem;color:#6B7FBF;font-family:Inter,sans-serif;">
-            No account needed to browse · Pro from <b style="color:#00D566;">$20/mo</b>
-        </span>
+<div class="ua-landing-hero" style="position:relative;text-align:center;padding:48px 0 6px;font-family:'Inter',sans-serif;">
+    <div aria-hidden="true" style="position:absolute;top:-46px;left:50%;transform:translateX(-50%);
+         width:760px;max-width:96vw;height:380px;pointer-events:none;z-index:0;
+         background:radial-gradient(50% 50% at 50% 40%, var(--ua-royal-soft,rgba(100,112,245,0.16)) 0%, rgba(100,112,245,0.05) 42%, transparent 72%);"></div>
+    <div style="position:relative;z-index:1;">
+      <div class="ua-slide-up-d1" style="margin-bottom:20px;">
+          <span class="ua-hero-pill">
+              <span class="ua-pulse-dot"></span>
+              INSTITUTIONAL-GRADE MACRO INTELLIGENCE · FREE
+          </span>
+      </div>
+      <div class="ua-slide-up-d2 ua-hero-head" style="font-size:clamp(2.3rem,4.8vw,3.35rem);
+                  line-height:1.06;max-width:820px;margin:0 auto 18px;">
+          Before the market moves,<br>
+          <span class="ua-hero-accent">the signals already did.</span>
+      </div>
+      <div class="ua-slide-up-d3" style="font-size:1.0rem;color:var(--ua-muted,#9AA0BE);margin:0 auto;max-width:580px;
+                  line-height:1.75;font-weight:400;">
+          {len(SIGNALS)} macro signals — Fed policy, energy flows, credit spreads, insider buying,
+          put/call sentiment — scored daily and mapped to the stocks you actually hold.
+      </div>
+      <div class="ua-slide-up-d3" style="margin-top:20px;">
+          <span style="font-size:0.78rem;color:var(--ua-faint,#646A88);font-family:Inter,sans-serif;">
+              No account needed to browse · Pro from <b style="color:var(--ua-royal-2,#8B7BF7);">$20/mo</b>
+          </span>
+      </div>
     </div>
 </div>
+<style>
+  .ua-hero-head {{ font-family: var(--ua-serif); font-weight:600; color:var(--ua-text,#ECEEF9);
+                   letter-spacing:-0.6px; }}
+  .ua-hero-accent {{
+      background: linear-gradient(120deg, var(--ua-royal,#6470F5) 0%, var(--ua-royal-2,#8B7BF7) 55%, var(--ua-gold,#D4B26A) 128%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+      font-style: italic;
+  }}
+  .ua-hero-pill {{
+      display:inline-flex; align-items:center; gap:7px;
+      padding:5px 14px; border-radius:999px;
+      background: var(--ua-royal-soft, rgba(100,112,245,0.14));
+      border:1px solid rgba(100,112,245,0.28);
+      color: var(--ua-royal-2,#8B7BF7);
+      font-size:0.6rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
+      font-family:'Inter',sans-serif;
+  }}
+</style>
 """, unsafe_allow_html=True)
 
 # ── Hero CTA row ───────────────────────────────────────────────────────────────
@@ -265,25 +287,26 @@ _components.html("""
   .ua-stat-strip {
     display:flex; justify-content:center; gap:0; flex-wrap:wrap;
     font-family:'Inter',sans-serif; margin:18px 0 0;
-    background:rgba(18,21,30,0.55);
-    border:1px solid rgba(255,255,255,0.06);
+    background:rgba(19,22,38,0.55);
+    border:1px solid rgba(100,112,245,0.16);
     border-radius:12px; overflow:hidden;
   }
   .ua-stat-item {
-    flex:1; min-width:130px; text-align:center; padding:14px 10px;
+    flex:1; min-width:130px; text-align:center; padding:15px 10px;
     border-right:1px solid rgba(255,255,255,0.05);
     position:relative;
   }
   .ua-stat-item:last-child { border-right:none; }
   .ua-stat-num {
-    font-size:1.8rem; font-weight:900; letter-spacing:-1px;
-    background:linear-gradient(135deg,#00D566,#00C8E0);
+    font-size:1.85rem; font-weight:800; letter-spacing:-1px;
+    font-family:'Fraunces',Georgia,serif;
+    background:linear-gradient(135deg,#6470F5 0%,#8B7BF7 60%,#D4B26A 135%);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent;
     background-clip:text; display:block; line-height:1.1;
   }
   .ua-stat-label {
-    font-size:0.62rem; color:#6B7FBF; text-transform:uppercase;
-    letter-spacing:0.10em; font-weight:600; margin-top:3px; display:block;
+    font-size:0.62rem; color:#9AA0BE; text-transform:uppercase;
+    letter-spacing:0.10em; font-weight:600; margin-top:4px; display:block;
   }
 </style>
 <div class="ua-stat-strip">
