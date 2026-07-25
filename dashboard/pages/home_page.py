@@ -1819,5 +1819,39 @@ with _q2:
             "price by 4–16 weeks. Different tool, different question."
         )
 
+# ── SIGNAL LEAD TIMES — redesign analytics (real config data, new chart engine)
+# A genuine, axed chart on the landing page: the distribution of researched lead
+# times across all signals. Uses utils.ua_charts (dependency-free SVG, theme-var
+# colored). Wrapped so a chart error can never break the conversion page.
+try:
+    from collections import Counter as _Counter
+    from utils import ua_charts as _uac
+
+    _lags = _Counter(int(v.get("lag_weeks", 0)) for v in SIGNALS.values()
+                     if isinstance(v, dict) and v.get("lag_weeks") is not None)
+    if _lags:
+        _keys = sorted(_lags)
+        _cats = [f"{k}w" for k in _keys]
+        _vals = [_lags[k] for k in _keys]
+        _svg = _uac.bar_v(_cats, _vals, y_title="# of signals",
+                          x_title="Lead time (weeks ahead of price)")
+        st.markdown(
+            '<div style="max-width:840px;margin:40px auto 4px;">'
+            '<div style="font-family:var(--ua-serif);font-size:1.55rem;font-weight:600;'
+            'color:var(--ua-text,#ECEEF9);letter-spacing:-.4px;line-height:1.1;">'
+            f'{len(SIGNALS)} windows into the same market.</div>'
+            '<div style="color:var(--ua-muted,#9AA0BE);font-size:.95rem;margin:8px 0 16px;'
+            'max-width:600px;">Every signal carries a researched lead time — how far ahead '
+            'it has historically led price. The edge lives in the lag.</div>'
+            '<div style="background:var(--ua-bg-card,#12151E);'
+            'border:1px solid var(--ua-border,rgba(255,255,255,.07));'
+            f'border-radius:16px;padding:20px 22px;">{_svg}</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+except Exception:
+    pass
+
+
 # ── FOOTER ───────────────────────────────────────────────────────────────────
 render_footer()
