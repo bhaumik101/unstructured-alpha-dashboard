@@ -181,13 +181,31 @@ html[data-ua-theme="light"] section[data-testid="stSidebar"] {
 html[data-ua-theme="light"] header[data-testid="stHeader"] {
     background: transparent !important;
 }
-/* Top nav sits on the page background, so it has to follow it. */
+/* Top nav sits on the page background, so it has to follow it.
+   NOTE the element is nav.ua-topnav — .ua-tnav-* are its CHILDREN. An earlier
+   pass only targeted the children, which is why the bar itself stayed black in
+   the live light beta. */
+html[data-ua-theme="light"] .ua-topnav,
 html[data-ua-theme="light"] .ua-tnav,
 html[data-ua-theme="light"] .ua-tnav-menu {
-    background: var(--ua-bg-card) !important;
+    background: rgba(255,255,255,0.97) !important;
     border-color: var(--ua-hair) !important;
 }
 html[data-ua-theme="light"] .ua-tnav-brand-text { color: var(--ua-ink) !important; }
+/* Identity chip / sign-in are Streamlit popovers, not our markup. */
+html[data-ua-theme="light"] [data-testid="stPopover"] button,
+html[data-ua-theme="light"] [data-testid="stPopoverButton"] {
+    background: var(--ua-bg-card) !important;
+    color: var(--ua-ink) !important;
+    border: 1px solid var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPopover"] button p,
+html[data-ua-theme="light"] [data-testid="stPopover"] button span {
+    color: var(--ua-ink) !important;
+}
+html[data-ua-theme="light"] [data-baseweb="popover"] [data-baseweb="menu"] {
+    background: var(--ua-bg-card) !important;
+}
 html[data-ua-theme="light"] a.ua-tnav-item,
 html[data-ua-theme="light"] .ua-tnav-trigger { color: var(--ua-ink-mut); }
 html[data-ua-theme="light"] a.ua-tnav-item:hover,
