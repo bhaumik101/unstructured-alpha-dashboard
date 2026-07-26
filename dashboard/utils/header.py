@@ -116,7 +116,7 @@ html[data-ua-theme="light"] {
     --ua-text-hi:    #161A2E;
     --ua-text-mid:   #2C3149;
     --ua-text-lo:    #4A5069;
-    --ua-text-cap:   #6A7189;
+    --ua-text-cap:   #5E657C;
     --ua-border:     rgba(20,22,44,0.10);
     --ua-border-lo:  rgba(20,22,44,0.05);
     --ua-grid:       rgba(20,22,44,0.09);
@@ -127,33 +127,33 @@ html[data-ua-theme="light"] {
     --ua-gold:       #9C7A2C;
     --ua-text:       #161A2E;
     --ua-muted:      #5A6079;
-    --ua-faint:      #8A90A6;
+    --ua-faint:      #62697E;
     --ua-line-2:     rgba(20,22,44,0.17);
-    --ua-pos:        #1E9E6E;
-    --ua-neg:        #C9503E;
-    --ua-neutral:    #6A7189;
+    --ua-pos:        #087451;
+    --ua-neg:        #A5292F;
+    --ua-neutral:    #565D75;
     --ua-ink:        #161A2E;   /* light: dark ink on light bg */
     --ua-ink-mut:    #5A6079;
     --ua-surface:    #FFFFFF;
-    --ua-ink-label:  #5E5A8C;
+    --ua-ink-label:  #565177;
     --ua-ink-soft:   #3A4059;
-    --ua-ink-dim:    #6E7488;
-    --ua-ink-dim-2:  #7A809A;
+    --ua-ink-dim:    #5F657A;
+    --ua-ink-dim-2:  #62687D;
     /* Hairlines invert: light-on-dark becomes dark-on-light, or they vanish. */
     --ua-hair:       rgba(20,22,44,0.11);
     --ua-hair-2:     rgba(20,22,44,0.08);
     --ua-hair-3:     rgba(20,22,44,0.06);
     /* Semantic data colors need darker variants to stay legible on white. */
-    --ua-green:      #0F9D58;
-    --ua-cyan:       #0A8FA6;
-    --ua-purple:     #6D28D9;
-    --ua-red:        #D13438;
-    --ua-amber:      #B45309;
+    --ua-green:      #087443;
+    --ua-cyan:       #076879;
+    --ua-purple:     #5724B3;
+    --ua-red:        #B01F2A;
+    --ua-amber:      #8C3C05;
     /* Triples must match the hexes above, or a tint and its solid disagree. */
-    --ua-green-rgb:  15,157,88;
-    --ua-red-rgb:    209,52,56;
-    --ua-purple-rgb: 109,40,217;
-    --ua-cyan-rgb:   10,143,166;
+    --ua-green-rgb:  8,116,67;
+    --ua-red-rgb:    176,31,42;
+    --ua-purple-rgb: 87,36,179;
+    --ua-cyan-rgb:   7,104,121;
     --ua-royal-rgb:  64,72,198;
     --ua-label-rgb:  94,90,140;
     --ua-card-rgb:   255,255,255;
@@ -1685,6 +1685,148 @@ section[data-testid="stSidebar"] {
 [style*="color:var(--ua-ink-dim-2)" i], [style*="color:var(--ua-ink-dim)" i] {
     color: #7F899A !important;
 }
+
+/* Light-mode completion: legacy render helpers still emit a bounded set of
+   dark-theme text literals. Match only a real `color` declaration at the
+   beginning of an inline style or immediately after a semicolon. This avoids
+   the dangerous broad `style*=color` pattern, which also catches background-
+   color and border-color, and leaves Python color parsing + Plotly untouched.
+   Browsers serialize inline hex values to rgb(), so both forms are covered. */
+html[data-ua-theme="light"] :is(
+    [style^="color: #00D566" i], [style*="; color: #00D566" i],
+    [style^="color:#00D566" i],  [style*=";color:#00D566" i],
+    [style^="color: rgb(0, 213, 102)" i], [style*="; color: rgb(0, 213, 102)" i],
+    [style^="color: #34D399" i], [style*="; color: #34D399" i],
+    [style^="color:#34D399" i],  [style*=";color:#34D399" i],
+    [style^="color: rgb(52, 211, 153)" i], [style*="; color: rgb(52, 211, 153)" i],
+    [style^="color: #00A847" i], [style*="; color: #00A847" i],
+    [style^="color: rgb(0, 168, 71)" i], [style*="; color: rgb(0, 168, 71)" i],
+    [style^="color: #00C853" i], [style*="; color: #00C853" i],
+    [style^="color: rgb(0, 200, 83)" i], [style*="; color: rgb(0, 200, 83)" i],
+    [style^="color: #22C55E" i], [style*="; color: #22C55E" i],
+    [style^="color: rgb(34, 197, 94)" i], [style*="; color: rgb(34, 197, 94)" i],
+    [style^="color: #35C98B" i], [style*="; color: #35C98B" i],
+    [style^="color: rgb(53, 201, 139)" i], [style*="; color: rgb(53, 201, 139)" i]
+) { color: var(--ua-green) !important; opacity: 1 !important; }
+
+html[data-ua-theme="light"] :is(
+    [style^="color: #FF4444" i], [style*="; color: #FF4444" i],
+    [style^="color:#FF4444" i],  [style*=";color:#FF4444" i],
+    [style^="color: rgb(255, 68, 68)" i], [style*="; color: rgb(255, 68, 68)" i],
+    [style^="color: #FF2222" i], [style*="; color: #FF2222" i],
+    [style^="color: rgb(255, 34, 34)" i], [style*="; color: rgb(255, 34, 34)" i],
+    [style^="color: #CC3333" i], [style*="; color: #CC3333" i],
+    [style^="color: rgb(204, 51, 51)" i], [style*="; color: rgb(204, 51, 51)" i],
+    [style^="color: #FF4D6A" i], [style*="; color: #FF4D6A" i],
+    [style^="color: rgb(255, 77, 106)" i], [style*="; color: rgb(255, 77, 106)" i],
+    [style^="color: #FF6B6B" i], [style*="; color: #FF6B6B" i],
+    [style^="color: rgb(255, 107, 107)" i], [style*="; color: rgb(255, 107, 107)" i],
+    [style^="color: #E06C75" i], [style*="; color: #E06C75" i],
+    [style^="color: rgb(224, 108, 117)" i], [style*="; color: rgb(224, 108, 117)" i]
+) { color: var(--ua-red) !important; opacity: 1 !important; }
+
+html[data-ua-theme="light"] :is(
+    [style^="color: #00C8E0" i], [style*="; color: #00C8E0" i],
+    [style^="color:#00C8E0" i],  [style*=";color:#00C8E0" i],
+    [style^="color: rgb(0, 200, 224)" i], [style*="; color: rgb(0, 200, 224)" i],
+    [style^="color: #0EA5E9" i], [style*="; color: #0EA5E9" i],
+    [style^="color: rgb(14, 165, 233)" i], [style*="; color: rgb(14, 165, 233)" i],
+    [style^="color: #4A9EFF" i], [style*="; color: #4A9EFF" i],
+    [style^="color: rgb(74, 158, 255)" i], [style*="; color: rgb(74, 158, 255)" i],
+    [style^="color: #55A7D8" i], [style*="; color: #55A7D8" i],
+    [style^="color: rgb(85, 167, 216)" i], [style*="; color: rgb(85, 167, 216)" i],
+    [style^="color: #67E8F9" i], [style*="; color: #67E8F9" i],
+    [style^="color: rgb(103, 232, 249)" i], [style*="; color: rgb(103, 232, 249)" i],
+    [style^="color: #72D6E2" i], [style*="; color: #72D6E2" i],
+    [style^="color: rgb(114, 214, 226)" i], [style*="; color: rgb(114, 214, 226)" i]
+) { color: var(--ua-cyan) !important; opacity: 1 !important; }
+
+html[data-ua-theme="light"] :is(
+    [style^="color: #F59E0B" i], [style*="; color: #F59E0B" i],
+    [style^="color:#F59E0B" i],  [style*=";color:#F59E0B" i],
+    [style^="color: rgb(245, 158, 11)" i], [style*="; color: rgb(245, 158, 11)" i],
+    [style^="color: #FFB347" i], [style*="; color: #FFB347" i],
+    [style^="color: rgb(255, 179, 71)" i], [style*="; color: rgb(255, 179, 71)" i],
+    [style^="color: #E8C766" i], [style*="; color: #E8C766" i],
+    [style^="color: rgb(232, 199, 102)" i], [style*="; color: rgb(232, 199, 102)" i],
+    [style^="color: #E7C063" i], [style*="; color: #E7C063" i],
+    [style^="color: rgb(231, 192, 99)" i], [style*="; color: rgb(231, 192, 99)" i],
+    [style^="color: #D8C08A" i], [style*="; color: #D8C08A" i],
+    [style^="color: rgb(216, 192, 138)" i], [style*="; color: rgb(216, 192, 138)" i]
+) { color: var(--ua-amber) !important; opacity: 1 !important; }
+
+html[data-ua-theme="light"] :is(
+    [style^="color: #7C3AED" i], [style*="; color: #7C3AED" i],
+    [style^="color: rgb(124, 58, 237)" i], [style*="; color: rgb(124, 58, 237)" i],
+    [style^="color: #A78BFA" i], [style*="; color: #A78BFA" i],
+    [style^="color: rgb(167, 139, 250)" i], [style*="; color: rgb(167, 139, 250)" i],
+    [style^="color: #A855F7" i], [style*="; color: #A855F7" i],
+    [style^="color: rgb(168, 85, 247)" i], [style*="; color: rgb(168, 85, 247)" i],
+    [style^="color: #818CF8" i], [style*="; color: #818CF8" i],
+    [style^="color: rgb(129, 140, 248)" i], [style*="; color: rgb(129, 140, 248)" i],
+    [style^="color: #B79CFF" i], [style*="; color: #B79CFF" i],
+    [style^="color: rgb(183, 156, 255)" i], [style*="; color: rgb(183, 156, 255)" i]
+) { color: var(--ua-purple) !important; opacity: 1 !important; }
+
+html[data-ua-theme="light"] :is(
+    [style^="color: #8892AA" i], [style*="; color: #8892AA" i],
+    [style^="color: rgb(136, 146, 170)" i], [style*="; color: rgb(136, 146, 170)" i],
+    [style^="color: #6B7FBF" i], [style*="; color: #6B7FBF" i],
+    [style^="color: rgb(107, 127, 191)" i], [style*="; color: rgb(107, 127, 191)" i]
+) { color: var(--ua-neutral) !important; opacity: 1 !important; }
+
+html[data-ua-theme="light"] :is(
+    [style^="color: #B8C0D4" i], [style*="; color: #B8C0D4" i],
+    [style^="color: rgb(184, 192, 212)" i], [style*="; color: rgb(184, 192, 212)" i],
+    [style^="color: #C5CCDE" i], [style*="; color: #C5CCDE" i],
+    [style^="color: rgb(197, 204, 222)" i], [style*="; color: rgb(197, 204, 222)" i],
+    [style^="color: #E8EEFF" i], [style*="; color: #E8EEFF" i],
+    [style^="color: rgb(232, 238, 255)" i], [style*="; color: rgb(232, 238, 255)" i]
+) { color: var(--ua-ink) !important; }
+
+/* The premium theme defines these controls after the shared header and pins
+   dark fills with !important. The light-prefixed rules deliberately carry
+   greater specificity, so pills, ticker choices, and selected states remain
+   readable without relying on generated Streamlit class names. */
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button,
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] label {
+    background: var(--ua-bg-card) !important;
+    border-color: var(--ua-hair) !important;
+    color: var(--ua-ink-soft) !important;
+}
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button p,
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] label p {
+    color: var(--ua-ink-soft) !important;
+}
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button:hover,
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] label:hover {
+    background: rgba(var(--ua-royal-rgb),0.06) !important;
+    border-color: rgba(var(--ua-royal-rgb),0.28) !important;
+}
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[aria-checked="true"],
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[aria-pressed="true"],
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] label:has(input:checked) {
+    background: rgba(var(--ua-royal-rgb),0.12) !important;
+    border-color: rgba(var(--ua-royal-rgb),0.42) !important;
+    color: var(--ua-ink) !important;
+}
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[aria-checked="true"] p,
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[aria-pressed="true"] p,
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] label:has(input:checked) p {
+    color: var(--ua-ink) !important;
+}
+
+html[data-ua-theme="light"] .ua-guide-shell {
+    background:
+        radial-gradient(circle at 92% -10%, rgba(var(--ua-purple-rgb),0.08), transparent 34%),
+        var(--ua-bg-card) !important;
+    border-color: rgba(var(--ua-cyan-rgb),0.24) !important;
+}
+html[data-ua-theme="light"] .ua-guide-kicker { color: var(--ua-cyan) !important; }
+html[data-ua-theme="light"] .ua-guide-title { color: var(--ua-ink) !important; }
+html[data-ua-theme="light"] .ua-guide-intro,
+html[data-ua-theme="light"] .ua-guide-step-body { color: var(--ua-ink-mut) !important; }
+html[data-ua-theme="light"] .ua-guide-step-title { color: var(--ua-ink-soft) !important; }
 .metric-card:hover, .page-card:hover,
 [data-testid="stMetric"]:hover, [data-testid="stExpander"]:hover {
     border-color: rgba(var(--ua-onbg-rgb),0.14) !important;
