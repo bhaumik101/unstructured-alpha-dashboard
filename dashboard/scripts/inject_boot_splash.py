@@ -56,9 +56,9 @@ def _build_splash() -> str:
     <svg class="ua-boot-hex" viewBox="0 0 100 100" width="132" height="132" aria-hidden="true">
       <defs>
         <linearGradient id="uaBootGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#00D566"/>
-          <stop offset="55%" stop-color="#12B5A6"/>
-          <stop offset="100%" stop-color="#7C3AED"/>
+          <stop offset="0%" stop-color="#6470F5"/>
+          <stop offset="55%" stop-color="#8B7BF7"/>
+          <stop offset="100%" stop-color="#D4B26A"/>
         </linearGradient>
       </defs>
       <polygon points="50,4 91,27 91,73 50,96 9,73 9,27" fill="url(#uaBootGrad)" opacity="0.92"/>
@@ -78,7 +78,7 @@ def _build_splash() -> str:
   transition:opacity .5s ease;
   font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;}
 #ua-boot-splash.ua-hide{opacity:0;pointer-events:none;}
-#ua-boot-splash .ua-boot-hex{filter:drop-shadow(0 0 30px rgba(0,213,102,0.30));
+#ua-boot-splash .ua-boot-hex{filter:drop-shadow(0 0 30px rgba(100,112,245,0.34));
   animation:ua-boot-pulse 2.4s ease-in-out infinite;}
 #ua-boot-splash .ua-boot-fact{margin:16px auto 0;max-width:440px;font-size:.78rem;
   line-height:1.5;color:#9AA6C4;border-top:1px solid rgba(255,255,255,.07);padding-top:12px;
@@ -90,12 +90,12 @@ def _build_splash() -> str:
 @media (prefers-reduced-motion: reduce){#ua-boot-splash .ua-boot-hex{animation:none;}}
 #ua-boot-splash .ua-boot-inner{text-align:center;}
 #ua-boot-splash .ua-boot-logo{font-size:1.35rem;font-weight:800;letter-spacing:.04em;color:#E8EEFF;}
-#ua-boot-splash .ua-boot-logo span{color:#00D566;}
+#ua-boot-splash .ua-boot-logo span{background:linear-gradient(135deg,#6470F5,#8B7BF7 60%,#D4B26A 120%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 #ua-boot-splash .ua-boot-sub{margin-top:8px;font-size:.72rem;color:#6B7FBF;letter-spacing:.02em;}
 #ua-boot-splash .ua-boot-bar{margin:18px auto 0;width:180px;height:3px;border-radius:3px;
   background:rgba(255,255,255,.08);overflow:hidden;}
 #ua-boot-splash .ua-boot-bar-fill{height:100%;width:40%;border-radius:3px;
-  background:linear-gradient(90deg,#00D566,#7C3AED);
+  background:linear-gradient(90deg,#6470F5,#8B7BF7 55%,#D4B26A);
   animation:ua-boot-slide 1.1s infinite ease-in-out;}
 @keyframes ua-boot-slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
 </style>
