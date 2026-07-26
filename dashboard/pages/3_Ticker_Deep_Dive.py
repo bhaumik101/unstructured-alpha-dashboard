@@ -4101,7 +4101,8 @@ elif section == "Earnings Track Record":
 
     st.divider()
     if st.button("View full Track Record page →", key="goto_track_record_from_tdd"):
-        st.switch_page("pages/30_Track_Record_Live.py")
+        st.session_state["signal_research_section_rail"] = "Track Record"
+        st.switch_page("pages/51_Signal_Research.py")
 
 elif section == "Earnings Sentiment":
     st.html(section_label("EARNINGS SENTIMENT", color="#55A7D8", dot="#55A7D8"))

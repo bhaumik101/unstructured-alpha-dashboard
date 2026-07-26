@@ -2108,9 +2108,9 @@ def render_data_quality_strip(all_signals: dict) -> None:
               <span style="color:#7F8BA3;"> · {detail}. No synthetic observations.</span>
             </div>
           </div>
-          <a href="/data-trust" style="font-size:0.70rem;color:#9EDBE3;text-decoration:none;
+          <a href="/signal-research?section=data-quality" style="font-size:0.70rem;color:#9EDBE3;text-decoration:none;
                     font-weight:700;white-space:nowrap;border:1px solid rgba(var(--ua-cyan-rgb),0.22);
-                    border-radius:6px;padding:6px 9px;">View data trust</a>
+                    border-radius:6px;padding:6px 9px;">View data quality</a>
         </div>
         """,
         unsafe_allow_html=True,
@@ -2555,6 +2555,7 @@ html[data-ua-theme="light"] .ua-tnav-pro {
       <div class="ua-tnav-drop">
         <a href="/ticker-deep-dive">Ticker Deep Dive</a>
         <a href="/stock-screener">Stock Screener</a>
+        <a href="/power-supercycle">Power Supercycle</a>
         <a class="pro-link" href="/stock-recommender">Stock Recommender</a>
         <a class="pro-link" href="/options-flow">Options Flow</a>
       </div>
@@ -2564,13 +2565,9 @@ html[data-ua-theme="light"] .ua-tnav-pro {
       <span class="ua-tnav-trigger">Signals <span class="ua-tnav-caret">&#9660;</span></span>
       <div class="ua-tnav-drop">
         <a href="/signal-dashboard">Signal Dashboard</a>
-        <a href="/sector-view">Sector View</a>
         <a href="/market-overview">Market Overview</a>
-        <a href="/power-supercycle">Power Supercycle</a>
-        <a href="/model-validation">Model Validation</a>
-        <a href="/track-record">Track Record</a>
-        <a href="/how-signals-work">How Signals Work</a>
-        <a href="/data-trust">Data Trust Center</a>
+        <a href="/sector-view">Sector View</a>
+        <a href="/signal-research">Signal Research Center</a>
       </div>
     </div>
 

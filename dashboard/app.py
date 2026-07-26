@@ -98,6 +98,7 @@ pg = st.navigation(
             st.Page("pages/3_Ticker_Deep_Dive.py",    title="Ticker Deep Dive",    url_path="ticker-deep-dive"),
             st.Page("pages/6_Stock_Screener.py",      title="Stock Screener",      url_path="stock-screener"),
             st.Page("pages/40_Stock_Recommender.py",  title="Stock Recommender",   url_path="stock-recommender"),
+            st.Page("pages/4_Power_Supercycle.py",    title="Power Supercycle",    url_path="power-supercycle"),
             # merged out of visible nav (chart context now belongs on the ticker):
             st.Page("pages/14_Stock_Chart.py",        title="Stock Chart",         url_path="stock-chart"),
             # Pro-gated tools — registered for routing (reached via in-page CTAs /
@@ -111,7 +112,9 @@ pg = st.navigation(
             st.Page("pages/1_Signal_Dashboard.py",    title="Signal Dashboard",    url_path="signal-dashboard"),
             st.Page("pages/42_Sector_View.py",        title="Sector View",         url_path="sector-view"),
             st.Page("pages/5_Market_Overview.py",     title="Market Overview",     url_path="market-overview"),
-            st.Page("pages/4_Power_Supercycle.py",    title="Power Supercycle",    url_path="power-supercycle"),
+            st.Page("pages/51_Signal_Research.py",    title="Signal Research Center", url_path="signal-research"),
+            # Detailed compatibility routes. Their overlapping core workflows
+            # now live in Signal Research Center, but old bookmarks still resolve.
             st.Page("pages/11_Model_Validation.py",   title="Model Validation",    url_path="model-validation"),
             st.Page("pages/30_Track_Record_Live.py",  title="Track Record",        url_path="track-record"),
             st.Page("pages/39_How_Signals_Work.py",   title="How Signals Work",    url_path="how-signals-work"),

@@ -144,7 +144,8 @@ if _signal_section == "Signal Library":
       <div style="{_m_body}">
         Signal lead-times are tested out-of-sample with Bonferroni correction for multiple
         comparisons. Many signals have <em>not</em> been validated and are marked as such.
-        See the <b>Model Validation</b> page for full per-signal results.
+        See the <b>Signal Research Center</b> for validation, outcomes, data quality,
+        and full per-signal limitations.
       </div>
     </div>""", unsafe_allow_html=True)
 

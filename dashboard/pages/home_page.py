@@ -1461,7 +1461,7 @@ with _db:
          "Seven agreeing signals is a thesis."),
         ("Honest Validation",
          "We publish our backtest results even when they're not impressive. "
-         "See the Model Validation page — it's one of a kind."),
+         "See the Signal Research Center for validation, outcomes, and data quality."),
         ("Plain-English Causal Logic",
          "Not just 'this signal correlates.' We explain the economic mechanism: "
          "why this indicator moves this sector, specifically."),
@@ -1628,16 +1628,16 @@ st.markdown("""
   <div style="display:flex;align-items:flex-start;gap:28px;flex-wrap:wrap;">
     <div style="flex:1;min-width:260px;">
       <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:#818cf8;margin-bottom:10px;">
-        NEW — SIGNAL STRATEGY BACKTEST
+        SIGNAL BACKTESTER · PORTFOLIO INTELLIGENCE
       </div>
       <div style="font-size:1.1rem;font-weight:800;color:var(--ua-ink);letter-spacing:-0.3px;
                   line-height:1.35;margin-bottom:10px;">
-        What if you had traded the signals since 2010?
+        Test signal rules without leaving the portfolio workspace
       </div>
       <div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.7;margin-bottom:14px;">
-        We built a rules-based strategy using our 7 daily-frequency macro signals —
-        Yield Curve, HY Spread, VIX, Copper/Gold, Put/Call Ratio, and M2 — and backtested
-        it against SPY buy-and-hold from 2010 to today. No lookahead bias. Transaction costs included.
+        The former standalone strategy page now lives inside Portfolio Intelligence,
+        alongside portfolio backtests, stress scenarios, exposure, and basket construction.
+        Build one signal rule, compare it with SPY, then evaluate it in portfolio context.
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <span style="font-size:0.68rem;font-weight:600;background:rgba(99,102,241,0.12);
@@ -1651,7 +1651,7 @@ st.markdown("""
                      padding:3px 9px;">LONG / REDUCED / CASH</span>
         <span style="font-size:0.68rem;font-weight:600;background:rgba(34,197,94,0.10);
                      color:#22c55e;border:1px solid rgba(34,197,94,0.25);border-radius:5px;
-                     padding:3px 9px;">Free to run</span>
+                     padding:3px 9px;">Pro workspace</span>
       </div>
     </div>
     <div style="min-width:160px;text-align:center;padding-top:4px;">
@@ -1665,7 +1665,8 @@ st.markdown("""
 _strat_c1, _strat_c2, _strat_c3 = st.columns([2, 1.4, 2])
 with _strat_c2:
     if st.button("Run the Backtest →", width="stretch", key="cta_strat_hero"):
-        st.switch_page("pages/35_Signal_Strategy.py")
+        st.session_state["portfolio_suite_section_rail"] = "Signal Backtester"
+        st.switch_page("pages/44_Portfolio_Suite.py")
 
 st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
@@ -1816,11 +1817,11 @@ with _t3:
     if st.button("Stock Screener", width="stretch", key="cta_screener"):
         st.switch_page("pages/6_Stock_Screener.py")
 with _t4:
-    if st.button("Model Validation", width="stretch", key="cta_validation"):
-        st.switch_page("pages/11_Model_Validation.py")
+    if st.button("Signal Research", width="stretch", key="cta_validation"):
+        st.switch_page("pages/51_Signal_Research.py")
 with _t5:
-    if st.button("Signal Strategy", width="stretch", key="cta_strategy"):
-        st.switch_page("pages/35_Signal_Strategy.py")
+    if st.button("Power Supercycle", width="stretch", key="cta_supercycle"):
+        st.switch_page("pages/4_Power_Supercycle.py")
 
 st.divider()
 
@@ -1844,14 +1845,14 @@ with _q1:
             "A 0–100 score measuring how many independent signals agree for a given stock right now. "
             "**>65** = multiple bullish signals aligning. **<35** = multiple bearish. **35–65** = mixed. "
             "One bullish signal is noise. Seven agreeing is a thesis. "
-            "We walk-forward tested this — results on the Model Validation page."
+            "We walk-forward tested this — results are in the Signal Research Center."
         )
     with st.expander("Does this predict stock prices?"):
         st.markdown(
             "No — and we're transparent about that. The signals have shown statistical correlations "
             "in backtests, but no tool predicts with certainty. The value is pattern recognition "
             "across 40 economic indicators that historically lead price by weeks, not perfect prediction. "
-            "See Model Validation for honest results."
+            "See Signal Research for honest results."
         )
 
 with _q2:

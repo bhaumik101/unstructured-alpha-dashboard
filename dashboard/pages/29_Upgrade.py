@@ -607,6 +607,7 @@ col_free, col_pro = st.columns(2, gap="large")
 
 FREE_FEATS = [
     ("Signal Dashboard — 47 macro signals scored 0–100", True),
+    ("Signal Research Center — validation, outcomes, quality, and methodology", True),
     ("Today's Brief — daily regime + signal flip summary", True),
     ("Ticker Deep Dive — confluence score for any stock", True),
     ("Congress Trade Tracker — recent legislator filings", True),
@@ -850,6 +851,11 @@ st.markdown(f"""
 <tbody>
 <tr>
     <td>Signal Dashboard — {ACTIVE_SIGNAL_COUNT} macroeconomic signals</td>
+    <td style="text-align:center;" class="comp-yes">✓</td>
+    <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
+</tr>
+<tr>
+    <td>Signal Research Center — validation, track record, data quality, and methodology</td>
     <td style="text-align:center;" class="comp-yes">✓</td>
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
 </tr>

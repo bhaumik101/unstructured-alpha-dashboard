@@ -1,8 +1,8 @@
 """
 Tests for the Home page's call-to-action buttons.
 
-Added 2026-06-22 alongside the secondary "My Watchlist" / "Model
-Validation Dashboard" CTA row -- before this, those two pages (2 of the
+Added 2026-06-22 alongside the secondary "My Watchlist" / "Signal
+Research Center" CTA row -- before this, those two pages (2 of the
 app's 9 routed pages) had no discoverable link from Home at all. This
 file confirms all 5 CTA buttons (3 primary + 2 secondary) exist with
 their expected keys and that clicking each one actually navigates,
@@ -16,7 +16,7 @@ _CTA_TARGETS = {
     "cta_dive":      "pages/3_Ticker_Deep_Dive.py",
     "cta_market":    "pages/5_Market_Overview.py",
     "cta_watchlist": "pages/10_Watchlist.py",
-    "cta_validation": "pages/11_Model_Validation.py",
+    "cta_validation": "pages/51_Signal_Research.py",
 }
 
 
