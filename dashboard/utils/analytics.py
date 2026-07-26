@@ -66,6 +66,9 @@ class Event:
     DECISION_QUEUE_VIEWED  = "decision_queue_viewed"
     PORTFOLIO_FIT_SIMULATED = "portfolio_fit_simulated"
     INVESTOR_CHECKUP_VIEWED = "investor_checkup_viewed"
+    DECISION_COCKPIT_VIEWED = "decision_cockpit_viewed"
+    DECISION_COCKPIT_MODE   = "decision_cockpit_mode_changed"
+    DECISION_COCKPIT_ACTION = "decision_cockpit_action"
     CATALYST_CENTER_VIEWED = "catalyst_center_viewed"
     CATALYST_PLAN_SAVED    = "catalyst_plan_saved"
 

@@ -42,7 +42,7 @@ st.set_page_config(page_title="Today's Brief — UA", layout="wide")
 render_header("Today's Brief")
 _brief_section = render_sidebar_base(
     page_title="Today's Brief",
-    sections=("My Priorities", "Market Intelligence", "Weekly Research"),
+    sections=("Decision Cockpit", "Portfolio Impact", "Market Intelligence", "Weekly Research"),
     section_key="brief_section_rail",
 )
 inject_all_css()
@@ -55,7 +55,292 @@ render_page_header(
 
 init_db()
 
-if _brief_section == "My Priorities":
+if _brief_section == "Decision Cockpit":
+    from utils.analytics import Event, track
+    from utils.billing import effective_is_pro
+    from utils.decision_cockpit import (
+        build_decision_cockpit,
+        render_attention_card_html,
+        render_cockpit_summary_html,
+        render_portfolio_impact_html,
+    )
+    from utils.decision_queue import (
+        apply_queue_states,
+        build_decision_queue,
+        list_queue_states,
+        load_score_changes,
+        set_queue_state,
+    )
+    from utils.personalized_brief import build_priority_brief, load_portfolio_evidence
+    from utils.risk_profile import get_profile as _get_cockpit_profile
+    from utils.thesis import list_user_theses
+
+    _cockpit_user = st.session_state.get("user")
+    if not _cockpit_user:
+        st.info(
+            "Sign in to turn Today's Brief into a private decision cockpit for your "
+            "portfolio, watchlist, thesis journal, and recorded score history."
+        )
+        _cockpit_anon_cols = st.columns([1, 1, 2])
+        if _cockpit_anon_cols[0].button(
+            "View market intelligence", type="primary", width="stretch"
+        ):
+            st.session_state["brief_section_rail"] = "Market Intelligence"
+            st.rerun()
+    else:
+        _cockpit_user_id = int(_cockpit_user["id"])
+        _cockpit_is_pro = effective_is_pro(_cockpit_user)
+
+        @st.cache_data(ttl=300, max_entries=128, show_spinner=False)
+        def _load_cockpit_inputs(user_id: int, include_earnings: bool) -> dict:
+            """Five-minute account snapshot; live-provider calls keep their own 6h cache."""
+            evidence = load_portfolio_evidence(user_id, limit=25)
+            tickers = tuple(str(row["ticker"]).upper() for row in evidence)
+            score_changes = load_score_changes(tickers, days=7)
+            theses = list_user_theses(user_id)
+            earnings = {}
+            if include_earnings and tickers:
+                from utils.earnings_awareness import next_earnings_batch
+
+                earnings = next_earnings_batch(tickers)
+            raw_queue = build_decision_queue(
+                evidence,
+                score_changes=score_changes,
+                theses=theses,
+                earnings=earnings,
+            )
+            return {
+                "evidence": evidence,
+                "theses": theses,
+                "raw_queue": raw_queue,
+            }
+
+        with st.spinner("Assembling your recorded evidence…"):
+            try:
+                _cockpit_inputs = _load_cockpit_inputs(
+                    _cockpit_user_id, _cockpit_is_pro
+                )
+            except Exception:
+                _cockpit_inputs = {"evidence": [], "theses": [], "raw_queue": []}
+
+        _cockpit_evidence = _cockpit_inputs["evidence"]
+        _cockpit_profile = _get_cockpit_profile(_cockpit_user_id)
+        _cockpit_priority = build_priority_brief(
+            _cockpit_evidence, _cockpit_profile
+        )
+        try:
+            _cockpit_queue = apply_queue_states(
+                _cockpit_inputs["raw_queue"],
+                list_queue_states(_cockpit_user_id),
+            )
+        except Exception:
+            _cockpit_queue = apply_queue_states(_cockpit_inputs["raw_queue"], {})
+        _cockpit_payload = build_decision_cockpit(
+            _cockpit_evidence,
+            priority_brief=_cockpit_priority,
+            queue_items=_cockpit_queue,
+            theses=_cockpit_inputs["theses"],
+        )
+
+        _cockpit_modes = ["Guided", "Professional"] if _cockpit_is_pro else ["Guided"]
+        _cockpit_mode = st.segmented_control(
+            "Reading mode",
+            _cockpit_modes,
+            default="Guided",
+            key="decision_cockpit_mode",
+            help=(
+                "Guided explains why an item matters in plain language. "
+                "Professional exposes the recorded trigger stack and evidence metadata."
+            ),
+        ) or "Guided"
+        if st.session_state.get("_decision_cockpit_tracked_mode") != _cockpit_mode:
+            st.session_state["_decision_cockpit_tracked_mode"] = _cockpit_mode
+            track(
+                Event.DECISION_COCKPIT_MODE,
+                user_id=_cockpit_user_id,
+                properties={"mode": _cockpit_mode.lower(), "pro": _cockpit_is_pro},
+            )
+        if not st.session_state.get("_decision_cockpit_view_tracked"):
+            st.session_state["_decision_cockpit_view_tracked"] = True
+            track(
+                Event.DECISION_COCKPIT_VIEWED,
+                user_id=_cockpit_user_id,
+                properties={
+                    "source": _cockpit_payload["portfolio"]["source"],
+                    "positions": _cockpit_payload["portfolio"]["n_total"],
+                    "open_items": _cockpit_payload["queue"]["open"],
+                },
+            )
+
+        st.html(render_cockpit_summary_html(_cockpit_payload, mode=_cockpit_mode))
+
+        _cockpit_freshness = _cockpit_payload["freshness"]
+        if _cockpit_freshness["state"] in {"partial", "unavailable"}:
+            st.warning(
+                f'Recorded coverage: {_cockpit_freshness["current"]} current, '
+                f'{_cockpit_freshness["aging"]} aging, '
+                f'{_cockpit_freshness["stale"]} stale, and '
+                f'{_cockpit_freshness["unavailable"]} unavailable. '
+                "Unavailable or stale evidence is never replaced with a synthetic score."
+            )
+        elif _cockpit_freshness["state"] == "aging":
+            st.info(
+                "Some persisted scores are more than two days old. Their exact dates remain "
+                "visible in the evidence view."
+            )
+
+        if not _cockpit_evidence:
+            st.html(empty_state(
+                "",
+                "Your cockpit needs a portfolio",
+                "Save the holdings you own and their weights to activate daily priorities.",
+                action="A watchlist can provide an equal-weight preview, but it is not treated as a portfolio.",
+            ))
+            if st.button("Build my portfolio", type="primary", width="stretch"):
+                track(
+                    Event.DECISION_COCKPIT_ACTION,
+                    user_id=_cockpit_user_id,
+                    properties={"action": "build_portfolio"},
+                )
+                st.switch_page("pages/44_Portfolio_Suite.py")
+        else:
+            _cockpit_attention = _cockpit_payload["attention"]
+            if not _cockpit_attention:
+                st.success(
+                    "No current exception requires review. The cockpit will reopen an item "
+                    "automatically when its underlying evidence changes."
+                )
+            else:
+                st.markdown("#### What deserves attention")
+                _cockpit_cols = st.columns(len(_cockpit_attention), gap="medium")
+                for _rank, (_col, _item) in enumerate(
+                    zip(_cockpit_cols, _cockpit_attention), start=1
+                ):
+                    with _col:
+                        st.html(
+                            render_attention_card_html(
+                                _item, _rank, mode=_cockpit_mode
+                            )
+                        )
+                        if _cockpit_mode == "Professional" and _item["triggers"]:
+                            with st.expander("Evidence stack", expanded=False):
+                                for _trigger in _item["triggers"]:
+                                    st.markdown(
+                                        f'**{_trigger["title"]}** — {_trigger["detail"]}'
+                                    )
+                                st.caption(
+                                    f'Snapshot: {_item.get("snapshot_date") or "unavailable"}'
+                                )
+
+                        _item_key = f'{_rank}_{_item["ticker"]}'
+                        if st.button(
+                            "Open source research",
+                            key=f"cockpit_open_{_item_key}",
+                            type="primary" if _rank == 1 else "secondary",
+                            width="stretch",
+                        ):
+                            track(
+                                Event.DECISION_COCKPIT_ACTION,
+                                user_id=_cockpit_user_id,
+                                properties={
+                                    "action": "open_source",
+                                    "ticker": _item["ticker"],
+                                    "route": _item["route"],
+                                    "rank": _rank,
+                                },
+                            )
+                            st.session_state["selected_ticker"] = _item["ticker"]
+                            if _item["route"] == "thesis":
+                                st.switch_page("pages/46_Thesis_Journal.py")
+                            elif _item["route"] == "portfolio":
+                                st.session_state["portfolio_suite_section_rail"] = "Portfolio Fit Lab"
+                                st.switch_page("pages/44_Portfolio_Suite.py")
+                            else:
+                                st.switch_page("pages/3_Ticker_Deep_Dive.py")
+
+                        if _cockpit_is_pro and _item["origin"] == "queue":
+                            _triage_cols = st.columns(2)
+                            if _triage_cols[0].button(
+                                "Watch",
+                                key=f"cockpit_watch_{_item_key}",
+                                width="stretch",
+                            ):
+                                set_queue_state(
+                                    _cockpit_user_id,
+                                    _item["ticker"],
+                                    _item["evidence_hash"],
+                                    "watching",
+                                )
+                                track(
+                                    Event.DECISION_COCKPIT_ACTION,
+                                    user_id=_cockpit_user_id,
+                                    properties={
+                                        "action": "watch",
+                                        "ticker": _item["ticker"],
+                                    },
+                                )
+                                st.rerun()
+                            if _triage_cols[1].button(
+                                "Complete",
+                                key=f"cockpit_complete_{_item_key}",
+                                width="stretch",
+                            ):
+                                set_queue_state(
+                                    _cockpit_user_id,
+                                    _item["ticker"],
+                                    _item["evidence_hash"],
+                                    "done",
+                                )
+                                track(
+                                    Event.DECISION_COCKPIT_ACTION,
+                                    user_id=_cockpit_user_id,
+                                    properties={
+                                        "action": "complete",
+                                        "ticker": _item["ticker"],
+                                    },
+                                )
+                                st.rerun()
+
+            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+            st.html(render_portfolio_impact_html(_cockpit_payload, mode=_cockpit_mode))
+
+            _cockpit_actions = st.columns(3)
+            if _cockpit_actions[0].button("Open Decision Queue", width="stretch"):
+                track(
+                    Event.DECISION_COCKPIT_ACTION,
+                    user_id=_cockpit_user_id,
+                    properties={"action": "decision_queue"},
+                )
+                st.switch_page("pages/49_Decision_Queue.py")
+            if _cockpit_actions[1].button("Update Thesis Journal", width="stretch"):
+                track(
+                    Event.DECISION_COCKPIT_ACTION,
+                    user_id=_cockpit_user_id,
+                    properties={"action": "thesis_journal"},
+                )
+                st.switch_page("pages/46_Thesis_Journal.py")
+            if _cockpit_actions[2].button("View Portfolio Impact", width="stretch"):
+                st.session_state["brief_section_rail"] = "Portfolio Impact"
+                st.rerun()
+
+            if not _cockpit_is_pro:
+                st.caption(
+                    "Professional mode adds earnings context, thesis-conflict evidence, "
+                    "and queue triage controls."
+                )
+                if st.button(
+                    "See Professional Cockpit",
+                    key="cockpit_upgrade",
+                    width="stretch",
+                ):
+                    track(
+                        Event.UPGRADE_CTA_CLICKED,
+                        user_id=_cockpit_user_id,
+                        properties={"page": "today_brief", "cta": "decision_cockpit"},
+                    )
+                    st.switch_page("pages/29_Upgrade.py")
+
+elif _brief_section == "Portfolio Impact":
     from utils.personalized_brief import (
         build_priority_brief,
         load_portfolio_evidence,

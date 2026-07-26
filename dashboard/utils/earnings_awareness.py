@@ -22,6 +22,7 @@ failure). Everything here degrades to "no warning" rather than a wrong warning.
 """
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timezone
 
 # Windows that change how much weight a macro score deserves.
@@ -82,6 +83,35 @@ def next_earnings(ticker: str, lookahead_days: int = DEFAULT_LOOKAHEAD) -> dict 
         # yfinance forward dates are provisional until the company confirms.
         "is_estimate": True,
     }
+
+
+def next_earnings_batch(
+    tickers: list[str] | tuple[str, ...],
+    lookahead_days: int = DEFAULT_LOOKAHEAD,
+    *,
+    max_workers: int = 6,
+) -> dict[str, dict | None]:
+    """Fetch a bounded ticker set concurrently; each provider call is cached."""
+    symbols = tuple(dict.fromkeys(
+        str(ticker).upper().strip()
+        for ticker in tickers
+        if str(ticker).strip()
+    ))[:25]
+    output: dict[str, dict | None] = {ticker: None for ticker in symbols}
+    if not symbols:
+        return output
+    with ThreadPoolExecutor(max_workers=min(max(1, int(max_workers)), len(symbols))) as pool:
+        futures = {
+            pool.submit(next_earnings, ticker, lookahead_days): ticker
+            for ticker in symbols
+        }
+        for future in as_completed(futures):
+            ticker = futures[future]
+            try:
+                output[ticker] = future.result()
+            except Exception:
+                output[ticker] = None
+    return output
 
 
 def classify_risk(days_until: int | None) -> str:

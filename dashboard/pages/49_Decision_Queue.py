@@ -1,6 +1,5 @@
 """Pro daily research triage across the user's existing evidence surfaces."""
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 from html import escape
 
@@ -97,21 +96,10 @@ if not user:
 
 @st.cache_data(ttl=21_600, show_spinner=False)
 def _load_earnings(symbols: tuple[str, ...]) -> dict[str, dict | None]:
-    """Bounded parallel fetch; the underlying provider call is also cached."""
-    from utils.earnings_awareness import next_earnings
+    """Server-wide 6h cache around the shared bounded batch loader."""
+    from utils.earnings_awareness import next_earnings_batch
 
-    output: dict[str, dict | None] = {ticker: None for ticker in symbols}
-    if not symbols:
-        return output
-    with ThreadPoolExecutor(max_workers=min(6, len(symbols))) as pool:
-        futures = {pool.submit(next_earnings, ticker): ticker for ticker in symbols}
-        for future in as_completed(futures):
-            ticker = futures[future]
-            try:
-                output[ticker] = future.result()
-            except Exception:
-                output[ticker] = None
-    return output
+    return next_earnings_batch(symbols)
 
 
 from utils.decision_queue import (

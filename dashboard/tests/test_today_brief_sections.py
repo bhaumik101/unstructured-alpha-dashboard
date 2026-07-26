@@ -15,7 +15,7 @@ def _brief_app(section=None):
     return at.run()
 
 
-def test_my_priorities_does_not_trigger_full_signal_sweep(monkeypatch):
+def test_decision_cockpit_does_not_trigger_full_signal_sweep(monkeypatch):
     calls = []
 
     def fake_signal_scores(*_args, **_kwargs):
@@ -31,7 +31,7 @@ def test_my_priorities_does_not_trigger_full_signal_sweep(monkeypatch):
     assert calls == []
     rail = next((radio for radio in at.radio if radio.key == "brief_section_rail"), None)
     assert rail is not None
-    assert rail.value == "My Priorities"
+    assert rail.value == "Decision Cockpit"
 
 
 def test_market_intelligence_loads_signal_stack_on_demand(monkeypatch):

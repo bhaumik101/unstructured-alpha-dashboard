@@ -1239,6 +1239,38 @@ code, pre {
 .ua-pill.neut { background: rgba(var(--ua-label-rgb),0.08); color: var(--ua-ink-mut); border: 1px solid rgba(var(--ua-label-rgb),0.20); }
 .ua-pill.pro  { background: rgba(var(--ua-purple-rgb),0.10);  color: #A78BFA; border: 1px solid rgba(var(--ua-purple-rgb),0.25); }
 
+/* ── Personalized decision cockpit ───────────────────────────────────────── */
+.ua-cockpit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+.ua-cockpit-kpi {
+    background: rgba(var(--ua-onbg-rgb),0.025);
+    border: 1px solid var(--ua-hair);
+    border-radius: 9px;
+    padding: 11px 12px;
+    min-width: 0;
+}
+.ua-cockpit-kpi span {
+    display: block;
+    color: var(--ua-ink-mut);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.ua-cockpit-kpi b {
+    display: block;
+    color: var(--ua-ink);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+}
+@media (max-width: 720px) {
+    .ua-cockpit-grid { grid-template-columns: 1fr; }
+}
+
 /* ── Data table — zebra striped ──────────────────────────────────────────── */
 .ua-zebra tr:nth-child(even) td { background: rgba(var(--ua-onbg-rgb),0.015) !important; }
 

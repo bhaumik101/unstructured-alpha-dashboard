@@ -691,14 +691,26 @@ def _build_morning_attention_html(
     watchlist_items: list[dict] | None,
     catalyst_items: list[dict] | None,
     signal_flips: list[dict] | None,
+    cockpit: dict | None = None,
 ) -> str:
     """Give non-professional investors one calm, obvious place to start."""
     holdings_n = len(watchlist_items or [])
     catalysts_n = len(catalyst_items or [])
     flips_n = len(signal_flips or [])
+    cockpit = cockpit or {}
+    cockpit_items = list(cockpit.get("attention") or [])[:3]
+    cockpit_queue = cockpit.get("queue") or {}
+    cockpit_portfolio = cockpit.get("portfolio") or {}
     agenda = catalyst_items or []
     review = next((item for item in agenda if item.get("delivery_type") == "review_due"), None)
-    if review:
+    if cockpit_items:
+        lead = cockpit_items[0]
+        focus = str(
+            lead.get("guided_reason")
+            or lead.get("headline")
+            or "Review the highest-priority recorded evidence."
+        )
+    elif review:
         focus = f'Review the saved plan for {review.get("title", "the completed event")} while the outcome is fresh.'
     elif agenda:
         first = agenda[0]
@@ -710,28 +722,78 @@ def _build_morning_attention_html(
     else:
         focus = "No urgent research exception is showing. Use the brief to confirm what remains unchanged."
 
+    metric_one = int(cockpit_queue.get("open") or 0) if cockpit else holdings_n
+    metric_one_label = "items need review" if cockpit else "positions scored"
+    coverage = float(cockpit_portfolio.get("covered_weight_pct") or 0)
+    metric_two = f"{coverage:.0f}%" if cockpit else catalysts_n
+    metric_two_label = "portfolio covered" if cockpit else "agenda items"
+    thesis_conflicts = int((cockpit.get("theses") or {}).get("conflicts") or 0)
+    metric_three = thesis_conflicts if cockpit else flips_n
+    metric_three_label = "thesis conflicts" if cockpit else "signal changes"
+
+    priority_rows = ""
+    for item in cockpit_items:
+        ticker = str(item.get("ticker") or "").upper()
+        headline = str(item.get("headline") or "Review recorded evidence")
+        reason = str(item.get("guided_reason") or item.get("professional_reason") or "")
+        priority_rows += f"""
+      <div style="padding:10px 11px;border:1px solid #E5E7EB;border-radius:6px;
+                  margin-top:8px;background:#FFFFFF;">
+        <table style="width:100%;border-collapse:collapse;"><tr>
+          <td style="vertical-align:top;">
+            <div style="font-size:0.76rem;font-weight:800;color:#111827;">
+              {_safe(ticker)} · {_safe(headline)}
+            </div>
+            <div style="font-size:0.70rem;color:#4B5563;line-height:1.5;margin-top:3px;">
+              {_safe(reason)}
+            </div>
+          </td>
+          <td style="text-align:right;vertical-align:top;white-space:nowrap;padding-left:12px;">
+            <a href="{_APP_URL}/ticker-deep-dive?ticker={_safe(ticker)}"
+               style="font-size:0.68rem;color:#5B21B6;text-decoration:none;font-weight:700;">
+              Evidence →
+            </a>
+          </td>
+        </tr></table>
+      </div>"""
+
+    cockpit_link = (
+        f"""
+      <div style="margin-top:11px;text-align:right;">
+        <a href="{_APP_URL}/today-s-brief"
+           style="font-size:0.72rem;color:#5B21B6;text-decoration:none;font-weight:750;">
+          Open Decision Cockpit →
+        </a>
+      </div>"""
+        if cockpit else ""
+    )
+
     return f"""
     <div style="background:#FFFFFF;padding:16px 24px;border-bottom:1px solid #E5E7EB;">
       <div style="font-size:0.60rem;font-weight:750;color:#7C3AED;text-transform:uppercase;
-                  letter-spacing:0.12em;margin-bottom:9px;">Today’s attention</div>
+                  letter-spacing:0.12em;margin-bottom:9px;">
+        {"Your decision cockpit" if cockpit else "Today’s attention"}
+      </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:10px;"><tr>
         <td style="width:33%;padding:8px;background:#F8F7FF;text-align:center;border-right:4px solid #FFFFFF;">
-          <div style="font-size:1.05rem;font-weight:800;color:#111827;">{holdings_n}</div>
-          <div style="font-size:0.64rem;color:#6B7280;">positions scored</div>
+          <div style="font-size:1.05rem;font-weight:800;color:#111827;">{metric_one}</div>
+          <div style="font-size:0.64rem;color:#6B7280;">{metric_one_label}</div>
         </td>
         <td style="width:33%;padding:8px;background:#F8F7FF;text-align:center;border-right:4px solid #FFFFFF;">
-          <div style="font-size:1.05rem;font-weight:800;color:#111827;">{catalysts_n}</div>
-          <div style="font-size:0.64rem;color:#6B7280;">agenda items</div>
+          <div style="font-size:1.05rem;font-weight:800;color:#111827;">{metric_two}</div>
+          <div style="font-size:0.64rem;color:#6B7280;">{metric_two_label}</div>
         </td>
         <td style="width:33%;padding:8px;background:#F8F7FF;text-align:center;">
-          <div style="font-size:1.05rem;font-weight:800;color:#111827;">{flips_n}</div>
-          <div style="font-size:0.64rem;color:#6B7280;">signal changes</div>
+          <div style="font-size:1.05rem;font-weight:800;color:#111827;">{metric_three}</div>
+          <div style="font-size:0.64rem;color:#6B7280;">{metric_three_label}</div>
         </td>
       </tr></table>
       <div style="border-left:3px solid #7C3AED;padding:8px 11px;background:#FAFAFC;
                   font-size:0.78rem;color:#374151;line-height:1.55;">
         <span style="font-weight:750;color:#111827;">Start here:</span> {_safe(focus)}
       </div>
+      {priority_rows}
+      {cockpit_link}
     </div>"""
 
 
@@ -749,6 +811,7 @@ def send_digest_email(
     watchlist_narrative: str | None = None,
     portfolio_mode: bool = False,
     catalyst_items: list[dict] | None = None,
+    decision_cockpit: dict | None = None,
 ) -> None:
     """
     Send the morning intelligence digest to a single opted-in user.
@@ -768,6 +831,8 @@ def send_digest_email(
     portfolio_mode:      render holdings, weights, and the Portfolio Intelligence CTA.
                          False preserves the watchlist fallback and older callers.
     catalyst_items:      near-term weighted events and overdue saved-plan reviews.
+    decision_cockpit:     persisted, evidence-only priority payload. When present,
+                          it upgrades the attention panel without any live fetch.
     """
     api_key, from_email = _get_resend_config()
     print(f"[digest] send_digest_email: to={to_email!r} bias={overall_bias}", flush=True)
@@ -793,7 +858,7 @@ def send_digest_email(
     )
     catalyst_html = _build_catalyst_digest_html(catalyst_items)
     attention_html = _build_morning_attention_html(
-        watchlist_items, catalyst_items, signal_flips
+        watchlist_items, catalyst_items, signal_flips, decision_cockpit
     )
 
     # ── Seeking Alpha-style macro article ──────────────────────────────────
@@ -1376,6 +1441,12 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
               text-decoration:none;font-size:0.9rem;font-weight:700;letter-spacing:0.02em;">
       {_cta_label} →
     </a>
+    <div style="margin-top:10px;">
+      <a href="{_APP_URL}/today-s-brief"
+         style="font-size:0.72rem;color:#5B21B6;text-decoration:none;font-weight:700;">
+        Rank this with the rest of my Decision Cockpit →
+      </a>
+    </div>
   </div>
 
   <!-- Footer -->

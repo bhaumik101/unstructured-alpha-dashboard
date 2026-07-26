@@ -396,6 +396,7 @@ PRO_FEATURES = [
     "Options Flow — live unusual options activity feed",
     "AI Research Assistant — answers grounded in current live signals",
     "Ticker Deep Dive Pro — correlation, filings, contracts, and sentiment",
+    "Professional Decision Cockpit — personalized priorities, evidence stacks, and one-click triage",
     "Decision Queue — daily evidence triage across holdings, catalysts, and theses",
     "Catalyst Command Center — verified events, portfolio exposure, private plans, and proactive digest prompts",
     "Notification Policy Center — simple investor presets plus advanced timing, relevance, and volume controls",

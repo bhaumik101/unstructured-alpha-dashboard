@@ -201,6 +201,8 @@ def test_watchlist_alert_email_escapes_content_and_links_research(monkeypatch):
     assert "Moved &gt; 5% &lt;review&gt;" in payload["html"]
     assert "/ticker-deep-dive?ticker=MSFT" in payload["html"]
     assert "/my-watchlist" in payload["html"]
+    assert "/today-s-brief" in payload["html"]
+    assert "Decision Cockpit" in payload["html"]
     assert "linear-gradient" not in payload["html"]
     assert "Research attention" in payload["html"]
     assert "Why it matters:" in payload["html"]
@@ -310,3 +312,47 @@ def test_digest_email_renders_escaped_catalyst_agenda(monkeypatch):
     assert "Plan saved" in body
     assert "Margins &gt; estimates" in body
     assert "/events-forecasts" in body
+
+
+def test_digest_email_renders_escaped_decision_cockpit(monkeypatch):
+    from utils import email
+
+    captured = {}
+
+    def _post(url, **kwargs):
+        captured.update(url=url, **kwargs)
+        return _FakeResponse()
+
+    monkeypatch.setattr(email, "_get_resend_config", lambda: ("re_test", "UA <mail@example.com>"))
+    monkeypatch.setattr(email.requests, "post", _post)
+
+    email.send_digest_email(
+        to_email="owner@example.com",
+        signal_flips=[],
+        score_movers=[],
+        overall_bias="Mixed",
+        bull_n=1,
+        bear_n=1,
+        neut_n=1,
+        decision_cockpit={
+            "attention": [{
+                "ticker": "ACME<script>",
+                "headline": "Thesis & evidence conflict",
+                "guided_reason": "Your saved thesis < disagrees with recorded evidence.",
+            }],
+            "queue": {"open": 2},
+            "portfolio": {"covered_weight_pct": 87.4},
+            "theses": {"conflicts": 1},
+        },
+    )
+
+    body = captured["json"]["html"]
+    assert "Your decision cockpit" in body
+    assert "2</div>" in body
+    assert "87%</div>" in body
+    assert "thesis conflicts" in body
+    assert "ACME&lt;SCRIPT&gt;" in body
+    assert "Thesis &amp; evidence conflict" in body
+    assert "saved thesis &lt; disagrees" in body
+    assert "/today-s-brief" in body
+    assert "Open Decision Cockpit" in body
