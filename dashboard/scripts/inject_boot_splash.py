@@ -51,6 +51,35 @@ def _build_splash() -> str:
     facts_json = json.dumps(_load_facts())
     return """
 <!-- ua-boot-splash:start -->
+<script>
+/* Theme init — runs before first paint so there is no dark-to-light flash.
+   This has to live here rather than in utils/header.py: st.markdown does NOT
+   execute script tags, and a Streamlit component would run inside a sandboxed
+   iframe where it cannot style the parent document. This file is injected into
+   the served index.html, so its script really runs and owns the html element.
+
+   Light mode is OPT-IN while the hex->token migration finishes: pages that
+   still hardcode dark colors would look broken under a flip, so normal users
+   must never land in it by accident. Enter with ?theme=light, leave with
+   ?theme=dark. The choice persists so in-app navigation keeps it. */
+(function(){
+  try{
+    var q=null;
+    try{ q=new URLSearchParams(window.location.search).get('theme'); }catch(e){}
+    if(q==='light'||q==='dark'){ try{ localStorage.setItem('ua-theme',q); }catch(e){} }
+    var t=q;
+    if(!t){ try{ t=localStorage.getItem('ua-theme'); }catch(e){} }
+    if(t==='light'){ document.documentElement.setAttribute('data-ua-theme','light'); }
+    else { document.documentElement.removeAttribute('data-ua-theme'); }
+  }catch(e){}
+  /* Handle for the real toggle button once every page is migrated. */
+  window.uaSetTheme=function(t){
+    try{ localStorage.setItem('ua-theme',t); }catch(e){}
+    if(t==='light'){ document.documentElement.setAttribute('data-ua-theme','light'); }
+    else { document.documentElement.removeAttribute('data-ua-theme'); }
+  };
+})();
+</script>
 <div id="ua-boot-splash" role="status" aria-label="Loading">
   <div class="ua-boot-inner">
     <svg class="ua-boot-hex" viewBox="0 0 100 100" width="132" height="132" aria-hidden="true">
@@ -98,6 +127,15 @@ def _build_splash() -> str:
   background:linear-gradient(90deg,#6470F5,#8B7BF7 55%,#D4B26A);
   animation:ua-boot-slide 1.1s infinite ease-in-out;}
 @keyframes ua-boot-slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+/* Light theme: the splash is the very first thing painted, so if it stayed dark
+   a light-mode user would get a full-screen dark flash before the app appears. */
+html[data-ua-theme="light"] #ua-boot-splash{background:#F6F5FB;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-logo{color:#161A2E;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-sub{color:#5E5A8C;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-fact{color:#3A4059;border-top-color:rgba(20,22,44,0.10);}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-fact::before{color:#8A90A6;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-bar{background:rgba(20,22,44,0.10);}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hex polygon[stroke]{stroke:#F6F5FB;}
 </style>
 <script>
 (function(){

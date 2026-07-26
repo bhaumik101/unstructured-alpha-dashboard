@@ -145,6 +145,64 @@ html[data-ua-theme="light"] {
     --ua-shadow-lg:  0 14px 44px rgba(20,22,44,0.13);
 }
 
+/* ── Light mode: app chrome ───────────────────────────────────────────────
+   The token block above only recolors things that USE the tokens. Streamlit
+   paints its own shell from config.toml (backgroundColor #0B0D12) and this file
+   pins it again with !important further down, so without these overrides a
+   light-mode user gets light cards floating on a black page. Selectors are
+   prefixed with html[data-ua-theme="light"], which adds specificity, and they
+   are declared here — before those rules — deliberately: equal-specificity
+   !important ties are won by the LATER rule, so these must out-specify rather
+   than out-order. Dark mode never matches any of this. */
+html[data-ua-theme="light"] [data-testid="stAppViewContainer"],
+html[data-ua-theme="light"] [data-testid="stAppViewContainer"] > .main,
+html[data-ua-theme="light"] .stApp,
+html[data-ua-theme="light"] .main,
+html[data-ua-theme="light"] body {
+    background: var(--ua-bg) !important;
+    background-image: none !important;
+    color: var(--ua-ink);
+}
+html[data-ua-theme="light"] section[data-testid="stSidebar"] {
+    background: var(--ua-bg-card) !important;
+    border-right: 1px solid var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] header[data-testid="stHeader"] {
+    background: transparent !important;
+}
+/* Top nav sits on the page background, so it has to follow it. */
+html[data-ua-theme="light"] .ua-tnav,
+html[data-ua-theme="light"] .ua-tnav-menu {
+    background: var(--ua-bg-card) !important;
+    border-color: var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] .ua-tnav-brand-text { color: var(--ua-ink) !important; }
+html[data-ua-theme="light"] a.ua-tnav-item,
+html[data-ua-theme="light"] .ua-tnav-trigger { color: var(--ua-ink-mut); }
+html[data-ua-theme="light"] a.ua-tnav-item:hover,
+html[data-ua-theme="light"] .ua-tnav-trigger:hover {
+    color: var(--ua-ink);
+    background: rgba(var(--ua-onbg-rgb),0.05);
+}
+/* Streamlit widgets that hardcode a dark field. */
+html[data-ua-theme="light"] .stTextInput > div > div > input,
+html[data-ua-theme="light"] .stSelectbox > div > div,
+html[data-ua-theme="light"] .stNumberInput > div > div > input,
+html[data-ua-theme="light"] .stTextArea textarea {
+    background: var(--ua-bg-card) !important;
+    color: var(--ua-ink) !important;
+    border-color: var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] .stButton > button {
+    background: var(--ua-bg-card) !important;
+    color: var(--ua-ink-soft) !important;
+    border-color: var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] .stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #4048C6, #3B3FA8) !important;
+    color: #FFFFFF !important;
+}
+
 /* ── Guided workflow cards ───────────────────────────────────────────────── */
 .ua-guide-shell {
     position: relative;
