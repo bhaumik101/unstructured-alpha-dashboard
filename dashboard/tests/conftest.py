@@ -147,6 +147,88 @@ ROUTED_PAGES = [
 # longer apply and were removed along with the files.
 
 
+def _is_local_host(host) -> bool:
+    """Loopback / unix-socket destinations stay reachable during tests."""
+    if not isinstance(host, str):
+        return False
+    return host in {"localhost", "127.0.0.1", "::1", "0.0.0.0", ""} or host.startswith("/")
+
+
+@pytest.fixture(autouse=True)
+def _no_live_network(monkeypatch, request):
+    """
+    Make the suite hermetic: no test may reach the public internet.
+
+    WHY THIS EXISTS. This conftest was written for a sandbox with genuinely no
+    network, where every live fetch failed instantly and pages exercised their
+    "data unavailable" fallback — which is the behaviour under test. On a machine
+    that *does* have network (a laptop, a CI runner), those same fetches really
+    dial out: yfinance walks a ticker universe at ~10s of connect timeout each and
+    arXiv read-times-out at 25s, so pages/6_Stock_Screener.py blew the 120s AppTest
+    timeout and the suite failed for reasons that had nothing to do with the code
+    under test. Blocking the network restores the intended semantics — fail fast,
+    take the fallback path — and makes the result identical everywhere.
+
+    Two transports must be blocked, not one:
+      * Python sockets — requests / urllib3 / feedparser / arXiv.
+      * curl_cffi — yfinance >= 1.x drives libcurl through cffi and never touches
+        Python's socket module, so a socket-only patch silently misses it (this is
+        exactly the 'curl: (28) Connection timed out' seen in the failing run).
+
+    getaddrinfo is blocked too: DNS itself can hang, so failing before resolution
+    is what actually makes this fast rather than merely deterministic.
+
+    Opt out for a genuinely network-dependent test with @pytest.mark.allow_network.
+    """
+    if request.node.get_closest_marker("allow_network"):
+        return
+
+    import socket
+
+    _real_connect = socket.socket.connect
+    _real_conn_ex = socket.socket.connect_ex
+    _real_getaddr = socket.getaddrinfo
+
+    def _blocked(*_a, **_k):
+        raise OSError("Live network is disabled during tests (see conftest._no_live_network)")
+
+    def _guard_connect(self, address, *a, **k):
+        host = address[0] if isinstance(address, (tuple, list)) else address
+        if _is_local_host(host):
+            return _real_connect(self, address, *a, **k)
+        _blocked()
+
+    def _guard_connect_ex(self, address, *a, **k):
+        host = address[0] if isinstance(address, (tuple, list)) else address
+        if _is_local_host(host):
+            return _real_conn_ex(self, address, *a, **k)
+        return 111  # ECONNREFUSED
+
+    def _guard_getaddrinfo(host, *a, **k):
+        if _is_local_host(host):
+            return _real_getaddr(host, *a, **k)
+        raise socket.gaierror("DNS disabled during tests")
+
+    monkeypatch.setattr(socket.socket, "connect", _guard_connect, raising=False)
+    monkeypatch.setattr(socket.socket, "connect_ex", _guard_connect_ex, raising=False)
+    monkeypatch.setattr(socket, "getaddrinfo", _guard_getaddrinfo, raising=False)
+    monkeypatch.setattr(socket, "create_connection", _blocked, raising=False)
+
+    # curl_cffi (yfinance). Patch the Session methods rather than the module-level
+    # helpers, because yfinance holds a long-lived Session instance.
+    try:
+        from curl_cffi import requests as _curl_requests
+    except Exception:
+        _curl_requests = None
+    if _curl_requests is not None:
+        for _attr in ("request", "get", "post", "head"):
+            if hasattr(_curl_requests.Session, _attr):
+                monkeypatch.setattr(_curl_requests.Session, _attr, _blocked, raising=False)
+        for _attr in ("request", "get", "post", "head"):
+            if hasattr(_curl_requests, _attr):
+                monkeypatch.setattr(_curl_requests, _attr, _blocked, raising=False)
+
+
 @pytest.fixture
 def app_test(monkeypatch):
     """
