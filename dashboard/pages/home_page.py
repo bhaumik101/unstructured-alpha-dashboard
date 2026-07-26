@@ -453,7 +453,14 @@ try:
     _sect = _hd.get("sectors", {})
     if _sect and len(_sect) >= 2:
         _order = sorted(_sect.items(), key=lambda kv: -kv[1])
-        _cats2 = [str(k).replace("_", " ").title()[:22] for k, _ in _order]
+        # .title() would render "ai_infrastructure" as "Ai Infrastructure";
+        # keep known acronyms upper-cased.
+        _ACRO = {"Ai": "AI", "Fx": "FX", "Etf": "ETF", "Gdp": "GDP", "Cpi": "CPI",
+                 "Us": "US", "Eu": "EU", "Oil": "Oil", "Fed": "Fed", "Ism": "ISM"}
+        def _pretty_cat(_k: str) -> str:
+            _w = str(_k).replace("_", " ").title().split()
+            return " ".join(_ACRO.get(x, x) for x in _w)[:22]
+        _cats2 = [_pretty_cat(k) for k, _ in _order]
         _vals2 = [round(float(v), 1) for _, v in _order]
         # Semantic per-bar colors: >55 bullish, <45 bearish, else neutral.
         _cols2 = [
