@@ -369,7 +369,7 @@ st.markdown(
     f'<div class="ua-slide-up-d4" style="background:rgba(var(--ua-card-rgb),0.82);border:1px solid rgba(var(--ua-green-rgb),0.22);'
     f'border-radius:18px;padding:26px 30px 22px;margin:28px auto 0;max-width:900px;'
     f'font-family:Inter,sans-serif;backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);'
-    f'box-shadow:0 0 60px rgba(var(--ua-green-rgb),0.09),0 24px 64px rgba(0,0,0,0.6),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.05);">'
+    f'box-shadow:0 0 60px rgba(var(--ua-green-rgb),0.09),0 24px 64px rgba(var(--ua-shadow-rgb),calc(0.6*var(--ua-shadow-k))),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.05);">'
     # Top separator accent line
     f'<div style="position:relative;margin-bottom:18px;">'
     f'<div style="position:absolute;top:-26px;left:-30px;right:-30px;height:1px;'
@@ -907,7 +907,7 @@ if _data_loaded:
             border-radius:16px;padding:22px 26px 18px;margin:0 0 24px;
             font-family:Inter,sans-serif;
             backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);
-            box-shadow:0 0 30px rgba(var(--ua-cyan-rgb),0.07),0 8px 32px rgba(0,0,0,0.45),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04);">
+            box-shadow:0 0 30px rgba(var(--ua-cyan-rgb),0.07),0 8px 32px rgba(var(--ua-shadow-rgb),calc(0.45*var(--ua-shadow-k))),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04);">
     <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:var(--ua-cyan);
                 margin-bottom:8px;"> INSTANT MACRO CHECK — NO ACCOUNT NEEDED</div>
     <div style="font-size:1.0rem;font-weight:800;color:var(--ua-ink);margin-bottom:4px;

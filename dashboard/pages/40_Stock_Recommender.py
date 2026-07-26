@@ -578,7 +578,7 @@ if _recommender_section == "Top Ideas":
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
           <span style="font-size:0.60rem;font-weight:700;color:{border};
-                       background:rgba(0,0,0,0.35);padding:3px 10px;
+                       background:rgba(var(--ua-shadow-rgb),calc(0.35*var(--ua-shadow-k)));padding:3px 10px;
                        border-radius:12px;border:1px solid {border}55;">{badge}</span>
           <span style="font-size:1.1rem;font-weight:800;color:{border};">{row["score"]:.0f}</span>
         </div>

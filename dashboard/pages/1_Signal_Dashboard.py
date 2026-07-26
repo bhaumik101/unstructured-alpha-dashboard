@@ -252,7 +252,7 @@ if _signal_section == "Signal Library":
     <div class="ua-slide-up" style="background:rgba(var(--ua-card-rgb),0.78);border-radius:14px;padding:18px 22px;
                 border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-left:5px solid {temp_color};
                 backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
-                box-shadow:0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04);
+                box-shadow:0 4px 24px rgba(var(--ua-shadow-rgb),calc(0.4*var(--ua-shadow-k))),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04);
                 font-family:Inter,sans-serif;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
             <div>
@@ -612,7 +612,7 @@ if _signal_section == "Signal Library":
                             f'margin-bottom:10px;font-family:Inter,sans-serif;'
                             f'backdrop-filter:blur(12px) saturate(150%);'
                             f'-webkit-backdrop-filter:blur(12px) saturate(150%);'
-                            f'box-shadow:0 4px 20px rgba(0,0,0,0.30);'
+                            f'box-shadow:0 4px 20px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k)));'
                             f'transition:all 0.18s cubic-bezier(0.4,0,0.2,1);">'
                             f'<div style="display:flex;justify-content:space-between;align-items:flex-start;'
                             f'margin-bottom:8px;">'
@@ -679,7 +679,7 @@ if _signal_section == "Signal Library":
                             f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:2px solid {border};'
                             f'backdrop-filter:blur(12px) saturate(150%);'
                             f'-webkit-backdrop-filter:blur(12px) saturate(150%);'
-                            f'box-shadow:0 4px 20px rgba(0,0,0,0.30);'
+                            f'box-shadow:0 4px 20px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k)));'
                             f'margin-bottom:10px;font-family:Inter,sans-serif;min-height:140px;">'
                             f'<div style="font-size:0.66rem;letter-spacing:0.03em;margin-bottom:2px;">'
                             f'<span style="background:rgba({_bc_r},{_bc_g},{_bc_b},0.12);'
@@ -850,7 +850,7 @@ if _signal_section == "Signal Library":
         <div style="background:rgba(var(--ua-card-rgb),0.78);border-radius:14px;padding:20px 24px;
                     border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-left:5px solid {_insight_border};
                     backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-                    box-shadow:0 4px 24px rgba(0,0,0,0.35);font-family:Inter,sans-serif;margin-bottom:16px;">
+                    box-shadow:0 4px 24px rgba(var(--ua-shadow-rgb),calc(0.35*var(--ua-shadow-k)));font-family:Inter,sans-serif;margin-bottom:16px;">
             <div style="font-size:0.62rem;letter-spacing:0.14em;font-weight:700;color:var(--ua-ink-label);
                         text-transform:uppercase;margin-bottom:6px;">
                 {_insight_icon} SIGNAL INTERPRETATION

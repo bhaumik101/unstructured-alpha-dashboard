@@ -458,7 +458,7 @@ elif _brief_section == "Market Intelligence":
                 f'<div style="background:rgba(var(--ua-card-rgb),0.85);border-radius:12px;padding:18px 22px;'
                 f'margin-bottom:18px;border:1px solid rgba(var(--ua-onbg-rgb),0.10);'
                 f'border-left:4px solid var(--ua-amber);font-family:Inter,sans-serif;'
-                f'box-shadow:0 4px 20px rgba(0,0,0,0.30);">'
+                f'box-shadow:0 4px 20px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k)));">'
                 f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
                 f'<span style="font-size:1.1rem;"></span>'
                 f'<div style="font-size:0.70rem;font-weight:700;letter-spacing:0.12em;color:var(--ua-amber);'
