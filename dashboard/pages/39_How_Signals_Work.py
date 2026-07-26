@@ -539,9 +539,10 @@ with _c2:
 
 st.markdown("""
   <div style="margin-top:16px;font-size:0.72rem;color:var(--ua-ink-label);">
-    Also see: <a href="#" style="color:var(--ua-ink-label);">Model Validation</a> ·
-    <a href="#" style="color:var(--ua-ink-label);">About & Methodology</a> ·
-    <a href="#" style="color:var(--ua-ink-label);">Track Record</a>
+    Also see:
+    <a href="/signal-research?section=validation" style="color:var(--ua-ink-label);">Validation</a> ·
+    <a href="/signal-research?section=data-quality" style="color:var(--ua-ink-label);">Data Quality</a> ·
+    <a href="/signal-research?section=track-record" style="color:var(--ua-ink-label);">Track Record</a>
   </div>
 </div>
 """, unsafe_allow_html=True)

@@ -363,7 +363,7 @@ if _about_section == "Methodology":
         </tr>
         <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
           <td style="padding:9px 14px;color:var(--ua-ink-soft);font-weight:600;">Failed signals disclosed</td>
-          <td style="padding:9px 14px;text-align:center;color:var(--ua-green);font-weight:700;">✓ Model Validation page</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-green);font-weight:700;">✓ Signal Research Center</td>
           <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ No</td>
           <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ No</td>
           <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ No</td>
@@ -498,7 +498,7 @@ if _about_section == "Methodology":
                 visualizations, skeleton loading, and AI-generated macro research notes via the
                 Anthropic API.</p>
                 <p>Academic rigor was a first-order design constraint, not an afterthought.
-                The Model Validation page publishes signal-level out-of-sample results openly,
+                The Signal Research Center publishes signal-level out-of-sample results openly,
                 including the cases where signals didn't survive the stricter bar — a design
                 choice deliberately opposite to how commercial platforms handle their failures.</p>
             </div>
