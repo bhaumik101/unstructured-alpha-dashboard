@@ -219,6 +219,87 @@ html[data-ua-theme="light"] [data-testid="stPopover"] button span {
 html[data-ua-theme="light"] [data-baseweb="popover"] [data-baseweb="menu"] {
     background: var(--ua-bg-card) !important;
 }
+/* Nav SUB-PAGES (the hover dropdowns) — .ua-tnav-drop, not .ua-tnav-menu.
+   These stayed near-black over a light page until measured. */
+html[data-ua-theme="light"] .ua-tnav-drop {
+    background: #FFFFFF !important;
+    border: 1px solid var(--ua-hair) !important;
+    box-shadow: var(--ua-shadow-lg) !important;
+}
+html[data-ua-theme="light"] .ua-tnav-drop::before { background: #FFFFFF !important; }
+html[data-ua-theme="light"] .ua-tnav-drop a { color: var(--ua-ink-mut) !important; }
+html[data-ua-theme="light"] .ua-tnav-drop a:hover {
+    background: rgba(var(--ua-royal-rgb),0.08) !important;
+    color: var(--ua-royal) !important;
+}
+html[data-ua-theme="light"] .ua-tnav-drop-rule { background: var(--ua-hair) !important; }
+html[data-ua-theme="light"] .ua-tnav-drop-label { color: var(--ua-ink-dim) !important; }
+
+/* Notification panel + its hover state, in BOTH themes (hover was only ever
+   defined for dark, so on light it flashed a dark row). */
+html[data-ua-theme="light"] .ua-notification-item {
+    background: var(--ua-bg-card) !important;
+    border-color: var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] .ua-notification-item:hover {
+    background: rgba(var(--ua-royal-rgb),0.06) !important;
+    border-color: rgba(var(--ua-royal-rgb),0.28) !important;
+}
+html[data-ua-theme="light"] .ua-notification-title,
+html[data-ua-theme="light"] .ua-notification-heading { color: var(--ua-ink) !important; }
+html[data-ua-theme="light"] .ua-notification-copy { color: var(--ua-ink-mut) !important; }
+html[data-ua-theme="light"] .ua-notification-kicker { color: var(--ua-ink-label) !important; }
+
+/* Streamlit tabs: the tab strip kept a dark fill, so dark-on-dark labels
+   measured a 1.0 contrast ratio (invisible). */
+html[data-ua-theme="light"] .stTabs [data-baseweb="tab-list"] {
+    background: transparent !important;
+    border-bottom: 1px solid var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] .stTabs [data-baseweb="tab"] {
+    background: transparent !important;
+    color: var(--ua-ink-mut) !important;
+}
+html[data-ua-theme="light"] .stTabs [aria-selected="true"] {
+    color: var(--ua-ink) !important;
+    border-bottom-color: var(--ua-royal) !important;
+}
+html[data-ua-theme="light"] .stTabs [data-baseweb="tab-highlight"] {
+    background: var(--ua-royal) !important;
+}
+
+/* ── Theme toggle ─────────────────────────────────────────────────────────
+   Deliberately a real <a href>, not a JS button: it works with keyboard and
+   screen readers for free, survives Streamlit reruns, and needs no script
+   (st.markdown does not execute one anyway). Both directions are always in the
+   DOM and CSS reveals the relevant one, so the server never has to know the
+   current theme — which it can't, since the theme lives in localStorage. */
+.ua-theme-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 5px; height: 28px; padding: 0 10px; margin-left: 8px;
+    border-radius: 7px; flex-shrink: 0;
+    border: 1px solid var(--ua-hair);
+    background: rgba(var(--ua-onbg-rgb),0.04);
+    color: var(--ua-ink-mut);
+    font-family: 'Inter', sans-serif; font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.04em; text-decoration: none !important; white-space: nowrap;
+    transition: color .12s ease, background .12s ease, border-color .12s ease;
+}
+.ua-theme-toggle:hover {
+    color: var(--ua-ink);
+    background: rgba(var(--ua-royal-rgb),0.10);
+    border-color: rgba(var(--ua-royal-rgb),0.35);
+}
+.ua-theme-toggle:focus-visible {
+    outline: 2px solid var(--ua-royal) !important;
+    outline-offset: 2px !important;
+}
+.ua-theme-toggle .ua-tt-ico { font-size: 0.82rem; line-height: 1; }
+/* Show the action that is available: in dark you can go light, and vice versa. */
+.ua-theme-toggle[data-to="light"] { display: inline-flex; }
+.ua-theme-toggle[data-to="dark"]  { display: none; }
+html[data-ua-theme="light"] .ua-theme-toggle[data-to="light"] { display: none; }
+html[data-ua-theme="light"] .ua-theme-toggle[data-to="dark"]  { display: inline-flex; }
 html[data-ua-theme="light"] a.ua-tnav-item,
 html[data-ua-theme="light"] .ua-tnav-trigger { color: var(--ua-ink-mut); }
 html[data-ua-theme="light"] a.ua-tnav-item:hover,
@@ -2198,6 +2279,12 @@ html[data-ua-theme="light"] .ua-tnav-pro {
 
   <div class="ua-tnav-right">
     __UPGRADE_SLOT__
+    <a class="ua-theme-toggle" data-to="light" href="?theme=light"
+       role="button" aria-label="Switch to light theme" title="Switch to light theme"
+       ><span class="ua-tt-ico" aria-hidden="true">&#9788;</span>LIGHT</a>
+    <a class="ua-theme-toggle" data-to="dark" href="?theme=dark"
+       role="button" aria-label="Switch to dark theme" title="Switch to dark theme"
+       ><span class="ua-tt-ico" aria-hidden="true">&#9789;</span>DARK</a>
   </div>
 </nav>
 
@@ -2720,7 +2807,7 @@ def render_page_header(title: str, subtitle: str = "",
     <div>
         <div style="font-size:1.8rem;font-weight:720;letter-spacing:-0.55px;line-height:1.15;
                     font-family:Inter,sans-serif;display:flex;align-items:center;flex-wrap:wrap;">
-            {icon_html}<span style="color:#E4E9F2;">{title}</span>
+            {icon_html}<span style="color:var(--ua-ink);">{title}</span>
         </div>
         {sub_html}
     </div>
