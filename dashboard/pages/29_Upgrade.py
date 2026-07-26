@@ -612,6 +612,7 @@ FREE_FEATS = [
     ("Congress Trade Tracker — recent legislator filings", True),
     ("Watchlist — track up to 5 tickers with live scores", True),
     ("Portfolio Checkup — plain-English orientation for 5 tickers", True),
+    ("Guided Decision Cockpit — top portfolio priorities in plain English", True),
     ("Morning email digest — personalized signal brief", False),
     ("Factor Exposure — Fama-French regression per ticker", False),
     ("Signal Backtester — test custom signal combos", False),
@@ -625,6 +626,7 @@ PRO_FEATS = [
     "Portfolio macro-exposure shifts, flagged as they happen",
     "Portfolio Review — cached executive read of concentration, coverage, and personalized score risk",
     "Portfolio Fit Lab — simulate candidate impact before changing your actual holdings",
+    "Professional Decision Cockpit — event risk, thesis conflicts, evidence stacks, and one-click triage",
     "Decision Queue — evidence-ranked daily triage across holdings, catalysts, and theses",
     "Catalyst Command Center — weighted event risk, private plans, and proactive morning prompts",
     "Notification Policy Center — simple investor presets with advanced timing and volume controls",
@@ -880,6 +882,11 @@ st.markdown(f"""
     <td>Today's Brief / Weekly Research Note</td>
     <td style="text-align:center;" class="comp-yes">✓</td>
     <td style="text-align:center;" class="comp-pro-col comp-yes">✓</td>
+</tr>
+<tr>
+    <td>Personalized Decision Cockpit</td>
+    <td style="text-align:center;color:#8892B0;">Guided priorities</td>
+    <td style="text-align:center;" class="comp-pro-col comp-yes">Professional evidence + triage</td>
 </tr>
 <tr>
     <td>Watchlist</td>

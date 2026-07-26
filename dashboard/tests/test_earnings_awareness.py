@@ -103,3 +103,24 @@ def test_next_earnings_skips_malformed_rows(monkeypatch):
     ])
     info = ea.next_earnings("AAPL")
     assert info and info["days_until"] == 5
+
+
+def test_batch_loader_deduplicates_bounds_and_degrades_per_ticker(monkeypatch):
+    calls = []
+
+    def _next(ticker, _lookahead):
+        calls.append(ticker)
+        if ticker == "FAIL":
+            raise RuntimeError("provider error")
+        return {"ticker": ticker}
+
+    monkeypatch.setattr(ea, "next_earnings", _next)
+    symbols = ["aapl", "AAPL", "fail"] + [f"T{i}" for i in range(30)]
+
+    out = ea.next_earnings_batch(symbols, max_workers=3)
+
+    assert len(out) == 25
+    assert list(out)[:2] == ["AAPL", "FAIL"]
+    assert out["AAPL"] == {"ticker": "AAPL"}
+    assert out["FAIL"] is None
+    assert len(calls) == 25

@@ -444,6 +444,52 @@ def _get_user_catalyst_items(
     )
 
 
+def _get_user_decision_cockpit(user_id: int) -> dict | None:
+    """Compose the same evidence-only cockpit used on Today's Brief.
+
+    All inputs are persisted account state. This deliberately performs no
+    provider fetch and returns None if personalization storage is unavailable,
+    so a digest can still send with its existing market brief.
+    """
+    try:
+        from utils.decision_cockpit import build_decision_cockpit
+        from utils.decision_queue import (
+            apply_queue_states,
+            build_decision_queue,
+            list_queue_states,
+            load_score_changes,
+        )
+        from utils.personalized_brief import build_priority_brief, load_portfolio_evidence
+        from utils.risk_profile import get_profile
+        from utils.thesis import list_user_theses
+
+        evidence = load_portfolio_evidence(user_id, limit=25)
+        if not evidence:
+            return None
+        tickers = tuple(str(row.get("ticker") or "").upper() for row in evidence)
+        changes = load_score_changes(tickers, days=7)
+        theses = list_user_theses(user_id)
+        raw_queue = build_decision_queue(
+            evidence,
+            score_changes=changes,
+            theses=theses,
+        )
+        queue = apply_queue_states(raw_queue, list_queue_states(user_id))
+        priority = build_priority_brief(evidence, get_profile(user_id))
+        return build_decision_cockpit(
+            evidence,
+            priority_brief=priority,
+            queue_items=queue,
+            theses=theses,
+        )
+    except Exception as exc:
+        print(
+            f"[digest] decision cockpit unavailable for user {user_id}: {exc}",
+            flush=True,
+        )
+        return None
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -526,6 +572,7 @@ def main() -> None:
         watchlist_items: list[dict] = []
         watchlist_narrative: str | None = None
         catalyst_items: list[dict] = []
+        decision_cockpit: dict | None = None
         portfolio_mode = False
         if user_id is not None:
             try:
@@ -566,6 +613,7 @@ def main() -> None:
                             f"[digest] catalyst items for user {user_id}: {len(catalyst_items)}",
                             flush=True,
                         )
+                decision_cockpit = _get_user_decision_cockpit(user_id)
             except Exception as exc:
                 print(f"[digest] personalised score failed for user {user_id}: {exc}", flush=True)
 
@@ -584,6 +632,7 @@ def main() -> None:
                 watchlist_narrative=watchlist_narrative,
                 portfolio_mode=portfolio_mode,
                 catalyst_items=catalyst_items or None,
+                decision_cockpit=decision_cockpit,
             )
             sent += 1
             print(f"[digest] sent to {email_addr!r}", flush=True)
