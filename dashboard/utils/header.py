@@ -122,6 +122,7 @@ html[data-ua-theme="light"] {
     --ua-grid:       rgba(20,22,44,0.09);
     --ua-royal:      #4048C6;
     --ua-royal-2:    #5A46C0;
+    --ua-royal-deep: #333BA8;
     --ua-royal-soft: rgba(64,72,198,0.10);
     --ua-gold:       #9C7A2C;
     --ua-text:       #161A2E;
