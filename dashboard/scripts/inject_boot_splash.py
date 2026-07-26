@@ -58,10 +58,9 @@ def _build_splash() -> str:
    iframe where it cannot style the parent document. This file is injected into
    the served index.html, so its script really runs and owns the html element.
 
-   Light mode is OPT-IN while the hex->token migration finishes: pages that
-   still hardcode dark colors would look broken under a flip, so normal users
-   must never land in it by accident. Enter with ?theme=light, leave with
-   ?theme=dark. The choice persists so in-app navigation keeps it. */
+   Theme choice is explicit and durable. Enter with ?theme=light or ?theme=dark;
+   the choice persists so in-app navigation keeps it without a first-paint
+   flash in the opposite palette. */
 (function(){
   try{
     var q=null;
@@ -164,7 +163,7 @@ html[data-ua-theme="light"] #ua-boot-splash{background:#F6F5FB;}
 html[data-ua-theme="light"] #ua-boot-splash .ua-boot-logo{color:#161A2E;}
 html[data-ua-theme="light"] #ua-boot-splash .ua-boot-sub{color:#5E5A8C;}
 html[data-ua-theme="light"] #ua-boot-splash .ua-boot-fact{color:#3A4059;border-top-color:rgba(20,22,44,0.10);}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-fact::before{color:#8A90A6;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-fact::before{color:#62697E;}
 html[data-ua-theme="light"] #ua-boot-splash .ua-boot-bar{background:rgba(20,22,44,0.10);}
 html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hex polygon[stroke]{stroke:#F6F5FB;}
 </style>
