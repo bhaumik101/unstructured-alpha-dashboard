@@ -64,6 +64,15 @@ _CSS = """
     --ua-ink:        #E8EEFF;   /* dominant bright body text */
     --ua-ink-mut:    #8892AA;   /* dominant muted text */
     --ua-surface:    rgba(18,21,30,0.8);  /* dominant translucent card bg */
+
+    /* Slice 2 — same exact-dark-value method. */
+    --ua-ink-label:  #6B7FBF;   /* small-caps labels / captions */
+    --ua-ink-soft:   #B8C0D4;   /* secondary body */
+    --ua-ink-dim:    #5A6478;   /* dimmest legible text */
+    --ua-ink-dim-2:  #4A5280;   /* de-emphasised meta */
+    --ua-hair:       rgba(255,255,255,0.08);  /* hairline borders */
+    --ua-hair-2:     rgba(255,255,255,0.06);
+    --ua-hair-3:     rgba(255,255,255,0.05);
 }
 
 /* Light mode: overrides both the legacy tokens and the redesign tokens. Applied
@@ -94,6 +103,20 @@ html[data-ua-theme="light"] {
     --ua-ink:        #161A2E;   /* light: dark ink on light bg */
     --ua-ink-mut:    #5A6079;
     --ua-surface:    #FFFFFF;
+    --ua-ink-label:  #5E5A8C;
+    --ua-ink-soft:   #3A4059;
+    --ua-ink-dim:    #6E7488;
+    --ua-ink-dim-2:  #7A809A;
+    /* Hairlines invert: light-on-dark becomes dark-on-light, or they vanish. */
+    --ua-hair:       rgba(20,22,44,0.11);
+    --ua-hair-2:     rgba(20,22,44,0.08);
+    --ua-hair-3:     rgba(20,22,44,0.06);
+    /* Semantic data colors need darker variants to stay legible on white. */
+    --ua-green:      #0F9D58;
+    --ua-cyan:       #0A8FA6;
+    --ua-purple:     #6D28D9;
+    --ua-red:        #D13438;
+    --ua-amber:      #B45309;
 }
 
 /* ── Guided workflow cards ───────────────────────────────────────────────── */
@@ -115,7 +138,7 @@ html[data-ua-theme="light"] {
     position: absolute;
     inset: 0 0 auto 0;
     height: 2px;
-    background: linear-gradient(90deg, #00C8E0 0%, #7C3AED 58%, transparent 100%);
+    background: linear-gradient(90deg, var(--ua-cyan) 0%, var(--ua-purple) 58%, transparent 100%);
     opacity: 0.9;
 }
 .ua-guide-kicker {
@@ -208,7 +231,7 @@ html[data-ua-theme="light"] {
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
     background: rgba(255,255,255,0.035);
-    border-color: rgba(255,255,255,0.06);
+    border-color: var(--ua-hair-2);
 }
 [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
     background: rgba(124,58,237,0.10);
@@ -265,7 +288,7 @@ section[data-testid="stSidebar"] a { color: var(--ua-ink-mut) !important; }
 section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3 {
     color: var(--ua-ink) !important;
-    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+    border-bottom: 1px solid var(--ua-hair-3) !important;
     padding-bottom: 4px !important;
 }
 [data-testid="stNavSectionHeader"] {
@@ -280,7 +303,7 @@ section[data-testid="stSidebar"] h3 {
     font-weight: 700 !important;
     letter-spacing: 0.12em !important;
     text-transform: uppercase !important;
-    color: #00D566 !important;
+    color: var(--ua-green) !important;
 }
 [data-testid="stSidebarNavItems"] a[aria-selected="true"],
 [data-testid="stSidebarNavItems"] [aria-selected="true"] {
@@ -288,11 +311,11 @@ section[data-testid="stSidebar"] h3 {
     border-radius: 6px !important;
 }
 [data-testid="stSidebarNavItems"] a[aria-selected="true"] p,
-[data-testid="stSidebarNavItems"] [aria-selected="true"] p { color: #00D566 !important; }
+[data-testid="stSidebarNavItems"] [aria-selected="true"] p { color: var(--ua-green) !important; }
 section[data-testid="stSidebar"] .stButton > button {
     background: rgba(0,213,102,0.09) !important;
     border: 1px solid rgba(0,213,102,0.22) !important;
-    color: #00D566 !important;
+    color: var(--ua-green) !important;
     border-radius: 8px !important;
 }
 section[data-testid="stSidebar"] .stButton > button:hover {
@@ -300,7 +323,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     box-shadow: 0 0 12px rgba(0,213,102,0.14) !important;
 }
 section[data-testid="stSidebar"] .stButton > button span,
-section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !important; }
+section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !important; }
 
 /* ── Masthead ────────────────────────────────────────────────────────────── */
 .market-status-badge {
@@ -315,7 +338,7 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
 .ua-header {
     display: flex; align-items: flex-end; justify-content: space-between;
     padding-bottom: 12px; margin-bottom: 0;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid var(--ua-hair-2);
     position: relative;
 }
 .ua-header::after {
@@ -323,7 +346,7 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
     position: absolute;
     bottom: -1px; left: 0;
     width: 200px; height: 2px;
-    background: linear-gradient(90deg, #00D566, #00C8E0 50%, #7C3AED 100%);
+    background: linear-gradient(90deg, var(--ua-green), var(--ua-cyan) 50%, var(--ua-purple) 100%);
     background-size: 300% 100%;
     animation: ua_gradient_x 6s ease infinite;
     border-radius: 1px;
@@ -333,14 +356,14 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
     font-family: 'Inter', sans-serif; letter-spacing: -0.8px; line-height: 1.05;
 }
 .ua-wordmark span {
-    background: linear-gradient(135deg, #00D566 0%, #00C8E0 60%, #7C3AED 100%);
+    background: linear-gradient(135deg, var(--ua-green) 0%, var(--ua-cyan) 60%, var(--ua-purple) 100%);
     background-size: 200% 200%;
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
     animation: ua_gradient_x 6s ease infinite;
 }
 .ua-tagline {
-    font-size: 0.70rem; color: #6B7FBF; font-family: 'Inter', sans-serif;
+    font-size: 0.70rem; color: var(--ua-ink-label); font-family: 'Inter', sans-serif;
     margin-top: 3px; letter-spacing: 0.02em;
     display: flex; align-items: center; gap: 6px;
 }
@@ -375,13 +398,13 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
 }
 .metric-card::before {
     content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-    width: 3px; background: rgba(255,255,255,0.08);
+    width: 3px; background: var(--ua-hair);
     border-radius: 12px 0 0 12px;
     transition: background 0.2s ease;
 }
-.metric-card.bull::before  { background: linear-gradient(180deg, #00D566, #00A847); }
-.metric-card.bear::before  { background: linear-gradient(180deg, #FF4444, #CC2222); }
-.metric-card.neutral::before { background: linear-gradient(180deg, #6B7FBF, #4A5280); }
+.metric-card.bull::before  { background: linear-gradient(180deg, var(--ua-green), #00A847); }
+.metric-card.bear::before  { background: linear-gradient(180deg, var(--ua-red), #CC2222); }
+.metric-card.neutral::before { background: linear-gradient(180deg, var(--ua-ink-label), var(--ua-ink-dim-2)); }
 /* Subtle top glow when bull/bear */
 .metric-card.bull { box-shadow: 0 0 0 0 transparent, inset 0 1px 0 rgba(0,213,102,0.06); }
 .metric-card.bear { box-shadow: 0 0 0 0 transparent, inset 0 1px 0 rgba(255,68,68,0.06); }
@@ -398,7 +421,7 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
 
 .page-card {
     background: rgba(18,21,30,0.7);
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid var(--ua-hair-2);
     border-radius: 12px; padding: 18px 20px; margin-bottom: 10px;
     font-family: 'Inter', sans-serif;
     transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
@@ -407,7 +430,7 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
 .page-card::before {
     content: ''; position: absolute; left: 0; top: 0; bottom: 0;
     width: 3px;
-    background: linear-gradient(180deg, #00D566, #7C3AED);
+    background: linear-gradient(180deg, var(--ua-green), var(--ua-purple));
     border-radius: 12px 0 0 12px;
     opacity: 0; transition: opacity 0.2s ease;
 }
@@ -425,21 +448,21 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
     font-size: 0.63rem; font-weight: 700; color: var(--ua-ink-mut);
     font-family: 'Inter', sans-serif; letter-spacing: 0.13em;
     text-transform: uppercase;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid var(--ua-hair-3);
     padding-bottom: 8px; margin-bottom: 14px;
 }
 
 /* ── Score numbers ───────────────────────────────────────────────────────── */
 .score-number { font-size: 2.8rem; font-weight: 800; line-height: 1.0; font-family: 'Inter', sans-serif; letter-spacing: -1.5px; }
 .score-bull {
-    background: linear-gradient(135deg, #00D566, #00C8E0);
+    background: linear-gradient(135deg, var(--ua-green), var(--ua-cyan));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .score-bear {
-    background: linear-gradient(135deg, #FF4444, #FF8888);
+    background: linear-gradient(135deg, var(--ua-red), #FF8888);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.score-neutral { color: #6B7FBF; }
+.score-neutral { color: var(--ua-ink-label); }
 
 /* ── Stat boxes ──────────────────────────────────────────────────────────── */
 .stat-box {
@@ -456,13 +479,13 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
 .stat-box .stat-label  { font-size: 0.60rem; text-transform: uppercase; letter-spacing: 0.11em; color: var(--ua-ink-mut); margin-bottom: 6px; font-weight: 700; }
 .stat-box .stat-value  { font-size: 1.4rem; font-weight: 700; color: var(--ua-ink); letter-spacing: -0.5px; }
 .stat-box .stat-change { font-size: 0.76rem; margin-top: 3px; font-weight: 500; }
-.stat-box .stat-change.pos  { color: #00D566; }
-.stat-box .stat-change.neg  { color: #FF4444; }
-.stat-box .stat-change.flat { color: #6B7FBF; }
+.stat-box .stat-change.pos  { color: var(--ua-green); }
+.stat-box .stat-change.neg  { color: var(--ua-red); }
+.stat-box .stat-change.flat { color: var(--ua-ink-label); }
 
 /* ── Info / disclaimer ───────────────────────────────────────────────────── */
 .disclaimer {
-    background: rgba(18,21,30,0.6); border: 1px solid rgba(255,255,255,0.05);
+    background: rgba(18,21,30,0.6); border: 1px solid var(--ua-hair-3);
     border-radius: 8px; padding: 10px 14px; font-size: 0.72rem;
     color: var(--ua-ink-mut); margin-top: 16px; font-family: 'Inter', sans-serif;
 }
@@ -475,7 +498,7 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
 /* ── Tables ──────────────────────────────────────────────────────────────── */
 .comparison-table { width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 0.83rem; }
 .comparison-table th {
-    background: rgba(0,213,102,0.08); color: #00D566;
+    background: rgba(0,213,102,0.08); color: var(--ua-green);
     padding: 9px 12px; text-align: left; font-weight: 700;
     font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase;
     border-bottom: 1px solid rgba(0,213,102,0.18);
@@ -489,13 +512,13 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
     background: rgba(18,21,30,0.95); color: var(--ua-ink-mut);
     padding: 9px 12px; text-align: left; font-weight: 700;
     font-size: 0.60rem; letter-spacing: 0.10em; text-transform: uppercase;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid var(--ua-hair-2);
 }
-.ua-data-table td { padding: 9px 12px; border-bottom: 1px solid var(--ua-border-lo); color: #B8C0D4; vertical-align: middle; }
+.ua-data-table td { padding: 9px 12px; border-bottom: 1px solid var(--ua-border-lo); color: var(--ua-ink-soft); vertical-align: middle; }
 .ua-data-table tr:hover td { background: rgba(255,255,255,0.02); transition: background 0.1s ease; }
-.ua-data-table .bull    { color: #00D566; font-weight: 600; }
-.ua-data-table .bear    { color: #FF4444; font-weight: 600; }
-.ua-data-table .neutral { color: #6B7FBF; }
+.ua-data-table .bull    { color: var(--ua-green); font-weight: 600; }
+.ua-data-table .bear    { color: var(--ua-red); font-weight: 600; }
+.ua-data-table .neutral { color: var(--ua-ink-label); }
 
 /* ── Streamlit native overrides ──────────────────────────────────────────── */
 /* Metrics */
@@ -504,14 +527,14 @@ section[data-testid="stSidebar"] .stButton > button p { color: #00D566 !importan
 .stMetric [data-testid="stMetricDelta"] { font-size: 0.78rem !important; font-weight: 500 !important; }
 
 /* Expanders */
-div[data-testid="stExpander"] { background: rgba(18,21,30,0.6) !important; border: 1px solid rgba(255,255,255,0.06) !important; border-radius: 10px !important; }
+div[data-testid="stExpander"] { background: rgba(18,21,30,0.6) !important; border: 1px solid var(--ua-hair-2) !important; border-radius: 10px !important; }
 .streamlit-expanderHeader { color: var(--ua-text-mid) !important; font-family: 'Inter', sans-serif !important; font-weight: 600 !important; font-size: 0.86rem !important; }
 
 /* Tabs */
-.stTabs [data-baseweb="tab-list"]  { border-bottom: 1px solid rgba(255,255,255,0.06) !important; gap: 0 !important; background: transparent !important; }
+.stTabs [data-baseweb="tab-list"]  { border-bottom: 1px solid var(--ua-hair-2) !important; gap: 0 !important; background: transparent !important; }
 .stTabs [data-baseweb="tab"]       { font-family: 'Inter', sans-serif !important; font-size: 0.83rem !important; font-weight: 500 !important; padding: 8px 18px !important; color: var(--ua-ink-mut) !important; background: transparent !important; border: none !important; }
-.stTabs [aria-selected="true"]     { color: var(--ua-ink) !important; border-bottom: 2px solid #00D566 !important; font-weight: 600 !important; }
-.stTabs [data-baseweb="tab-highlight"] { background: #00D566 !important; height: 2px !important; }
+.stTabs [aria-selected="true"]     { color: var(--ua-ink) !important; border-bottom: 2px solid var(--ua-green) !important; font-weight: 600 !important; }
+.stTabs [data-baseweb="tab-highlight"] { background: var(--ua-green) !important; height: 2px !important; }
 .stTabs [data-baseweb="tab-panel"] { padding-top: 16px !important; }
 
 /* Buttons */
@@ -519,7 +542,7 @@ div[data-testid="stExpander"] { background: rgba(18,21,30,0.6) !important; borde
     font-family: 'Inter', sans-serif !important;
     border-radius: 8px !important; font-weight: 500 !important; font-size: 0.83rem !important;
     transition: all 0.18s cubic-bezier(0.4,0,0.2,1) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+    border: 1px solid var(--ua-hair) !important;
     background: var(--ua-surface) !important; color: var(--ua-text-mid) !important;
 }
 
@@ -557,7 +580,7 @@ div[data-testid="stExpander"] { background: rgba(18,21,30,0.6) !important; borde
 
 /* Inputs */
 .stTextInput > div > div > input {
-    background: var(--ua-surface) !important; border: 1px solid rgba(255,255,255,0.08) !important;
+    background: var(--ua-surface) !important; border: 1px solid var(--ua-hair) !important;
     border-radius: 8px !important; color: var(--ua-ink) !important;
     font-family: 'Inter', sans-serif !important;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -570,43 +593,43 @@ div[data-testid="stExpander"] { background: rgba(18,21,30,0.6) !important; borde
 
 /* Selectbox */
 .stSelectbox > div > div {
-    background: var(--ua-surface) !important; border: 1px solid rgba(255,255,255,0.08) !important;
+    background: var(--ua-surface) !important; border: 1px solid var(--ua-hair) !important;
     border-radius: 8px !important; color: var(--ua-ink) !important; font-family: 'Inter', sans-serif !important;
 }
 
 /* Multiselect */
 .stMultiSelect > div > div {
-    background: var(--ua-surface) !important; border: 1px solid rgba(255,255,255,0.08) !important;
+    background: var(--ua-surface) !important; border: 1px solid var(--ua-hair) !important;
     border-radius: 8px !important;
 }
 .stMultiSelect span[data-baseweb="tag"] {
     background: rgba(0,213,102,0.10) !important; border-color: rgba(0,213,102,0.25) !important;
-    color: #00D566 !important;
+    color: var(--ua-green) !important;
 }
 
 /* Number / Date input */
 .stNumberInput > div > div > input,
 .stDateInput > div > div > input {
-    background: var(--ua-surface) !important; border: 1px solid rgba(255,255,255,0.08) !important;
+    background: var(--ua-surface) !important; border: 1px solid var(--ua-hair) !important;
     border-radius: 8px !important; color: var(--ua-ink) !important; font-family: 'Inter', sans-serif !important;
 }
 
 /* Sliders */
-.stSlider [data-baseweb="slider"] [role="progressbar"] { background: linear-gradient(90deg, #00D566, #00C8E0) !important; }
-.stSlider [data-baseweb="thumb"] { background: #00D566 !important; border-color: #00D566 !important; box-shadow: 0 0 8px rgba(0,213,102,0.5) !important; }
+.stSlider [data-baseweb="slider"] [role="progressbar"] { background: linear-gradient(90deg, var(--ua-green), var(--ua-cyan)) !important; }
+.stSlider [data-baseweb="thumb"] { background: var(--ua-green) !important; border-color: var(--ua-green) !important; box-shadow: 0 0 8px rgba(0,213,102,0.5) !important; }
 
 /* Toggle */
-.stToggle [data-baseweb="switch"] [data-checked="true"] { background: #00D566 !important; }
+.stToggle [data-baseweb="switch"] [data-checked="true"] { background: var(--ua-green) !important; }
 
 /* Progress bars */
-.stProgress > div > div > div { background: linear-gradient(90deg, #00D566, #00C8E0) !important; border-radius: 4px !important; }
-.stProgress > div > div { background: rgba(255,255,255,0.05) !important; border-radius: 4px !important; }
+.stProgress > div > div > div { background: linear-gradient(90deg, var(--ua-green), var(--ua-cyan)) !important; border-radius: 4px !important; }
+.stProgress > div > div { background: var(--ua-hair-3) !important; border-radius: 4px !important; }
 
 /* Dividers */
-hr { border-color: rgba(255,255,255,0.05) !important; opacity: 1 !important; }
+hr { border-color: var(--ua-hair-3) !important; opacity: 1 !important; }
 
 /* Spinner */
-.stSpinner > div { border-top-color: #00D566 !important; }
+.stSpinner > div { border-top-color: var(--ua-green) !important; }
 
 /* H1/H2/H3 */
 h1, h2, h3 { color: var(--ua-ink) !important; font-family: 'Inter', sans-serif !important; font-weight: 700 !important; letter-spacing: -0.3px !important; }
@@ -622,7 +645,7 @@ p  { color: var(--ua-text-mid) !important; font-family: 'Inter', sans-serif !imp
 .stCaption, small { color: var(--ua-text-cap) !important; font-family: 'Inter', sans-serif !important; }
 
 /* Dataframe */
-[data-testid="stDataFrame"] { border: 1px solid rgba(255,255,255,0.06) !important; border-radius: 10px !important; overflow: hidden !important; }
+[data-testid="stDataFrame"] { border: 1px solid var(--ua-hair-2) !important; border-radius: 10px !important; overflow: hidden !important; }
 
 /* Alerts */
 .stAlert { border-radius: 10px !important; border: none !important; }
@@ -654,7 +677,7 @@ ul[data-baseweb="menu"] {
 [data-baseweb="menu"] li,
 [data-baseweb="option"] {
     background: transparent !important;
-    color: #B8C0D4 !important;
+    color: var(--ua-ink-soft) !important;
     font-family: 'Inter', sans-serif !important;
     font-size: 0.83rem !important;
 }
@@ -680,7 +703,7 @@ ul[data-baseweb="menu"] {
     text-align: center;
     padding: 48px 24px;
     background: rgba(18,21,30,0.5);
-    border: 1px dashed rgba(255,255,255,0.08);
+    border: 1px dashed var(--ua-hair);
     border-radius: 14px;
     font-family: 'Inter', sans-serif;
     margin: 12px 0;
@@ -703,7 +726,7 @@ ul[data-baseweb="menu"] {
 /* ── Code blocks ─────────────────────────────────────────────────────────── */
 code, pre {
     background: rgba(18,21,30,0.9) !important;
-    color: #00C8E0 !important;
+    color: var(--ua-cyan) !important;
     border: 1px solid var(--ua-border) !important;
     border-radius: 6px !important;
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace !important;
@@ -728,10 +751,10 @@ code, pre {
     transition: all 0.15s ease;
 }
 .ua-chip:hover { filter: brightness(1.15); }
-.ua-chip.bull  { color: #00D566; background: rgba(0,213,102,0.08); }
-.ua-chip.bear  { color: #FF4444; background: rgba(255,68,68,0.08); }
-.ua-chip.neut  { color: #6B7FBF; background: rgba(107,127,191,0.08); }
-.ua-chip.pro   { color: #7C3AED; background: rgba(124,58,237,0.10); }
+.ua-chip.bull  { color: var(--ua-green); background: rgba(0,213,102,0.08); }
+.ua-chip.bear  { color: var(--ua-red); background: rgba(255,68,68,0.08); }
+.ua-chip.neut  { color: var(--ua-ink-label); background: rgba(107,127,191,0.08); }
+.ua-chip.pro   { color: var(--ua-purple); background: rgba(124,58,237,0.10); }
 
 /* ── Modern keyframes ────────────────────────────────────────────────────── */
 @keyframes ua_pulse_ring {
@@ -796,7 +819,7 @@ code, pre {
     background: rgba(18,21,30,0.75);
     backdrop-filter: blur(18px) saturate(160%);
     -webkit-backdrop-filter: blur(18px) saturate(160%);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--ua-hair);
     border-radius: var(--ua-radius);
     box-shadow: var(--ua-shadow);
 }
@@ -818,7 +841,7 @@ code, pre {
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, #00D566, #00C8E0, #7C3AED, #00D566);
+    background: linear-gradient(135deg, var(--ua-green), var(--ua-cyan), var(--ua-purple), var(--ua-green));
     background-size: 300% 300%;
     animation: ua_border_spin 4s linear infinite;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -879,12 +902,12 @@ code, pre {
 }
 .ua-score-badge.bull {
     background: rgba(0,213,102,0.12);
-    color: #00D566;
+    color: var(--ua-green);
     box-shadow: 0 0 0 2px rgba(0,213,102,0.3), inset 0 0 12px rgba(0,213,102,0.08);
 }
 .ua-score-badge.bear {
     background: rgba(255,68,68,0.12);
-    color: #FF4444;
+    color: var(--ua-red);
     box-shadow: 0 0 0 2px rgba(255,68,68,0.3), inset 0 0 12px rgba(255,68,68,0.08);
 }
 .ua-score-badge.neut {
@@ -932,8 +955,8 @@ code, pre {
     font-family: 'Inter', sans-serif;
     white-space: nowrap;
 }
-.ua-pill.bull { background: rgba(0,213,102,0.10); color: #00D566; border: 1px solid rgba(0,213,102,0.25); }
-.ua-pill.bear { background: rgba(255,68,68,0.10);  color: #FF4444; border: 1px solid rgba(255,68,68,0.25); }
+.ua-pill.bull { background: rgba(0,213,102,0.10); color: var(--ua-green); border: 1px solid rgba(0,213,102,0.25); }
+.ua-pill.bear { background: rgba(255,68,68,0.10);  color: var(--ua-red); border: 1px solid rgba(255,68,68,0.25); }
 .ua-pill.neut { background: rgba(107,127,191,0.08); color: var(--ua-ink-mut); border: 1px solid rgba(107,127,191,0.20); }
 .ua-pill.pro  { background: rgba(124,58,237,0.10);  color: #A78BFA; border: 1px solid rgba(124,58,237,0.25); }
 
@@ -1004,7 +1027,7 @@ code, pre {
     background: rgba(0,213,102,0.15);
     border: 1px solid rgba(0,213,102,0.35);
     border-radius: 50%;
-    color: #00D566;
+    color: var(--ua-green);
     font-size: 18px;
     line-height: 40px;
     text-align: center;
@@ -1096,7 +1119,7 @@ code, pre {
 }
 .ua-chart-caption {
     font-size: 0.63rem;
-    color: #4A5280;
+    color: var(--ua-ink-dim-2);
     margin-top: 8px;
     font-family: 'Inter', sans-serif;
     font-style: italic;
@@ -1108,7 +1131,7 @@ code, pre {
     gap: 4px;
     font-size: 0.60rem;
     font-weight: 700;
-    color: #6B7FBF;
+    color: var(--ua-ink-label);
     background: rgba(107,127,191,0.08);
     border: 1px solid rgba(107,127,191,0.15);
     border-radius: 4px;
@@ -1132,7 +1155,7 @@ code, pre {
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 2px;
-    background: linear-gradient(90deg, #7C3AED, #00C8E0, #7C3AED);
+    background: linear-gradient(90deg, var(--ua-purple), var(--ua-cyan), var(--ua-purple));
     background-size: 200% 100%;
     animation: ua_gradient_x 4s ease infinite;
 }
@@ -1183,7 +1206,7 @@ code, pre {
 /* ── Loading pulse state ─────────────────────────────────────────────────── */
 .ua-loading-card {
     background: rgba(18,21,30,0.7);
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid var(--ua-hair-2);
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 10px;
@@ -1191,14 +1214,14 @@ code, pre {
 }
 
 /* ── Score trend indicator ───────────────────────────────────────────────── */
-.ua-trend-up   { color: #00D566; font-weight: 700; font-size: 0.80rem; }
-.ua-trend-down { color: #FF4444; font-weight: 700; font-size: 0.80rem; }
-.ua-trend-flat { color: #6B7FBF; font-weight: 700; font-size: 0.80rem; }
+.ua-trend-up   { color: var(--ua-green); font-weight: 700; font-size: 0.80rem; }
+.ua-trend-down { color: var(--ua-red); font-weight: 700; font-size: 0.80rem; }
+.ua-trend-flat { color: var(--ua-ink-label); font-weight: 700; font-size: 0.80rem; }
 
 /* ── Inline score bar (for signal tables) ────────────────────────────────── */
 .ua-score-bar-track {
     height: 4px;
-    background: rgba(255,255,255,0.05);
+    background: var(--ua-hair-3);
     border-radius: 2px;
     overflow: hidden;
     flex-shrink: 0;
@@ -1208,8 +1231,8 @@ code, pre {
     border-radius: 2px;
     transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
 }
-.ua-score-bar-fill.bull { background: linear-gradient(90deg, #00D566, #00C8E0); }
-.ua-score-bar-fill.bear { background: linear-gradient(90deg, #FF4444, #FF7777); }
+.ua-score-bar-fill.bull { background: linear-gradient(90deg, var(--ua-green), var(--ua-cyan)); }
+.ua-score-bar-fill.bear { background: linear-gradient(90deg, var(--ua-red), #FF7777); }
 .ua-score-bar-fill.neut { background: rgba(107,127,191,0.5); }
 
 /* ── Section eyebrow label ───────────────────────────────────────────────── */
@@ -1247,7 +1270,7 @@ code, pre {
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     transition: all 0.15s ease;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--ua-hair);
     background: rgba(255,255,255,0.03);
     color: var(--ua-ink-mut);
     white-space: nowrap;
@@ -1259,7 +1282,7 @@ code, pre {
 }
 .ua-filter-pill.active {
     border-color: rgba(0,213,102,0.4);
-    color: #00D566;
+    color: var(--ua-green);
     background: rgba(0,213,102,0.08);
     font-weight: 700;
 }
@@ -1315,7 +1338,7 @@ code, pre {
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(255,255,255,0.05);
+    background: var(--ua-hair-3);
 }
 
 /* ── Watchlist row hover ─────────────────────────────────────────────────── */
@@ -1358,15 +1381,15 @@ section[data-testid="stSidebar"] {
 .ua-header::after, .ua-card-shine::after { display: none !important; }
 .ua-wordmark span {
     background: none !important;
-    -webkit-text-fill-color: #DDE3EC !important;
-    color: #DDE3EC !important;
+    -webkit-text-fill-color: var(--ua-text-mid) !important;
+    color: var(--ua-text-mid) !important;
     animation: none !important;
 }
 .metric-card, .page-card, .stat-box,
 [data-testid="stMetric"], [data-testid="stExpander"] {
-    background: #11151C !important;
+    background: var(--ua-bg-card) !important;
     backdrop-filter: none !important;
-    border-color: rgba(255,255,255,0.08) !important;
+    border-color: var(--ua-hair) !important;
     border-radius: 8px !important;
     box-shadow: none !important;
     transform: none !important;
@@ -1409,11 +1432,11 @@ section[data-testid="stSidebar"] {
     text-transform: uppercase;
     padding-bottom: 7px;
     margin-bottom: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid var(--ua-hair);
 }
 .ua-notification-item {
     background: #151A22;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--ua-hair);
     border-left-width: 2px;
     border-radius: 6px;
     padding: 8px 9px;
@@ -1450,9 +1473,9 @@ section[data-testid="stSidebar"] {
    semantic bullish/bearish colors or turning body copy bright white. */
 [style*="color:var(--ua-ink-mut)" i] { color: var(--ua-text-lo) !important; }
 [style*="color: var(--ua-ink-mut)" i] { color: var(--ua-text-lo) !important; }
-[style*="color:#6B7FBF" i] { color: var(--ua-text-cap) !important; }
-[style*="color: #6B7FBF" i] { color: var(--ua-text-cap) !important; }
-[style*="color:#4A5280" i], [style*="color:#5A6478" i] {
+[style*="color:var(--ua-ink-label)" i] { color: var(--ua-text-cap) !important; }
+[style*="color: var(--ua-ink-label)" i] { color: var(--ua-text-cap) !important; }
+[style*="color:var(--ua-ink-dim-2)" i], [style*="color:var(--ua-ink-dim)" i] {
     color: #7F899A !important;
 }
 .metric-card:hover, .page-card:hover,
@@ -1468,8 +1491,8 @@ section[data-testid="stSidebar"] {
     font-weight: 600 !important;
 }
 [data-testid="stPlotlyChart"] {
-    background: #11151C !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+    background: var(--ua-bg-card) !important;
+    border: 1px solid var(--ua-hair) !important;
     border-radius: 8px !important;
     padding: 4px !important;
     box-shadow: none !important;
@@ -1520,7 +1543,7 @@ def render_data_unavailable_banner(n_unavailable: int, n_total: int) -> None:
         st.markdown(f"""
     <div style="background:rgba(255,68,68,0.08);color:#FF8888;border-radius:10px;padding:12px 18px;
                 margin-bottom:14px;font-family:Inter,sans-serif;font-size:0.83rem;
-                border:1px solid rgba(255,68,68,0.3);border-left:3px solid #FF4444;">
+                border:1px solid rgba(255,68,68,0.3);border-left:3px solid var(--ua-red);">
         <b style="color:#E06C75;">REAL DATA UNAVAILABLE</b> — {n_unavailable} of {n_total} signals could not be
         loaded from their source and have been excluded from scores, rankings, and
         exports. No placeholder or synthetic observations are used. Check provider
@@ -1772,7 +1795,7 @@ header[data-testid="stHeader"]            { display: none !important; }
   background: rgba(9,11,17,0.97);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ua-hair-2);
   display: flex; align-items: center;
   padding: 0 16px; gap: 0;
   font-family: 'Inter', -apple-system, sans-serif;
@@ -1805,7 +1828,7 @@ a.ua-tnav-item {
   text-decoration: none !important; white-space: nowrap;
   transition: color .12s ease, background .12s ease;
 }
-a.ua-tnav-item:hover { color: var(--ua-ink); background: rgba(255,255,255,0.06); }
+a.ua-tnav-item:hover { color: var(--ua-ink); background: var(--ua-hair-2); }
 a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(100,112,245,0.12) !important; }
 
 /* ── Dropdown group ───────────────────────────────────────────────────────── */
@@ -1817,8 +1840,8 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(100,112,245,
   cursor: pointer; white-space: nowrap; user-select: none;
   transition: color .12s ease, background .12s ease;
 }
-.ua-tnav-group:hover > .ua-tnav-trigger { color: var(--ua-ink); background: rgba(255,255,255,0.06); }
-.ua-tnav-trigger.active { color: #00D566 !important; background: rgba(0,213,102,0.08) !important; }
+.ua-tnav-group:hover > .ua-tnav-trigger { color: var(--ua-ink); background: var(--ua-hair-2); }
+.ua-tnav-trigger.active { color: var(--ua-green) !important; background: rgba(0,213,102,0.08) !important; }
 .ua-tnav-caret {
   font-size: 0.45rem; opacity: .38; line-height: 1;
   display: inline-block; transition: transform .13s ease;
@@ -1831,7 +1854,7 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(100,112,245,
   position: absolute; top: calc(100% + 4px); left: 0;
   min-width: 172px;
   background: rgba(12,14,22,0.98);
-  border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+  border: 1px solid var(--ua-hair); border-radius: 10px;
   padding: 5px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03);
   backdrop-filter: blur(24px);
@@ -1854,28 +1877,28 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(100,112,245,
 }
 .ua-tnav-drop a {
   display: block; padding: 7px 10px; border-radius: 6px;
-  font-size: 0.74rem; font-weight: 500; color: #B8C0D4;
+  font-size: 0.74rem; font-weight: 500; color: var(--ua-ink-soft);
   text-decoration: none !important; white-space: nowrap;
   transition: color .1s ease, background .1s ease;
 }
 .ua-tnav-drop a:hover { color: var(--ua-ink); background: var(--ua-border); }
-.ua-tnav-drop a.active { color: #00D566 !important; background: rgba(0,213,102,0.09) !important; }
+.ua-tnav-drop a.active { color: var(--ua-green) !important; background: rgba(0,213,102,0.09) !important; }
 .ua-tnav-drop a.pro-link { color: #A78BFA; }
 .ua-tnav-drop a.pro-link:hover { color: #C4B5FD; background: rgba(124,58,237,0.10); }
-.ua-tnav-drop-rule { height: 1px; background: rgba(255,255,255,0.05); margin: 3px 2px; }
+.ua-tnav-drop-rule { height: 1px; background: var(--ua-hair-3); margin: 3px 2px; }
 
 /* ── Right controls ───────────────────────────────────────────────────────── */
 .ua-tnav-right { display: flex; align-items: center; gap: 7px; flex-shrink: 0; margin-left: 8px; }
 .ua-tnav-upgrade {
   display: inline-flex; align-items: center; gap: 3px;
   padding: 5px 12px; height: 30px;
-  background: linear-gradient(135deg, #7C3AED, #6D28D9);
+  background: linear-gradient(135deg, var(--ua-purple), #6D28D9);
   color: #fff !important; font-size: 0.72rem; font-weight: 700;
   border-radius: 6px; text-decoration: none !important; letter-spacing: 0.01em;
   transition: all .14s ease; white-space: nowrap; flex-shrink: 0;
 }
 .ua-tnav-upgrade:hover {
-  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  background: linear-gradient(135deg, #8B5CF6, var(--ua-purple));
   box-shadow: 0 0 18px rgba(124,58,237,0.45);
 }
 /* Pro members: small non-clickable status pill instead of the Upgrade CTA */
@@ -1926,7 +1949,7 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(100,112,245,
     position: absolute; top: 100%; left: 0; right: 0;
     flex-direction: column; align-items: stretch; gap: 1px;
     background: rgba(9,11,17,0.99);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid var(--ua-hair);
     box-shadow: 0 24px 60px rgba(0,0,0,0.75);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     padding: 6px 10px 16px; max-height: 84vh; overflow-y: auto;
@@ -1937,7 +1960,7 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(100,112,245,
   .ua-tnav-trigger {
     width: 100%; height: auto; padding: 12px 8px 4px; font-size: 0.62rem;
     font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
-    color: #6B7FBF; cursor: default;
+    color: var(--ua-ink-label); cursor: default;
   }
   .ua-tnav-caret { display: none; }
   .ua-tnav-drop {
@@ -2031,7 +2054,7 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(100,112,245,
         <a href="/my-profile">My Profile</a>
         <a href="/about-methodology">About &amp; Methodology</a>
         <div class="ua-tnav-drop-rule"></div>
-        <a href="/privacy-terms" style="font-size:0.68rem;color:#6B7FBF;">Privacy &amp; Terms</a>
+        <a href="/privacy-terms" style="font-size:0.68rem;color:var(--ua-ink-label);">Privacy &amp; Terms</a>
         __ADMIN_NAV_SLOT__
       </div>
     </div>
@@ -2208,8 +2231,8 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     _market_open = (_now_et.weekday() < 5) and (9 * 60 + 30) <= _mins_et < 16 * 60
     _status_label = "MARKET OPEN" if _market_open else "MARKET CLOSED"
     _status_bg    = "rgba(0,213,102,0.10)" if _market_open else "rgba(255,68,68,0.08)"
-    _status_fg    = "#00D566" if _market_open else "#FF4444"
-    _status_dot   = "#00D566" if _market_open else "#FF4444"
+    _status_fg    = "var(--ua-green)" if _market_open else "var(--ua-red)"
+    _status_dot   = "var(--ua-green)" if _market_open else "var(--ua-red)"
     _time_str     = _now_et.strftime("%-I:%M %p ET")
     _date_str     = _now_et.strftime("%A, %B %-d, %Y")
 
@@ -2233,7 +2256,7 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
             )
         elif _is_pro:
             _tier_badge = (
-                '<span style="background:#7C3AED;color:#fff;font-size:0.55rem;font-weight:700;'
+                '<span style="background:var(--ua-purple);color:#fff;font-size:0.55rem;font-weight:700;'
                 'padding:1px 5px;border-radius:4px;margin-left:4px;letter-spacing:0.04em;">PRO</span>'
             )
         else:
@@ -2241,7 +2264,7 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
         _user_pill = (
             f'<span style="display:inline-flex;align-items:center;gap:4px;'
             f'background:rgba(0,213,102,0.08);border:1px solid rgba(0,213,102,0.2);'
-            f'border-radius:6px;padding:2px 8px;font-size:0.68rem;color:#00D566;'
+            f'border-radius:6px;padding:2px 8px;font-size:0.68rem;color:var(--ua-green);'
             f'font-weight:600;font-family:Inter,sans-serif;white-space:nowrap;">'
             f'{_user_email}{_tier_badge}</span>'
         )
@@ -2298,19 +2321,19 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
         _rs_date = max((str(v.get("snapshot_date") or "") for v in _rs.values()), default="")
         _regime_lbl, _regime_col, _regime_bg = _reg.label, _reg.color, _reg.bg
         st.markdown(
-            f'<div style="background:{_regime_bg};border:1px solid rgba(255,255,255,0.06);'
+            f'<div style="background:{_regime_bg};border:1px solid var(--ua-hair-2);'
             f'border-left:3px solid {_regime_col};'
             f'border-radius:8px;padding:6px 14px;margin-bottom:12px;'
             f'display:flex;align-items:center;gap:16px;font-family:Inter,sans-serif;">'
             f'<span style="font-size:0.60rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.11em;font-weight:700;">MACRO REGIME</span>'
             f'<span style="font-size:0.75rem;font-weight:700;color:{_regime_col};">● {_regime_lbl}</span>'
             f'<span style="font-size:0.68rem;color:var(--ua-ink-mut);">'
-            f'<span style="color:#00D566;">▲ {_rb}</span>'
-            f' · <span style="color:#FF4444;">▼ {_rr}</span>'
-            f' · <span style="color:#6B7FBF;">→ {_rn}</span>'
-            + (f' · <span style="color:#5A6478;" title="Signals with insufficient recent data this cycle">⊘ {_runavail}</span>' if _runavail else "")
+            f'<span style="color:var(--ua-green);">▲ {_rb}</span>'
+            f' · <span style="color:var(--ua-red);">▼ {_rr}</span>'
+            f' · <span style="color:var(--ua-ink-label);">→ {_rn}</span>'
+            + (f' · <span style="color:var(--ua-ink-dim);" title="Signals with insufficient recent data this cycle">⊘ {_runavail}</span>' if _runavail else "")
             + f'</span>'
-            f'<span style="font-size:0.60rem;color:#6B7FBF;margin-left:auto;">'
+            f'<span style="font-size:0.60rem;color:var(--ua-ink-label);margin-left:auto;">'
             f'{SIGNAL_COUNT} signals · {"snapshot " + _rs_date if _rs_date else "no snapshot yet"}</span>'
             f'</div>',
             unsafe_allow_html=True,
@@ -2489,12 +2512,12 @@ def _render_live_ticker_strip() -> None:
     chips = []
     for sym, label, price, chg in items:
         arrow = "▲" if chg >= 0 else "▼"
-        color = "#00D566" if chg >= 0 else "#FF4444"
+        color = "var(--ua-green)" if chg >= 0 else "var(--ua-red)"
         # Always show two decimal places for every price (e.g. $225.34, $1,234.56).
         p_fmt = f"${price:,.2f}"
         chips.append(
             f'<span style="display:inline-flex;align-items:center;gap:6px;'
-            f'padding:0 14px;border-right:1px solid rgba(255,255,255,0.06);">'
+            f'padding:0 14px;border-right:1px solid var(--ua-hair-2);">'
             f'<span style="color:var(--ua-ink-mut);font-weight:600;font-size:0.68rem;">{sym}</span>'
             f'<span style="color:var(--ua-ink);font-weight:700;font-size:0.70rem;">{p_fmt}</span>'
             f'<span style="color:{color};font-size:0.68rem;font-weight:600;">{arrow} {abs(chg):.2f}%</span>'
@@ -2504,7 +2527,7 @@ def _render_live_ticker_strip() -> None:
     inner = "".join(chips)
     # Duplicate for seamless marquee loop
     ticker_html = f"""
-<div style="background:rgba(12,14,20,0.95);border-bottom:1px solid rgba(255,255,255,0.05);
+<div style="background:rgba(12,14,20,0.95);border-bottom:1px solid var(--ua-hair-3);
              overflow:hidden;white-space:nowrap;padding:5px 0;margin-bottom:0;
              font-family:Inter,sans-serif;">
   <div style="display:inline-flex;animation:tickerScroll 28s linear infinite;">
@@ -2542,7 +2565,7 @@ def render_page_header(title: str, subtitle: str = "",
 
     stat_html = (
         f'<div style="display:inline-flex;align-items:center;gap:6px;'
-        f'background:#11151C;border:1px solid rgba(255,255,255,0.09);'
+        f'background:var(--ua-bg-card);border:1px solid rgba(255,255,255,0.09);'
         f'border-radius:6px;padding:5px 10px;font-size:0.66rem;font-weight:650;'
         f'color:#AAB3C5;letter-spacing:0.04em;white-space:nowrap;font-family:Inter,sans-serif;">'
         f'{live_stat}</div>'
@@ -2556,7 +2579,7 @@ def render_page_header(title: str, subtitle: str = "",
     st.markdown(f"""
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
             margin:8px 0 20px;padding-bottom:16px;position:relative;
-            border-bottom:1px solid rgba(255,255,255,0.05);"
+            border-bottom:1px solid var(--ua-hair-3);"
      class="ua-slide-up">
     <div>
         <div style="font-size:1.8rem;font-weight:720;letter-spacing:-0.55px;line-height:1.15;
@@ -2626,7 +2649,7 @@ def render_footer(page: str = "") -> None:
     _page_note_html = ""
     if page == "signals":
         _page_note_html = (
-            '<div style="font-size:0.70rem;color:#6B7FBF;margin-top:4px;">'
+            '<div style="font-size:0.70rem;color:var(--ua-ink-label);margin-top:4px;">'
             'Signal scores are 0–100 percentile ranks within a trailing 2-year '
             'distribution. A score of 65+ is "bullish" (top percentile); 35− is '
             '"bearish." Scores are informational — they do not predict specific price '
@@ -2635,7 +2658,7 @@ def render_footer(page: str = "") -> None:
         )
     elif page == "ticker":
         _page_note_html = (
-            '<div style="font-size:0.70rem;color:#6B7FBF;margin-top:4px;">'
+            '<div style="font-size:0.70rem;color:var(--ua-ink-label);margin-top:4px;">'
             'The Confluence Score is a correlation-weighted average of macro signals. '
             'It reflects the current macro environment, not a price target. '
             'Historical lead times are back-tested on available data and may not hold '
@@ -2652,7 +2675,7 @@ def render_footer(page: str = "") -> None:
         'padding:5px 12px;border-radius:6px;white-space:nowrap;">Pro member</span>'
         if _foot_is_pro else
         '<a href="/upgrade-to-pro" style="font-size:0.68rem;color:#fff;text-decoration:none;'
-        'font-weight:700;background:linear-gradient(135deg,#7C3AED,#6D28D9);'
+        'font-weight:700;background:linear-gradient(135deg,var(--ua-purple),#6D28D9);'
         'padding:5px 12px;border-radius:6px;white-space:nowrap;" '
         'onmouseover="this.style.opacity=\'0.88\'" '
         'onmouseout="this.style.opacity=\'1\'">Upgrade to Pro</a>'
@@ -2662,18 +2685,18 @@ def render_footer(page: str = "") -> None:
     # the markdown parser would turn into a code block and dump as raw text at the
     # bottom of the page (same bug that hit the top-nav). st.html skips markdown.
     st.html(f"""
-<div style="margin-top:48px;padding:28px 0 20px;border-top:1px solid rgba(255,255,255,0.05);
+<div style="margin-top:48px;padding:28px 0 20px;border-top:1px solid var(--ua-hair-3);
             font-family:Inter,sans-serif;">
     <div style="max-width:900px;margin:0 auto;padding:0 16px;">
 
         <!-- Primary disclaimer -->
-        <div style="background:rgba(18,21,30,0.6);border:1px solid rgba(255,255,255,0.06);
+        <div style="background:rgba(18,21,30,0.6);border:1px solid var(--ua-hair-2);
                     border-radius:10px;padding:16px 20px;margin-bottom:16px;">
             <div style="font-size:0.65rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.10em;
                         text-transform:uppercase;margin-bottom:6px;">
                 Important Disclaimer
             </div>
-            <div style="font-size:0.73rem;color:#6B7FBF;line-height:1.65;">
+            <div style="font-size:0.73rem;color:var(--ua-ink-label);line-height:1.65;">
                 Unstructured Alpha is for <strong style="color:var(--ua-ink-mut);">educational and informational
                 purposes only</strong> and does not constitute personalized financial, investment, tax,
                 or legal advice. Nothing on this platform should be interpreted as a recommendation to
@@ -2689,7 +2712,7 @@ def render_footer(page: str = "") -> None:
         <div style="display:flex;justify-content:space-between;align-items:center;
                     flex-wrap:wrap;gap:12px;">
             <div>
-                <div style="font-size:0.63rem;color:#4A5280;line-height:1.6;">
+                <div style="font-size:0.63rem;color:var(--ua-ink-dim-2);line-height:1.6;">
                     Data sourced from public APIs:&nbsp;
                     <span style="color:var(--ua-ink-mut);font-weight:600;">FRED</span> (Federal Reserve) ·
                     <span style="color:var(--ua-ink-mut);font-weight:600;">SEC EDGAR</span> (insider filings) ·
@@ -2697,21 +2720,21 @@ def render_footer(page: str = "") -> None:
                     <span style="color:var(--ua-ink-mut);font-weight:600;">EIA</span> (energy data) ·
                     <span style="color:var(--ua-ink-mut);font-weight:600;">yfinance</span> (price data)
                 </div>
-                <div style="font-size:0.63rem;color:#4A5280;margin-top:3px;">
+                <div style="font-size:0.63rem;color:var(--ua-ink-dim-2);margin-top:3px;">
                     Signal data cached every ~6 hours. Scores are not real-time.
                     © {_year} Unstructured Alpha. All rights reserved.
                 </div>
             </div>
             <div style="display:flex;gap:14px;align-items:center;flex-shrink:0;">
-                <a href="/about-methodology" style="font-size:0.68rem;color:#6B7FBF;text-decoration:none;
-                                           font-weight:500;" onmouseover="this.style.color='#00C8E0'"
-                   onmouseout="this.style.color='#6B7FBF'">About</a>
-                <a href="/privacy-terms" style="font-size:0.68rem;color:#6B7FBF;text-decoration:none;
-                                                     font-weight:500;" onmouseover="this.style.color='#00C8E0'"
-                   onmouseout="this.style.color='#6B7FBF'">Privacy</a>
-                <a href="/privacy-terms" style="font-size:0.68rem;color:#6B7FBF;text-decoration:none;
-                                                       font-weight:500;" onmouseover="this.style.color='#00C8E0'"
-                   onmouseout="this.style.color='#6B7FBF'">Terms</a>
+                <a href="/about-methodology" style="font-size:0.68rem;color:var(--ua-ink-label);text-decoration:none;
+                                           font-weight:500;" onmouseover="this.style.color='var(--ua-cyan)'"
+                   onmouseout="this.style.color='var(--ua-ink-label)'">About</a>
+                <a href="/privacy-terms" style="font-size:0.68rem;color:var(--ua-ink-label);text-decoration:none;
+                                                     font-weight:500;" onmouseover="this.style.color='var(--ua-cyan)'"
+                   onmouseout="this.style.color='var(--ua-ink-label)'">Privacy</a>
+                <a href="/privacy-terms" style="font-size:0.68rem;color:var(--ua-ink-label);text-decoration:none;
+                                                       font-weight:500;" onmouseover="this.style.color='var(--ua-cyan)'"
+                   onmouseout="this.style.color='var(--ua-ink-label)'">Terms</a>
                 <!-- Pro members see a quiet status tag; everyone else sees the Upgrade CTA. -->
                 {_foot_cta}
             </div>
