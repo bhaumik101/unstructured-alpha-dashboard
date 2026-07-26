@@ -444,6 +444,40 @@ st.markdown(
 )
 st.html(render_platform_note())
 
+# ── MACRO LEAN BY DOMAIN (real category-average scores → SVG bar) ─────────────
+# Complements the regime split above with breadth: which macro domains are
+# leaning bullish vs bearish right now. Uses the SAME canonical snapshot
+# (_hd["sectors"] = mean score per category), so it can't contradict the header.
+try:
+    from utils import ua_charts as _uac2
+    _sect = _hd.get("sectors", {})
+    if _sect and len(_sect) >= 2:
+        _order = sorted(_sect.items(), key=lambda kv: -kv[1])
+        _cats2 = [str(k).replace("_", " ").title()[:22] for k, _ in _order]
+        _vals2 = [round(float(v), 1) for _, v in _order]
+        # Semantic per-bar colors: >55 bullish, <45 bearish, else neutral.
+        _cols2 = [
+            "var(--ua-pos,#48BC90)" if v >= 55
+            else "var(--ua-neg,#E27767)" if v <= 45
+            else "var(--ua-neutral,#7C84A8)"
+            for v in _vals2
+        ]
+        _svg2 = _uac2.bar_h(_cats2, _vals2, max_v=100, colors=_cols2, W=620, H=max(150, 34 * len(_cats2) + 60))
+        st.markdown(
+            '<div style="max-width:900px;margin:26px auto 0;">'
+            '<div style="font-family:var(--ua-serif);font-size:1.35rem;font-weight:600;'
+            'color:var(--ua-text,#ECEEF9);letter-spacing:-0.4px;">Where the macro is leaning, by domain.</div>'
+            '<div style="font-family:Inter,sans-serif;font-size:0.84rem;color:var(--ua-muted,#9AA0BE);'
+            'margin:4px 0 14px;line-height:1.6;">Average signal score in each domain — 50 is neutral, '
+            'above is a tailwind, below is a headwind. One snapshot, no cherry-picking.</div>'
+            f'<div style="background:var(--ua-bg-card,#12151E);border:1px solid var(--ua-border,rgba(255,255,255,0.08));'
+            f'border-radius:14px;padding:16px 18px;">{_svg2}</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+except Exception:
+    pass
+
 # ── SIGNAL FLIP ALERT BANNER ──────────────────────────────────────────────────
 try:
     _flip = _get_recent_signal_flip()
