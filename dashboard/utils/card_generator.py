@@ -41,16 +41,16 @@ from pathlib import Path
 
 
 # ── Colour constants matching utils/theme.py ──────────────────────────────────
-_BG         = (11, 13, 18)        # #0B0D12
-_BG_CARD    = (18, 21, 30)        # #12151E
+_BG         = (11, 13, 18)        # var(--ua-bg)
+_BG_CARD    = (18, 21, 30)        # var(--ua-bg-card)
 _BG_CARD2   = (22, 26, 38)        # slightly lighter card
-_TEXT_PRI   = (232, 238, 255)     # #E8EEFF
-_TEXT_SEC   = (136, 146, 170)     # #8892AA
-_TEXT_MID   = (184, 192, 212)     # #B8C0D4
-_GREEN      = (0, 213, 102)       # #00D566
-_RED        = (255, 68, 68)       # #FF4444
-_NEUTRAL    = (107, 127, 191)     # #6B7FBF
-_CYAN       = (0, 200, 224)       # #00C8E0
+_TEXT_PRI   = (232, 238, 255)     # var(--ua-ink)
+_TEXT_SEC   = (136, 146, 170)     # var(--ua-ink-mut)
+_TEXT_MID   = (184, 192, 212)     # var(--ua-ink-soft)
+_GREEN      = (0, 213, 102)       # var(--ua-green)
+_RED        = (255, 68, 68)       # var(--ua-red)
+_NEUTRAL    = (107, 127, 191)     # var(--ua-ink-label)
+_CYAN       = (0, 200, 224)       # var(--ua-cyan)
 _BORDER     = (40, 48, 68)        # subtle border
 
 W, H = 1200, 630

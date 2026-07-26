@@ -538,7 +538,7 @@ def render_explainer_html(payload: dict) -> str:
     header = (
         f'<div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">'
         f'<span style="font-size:2.4rem;font-weight:800;color:{accent};line-height:1;">{score:g}</span>'
-        f'<span style="font-size:1.05rem;font-weight:700;color:#E8EEFF;">{band["label"]}</span>'
+        f'<span style="font-size:1.05rem;font-weight:700;color:var(--ua-ink);">{band["label"]}</span>'
         f'</div>'
         f'<div style="font-size:0.82rem;margin-top:6px;">{chg_html}</div>'
     )
@@ -572,7 +572,7 @@ def render_explainer_html(payload: dict) -> str:
     why = (
         f'<div style="margin-top:16px;">'
         f'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;'
-        f'color:#8892AA;font-weight:700;">{why_title}</div>'
+        f'color:var(--ua-ink-mut);font-weight:700;">{why_title}</div>'
         f'<div style="font-size:0.68rem;color:#6B7280;margin-bottom:6px;">{why_sub}</div>'
         f'{rows}</div>'
     )
@@ -590,12 +590,12 @@ def render_explainer_html(payload: dict) -> str:
         f'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">'
         f'<div style="background:#161A2B;border:1px solid #262C42;border-radius:8px;'
         f'padding:8px 12px;">'
-        f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:#8892AA;font-weight:700;">Signal agreement</div>'
-        f'<div style="font-size:0.86rem;color:#E8EEFF;font-weight:600;margin-top:2px;">{agree_txt}</div>'
+        f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--ua-ink-mut);font-weight:700;">Signal agreement</div>'
+        f'<div style="font-size:0.86rem;color:var(--ua-ink);font-weight:600;margin-top:2px;">{agree_txt}</div>'
         f'</div>'
         f'<div style="background:#161A2B;border:1px solid #262C42;border-radius:8px;'
         f'padding:8px 12px;">'
-        f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:#8892AA;font-weight:700;">Confidence</div>'
+        f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--ua-ink-mut);font-weight:700;">Confidence</div>'
         f'<div style="font-size:0.86rem;color:{conf["color"]};font-weight:700;margin-top:2px;">{conf["level"]}</div>'
         f'</div>'
         f'</div>'
@@ -611,7 +611,7 @@ def render_explainer_html(payload: dict) -> str:
         factor_html = (
             f'<div style="margin-top:16px;">'
             f'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;'
-            f'color:#8892AA;font-weight:700;margin-bottom:4px;">Where the score comes from</div>'
+            f'color:var(--ua-ink-mut);font-weight:700;margin-bottom:4px;">Where the score comes from</div>'
             f'<div style="font-size:0.82rem;">{fac_rows}</div>'
             f'</div>'
         )
@@ -623,9 +623,9 @@ def render_explainer_html(payload: dict) -> str:
     limit_items = "".join(f"<li>{l}</li>" for l in limits)
     details = (
         f'<details style="margin-top:16px;">'
-        f'<summary style="cursor:pointer;font-size:0.74rem;color:#8892AA;font-weight:600;">'
+        f'<summary style="cursor:pointer;font-size:0.74rem;color:var(--ua-ink-mut);font-weight:600;">'
         f'How this score is built &amp; what it can\'t tell you</summary>'
-        f'<div style="font-size:0.76rem;color:#8892AA;margin-top:8px;line-height:1.6;">'
+        f'<div style="font-size:0.76rem;color:var(--ua-ink-mut);margin-top:8px;line-height:1.6;">'
         f'<div style="color:#C3CBE0;font-weight:600;margin-bottom:2px;">Confidence basis</div>'
         f'<ul style="margin:0 0 10px 18px;padding:0;">{conf_reasons}</ul>'
         f'<div style="color:#C3CBE0;font-weight:600;margin-bottom:2px;">Known limitations</div>'
@@ -634,7 +634,7 @@ def render_explainer_html(payload: dict) -> str:
     )
 
     return (
-        f'<div style="background:#0F1320;border:1px solid #232942;border-left:3px solid {accent};'
+        f'<div style="background:var(--ua-panel);border:1px solid var(--ua-panel-line);border-left:3px solid {accent};'
         f'border-radius:12px;padding:18px 20px;font-family:Inter,-apple-system,sans-serif;">'
         f'{header}{why}{chips}{factor_html}{details}'
         f'</div>'

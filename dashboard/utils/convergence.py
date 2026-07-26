@@ -200,18 +200,18 @@ def render_convergence_events(
             f'<div style="background:{bg};border-radius:8px;padding:10px 14px;'
             f'margin-bottom:8px;border-left:4px solid {col};font-family:Inter,sans-serif;">'
             f'<div style="display:flex;justify-content:space-between;align-items:center;">'
-            f'<span style="font-size:0.92rem;font-weight:700;color:#E8EEFF;">{ev["ticker"]}</span>'
+            f'<span style="font-size:0.92rem;font-weight:700;color:var(--ua-ink);">{ev["ticker"]}</span>'
             f'<span style="font-size:0.72rem;font-weight:700;color:{col};">'
             f'{arrow} {ev["count"]} signals{fresh_note}</span>'
             f'</div>'
-            f'<div style="font-size:0.74rem;color:#8892AA;margin-top:3px;">{ev["name"][:35]}</div>'
-            f'<div style="font-size:0.68rem;color:#6B7FBF;margin-top:4px;line-height:1.4;">{sigs}</div>'
+            f'<div style="font-size:0.74rem;color:var(--ua-ink-mut);margin-top:3px;">{ev["name"][:35]}</div>'
+            f'<div style="font-size:0.68rem;color:var(--ua-ink-label);margin-top:4px;line-height:1.4;">{sigs}</div>'
             f'</div>'
         )
 
     if bull_events:
         st.markdown(
-            '<div style="font-size:0.70rem;font-weight:700;color:#00D566;'
+            '<div style="font-size:0.70rem;font-weight:700;color:var(--ua-green);'
             'letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;font-family:Inter,sans-serif;">'
             '⚡ BULLISH CONVERGENCE</div>',
             unsafe_allow_html=True,
@@ -220,7 +220,7 @@ def render_convergence_events(
 
     if bear_events:
         st.markdown(
-            '<div style="font-size:0.70rem;font-weight:700;color:#FF4444;'
+            '<div style="font-size:0.70rem;font-weight:700;color:var(--ua-red);'
             'letter-spacing:0.08em;text-transform:uppercase;margin:8px 0 6px;font-family:Inter,sans-serif;">'
             '⚡ BEARISH CONVERGENCE</div>',
             unsafe_allow_html=True,

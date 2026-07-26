@@ -152,20 +152,20 @@ def _dominant_html(item: dict) -> str:
                     f'<span style="color:{accent};font-weight:700;">({_delta_str(item.get("delta"))})</span>')
         return (
             f'<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;'
-            f'color:#8892AA;font-weight:700;">Needs your attention</div>'
-            f'<div style="font-size:1.6rem;font-weight:800;color:#E8EEFF;margin:4px 0 2px;">'
+            f'color:var(--ua-ink-mut);font-weight:700;">Needs your attention</div>'
+            f'<div style="font-size:1.6rem;font-weight:800;color:var(--ua-ink);margin:4px 0 2px;">'
             f'{item["ticker"]} — {item["headline"]}</div>'
             f'<div style="font-size:0.95rem;margin-bottom:6px;">{move}</div>'
-            + (f'<div style="font-size:0.82rem;color:#8892AA;">{item["factor"]} is the main driver.</div>'
+            + (f'<div style="font-size:0.82rem;color:var(--ua-ink-mut);">{item["factor"]} is the main driver.</div>'
                if item.get("factor") else "")
         )
     # exposure dominant
     return (
         f'<div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;'
-        f'color:#8892AA;font-weight:700;">Your biggest shared exposure</div>'
-        f'<div style="font-size:1.6rem;font-weight:800;color:#E8EEFF;margin:4px 0 2px;">'
+        f'color:var(--ua-ink-mut);font-weight:700;">Your biggest shared exposure</div>'
+        f'<div style="font-size:1.6rem;font-weight:800;color:var(--ua-ink);margin:4px 0 2px;">'
         f'{item["factor"]}</div>'
-        f'<div style="font-size:0.9rem;color:#8892AA;">'
+        f'<div style="font-size:0.9rem;color:var(--ua-ink-mut);">'
         f'{item.get("pct_portfolio", item.get("pct_holdings", 0)):g}% of your portfolio weight moves with this factor '
         f'({", ".join((item.get("tickers") or [])[:6])}).</div>'
     )
@@ -176,11 +176,11 @@ def render_command_center_html(payload: dict) -> str:
     if payload.get("state") == "no_holdings":
         # honest, actionable empty state (Phase 14)
         return (
-            '<div style="background:#0F1320;border:1px solid #232942;border-radius:14px;'
+            '<div style="background:var(--ua-panel);border:1px solid var(--ua-panel-line);border-radius:14px;'
             'padding:22px 24px;font-family:Inter,-apple-system,sans-serif;">'
-            '<div style="font-size:1.15rem;font-weight:800;color:#E8EEFF;">'
+            '<div style="font-size:1.15rem;font-weight:800;color:var(--ua-ink);">'
             'Your macro exposure is invisible until you add holdings.</div>'
-            '<div style="font-size:0.86rem;color:#8892AA;margin-top:6px;max-width:560px;line-height:1.6;">'
+            '<div style="font-size:0.86rem;color:var(--ua-ink-mut);margin-top:6px;max-width:560px;line-height:1.6;">'
             'Add three stocks you follow and this becomes your command center — the biggest '
             'shared risk across them, the most-supported and most-challenged name, and what '
             'changed recently. Enter tickers in the box below to begin.</div></div>'
@@ -215,12 +215,12 @@ def render_command_center_html(payload: dict) -> str:
         explore_html = (
             '<div style="margin-top:16px;">'
             '<div style="font-size:0.66rem;text-transform:uppercase;letter-spacing:0.07em;'
-            'color:#8892AA;font-weight:700;margin-bottom:4px;">Explore</div>'
+            'color:var(--ua-ink-mut);font-weight:700;margin-bottom:4px;">Explore</div>'
             f'{chips}</div>'
         )
 
     return (
-        '<div style="background:#0F1320;border:1px solid #232942;border-left:3px solid #7C3AED;'
+        '<div style="background:var(--ua-panel);border:1px solid var(--ua-panel-line);border-left:3px solid var(--ua-purple);'
         'border-radius:14px;padding:20px 24px;font-family:Inter,-apple-system,sans-serif;">'
         f'{_dominant_html(dom)}'
         + (f'<div style="margin-top:14px;">{sec_html}</div>' if sec_html else "")

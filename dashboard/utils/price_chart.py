@@ -239,12 +239,12 @@ def build_payload(
 # signs, and every brace-or-dollar-aware formatter needs the whole template
 # escaped. Distinctive @@TOKEN@@ markers cannot collide with valid JS.
 _TEMPLATE = r"""
-<div id="ua-wrap" style="font-family:Inter,system-ui,sans-serif;color:#E8EEFF;">
+<div id="ua-wrap" style="font-family:Inter,system-ui,sans-serif;color:var(--ua-ink);">
   <div id="ua-readout" style="display:flex;gap:26px;align-items:baseline;flex-wrap:wrap;
        padding:2px 4px 12px 4px;min-height:44px;"></div>
   <div id="ua-chart" style="width:100%;height:@@HEIGHT@@px;"></div>
   <div id="ua-fallback" style="display:none;padding:18px;border-radius:8px;
-       background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);
+       background:rgba(var(--ua-red-rgb),0.08);border:1px solid rgba(var(--ua-red-rgb),0.25);
        font-size:0.82rem;color:#FFB4B4;">
     Chart library failed to load. The price data is unaffected — reload the page
     to try again.
@@ -263,7 +263,7 @@ _TEMPLATE = r"""
     return;
   }
   if (!D.dates.length) {
-    readout.innerHTML = '<span style="color:#8892AA;">No price history available.</span>';
+    readout.innerHTML = '<span style="color:var(--ua-ink-mut);">No price history available.</span>';
     return;
   }
 

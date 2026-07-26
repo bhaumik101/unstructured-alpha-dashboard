@@ -250,7 +250,7 @@ def render_portfolio_review_html(review: dict) -> str:
 
     def _list(items: list[str]) -> str:
         return "".join(
-            '<div style="display:flex;gap:9px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);">'
+            '<div style="display:flex;gap:9px;padding:8px 0;border-bottom:1px solid rgba(var(--ua-onbg-rgb),.06);">'
             f'<span style="color:{accent};font-size:.72rem;">—</span>'
             f'<span style="color:#B7C0CE;font-size:.78rem;line-height:1.5;">{escape(str(item))}</span></div>'
             for item in items
@@ -258,14 +258,14 @@ def render_portfolio_review_html(review: dict) -> str:
 
     synthesis = review.get("model_synthesis")
     synthesis_html = (
-        '<div style="margin-top:14px;padding:13px 15px;background:rgba(255,255,255,.025);'
-        'border:1px solid rgba(255,255,255,.07);border-radius:8px;">'
+        '<div style="margin-top:14px;padding:13px 15px;background:rgba(var(--ua-onbg-rgb),.025);'
+        'border:1px solid rgba(var(--ua-onbg-rgb),.07);border-radius:8px;">'
         '<div style="font-size:.60rem;color:#8E9BB8;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Model synthesis</div>'
         f'<div style="font-size:.80rem;color:#C1C9D6;line-height:1.6;">{escape(str(synthesis))}</div></div>'
         if synthesis else ""
     )
     return (
-        f'<div style="background:#0F141C;border:1px solid rgba(255,255,255,.09);border-top:2px solid {accent};'
+        f'<div style="background:#0F141C;border:1px solid rgba(var(--ua-onbg-rgb),.09);border-top:2px solid {accent};'
         'border-radius:12px;padding:20px 21px;">'
         f'<div style="font-size:.62rem;color:{accent};font-weight:700;letter-spacing:.11em;text-transform:uppercase;">{escape(stance)} evidence</div>'
         f'<div style="font-size:1.18rem;color:#EDF1F7;font-weight:760;margin:7px 0 8px;">{escape(str(review.get("headline", "Portfolio review")))}</div>'

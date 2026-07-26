@@ -67,7 +67,7 @@ def render_tradingview_chart(symbol: str, *, chart_height: int = 520,
 <meta charset="utf-8">
 <style>
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-  html, body {{ width: 100%; height: 100%; background: #0b0d12; }}
+  html, body {{ width: 100%; height: 100%; background: var(--ua-bg); }}
   #{container_id} {{ width: 100%; height: {chart_height}px; }}
 </style>
 </head>

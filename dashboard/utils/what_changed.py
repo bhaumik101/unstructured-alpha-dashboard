@@ -303,11 +303,11 @@ def render_what_changed_html(payload: dict) -> str:
 
     if n == 0:
         return (
-            f'<div style="background:#0F1320;border:1px solid #232942;border-radius:12px;'
+            f'<div style="background:var(--ua-panel);border:1px solid var(--ua-panel-line);border-radius:12px;'
             f'padding:18px 20px;font-family:Inter,-apple-system,sans-serif;">'
-            f'<div style="font-size:1.05rem;font-weight:700;color:#E8EEFF;">'
+            f'<div style="font-size:1.05rem;font-weight:700;color:var(--ua-ink);">'
             f'No meaningful changes since {period}</div>'
-            f'<div style="font-size:0.84rem;color:#8892AA;margin-top:4px;">'
+            f'<div style="font-size:0.84rem;color:var(--ua-ink-mut);margin-top:4px;">'
             f'The macro backdrop held steady — no signal flipped or moved enough to matter. '
             f'That itself is information: nothing around your holdings shifted.{regime_html}</div>'
             f'</div>'
@@ -315,7 +315,7 @@ def render_what_changed_html(payload: dict) -> str:
 
     header = (
         f'<div style="display:flex;align-items:baseline;flex-wrap:wrap;">'
-        f'<span style="font-size:1.15rem;font-weight:800;color:#E8EEFF;">'
+        f'<span style="font-size:1.15rem;font-weight:800;color:var(--ua-ink);">'
         f'{n} meaningful change{"s" if n != 1 else ""} since {period}</span>{regime_html}'
         f'</div>'
     )
@@ -326,7 +326,7 @@ def render_what_changed_html(payload: dict) -> str:
         # score move
         if e["from_score"] is not None and e["to_score"] is not None:
             move = (
-                f'<span style="color:#8892AA;">score </span>'
+                f'<span style="color:var(--ua-ink-mut);">score </span>'
                 f'<span style="color:#C3CBE0;font-variant-numeric:tabular-nums;">'
                 f'{e["from_score"]:g} → {e["to_score"]:g}</span> '
                 f'<span style="color:{accent};font-weight:600;">({_delta_str(e["delta"])})</span>'
@@ -346,7 +346,7 @@ def render_what_changed_html(payload: dict) -> str:
         label = cat if cat else "Macro"
         if sectors:
             label = f'{cat} · ' + ", ".join(sectors[:3]) if cat else ", ".join(sectors[:3])
-        impact_bits.append(f'<span style="color:#8892AA;">Affects: {label}</span>')
+        impact_bits.append(f'<span style="color:var(--ua-ink-mut);">Affects: {label}</span>')
         impact = ' &nbsp;·&nbsp; '.join(impact_bits)
 
         # High-materiality changes (big move + hits holdings and/or a regime flip)
@@ -355,8 +355,8 @@ def render_what_changed_html(payload: dict) -> str:
         if e.get("materiality_tier") == "high":
             badge = (
                 '<span style="font-size:0.6rem;font-weight:700;letter-spacing:0.05em;'
-                'color:#B79CFF;background:rgba(124,58,237,0.16);'
-                'border:1px solid rgba(124,58,237,0.35);border-radius:4px;'
+                'color:#B79CFF;background:rgba(var(--ua-purple-rgb),0.16);'
+                'border:1px solid rgba(var(--ua-purple-rgb),0.35);border-radius:4px;'
                 'padding:1px 7px;margin-left:9px;vertical-align:middle;'
                 'text-transform:uppercase;">High impact</span>'
             )
@@ -364,7 +364,7 @@ def render_what_changed_html(payload: dict) -> str:
         rows.append(
             f'<div style="border-left:3px solid {accent};background:#12162400;'
             f'padding:10px 0 10px 14px;margin-top:12px;">'
-            f'<div style="font-size:0.95rem;font-weight:700;color:#E8EEFF;">{e["headline"]}{badge}</div>'
+            f'<div style="font-size:0.95rem;font-weight:700;color:var(--ua-ink);">{e["headline"]}{badge}</div>'
             f'<div style="font-size:0.82rem;margin-top:3px;">{move}</div>'
             f'<div style="font-size:0.78rem;margin-top:5px;">{impact}</div>'
             + (f'<div style="font-size:0.75rem;color:#6B7280;margin-top:5px;line-height:1.5;">{e["why"]}</div>'
@@ -392,7 +392,7 @@ def render_what_changed_html(payload: dict) -> str:
     )
 
     return (
-        f'<div style="background:#0F1320;border:1px solid #232942;border-radius:12px;'
+        f'<div style="background:var(--ua-panel);border:1px solid var(--ua-panel-line);border-radius:12px;'
         f'padding:18px 20px;font-family:Inter,-apple-system,sans-serif;">'
         f'{header}{"".join(rows)}{footer}</div>'
     )

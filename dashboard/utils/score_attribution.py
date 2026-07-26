@@ -336,7 +336,7 @@ def _driver_row(name: str, delta: float, sub: str = "", indent: bool = False) ->
     return (
         f'<div style="display:flex;justify-content:space-between;align-items:baseline;'
         f'gap:10px;{pad}padding-top:6px;padding-bottom:6px;'
-        f'border-bottom:1px solid rgba(255,255,255,0.04);">'
+        f'border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">'
         f'<div style="min-width:0;"><div style="font-size:{size};font-weight:{weight};'
         f'color:{_INK};">{name}</div>{sub_html}</div>'
         f'<div style="font-size:{size};font-weight:700;color:{color};'
@@ -356,14 +356,14 @@ def render_attribution_html(attr: dict, show_signals: bool = True) -> str:
     state = attr.get("state")
     if state == "no_comparison":
         return (
-            f'<div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;'
+            f'<div style="border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-radius:10px;'
             f'padding:16px 18px;font-family:Inter,sans-serif;color:{_DIM};font-size:0.85rem;">'
             f'{attr.get("reason", "No comparable score snapshot exists for this period yet.")}'
             f' As this ticker is viewed over time, its history builds and this becomes available.</div>'
         )
     if state == "unreconciled":
         return (
-            f'<div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;'
+            f'<div style="border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-radius:10px;'
             f'padding:16px 18px;font-family:Inter,sans-serif;color:{_DIM};font-size:0.85rem;">'
             f'A detailed move attribution is not available for this comparison.</div>'
         )
@@ -387,14 +387,14 @@ def render_attribution_html(attr: dict, show_signals: bool = True) -> str:
     if attr.get("model_changed"):
         mp = attr.get("model_points", 0.0)
         banner = (
-            f'<div style="background:rgba(124,58,237,0.10);border:1px solid rgba(124,58,237,0.30);'
+            f'<div style="background:rgba(var(--ua-purple-rgb),0.10);border:1px solid rgba(var(--ua-purple-rgb),0.30);'
             f'border-radius:8px;padding:9px 12px;margin:8px 0;font-size:0.75rem;color:#B79CFF;">'
             f'Model methodology changed during this period — about {abs(mp):.0f} of the '
             f'{abs(chg):.0f} points reflect a scoring update, not the market.</div>'
         )
     if attr.get("reconstructed"):
         banner += (
-            f'<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);'
+            f'<div style="background:rgba(var(--ua-onbg-rgb),0.03);border:1px solid rgba(var(--ua-onbg-rgb),0.08);'
             f'border-radius:8px;padding:9px 12px;margin:8px 0;font-size:0.72rem;color:{_DIM};">'
             f'Reconstructed from historical signal readings using the current model weighting. '
             f'Momentum &amp; positioning are held at current values, so this explains the '
@@ -411,7 +411,7 @@ def render_attribution_html(attr: dict, show_signals: bool = True) -> str:
                        if abs(f["delta"]) >= _UNCHANGED_EPS)
         summ = (f'<div style="font-size:0.8rem;color:{_INK};margin-top:12px;line-height:1.55;">'
                 f'{attr.get("summary", "")}</div>')
-        return (f'<div style="font-family:Inter,sans-serif;border:1px solid rgba(255,255,255,0.06);'
+        return (f'<div style="font-family:Inter,sans-serif;border:1px solid rgba(var(--ua-onbg-rgb),0.06);'
                 f'border-radius:12px;padding:16px 18px;">{head}{banner}{body}{rows}{summ}</div>')
 
     # ── Factor list (material first), with nested signals under material factors ──
@@ -448,7 +448,7 @@ def render_attribution_html(attr: dict, show_signals: bool = True) -> str:
     # ── Reconciliation footer: start → drivers → end ──
     recon = (
         f'<div style="display:flex;justify-content:space-between;font-size:0.78rem;'
-        f'color:{_DIM};margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.10);">'
+        f'color:{_DIM};margin-top:10px;padding-top:8px;border-top:1px solid rgba(var(--ua-onbg-rgb),0.10);">'
         f'<span>Starting score</span><span style="font-variant-numeric:tabular-nums;">{sf:g}</span></div>'
         f'<div style="display:flex;justify-content:space-between;font-size:0.82rem;'
         f'color:{_INK};font-weight:700;"><span>Ending score</span>'
@@ -463,7 +463,7 @@ def render_attribution_html(attr: dict, show_signals: bool = True) -> str:
     )
 
     return (
-        f'<div style="font-family:Inter,sans-serif;border:1px solid rgba(255,255,255,0.06);'
+        f'<div style="font-family:Inter,sans-serif;border:1px solid rgba(var(--ua-onbg-rgb),0.06);'
         f'border-radius:12px;padding:16px 18px;">'
         f'{head}{banner}'
         f'<div style="font-size:0.6rem;letter-spacing:0.1em;color:{_DIM};font-weight:700;'
