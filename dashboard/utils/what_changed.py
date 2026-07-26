@@ -327,7 +327,7 @@ def render_what_changed_html(payload: dict) -> str:
         if e["from_score"] is not None and e["to_score"] is not None:
             move = (
                 f'<span style="color:var(--ua-ink-mut);">score </span>'
-                f'<span style="color:#C3CBE0;font-variant-numeric:tabular-nums;">'
+                f'<span style="color:var(--ua-ink-soft);font-variant-numeric:tabular-nums;">'
                 f'{e["from_score"]:g} → {e["to_score"]:g}</span> '
                 f'<span style="color:{accent};font-weight:600;">({_delta_str(e["delta"])})</span>'
             )
