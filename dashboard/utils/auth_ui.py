@@ -391,10 +391,10 @@ def require_login() -> dict:
 
     st.markdown("""
     <div style="text-align:center; margin-top:40px; margin-bottom:20px;">
-        <div style="font-size:2.2rem;font-weight:700;color:#E8EEFF;font-family:Inter,sans-serif;">
-            UNSTRUCTURED <span style="background:linear-gradient(135deg,#00D566,#00C8E0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ALPHA</span>
+        <div style="font-size:2.2rem;font-weight:700;color:var(--ua-ink);font-family:Inter,sans-serif;">
+            UNSTRUCTURED <span style="background:linear-gradient(135deg,var(--ua-green),var(--ua-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ALPHA</span>
         </div>
-        <div style="font-size:0.9rem;color:#8892AA;font-family:Inter,sans-serif;">
+        <div style="font-size:0.9rem;color:var(--ua-ink-mut);font-family:Inter,sans-serif;">
             Sign in to use your watchlist
         </div>
     </div>

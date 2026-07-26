@@ -156,13 +156,13 @@ def render_summary_html(summary: dict) -> str:
         return (f'<div style="background:#161A2B;border:1px solid #262C42;border-radius:8px;'
                 f'padding:10px 14px;min-width:96px;">'
                 f'<div style="font-size:1.5rem;font-weight:800;color:{color};line-height:1;">{val}</div>'
-                f'<div style="font-size:0.62rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.05em;margin-top:3px;">{label}</div>'
+                f'<div style="font-size:0.62rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.05em;margin-top:3px;">{label}</div>'
                 f'</div>')
     return (
-        '<div style="background:#0F1320;border:1px solid #232942;border-radius:12px;'
+        '<div style="background:var(--ua-panel);border:1px solid var(--ua-panel-line);border-radius:12px;'
         'padding:18px 20px;font-family:Inter,-apple-system,sans-serif;">'
-        '<div style="font-size:1.05rem;font-weight:800;color:#E8EEFF;">Model Validation Center</div>'
-        '<div style="font-size:0.82rem;color:#8892AA;margin-top:4px;max-width:680px;line-height:1.6;">'
+        '<div style="font-size:1.05rem;font-weight:800;color:var(--ua-ink);">Model Validation Center</div>'
+        '<div style="font-size:0.82rem;color:var(--ua-ink-mut);margin-top:4px;max-width:680px;line-height:1.6;">'
         'Every signal, shown as what it actually is — its data source, update cadence, relative weight, '
         'confidence, validation status, and known limitations. We do <b>not</b> pretend every signal is '
         'equally strong. Transparency is the point.</div>'
@@ -186,17 +186,17 @@ def render_composites_html(composites: list[dict]) -> str:
         color = "#FF9800" if "NOT" in status.upper() else "#00C8E0"
         rows.append(
             f'<div style="border-left:3px solid {color};padding:10px 0 10px 14px;margin-top:12px;">'
-            f'<div style="font-size:0.9rem;font-weight:700;color:#E8EEFF;">{c.get("category","")}</div>'
+            f'<div style="font-size:0.9rem;font-weight:700;color:var(--ua-ink);">{c.get("category","")}</div>'
             f'<div style="font-size:0.74rem;color:{color};font-weight:600;margin:2px 0 4px;">{status}</div>'
-            f'<div style="font-size:0.76rem;color:#8892AA;line-height:1.6;">{c.get("detail","")}</div>'
+            f'<div style="font-size:0.76rem;color:var(--ua-ink-mut);line-height:1.6;">{c.get("detail","")}</div>'
             f'<div style="font-size:0.66rem;color:#4A5568;margin-top:4px;">Source: {c.get("source","")}</div>'
             f'</div>'
         )
     return (
-        '<div style="background:#0F1320;border:1px solid #232942;border-radius:12px;'
+        '<div style="background:var(--ua-panel);border:1px solid var(--ua-panel-line);border-radius:12px;'
         'padding:18px 20px;font-family:Inter,-apple-system,sans-serif;">'
-        '<div style="font-size:0.95rem;font-weight:800;color:#E8EEFF;">Composite models — validation status</div>'
-        '<div style="font-size:0.76rem;color:#8892AA;margin-top:2px;">The scores built ON TOP of the signals, '
+        '<div style="font-size:0.95rem;font-weight:800;color:var(--ua-ink);">Composite models — validation status</div>'
+        '<div style="font-size:0.76rem;color:var(--ua-ink-mut);margin-top:2px;">The scores built ON TOP of the signals, '
         'and exactly how far each one has (and hasn\'t) been validated.</div>'
         f'{"".join(rows)}</div>'
     )

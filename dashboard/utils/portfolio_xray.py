@@ -327,8 +327,8 @@ def render_portfolio_xray_html(payload: dict) -> str:
     """Render the X-Ray payload as a self-contained HTML block for st.html()."""
     if payload.get("empty") or not payload.get("n_holdings"):
         return (
-            '<div style="background:#0F1320;border:1px solid #232942;border-radius:12px;'
-            'padding:20px;font-family:Inter,sans-serif;color:#8892AA;">'
+            '<div style="background:var(--ua-panel);border:1px solid var(--ua-panel-line);border-radius:12px;'
+            'padding:20px;font-family:Inter,sans-serif;color:var(--ua-ink-mut);">'
             'Add a few holdings to see your portfolio\'s macro exposure map.</div>'
         )
 
@@ -349,9 +349,9 @@ def render_portfolio_xray_html(payload: dict) -> str:
     header = (
         f'<div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">'
         f'<span style="font-size:2.4rem;font-weight:800;color:{accent};line-height:1;">{score:g}</span>'
-        f'<span style="font-size:1.05rem;font-weight:700;color:#E8EEFF;">Portfolio Macro Score</span>'
+        f'<span style="font-size:1.05rem;font-weight:700;color:var(--ua-ink);">Portfolio Macro Score</span>'
         f'{delta_html}</div>'
-        f'<div style="font-size:0.82rem;color:#8892AA;margin-top:4px;">'
+        f'<div style="font-size:0.82rem;color:var(--ua-ink-mut);margin-top:4px;">'
         f'{band["label"]} · across {n} holding{"s" if n != 1 else ""} · equal-weighted, context only</div>'
     )
 
@@ -366,7 +366,7 @@ def render_portfolio_xray_html(payload: dict) -> str:
             out.append(
                 f'<div style="padding:8px 0;border-bottom:1px solid #1E2436;">'
                 f'<span style="color:{tone_color};font-weight:600;font-size:0.86rem;">{r["name"]}</span>'
-                f'<span style="color:#8892AA;font-size:0.78rem;"> — {detail}</span>'
+                f'<span style="color:var(--ua-ink-mut);font-size:0.78rem;"> — {detail}</span>'
                 f'<div style="color:#6B7280;font-size:0.72rem;margin-top:2px;">'
                 f'{", ".join(r["exposed_tickers"][:8])}</div></div>'
             )
@@ -388,11 +388,11 @@ def render_portfolio_xray_html(payload: dict) -> str:
     exposure_cards = (
         '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">'
         f'<div style="flex:1;min-width:200px;background:#161A2B;border:1px solid #262C42;border-radius:8px;padding:10px 12px;">'
-        f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:#8892AA;font-weight:700;">Most macro-vulnerable</div>'
+        f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--ua-ink-mut);font-weight:700;">Most macro-vulnerable</div>'
         f'<div style="font-size:0.95rem;color:#FF6B6B;font-weight:700;margin-top:2px;">{mv["ticker"]} · {mv["score"]:g}</div>'
         f'<div style="font-size:0.72rem;color:#6B7280;margin-top:2px;">most exposed to {mv["driver"] or "mixed factors"}</div></div>'
         f'<div style="flex:1;min-width:200px;background:#161A2B;border:1px solid #262C42;border-radius:8px;padding:10px 12px;">'
-        f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:#8892AA;font-weight:700;">Most macro-supported</div>'
+        f'<div style="font-size:0.64rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--ua-ink-mut);font-weight:700;">Most macro-supported</div>'
         f'<div style="font-size:0.95rem;color:#00C853;font-weight:700;margin-top:2px;">{ms["ticker"]} · {ms["score"]:g}</div>'
         f'<div style="font-size:0.72rem;color:#6B7280;margin-top:2px;">carried by {ms["driver"] or "mixed factors"}</div></div>'
         '</div>'
@@ -404,7 +404,7 @@ def render_portfolio_xray_html(payload: dict) -> str:
         rows = "".join(
             f'<div style="font-size:0.8rem;color:#C3CBE0;padding:4px 0;">'
             f'<b>{h["pair"][0]}</b> &amp; <b>{h["pair"][1]}</b> '
-            f'<span style="color:#8892AA;">— {h["sectors"][0]} vs {h["sectors"][1]}, '
+            f'<span style="color:var(--ua-ink-mut);">— {h["sectors"][0]} vs {h["sectors"][1]}, '
             f'but {int(h["similarity"]*100)}% shared macro exposure'
             + (f' ({h["shared_factor"]})' if h.get("shared_factor") else '')
             + '</span></div>'
@@ -412,13 +412,13 @@ def render_portfolio_xray_html(payload: dict) -> str:
         )
         hidden_html = (
             '<div style="margin-top:16px;">'
-            '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:#8892AA;font-weight:700;margin-bottom:4px;">Hidden correlations</div>'
+            '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--ua-ink-mut);font-weight:700;margin-bottom:4px;">Hidden correlations</div>'
             '<div style="font-size:0.72rem;color:#6B7280;margin-bottom:6px;">Different sectors, same macro bet — diversification that may not be real.</div>'
             f'{rows}</div>'
         )
 
     return (
-        f'<div style="background:#0F1320;border:1px solid #232942;border-left:3px solid {accent};'
+        f'<div style="background:var(--ua-panel);border:1px solid var(--ua-panel-line);border-left:3px solid {accent};'
         f'border-radius:12px;padding:18px 20px;font-family:Inter,-apple-system,sans-serif;">'
         f'{header}'
         f'<div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:16px;">{tailwinds}{risks}</div>'

@@ -159,8 +159,8 @@ def horizon_html(horizon: dict | None) -> str:
         return ""
     return (
         f'<span title="{horizon.get("note", "")}" '
-        f'style="display:inline-block;font-size:0.58rem;font-weight:700;color:#6B7FBF;'
-        f'background:rgba(107,127,191,0.12);border:1px solid rgba(107,127,191,0.35);'
+        f'style="display:inline-block;font-size:0.58rem;font-weight:700;color:var(--ua-ink-label);'
+        f'background:rgba(var(--ua-label-rgb),0.12);border:1px solid rgba(var(--ua-label-rgb),0.35);'
         f'border-radius:10px;padding:2px 8px;margin-left:8px;white-space:nowrap;">'
         f'⏱ Thesis window {horizon["label"]}</span>'
     )

@@ -47,7 +47,7 @@ def render_validated_lag_scan(result: dict, reliability: dict, pooled: dict = No
         f'<div style="padding:12px 16px;border-left:4px solid {rel_color};background:{rel_bg};'
         f'border-radius:0 8px 8px 0;margin:8px 0;font-family:Inter,sans-serif;">'
         f'<span style="font-size:1.1rem;font-weight:700;color:{rel_color};">Signal Reliability Score: {rel_score}/100</span>'
-        f'<br><span style="color:#8892AA;font-size:0.83rem;">{reliability["label"]}</span></div>',
+        f'<br><span style="color:var(--ua-ink-mut);font-size:0.83rem;">{reliability["label"]}</span></div>',
         unsafe_allow_html=True,
     )
 
@@ -124,7 +124,7 @@ def render_lag_decay_chart(decay: dict) -> None:
         f'<div style="padding:10px 16px;border-left:4px solid {trend_color};background:{trend_bg};'
         f'border-radius:0 8px 8px 0;margin:8px 0;font-family:Inter,sans-serif;">'
         f'<span style="font-weight:700;color:{trend_color};">Lead time looks {trend_word}</span><br>'
-        f'<span style="color:#8892AA;font-size:0.83rem;">Earlier windows averaged '
+        f'<span style="color:var(--ua-ink-mut);font-size:0.83rem;">Earlier windows averaged '
         f'{decay["first_half_avg_lag"]:.1f}w · Later windows averaged {decay["second_half_avg_lag"]:.1f}w '
         f'(across {decay["n_windows"]} trailing windows)</span></div>',
         unsafe_allow_html=True,

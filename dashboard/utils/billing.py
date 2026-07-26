@@ -434,11 +434,11 @@ _PRO_GATE_CSS = """
     text-align: center;
     margin: 24px 0;
 }
-.pro-gate h2 { color: #E8EEFF; font-size: 1.45rem; margin: 0 0 8px; }
+.pro-gate h2 { color: var(--ua-ink); font-size: 1.45rem; margin: 0 0 8px; }
 .pro-gate p  { color: #8892B0; font-size: 0.95rem; margin: 0 0 20px; }
 .pro-badge {
     display: inline-block;
-    background: linear-gradient(90deg, #7C3AED, #00C8E0);
+    background: linear-gradient(90deg, var(--ua-purple), var(--ua-cyan));
     color: #fff;
     font-size: 0.7rem;
     font-weight: 700;

@@ -199,7 +199,7 @@ def render_priority_card_html(item: dict, rank: int) -> str:
     weight = float(item.get("weight_pct") or 0)
     delta_text = f"{delta:+.1f} vs standard" if abs(delta) >= 0.1 else "Aligned with standard"
     return (
-        '<div style="background:#11161E;border:1px solid rgba(255,255,255,.09);'
+        '<div style="background:#11161E;border:1px solid rgba(var(--ua-onbg-rgb),.09);'
         f'border-top:2px solid {accent};border-radius:10px;padding:16px 17px;height:100%;">'
         f'<div style="font-size:.62rem;color:#8F9AAD;letter-spacing:.10em;text-transform:uppercase;">Priority {rank}</div>'
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin:8px 0 10px;">'
@@ -208,7 +208,7 @@ def render_priority_card_html(item: dict, rank: int) -> str:
         f'<div style="text-align:right;"><div style="font-size:1.45rem;color:#EDF1F7;font-weight:780;">{float(item.get("personal_score", 0)):.0f}</div>'
         '<div style="font-size:.60rem;color:#8F9AAD;">YOUR SCORE</div></div></div>'
         f'<div style="font-size:.78rem;color:#B4BDCA;line-height:1.52;min-height:38px;">{escape(str(item.get("reason", "")))}</div>'
-        f'<div style="font-size:.66rem;color:#7F8999;border-top:1px solid rgba(255,255,255,.07);margin-top:12px;padding-top:9px;">'
+        f'<div style="font-size:.66rem;color:#7F8999;border-top:1px solid rgba(var(--ua-onbg-rgb),.07);margin-top:12px;padding-top:9px;">'
         f'Standard {float(item.get("canonical_score", 0)):.0f} · {escape(delta_text)}'
         + (f' · {weight:.1f}% weight' if weight > 0 else '')
         + '</div></div>'

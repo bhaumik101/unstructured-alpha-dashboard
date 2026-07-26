@@ -81,6 +81,15 @@ def _build_splash() -> str:
 })();
 </script>
 <div id="ua-boot-splash" role="status" aria-label="Loading">
+  <div class="ua-boot-frame">
+    <!-- Hexagon frame echoing the logo mark, so the content sits inside the
+         brand shape instead of floating in empty space. Same flat-top geometry
+         as the UA mark; preserveAspectRatio="none" lets it stretch to the
+         content box while the stroke stays even via vector-effect. -->
+    <svg class="ua-boot-hexframe" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <polygon points="50,1 99,25.5 99,74.5 50,99 1,74.5 1,25.5"
+               fill="none" stroke-width="1.1" vector-effect="non-scaling-stroke"/>
+    </svg>
   <div class="ua-boot-inner">
     <svg class="ua-boot-hex" viewBox="0 0 100 100" width="132" height="132" aria-hidden="true">
       <defs>
@@ -100,6 +109,7 @@ def _build_splash() -> str:
     <div class="ua-boot-bar"><div class="ua-boot-bar-fill"></div></div>
     <div class="ua-boot-fact" id="ua-boot-fact"></div>
   </div>
+  </div>
 </div>
 <style>
 #ua-boot-splash{position:fixed;inset:0;z-index:2147483647;background:#0B0D12;
@@ -117,7 +127,28 @@ def _build_splash() -> str:
   font-weight:700;letter-spacing:.14em;color:#4F5B7A;margin-bottom:5px;}
 @keyframes ua-boot-pulse{0%,100%{transform:scale(1);opacity:.92;}50%{transform:scale(1.06);opacity:1;}}
 @media (prefers-reduced-motion: reduce){#ua-boot-splash .ua-boot-hex{animation:none;}}
-#ua-boot-splash .ua-boot-inner{text-align:center;}
+/* Hexagon frame around the whole splash block. The padding is asymmetric on
+   purpose: a hexagon pinches at top and bottom, so square padding would let the
+   wordmark and the fact text collide with the sloped edges. */
+#ua-boot-splash .ua-boot-frame{
+  position:relative;
+  padding:74px 96px;
+  max-width:min(92vw,700px);
+}
+#ua-boot-splash .ua-boot-hexframe{
+  position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none;overflow:visible;
+}
+#ua-boot-splash .ua-boot-hexframe polygon{
+  stroke:rgba(139,123,247,0.55);   /* dark mode: purple */
+}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hexframe polygon{
+  stroke:rgba(16,18,32,0.72);      /* light mode: near-black, inverted */
+}
+@media (max-width:640px){
+  #ua-boot-splash .ua-boot-frame{padding:56px 34px;}
+}
+#ua-boot-splash .ua-boot-inner{text-align:center;position:relative;z-index:1;}
 #ua-boot-splash .ua-boot-logo{font-size:1.35rem;font-weight:800;letter-spacing:.04em;color:#E8EEFF;}
 #ua-boot-splash .ua-boot-logo span{background:linear-gradient(135deg,#6470F5,#8B7BF7 60%,#D4B26A 120%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 #ua-boot-splash .ua-boot-sub{margin-top:8px;font-size:.72rem;color:#6B7FBF;letter-spacing:.02em;}

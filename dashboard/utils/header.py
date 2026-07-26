@@ -86,6 +86,14 @@ _CSS = """
     --ua-label-rgb:  107,127,191;
     --ua-card-rgb:   18,21,30;
     --ua-onbg-rgb:   255,255,255;  /* anything layered ON the background */
+
+    /* Slice 6 — chrome surfaces found still dark in the live light beta:
+       the ticker tape shell, and the panel fill/border used by page-title
+       cards in utils/command_center, model_validation, portfolio_xray,
+       score_explainer and what_changed. */
+    --ua-shell-rgb:  12,14,20;   /* sticky tape / nav shell */
+    --ua-panel:      #0F1320;    /* raised panel fill */
+    --ua-panel-line: #232942;    /* raised panel border */
 }
 
 /* Light mode: overrides both the legacy tokens and the redesign tokens. Applied
@@ -143,11 +151,14 @@ html[data-ua-theme="light"] {
        as grime, so light gets a softer, cooler shadow. */
     --ua-shadow:     0 6px 20px rgba(20,22,44,0.09);
     --ua-shadow-lg:  0 14px 44px rgba(20,22,44,0.13);
+    --ua-shell-rgb:  255,255,255;
+    --ua-panel:      #FFFFFF;
+    --ua-panel-line: rgba(20,22,44,0.12);
 }
 
 /* ── Light mode: app chrome ───────────────────────────────────────────────
    The token block above only recolors things that USE the tokens. Streamlit
-   paints its own shell from config.toml (backgroundColor #0B0D12) and this file
+   paints its own shell from config.toml (backgroundColor var(--ua-bg)) and this file
    pins it again with !important further down, so without these overrides a
    light-mode user gets light cards floating on a black page. Selectors are
    prefixed with html[data-ua-theme="light"], which adds specificity, and they
@@ -343,7 +354,7 @@ html, body, [class*="css"] {
 
 /* ── Page background — gradient mesh ─────────────────────────────────────── */
 .main {
-    background-color: #0B0D12 !important;
+    background-color: var(--ua-bg) !important;
     background-image:
         radial-gradient(ellipse 80% 40% at 20% -5%,  rgba(var(--ua-green-rgb),0.055) 0%, transparent 60%),
         radial-gradient(ellipse 60% 35% at 80% 5%,   rgba(var(--ua-purple-rgb),0.045) 0%, transparent 55%),
@@ -354,7 +365,7 @@ html, body, [class*="css"] {
     padding-top: 0.75rem !important;
 }
 [data-testid="stAppViewContainer"] {
-    background-color: #0B0D12 !important;
+    background-color: var(--ua-bg) !important;
     background-image:
         radial-gradient(ellipse 80% 40% at 20% -5%,  rgba(var(--ua-green-rgb),0.055) 0%, transparent 60%),
         radial-gradient(ellipse 60% 35% at 80% 5%,   rgba(var(--ua-purple-rgb),0.045) 0%, transparent 55%),
@@ -2611,7 +2622,7 @@ def _render_live_ticker_strip() -> None:
     inner = "".join(chips)
     # Duplicate for seamless marquee loop
     ticker_html = f"""
-<div style="background:rgba(12,14,20,0.95);border-bottom:1px solid var(--ua-hair-3);
+<div style="background:rgba(var(--ua-shell-rgb),0.95);border-bottom:1px solid var(--ua-hair-3);
              overflow:hidden;white-space:nowrap;padding:5px 0;margin-bottom:0;
              font-family:Inter,sans-serif;">
   <div style="display:inline-flex;animation:tickerScroll 28s linear infinite;">
