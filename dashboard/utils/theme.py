@@ -1103,16 +1103,20 @@ _MODERN_UI_CSS = """
 
 /* — Form submit — */
 .stFormSubmitButton > button {
-  background: linear-gradient(135deg, var(--ua-purple) 0%, #5B21B6 100%) !important;
-  border: 1px solid rgba(var(--ua-purple-rgb),0.38) !important;
+  /* Royal, matching every other primary CTA. This rule was missed by the
+     company-wide identity pass because form submits are .stFormSubmitButton,
+     not .stButton[kind="primary"] — so the app's most-used CTA ("Analyze
+     ticker") stayed violet while everything else went royal. */
+  background: linear-gradient(135deg, var(--ua-royal) 0%, var(--ua-royal-deep) 100%) !important;
+  border: 1px solid rgba(var(--ua-royal-rgb),0.38) !important;
   color: #fff !important;
   font-weight: 700 !important;
-  box-shadow: 0 4px 16px rgba(var(--ua-purple-rgb),0.28) !important;
+  box-shadow: 0 4px 16px rgba(var(--ua-royal-rgb),0.28) !important;
 }
 .stFormSubmitButton > button:hover {
   filter: brightness(1.10) !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 6px 24px rgba(var(--ua-purple-rgb),0.38) !important;
+  box-shadow: 0 6px 24px rgba(var(--ua-royal-rgb),0.38) !important;
 }
 
 /* Sidebar buttons stay green-themed */
