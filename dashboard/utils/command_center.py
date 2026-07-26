@@ -147,7 +147,7 @@ def _dominant_html(item: dict) -> str:
         accent = "#00C853" if item.get("direction") == "up" else "#FF4444"
         move = ""
         if item.get("from_score") is not None and item.get("to_score") is not None:
-            move = (f'<span style="color:#C3CBE0;font-variant-numeric:tabular-nums;">'
+            move = (f'<span style="color:var(--ua-ink-soft);font-variant-numeric:tabular-nums;">'
                     f'{item["from_score"]:g} &rarr; {item["to_score"]:g}</span> '
                     f'<span style="color:{accent};font-weight:700;">({_delta_str(item.get("delta"))})</span>')
         return (
@@ -201,7 +201,7 @@ def render_command_center_html(payload: dict) -> str:
                     f'{s.get("pct_portfolio", s.get("pct_holdings", 0)):g}% of portfolio weight')
         else:  # vulnerable
             body = f'Most challenged: <b>{s["ticker"]}</b> · {s.get("score",0):g} ({s.get("driver","")})'
-        sec_html += (f'<div style="font-size:0.82rem;color:#C3CBE0;padding:7px 0;'
+        sec_html += (f'<div style="font-size:0.82rem;color:var(--ua-ink-soft);padding:7px 0;'
                      f'border-top:1px solid #1E2436;">{body}</div>')
 
     explore_html = ""

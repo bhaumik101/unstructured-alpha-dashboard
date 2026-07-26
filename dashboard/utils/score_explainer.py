@@ -548,7 +548,7 @@ def render_explainer_html(payload: dict) -> str:
         rows = "".join(
             f'<div style="display:flex;justify-content:space-between;gap:12px;'
             f'padding:3px 0;font-size:0.82rem;">'
-            f'<span style="color:#C3CBE0;">{m["name"]}</span>'
+            f'<span style="color:var(--ua-ink-soft);">{m["name"]}</span>'
             f'<span style="color:{"#00C853" if m["contribution"] >= 0 else "#FF4444"};'
             f'font-variant-numeric:tabular-nums;font-weight:600;">{_pt(m["contribution"])}</span>'
             f'</div>'
@@ -560,7 +560,7 @@ def render_explainer_html(payload: dict) -> str:
         rows = "".join(
             f'<div style="display:flex;justify-content:space-between;gap:12px;'
             f'padding:3px 0;font-size:0.82rem;">'
-            f'<span style="color:#C3CBE0;">{d["name"]}</span>'
+            f'<span style="color:var(--ua-ink-soft);">{d["name"]}</span>'
             f'<span style="color:{"#00C853" if d["contribution"] >= 0 else "#FF4444"};'
             f'font-variant-numeric:tabular-nums;font-weight:600;">{_pt(d["contribution"])}</span>'
             f'</div>'
@@ -604,7 +604,7 @@ def render_explainer_html(payload: dict) -> str:
     # --- Factor mix ---------------------------------------------------------
     if factors:
         fac_rows = " · ".join(
-            f'<span style="color:#C3CBE0;">{f["name"]}</span>'
+            f'<span style="color:var(--ua-ink-soft);">{f["name"]}</span>'
             f'<span style="color:#6B7280;"> {f["share"]:g}%</span>'
             for f in factors
         )
@@ -626,9 +626,9 @@ def render_explainer_html(payload: dict) -> str:
         f'<summary style="cursor:pointer;font-size:0.74rem;color:var(--ua-ink-mut);font-weight:600;">'
         f'How this score is built &amp; what it can\'t tell you</summary>'
         f'<div style="font-size:0.76rem;color:var(--ua-ink-mut);margin-top:8px;line-height:1.6;">'
-        f'<div style="color:#C3CBE0;font-weight:600;margin-bottom:2px;">Confidence basis</div>'
+        f'<div style="color:var(--ua-ink-soft);font-weight:600;margin-bottom:2px;">Confidence basis</div>'
         f'<ul style="margin:0 0 10px 18px;padding:0;">{conf_reasons}</ul>'
-        f'<div style="color:#C3CBE0;font-weight:600;margin-bottom:2px;">Known limitations</div>'
+        f'<div style="color:var(--ua-ink-soft);font-weight:600;margin-bottom:2px;">Known limitations</div>'
         f'<ul style="margin:0 0 0 18px;padding:0;">{limit_items}</ul>'
         f'</div></details>'
     )

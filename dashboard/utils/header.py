@@ -81,8 +81,8 @@ _CSS = """
     /* Slice 2 — same exact-dark-value method. */
     --ua-ink-label:  #6B7FBF;   /* small-caps labels / captions */
     --ua-ink-soft:   #B8C0D4;   /* secondary body */
-    --ua-ink-dim:    #5A6478;   /* dimmest legible text */
-    --ua-ink-dim-2:  #4A5280;   /* de-emphasised meta */
+    --ua-ink-dim:    #747E94;   /* dimmest WCAG-legible text */
+    --ua-ink-dim-2:  #707A91;   /* de-emphasised meta, still 4.5:1 on bg */
     --ua-hair:       rgba(255,255,255,0.08);  /* hairline borders */
     --ua-hair-2:     rgba(255,255,255,0.06);
     --ua-hair-3:     rgba(255,255,255,0.05);
@@ -3078,7 +3078,7 @@ def render_page_header(title: str, subtitle: str = "",
         f'<div style="display:inline-flex;align-items:center;gap:6px;'
         f'background:var(--ua-bg-card);border:1px solid rgba(var(--ua-onbg-rgb),0.09);'
         f'border-radius:6px;padding:5px 10px;font-size:0.66rem;font-weight:650;'
-        f'color:#AAB3C5;letter-spacing:0.04em;white-space:nowrap;font-family:Inter,sans-serif;">'
+        f'color:var(--ua-ink-mut);letter-spacing:0.04em;white-space:nowrap;font-family:Inter,sans-serif;">'
         f'{live_stat}</div>'
     ) if live_stat else ""
 

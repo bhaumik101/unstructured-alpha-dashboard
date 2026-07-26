@@ -402,7 +402,7 @@ def render_portfolio_xray_html(payload: dict) -> str:
     hidden_html = ""
     if payload["hidden_correlations"]:
         rows = "".join(
-            f'<div style="font-size:0.8rem;color:#C3CBE0;padding:4px 0;">'
+            f'<div style="font-size:0.8rem;color:var(--ua-ink-soft);padding:4px 0;">'
             f'<b>{h["pair"][0]}</b> &amp; <b>{h["pair"][1]}</b> '
             f'<span style="color:var(--ua-ink-mut);">— {h["sectors"][0]} vs {h["sectors"][1]}, '
             f'but {int(h["similarity"]*100)}% shared macro exposure'

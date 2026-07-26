@@ -8,6 +8,14 @@ from utils.header import _theme_switch_href
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = (ROOT / "utils" / "header.py").read_text(encoding="utf-8")
 SPLASH = (ROOT / "scripts" / "inject_boot_splash.py").read_text(encoding="utf-8")
+TRACK_RECORD = (ROOT / "pages" / "30_Track_Record_Live.py").read_text(encoding="utf-8")
+
+TOKENIZED_PRESENTATION_FILES = [
+    ROOT / "utils" / "command_center.py",
+    ROOT / "utils" / "what_changed.py",
+    ROOT / "utils" / "score_explainer.py",
+    ROOT / "utils" / "portfolio_xray.py",
+]
 
 
 def test_theme_links_preserve_existing_page_query_state():
@@ -63,3 +71,19 @@ def test_mobile_navigation_and_boot_splash_follow_light_theme():
     assert "migration finishes" not in SPLASH
     assert "ua-boot-fact::before{color:#62697E;}" in SPLASH
     assert 'html[data-ua-theme="light"] .ua-guide-step-num' in HEADER
+
+
+def test_final_render_only_colors_use_theme_tokens():
+    assert "--ua-ink-dim:    #747E94;" in HEADER
+    assert "--ua-ink-dim-2:  #707A91;" in HEADER
+    assert "color:#AAB3C5" not in HEADER
+
+    for path in TOKENIZED_PRESENTATION_FILES:
+        source = path.read_text(encoding="utf-8")
+        assert "#C3CBE0" not in source
+        assert "var(--ua-ink-soft)" in source
+
+    assert 'color:{"var(--ua-green)"' in TRACK_RECORD
+    assert 'else "var(--ua-red)"};' in TRACK_RECORD
+    assert "rgba(var(--ua-green-rgb),0.27)" in TRACK_RECORD
+    assert 'if is_res else "var(--ua-ink-mut)"' in TRACK_RECORD

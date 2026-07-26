@@ -165,8 +165,8 @@ if _track_section == "Signal Track Record":
           <div style="font-size:0.58rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;
                       letter-spacing:0.12em;margin-bottom:6px;">Median 12w Return</div>
           <div style="font-size:2.2rem;font-weight:900;
-                      color:{"#00D566" if (_med_12w or 0) >= 0 else "#FF4444"};
-                      text-shadow:0 0 24px {"#00D56645" if (_med_12w or 0) >= 0 else "#FF444445"};
+                      color:{"var(--ua-green)" if (_med_12w or 0) >= 0 else "var(--ua-red)"};
+                      text-shadow:0 0 24px {"rgba(var(--ua-green-rgb),0.27)" if (_med_12w or 0) >= 0 else "rgba(var(--ua-red-rgb),0.27)"};
                       line-height:1;">
             {"—" if _med_12w is None else f"{_med_12w:+.1f}%"}
           </div>
@@ -300,7 +300,7 @@ if _track_section == "Signal Track Record":
           <span style="font-size:0.66rem;font-weight:700;
                        padding:3px 8px;border-radius:4px;
                        background:{"rgba(0,213,102,0.12)" if is_res else "rgba(255,255,255,0.06)"};
-                       color:{"#00D566" if is_res else "#8892AA"};">
+                       color:{"var(--ua-green)" if is_res else "var(--ua-ink-mut)"};">
             {"✓ RESOLVED" if is_res else "PENDING"}
           </span>
         </div>
@@ -424,7 +424,7 @@ if _track_section == "Signal Track Record":
       <div class="ua-spotlight" style="--ua-spotlight-accent:{AMBER};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
         <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Median 30d Return</div>
         <div style="font-size:1.5rem;font-weight:900;
-                    color:{"#00D566" if (_h_med or 0) >= 0 else "#FF4444"};">
+                    color:{"var(--ua-green)" if (_h_med or 0) >= 0 else "var(--ua-red)"};">
           {"—" if _h_med is None else f"{_h_med:+.1f}%"}
         </div>
         <div style="font-size:0.64rem;color:var(--ua-ink-mut);">all qualifying instances</div>
@@ -432,7 +432,7 @@ if _track_section == "Signal Track Record":
       <div class="ua-spotlight" style="--ua-spotlight-accent:{PURPLE};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
         <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Avg 30d Return</div>
         <div style="font-size:1.5rem;font-weight:900;
-                    color:{"#00D566" if (_h_avg or 0) >= 0 else "#FF4444"};">
+                    color:{"var(--ua-green)" if (_h_avg or 0) >= 0 else "var(--ua-red)"};">
           {"—" if _h_avg is None else f"{_h_avg:+.1f}%"}
         </div>
         <div style="font-size:0.64rem;color:var(--ua-ink-mut);">mean across all calls</div>
