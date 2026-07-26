@@ -2042,6 +2042,16 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(var(--ua-roy
   color: #E8C766;
   border-color: rgba(212,175,55,0.40);
 }
+/* Pale gold/lilac are legible on a dark bar but wash out on the white
+   light-mode nav, so light uses the deep variants. */
+html[data-ua-theme="light"] .ua-tnav-admin {
+  background: rgba(156,122,44,0.10);
+  color: #7A5E1E;
+  border-color: rgba(156,122,44,0.35);
+}
+html[data-ua-theme="light"] .ua-tnav-pro {
+  color: #5A46C0;
+}
 
 /* ── Mobile hamburger (JS-free checkbox toggle) ───────────────────────────── */
 .ua-tnav-toggle { display: none; }            /* the open/closed state checkbox */
