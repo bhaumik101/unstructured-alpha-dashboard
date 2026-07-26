@@ -4,10 +4,23 @@ Call render_header() as the very first Streamlit call after st.set_page_config()
 """
 
 from html import escape as html_escape
+from urllib.parse import urlencode
 
 import streamlit as st
 
 from utils.config import TICKERS, SIGNAL_COUNT
+
+
+def _theme_switch_href(target: str, query_values: dict[str, list[str]]) -> str:
+    """Build an accessible theme link without dropping functional page state."""
+    pairs: list[tuple[str, str]] = []
+    for key, values in (query_values or {}).items():
+        if str(key) == "theme":
+            continue
+        pairs.extend((str(key), str(value)) for value in (values or []))
+    pairs.append(("theme", "light" if target == "light" else "dark"))
+    return "?" + urlencode(pairs)
+
 
 # ── Modern Dark Design System CSS ────────────────────────────────────────────
 _CSS = """
@@ -321,9 +334,68 @@ html[data-ua-theme="light"] .stButton > button {
     color: var(--ua-ink-soft) !important;
     border-color: var(--ua-hair) !important;
 }
+/* Current Streamlit quick-pick and dynamically generated buttons are not
+   always nested under .stButton (tooltip wrappers can sit between them).
+   Target the stable button contract as well, never generated emotion classes. */
+html[data-ua-theme="light"] button[data-testid="stBaseButton-secondary"] {
+    background: var(--ua-bg-card) !important;
+    color: var(--ua-ink-soft) !important;
+    border: 1px solid var(--ua-hair) !important;
+    box-shadow: var(--ua-shadow) !important;
+}
+html[data-ua-theme="light"] button[data-testid="stBaseButton-secondary"]:hover {
+    background: rgba(var(--ua-royal-rgb),0.06) !important;
+    color: var(--ua-ink) !important;
+    border-color: rgba(var(--ua-royal-rgb),0.30) !important;
+}
 html[data-ua-theme="light"] .stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #4048C6, #3B3FA8) !important;
     color: #FFFFFF !important;
+}
+
+/* Button labels are paragraphs in current Streamlit builds. The generic
+   typography rule must not recolor a button's label independently of its
+   surface, especially white labels on royal form-submit actions. */
+.stButton > button p,
+.stDownloadButton > button p,
+.stFormSubmitButton > button p,
+.stLinkButton > a p,
+button[data-testid^="stBaseButton"] p {
+    color: inherit !important;
+}
+
+/* Plotly is rendered client-side after Python has already built the figure, so
+   it cannot read the browser-only localStorage theme. Re-theme presentation
+   chrome in CSS while leaving trace/data colors and figure logic untouched. */
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] .main-svg {
+    background: transparent !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] .plot-container .bg {
+    fill: var(--ua-bg-card) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] :is(
+    .xtick text, .ytick text, .gtitle, .legendtext, .annotation-text,
+    .cbtitle text, .colorbar text
+) {
+    fill: var(--ua-ink-mut) !important;
+    color: var(--ua-ink-mut) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] :is(
+    .xgrid, .ygrid, .gridlayer path, .zerolinelayer path
+) {
+    stroke: var(--ua-grid) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] :is(
+    .xlines-above, .ylines-above, .xlines-below, .ylines-below
+) {
+    stroke: var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] .modebar {
+    background: rgba(var(--ua-card-rgb),0.94) !important;
+    border: 1px solid var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] .modebar-btn path {
+    fill: var(--ua-ink-mut) !important;
 }
 
 /* ── Guided workflow cards ───────────────────────────────────────────────── */
@@ -1697,15 +1769,20 @@ html[data-ua-theme="light"] :is(
     [style^="color:#00D566" i],  [style*=";color:#00D566" i],
     [style^="color: rgb(0, 213, 102)" i], [style*="; color: rgb(0, 213, 102)" i],
     [style^="color: #34D399" i], [style*="; color: #34D399" i],
+    [style*=";color:#34D399" i],
     [style^="color:#34D399" i],  [style*=";color:#34D399" i],
     [style^="color: rgb(52, 211, 153)" i], [style*="; color: rgb(52, 211, 153)" i],
     [style^="color: #00A847" i], [style*="; color: #00A847" i],
+    [style*=";color:#00A847" i],
     [style^="color: rgb(0, 168, 71)" i], [style*="; color: rgb(0, 168, 71)" i],
     [style^="color: #00C853" i], [style*="; color: #00C853" i],
+    [style*=";color:#00C853" i],
     [style^="color: rgb(0, 200, 83)" i], [style*="; color: rgb(0, 200, 83)" i],
     [style^="color: #22C55E" i], [style*="; color: #22C55E" i],
+    [style*=";color:#22C55E" i],
     [style^="color: rgb(34, 197, 94)" i], [style*="; color: rgb(34, 197, 94)" i],
     [style^="color: #35C98B" i], [style*="; color: #35C98B" i],
+    [style*=";color:#35C98B" i],
     [style^="color: rgb(53, 201, 139)" i], [style*="; color: rgb(53, 201, 139)" i]
 ) { color: var(--ua-green) !important; opacity: 1 !important; }
 
@@ -1714,14 +1791,19 @@ html[data-ua-theme="light"] :is(
     [style^="color:#FF4444" i],  [style*=";color:#FF4444" i],
     [style^="color: rgb(255, 68, 68)" i], [style*="; color: rgb(255, 68, 68)" i],
     [style^="color: #FF2222" i], [style*="; color: #FF2222" i],
+    [style*=";color:#FF2222" i],
     [style^="color: rgb(255, 34, 34)" i], [style*="; color: rgb(255, 34, 34)" i],
     [style^="color: #CC3333" i], [style*="; color: #CC3333" i],
+    [style*=";color:#CC3333" i],
     [style^="color: rgb(204, 51, 51)" i], [style*="; color: rgb(204, 51, 51)" i],
     [style^="color: #FF4D6A" i], [style*="; color: #FF4D6A" i],
+    [style*=";color:#FF4D6A" i],
     [style^="color: rgb(255, 77, 106)" i], [style*="; color: rgb(255, 77, 106)" i],
     [style^="color: #FF6B6B" i], [style*="; color: #FF6B6B" i],
+    [style*=";color:#FF6B6B" i],
     [style^="color: rgb(255, 107, 107)" i], [style*="; color: rgb(255, 107, 107)" i],
     [style^="color: #E06C75" i], [style*="; color: #E06C75" i],
+    [style*=";color:#E06C75" i],
     [style^="color: rgb(224, 108, 117)" i], [style*="; color: rgb(224, 108, 117)" i]
 ) { color: var(--ua-red) !important; opacity: 1 !important; }
 
@@ -1730,14 +1812,19 @@ html[data-ua-theme="light"] :is(
     [style^="color:#00C8E0" i],  [style*=";color:#00C8E0" i],
     [style^="color: rgb(0, 200, 224)" i], [style*="; color: rgb(0, 200, 224)" i],
     [style^="color: #0EA5E9" i], [style*="; color: #0EA5E9" i],
+    [style*=";color:#0EA5E9" i],
     [style^="color: rgb(14, 165, 233)" i], [style*="; color: rgb(14, 165, 233)" i],
     [style^="color: #4A9EFF" i], [style*="; color: #4A9EFF" i],
+    [style*=";color:#4A9EFF" i],
     [style^="color: rgb(74, 158, 255)" i], [style*="; color: rgb(74, 158, 255)" i],
     [style^="color: #55A7D8" i], [style*="; color: #55A7D8" i],
+    [style*=";color:#55A7D8" i],
     [style^="color: rgb(85, 167, 216)" i], [style*="; color: rgb(85, 167, 216)" i],
     [style^="color: #67E8F9" i], [style*="; color: #67E8F9" i],
+    [style*=";color:#67E8F9" i],
     [style^="color: rgb(103, 232, 249)" i], [style*="; color: rgb(103, 232, 249)" i],
     [style^="color: #72D6E2" i], [style*="; color: #72D6E2" i],
+    [style*=";color:#72D6E2" i],
     [style^="color: rgb(114, 214, 226)" i], [style*="; color: rgb(114, 214, 226)" i]
 ) { color: var(--ua-cyan) !important; opacity: 1 !important; }
 
@@ -1746,41 +1833,61 @@ html[data-ua-theme="light"] :is(
     [style^="color:#F59E0B" i],  [style*=";color:#F59E0B" i],
     [style^="color: rgb(245, 158, 11)" i], [style*="; color: rgb(245, 158, 11)" i],
     [style^="color: #FFB347" i], [style*="; color: #FFB347" i],
+    [style*=";color:#FFB347" i],
     [style^="color: rgb(255, 179, 71)" i], [style*="; color: rgb(255, 179, 71)" i],
     [style^="color: #E8C766" i], [style*="; color: #E8C766" i],
+    [style*=";color:#E8C766" i],
     [style^="color: rgb(232, 199, 102)" i], [style*="; color: rgb(232, 199, 102)" i],
     [style^="color: #E7C063" i], [style*="; color: #E7C063" i],
+    [style*=";color:#E7C063" i],
     [style^="color: rgb(231, 192, 99)" i], [style*="; color: rgb(231, 192, 99)" i],
     [style^="color: #D8C08A" i], [style*="; color: #D8C08A" i],
-    [style^="color: rgb(216, 192, 138)" i], [style*="; color: rgb(216, 192, 138)" i]
+    [style*=";color:#D8C08A" i],
+    [style^="color: rgb(216, 192, 138)" i], [style*="; color: rgb(216, 192, 138)" i],
+    [style^="color: #F97316" i], [style*="; color: #F97316" i],
+    [style*=";color:#F97316" i],
+    [style^="color: rgb(249, 115, 22)" i], [style*="; color: rgb(249, 115, 22)" i]
 ) { color: var(--ua-amber) !important; opacity: 1 !important; }
 
 html[data-ua-theme="light"] :is(
     [style^="color: #7C3AED" i], [style*="; color: #7C3AED" i],
+    [style*=";color:#7C3AED" i],
     [style^="color: rgb(124, 58, 237)" i], [style*="; color: rgb(124, 58, 237)" i],
     [style^="color: #A78BFA" i], [style*="; color: #A78BFA" i],
+    [style*=";color:#A78BFA" i],
     [style^="color: rgb(167, 139, 250)" i], [style*="; color: rgb(167, 139, 250)" i],
     [style^="color: #A855F7" i], [style*="; color: #A855F7" i],
+    [style*=";color:#A855F7" i],
     [style^="color: rgb(168, 85, 247)" i], [style*="; color: rgb(168, 85, 247)" i],
     [style^="color: #818CF8" i], [style*="; color: #818CF8" i],
+    [style*=";color:#818CF8" i],
     [style^="color: rgb(129, 140, 248)" i], [style*="; color: rgb(129, 140, 248)" i],
     [style^="color: #B79CFF" i], [style*="; color: #B79CFF" i],
+    [style*=";color:#B79CFF" i],
     [style^="color: rgb(183, 156, 255)" i], [style*="; color: rgb(183, 156, 255)" i]
 ) { color: var(--ua-purple) !important; opacity: 1 !important; }
 
 html[data-ua-theme="light"] :is(
     [style^="color: #8892AA" i], [style*="; color: #8892AA" i],
+    [style*=";color:#8892AA" i],
     [style^="color: rgb(136, 146, 170)" i], [style*="; color: rgb(136, 146, 170)" i],
     [style^="color: #6B7FBF" i], [style*="; color: #6B7FBF" i],
-    [style^="color: rgb(107, 127, 191)" i], [style*="; color: rgb(107, 127, 191)" i]
+    [style*=";color:#6B7FBF" i],
+    [style^="color: rgb(107, 127, 191)" i], [style*="; color: rgb(107, 127, 191)" i],
+    [style^="color: #6B7280" i], [style*="; color: #6B7280" i],
+    [style*=";color:#6B7280" i],
+    [style^="color: rgb(107, 114, 128)" i], [style*="; color: rgb(107, 114, 128)" i]
 ) { color: var(--ua-neutral) !important; opacity: 1 !important; }
 
 html[data-ua-theme="light"] :is(
     [style^="color: #B8C0D4" i], [style*="; color: #B8C0D4" i],
+    [style*=";color:#B8C0D4" i],
     [style^="color: rgb(184, 192, 212)" i], [style*="; color: rgb(184, 192, 212)" i],
     [style^="color: #C5CCDE" i], [style*="; color: #C5CCDE" i],
+    [style*=";color:#C5CCDE" i],
     [style^="color: rgb(197, 204, 222)" i], [style*="; color: rgb(197, 204, 222)" i],
     [style^="color: #E8EEFF" i], [style*="; color: #E8EEFF" i],
+    [style*=";color:#E8EEFF" i],
     [style^="color: rgb(232, 238, 255)" i], [style*="; color: rgb(232, 238, 255)" i]
 ) { color: var(--ua-ink) !important; }
 
@@ -1827,6 +1934,18 @@ html[data-ua-theme="light"] .ua-guide-title { color: var(--ua-ink) !important; }
 html[data-ua-theme="light"] .ua-guide-intro,
 html[data-ua-theme="light"] .ua-guide-step-body { color: var(--ua-ink-mut) !important; }
 html[data-ua-theme="light"] .ua-guide-step-title { color: var(--ua-ink-soft) !important; }
+html[data-ua-theme="light"] .ua-guide-step {
+    background: rgba(var(--ua-card-rgb),0.82) !important;
+    border-color: var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] .ua-guide-step:hover {
+    background: var(--ua-bg-card) !important;
+    border-color: rgba(var(--ua-cyan-rgb),0.24) !important;
+}
+html[data-ua-theme="light"] .ua-guide-step-num {
+    color: var(--ua-cyan) !important;
+    border-color: rgba(var(--ua-cyan-rgb),0.30) !important;
+}
 .metric-card:hover, .page-card:hover,
 [data-testid="stMetric"]:hover, [data-testid="stExpander"]:hover {
     border-color: rgba(var(--ua-onbg-rgb),0.14) !important;
@@ -2125,6 +2244,21 @@ def _render_topnav() -> None:
         '<div class="ua-tnav-drop-rule"></div>'
         '<a href="/admin" style="color:#E8C766;">Admin</a>'
     ) if _hdr_admin else ""
+
+    # Keep page state when switching themes. A query-only link preserves the
+    # current path, but a bare ?theme=... used to discard ticker, comparison,
+    # referral, and filtered-view parameters. The link remains a real,
+    # keyboard-accessible anchor; only its safely escaped query string changes.
+    _query_values: dict[str, list[str]] = {}
+    try:
+        _query_values = {
+            str(key): [str(value) for value in st.query_params.get_all(key)]
+            for key in st.query_params
+        }
+    except Exception:
+        pass
+    _light_theme_href = html_escape(_theme_switch_href("light", _query_values), quote=True)
+    _dark_theme_href = html_escape(_theme_switch_href("dark", _query_values), quote=True)
     st.html(("""
 <style>
 /* ── Hide native sidebar + Streamlit chrome ──────────────────────────────── */
@@ -2313,6 +2447,16 @@ html[data-ua-theme="light"] .ua-tnav-pro {
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     padding: 6px 10px 16px; max-height: 84vh; overflow-y: auto;
   }
+  html[data-ua-theme="light"] .ua-tnav-links {
+    background: rgba(255,255,255,0.99);
+    border-bottom-color: var(--ua-hair);
+  }
+  html[data-ua-theme="light"] .ua-tnav-burger span {
+    background: var(--ua-ink-soft);
+  }
+  html[data-ua-theme="light"] .ua-tnav-drop a.pro-link {
+    color: var(--ua-purple) !important;
+  }
   .ua-tnav-toggle:checked ~ .ua-tnav-links { display: flex; }
   .ua-tnav-item { width: 100%; height: auto; padding: 11px 8px; font-size: 0.86rem; }
   .ua-tnav-group { display: block; width: 100%; }
@@ -2421,10 +2565,10 @@ html[data-ua-theme="light"] .ua-tnav-pro {
 
   <div class="ua-tnav-right">
     __UPGRADE_SLOT__
-    <a class="ua-theme-toggle" data-to="light" href="?theme=light"
+    <a class="ua-theme-toggle" data-to="light" href="__LIGHT_THEME_HREF__"
        role="button" aria-label="Switch to light theme" title="Switch to light theme"
        ><span class="ua-tt-ico" aria-hidden="true">&#9788;</span>LIGHT</a>
-    <a class="ua-theme-toggle" data-to="dark" href="?theme=dark"
+    <a class="ua-theme-toggle" data-to="dark" href="__DARK_THEME_HREF__"
        role="button" aria-label="Switch to dark theme" title="Switch to dark theme"
        ><span class="ua-tt-ico" aria-hidden="true">&#9789;</span>DARK</a>
   </div>
@@ -2448,7 +2592,9 @@ html[data-ua-theme="light"] .ua-tnav-pro {
 })();
 </script>
 """).replace("__UPGRADE_SLOT__", _upgrade_slot)
-      .replace("__ADMIN_NAV_SLOT__", _admin_nav_slot))
+      .replace("__ADMIN_NAV_SLOT__", _admin_nav_slot)
+      .replace("__LIGHT_THEME_HREF__", _light_theme_href)
+      .replace("__DARK_THEME_HREF__", _dark_theme_href))
 
 
 def _track_page_view(page_label: str) -> None:
