@@ -89,7 +89,7 @@ st.markdown(f"""
 }}
 .card-wrap.featured {{
     border-color: {PURPLE};
-    box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+    box-shadow: 0 8px 24px rgba(var(--ua-shadow-rgb),calc(0.28*var(--ua-shadow-k)));
 }}
 .popular-ribbon {{
     position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
@@ -435,7 +435,7 @@ if user:
                     <strong style="color:var(--ua-ink);">you get one free month</strong> added to your subscription.
                     They get a <strong style="color:var(--ua-green);">14-day free trial</strong> instead of 7.
                 </div>
-                <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(var(--ua-onbg-rgb),0.08);
+                <div style="background:rgba(var(--ua-shadow-rgb),calc(0.25*var(--ua-shadow-k)));border:1px solid rgba(var(--ua-onbg-rgb),0.08);
                             border-radius:8px;padding:10px 14px;font-family:monospace;
                             font-size:0.80rem;color:#A78BFA;word-break:break-all;margin-bottom:12px;">
                     {_ref_link}

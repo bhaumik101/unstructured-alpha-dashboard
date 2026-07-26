@@ -701,15 +701,15 @@ _SKELETON_CSS = """
 }
 .ua-card:hover {
   border-color: rgba(var(--ua-purple-rgb),0.35);
-  box-shadow: 0 0 0 1px rgba(var(--ua-purple-rgb),0.15), 0 4px 16px rgba(0,0,0,0.35);
+  box-shadow: 0 0 0 1px rgba(var(--ua-purple-rgb),0.15), 0 4px 16px rgba(var(--ua-shadow-rgb),calc(0.35*var(--ua-shadow-k)));
 }
 .ua-card-green:hover {
   border-color: rgba(var(--ua-green-rgb),0.35);
-  box-shadow: 0 0 0 1px rgba(var(--ua-green-rgb),0.12), 0 4px 16px rgba(0,0,0,0.35);
+  box-shadow: 0 0 0 1px rgba(var(--ua-green-rgb),0.12), 0 4px 16px rgba(var(--ua-shadow-rgb),calc(0.35*var(--ua-shadow-k)));
 }
 .ua-card-red:hover {
   border-color: rgba(var(--ua-red-rgb),0.35);
-  box-shadow: 0 0 0 1px rgba(var(--ua-red-rgb),0.12), 0 4px 16px rgba(0,0,0,0.35);
+  box-shadow: 0 0 0 1px rgba(var(--ua-red-rgb),0.12), 0 4px 16px rgba(var(--ua-shadow-rgb),calc(0.35*var(--ua-shadow-k)));
 }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
@@ -913,7 +913,7 @@ _SKELETON_CSS = """
   border-radius: 10px;
 }
 [data-testid="stPlotlyChart"]:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+  box-shadow: 0 4px 20px rgba(var(--ua-shadow-rgb),calc(0.4*var(--ua-shadow-k))) !important;
 }
 
 /* ── Spinner polish ──────────────────────────────────────────────────────── */
@@ -989,7 +989,7 @@ _MODERN_UI_CSS = """
   color: var(--ua-ink) !important;
   font-weight: 700 !important;
   border: 1px solid rgba(var(--ua-green-rgb),0.22) !important;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.40), inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.06) !important;
+  box-shadow: 0 1px 6px rgba(var(--ua-shadow-rgb),calc(0.40*var(--ua-shadow-k))), inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.06) !important;
 }
 
 /* Kill underline highlight + divider */
@@ -1050,7 +1050,7 @@ _MODERN_UI_CSS = """
   background: rgba(22,26,40,0.92) !important;
   border: 1px solid rgba(var(--ua-onbg-rgb),0.10) !important;
   color: #D5DAE3 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.30),
+  box-shadow: 0 1px 3px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k))),
               inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04) !important;
 }
 .stButton > button[data-testid="baseButton-secondary"]:hover,
@@ -1059,12 +1059,12 @@ _MODERN_UI_CSS = """
   border-color: #536174 !important;
   color: var(--ua-ink) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.35) !important;
+  box-shadow: 0 4px 14px rgba(var(--ua-shadow-rgb),calc(0.35*var(--ua-shadow-k))) !important;
 }
 .stButton > button[data-testid="baseButton-secondary"]:active,
 .stButton > button:not([data-testid="baseButton-primary"]):active {
   transform: translateY(0) scale(0.975) !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.30) !important;
+  box-shadow: 0 1px 3px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k))) !important;
 }
 
 /* — Primary — */
@@ -1073,19 +1073,19 @@ _MODERN_UI_CSS = """
   border: 1px solid #477D6B !important;
   color: #F1F3F5 !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.28) !important;
+  box-shadow: 0 2px 8px rgba(var(--ua-shadow-rgb),calc(0.28*var(--ua-shadow-k))) !important;
 }
 .stButton > button[data-testid="baseButton-primary"]:hover {
   background: #397461 !important;
   border-color: #5A8E7D !important;
   filter: none !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.32) !important;
+  box-shadow: 0 4px 12px rgba(var(--ua-shadow-rgb),calc(0.32*var(--ua-shadow-k))) !important;
 }
 .stButton > button[data-testid="baseButton-primary"]:active {
   transform: translateY(0) scale(0.975) !important;
   filter: brightness(0.96) !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.28) !important;
+  box-shadow: 0 2px 8px rgba(var(--ua-shadow-rgb),calc(0.28*var(--ua-shadow-k))) !important;
 }
 
 /* — Download — */
@@ -1209,7 +1209,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {
 [data-testid="stMetric"]:hover {
   border-color: rgba(var(--ua-green-rgb),0.22) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.28) !important;
+  box-shadow: 0 4px 16px rgba(var(--ua-shadow-rgb),calc(0.28*var(--ua-shadow-k))) !important;
 }
 [data-testid="stMetricValue"] {
   font-family: Inter, -apple-system, sans-serif !important;
@@ -1244,7 +1244,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {
 }
 [data-testid="stExpander"]:hover {
   border-color: rgba(var(--ua-green-rgb),0.20) !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important;
+  box-shadow: 0 2px 12px rgba(var(--ua-shadow-rgb),calc(0.25*var(--ua-shadow-k))) !important;
 }
 .streamlit-expanderHeader,
 [data-testid="stExpander"] summary {
@@ -1363,7 +1363,7 @@ hr {
   transition: box-shadow 0.20s ease !important;
 }
 [data-testid="stPlotlyChart"]:hover {
-  box-shadow: 0 6px 24px rgba(0,0,0,0.45) !important;
+  box-shadow: 0 6px 24px rgba(var(--ua-shadow-rgb),calc(0.45*var(--ua-shadow-k))) !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1633,13 +1633,13 @@ def glass_card(content_html: str, accent: str = "", padding: str = "20px 22px",
         bg_tint  = f"rgba({r_},{g_},{b_},0.05)"
         border   = f"1px solid rgba({r_},{g_},{b_},0.18)"
         l_border = f"3px solid {accent}"
-        shadow   = (f"box-shadow:0 0 28px rgba({r_},{g_},{b_},0.12),0 8px 32px rgba(0,0,0,0.35);"
-                    if glow else "box-shadow:0 4px 20px rgba(0,0,0,0.3);")
+        shadow   = (f"box-shadow:0 0 28px rgba({r_},{g_},{b_},0.12),0 8px 32px rgba(var(--ua-shadow-rgb),calc(0.35*var(--ua-shadow-k)));"
+                    if glow else "box-shadow:0 4px 20px rgba(var(--ua-shadow-rgb),calc(0.3*var(--ua-shadow-k)));")
     else:
         bg_tint  = "rgba(18,21,30,0.85)"
         border   = "1px solid rgba(var(--ua-onbg-rgb),0.07)"
         l_border = "none"
-        shadow   = "box-shadow:0 4px 20px rgba(0,0,0,0.3);"
+        shadow   = "box-shadow:0 4px 20px rgba(var(--ua-shadow-rgb),calc(0.3*var(--ua-shadow-k)));"
 
     left_border_css = (f"border-left:{l_border};" if l_border != "none" else "")
     return (
@@ -1797,7 +1797,7 @@ _COUNTER_CSS = """
 }
 .ua-spotlight:hover {
   border-color: rgba(var(--ua-onbg-rgb),0.15);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  box-shadow: 0 8px 32px rgba(var(--ua-shadow-rgb),calc(0.45*var(--ua-shadow-k)));
   transform: translateY(-3px);
 }
 .ua-spotlight-icon {

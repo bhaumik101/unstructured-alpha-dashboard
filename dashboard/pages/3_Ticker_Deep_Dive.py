@@ -3056,7 +3056,7 @@ if section == "Overview":
 
             st.markdown(f"""
             <div style="background:{bg_color};border-radius:6px;padding:12px 16px;margin-bottom:4px;
-                        border-left:4px solid {card_color};border:1px solid rgba(0,0,0,0.08);
+                        border-left:4px solid {card_color};border:1px solid rgba(var(--ua-shadow-rgb),calc(0.08*var(--ua-shadow-k)));
                         font-family:Inter,sans-serif;">
                 <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;">
                     <span style="color:{card_color};font-weight:700;font-size:0.88rem;">{sym} {sig_name}</span>

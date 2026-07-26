@@ -657,7 +657,7 @@ elif section == "Macro Indicators":
         syms   = {"bull": "▲", "bear": "▼", "neutral": "●"}
         label  = labels[0] if status == "bull" else (labels[1] if status == "bear" else labels[2])
         c, s = colors[status], syms[status]
-        return (f'<span style="background:rgba(0,0,0,0.06);color:{c};border:1px solid {c};'
+        return (f'<span style="background:rgba(var(--ua-shadow-rgb),calc(0.06*var(--ua-shadow-k)));color:{c};border:1px solid {c};'
                 f'border-radius:4px;padding:2px 8px;font-size:0.78rem;font-weight:700;">{s} {label}</span>')
 
 

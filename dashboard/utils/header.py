@@ -94,6 +94,16 @@ _CSS = """
     --ua-shell-rgb:  12,14,20;   /* sticky tape / nav shell */
     --ua-panel:      #0F1320;    /* raised panel fill */
     --ua-panel-line: #232942;    /* raised panel border */
+
+    /* Slice 7 — drop shadows. These need MORE than a colour swap: a 0.6-alpha
+       black that reads as depth on a dark surface reads as dirt on a light one,
+       so light needs a different hue AND a much lower alpha. The RGB-triple
+       trick can't vary alpha, so the alpha is multiplied by a scalar token —
+       calc() is valid in the alpha slot. Dark keeps k=1, so every existing
+       shadow is byte-identical; light scales them all down uniformly, which
+       preserves their relative weighting instead of flattening them. */
+    --ua-shadow-rgb: 0,0,0;
+    --ua-shadow-k:   1;
 }
 
 /* Light mode: overrides both the legacy tokens and the redesign tokens. Applied
@@ -154,11 +164,13 @@ html[data-ua-theme="light"] {
     --ua-shell-rgb:  255,255,255;
     --ua-panel:      #FFFFFF;
     --ua-panel-line: rgba(20,22,44,0.12);
+    --ua-shadow-rgb: 20,22,44;   /* cool navy, not black */
+    --ua-shadow-k:   0.3;        /* scale every shadow down together */
 }
 
 /* ── Light mode: app chrome ───────────────────────────────────────────────
    The token block above only recolors things that USE the tokens. Streamlit
-   paints its own shell from config.toml (backgroundColor var(--ua-bg)) and this file
+   paints its own shell from config.toml (backgroundColor) and this file
    pins it again with !important further down, so without these overrides a
    light-mode user gets light cards floating on a black page. Selectors are
    prefixed with html[data-ua-theme="light"], which adds specificity, and they
@@ -243,7 +255,7 @@ html[data-ua-theme="light"] .stButton > button[kind="primary"] {
     background:
         radial-gradient(circle at 92% -10%, rgba(var(--ua-purple-rgb),0.13), transparent 34%),
         linear-gradient(145deg, rgba(15,22,31,0.98), rgba(10,15,23,0.96));
-    box-shadow: 0 14px 36px rgba(0,0,0,0.24), inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.025);
+    box-shadow: 0 14px 36px rgba(var(--ua-shadow-rgb),calc(0.24*var(--ua-shadow-k))), inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.025);
     font-family: Inter, sans-serif;
 }
 .ua-guide-shell::before {
@@ -507,7 +519,7 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
     font-family: 'Inter', sans-serif;
     transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
     position: relative; overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 8px rgba(var(--ua-shadow-rgb),calc(0.3*var(--ua-shadow-k)));
 }
 .metric-card::before {
     content: ''; position: absolute; left: 0; top: 0; bottom: 0;
@@ -524,7 +536,7 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
 .metric-card, .page-card, .stat-box { will-change: transform; }
 .metric-card:hover {
     border-color: rgba(var(--ua-green-rgb),0.24);
-    box-shadow: 0 0 28px rgba(var(--ua-green-rgb),0.09), 0 8px 28px rgba(0,0,0,0.45);
+    box-shadow: 0 0 28px rgba(var(--ua-green-rgb),0.09), 0 8px 28px rgba(var(--ua-shadow-rgb),calc(0.45*var(--ua-shadow-k)));
     transform: translate3d(0,-2px,0);
 }
 .metric-card.bull:hover { border-color: rgba(var(--ua-green-rgb),0.32); }
@@ -550,7 +562,7 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
 .page-card:hover::before { opacity: 1; }
 .page-card:hover {
     border-color: rgba(var(--ua-green-rgb),0.18);
-    box-shadow: 0 0 24px rgba(var(--ua-green-rgb),0.07), 0 12px 32px rgba(0,0,0,0.5);
+    box-shadow: 0 0 24px rgba(var(--ua-green-rgb),0.07), 0 12px 32px rgba(var(--ua-shadow-rgb),calc(0.5*var(--ua-shadow-k)));
     transform: translate3d(0,-2px,0);
 }
 .page-card .page-title { font-size: 0.94rem; font-weight: 600; color: var(--ua-ink); margin-bottom: 4px; letter-spacing: -0.1px; }
@@ -785,7 +797,7 @@ ul[data-baseweb="menu"] {
     background: var(--ua-bg-card) !important;
     border: 1px solid rgba(var(--ua-onbg-rgb),0.09) !important;
     border-radius: 10px !important;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.6) !important;
+    box-shadow: 0 16px 48px rgba(var(--ua-shadow-rgb),calc(0.6*var(--ua-shadow-k))) !important;
 }
 [data-baseweb="menu"] li,
 [data-baseweb="option"] {
@@ -833,7 +845,7 @@ ul[data-baseweb="menu"] {
     border-radius: 8px !important;
     font-family: 'Inter', sans-serif !important;
     font-size: 0.78rem !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+    box-shadow: 0 8px 24px rgba(var(--ua-shadow-rgb),calc(0.5*var(--ua-shadow-k))) !important;
 }
 
 /* ── Code blocks ─────────────────────────────────────────────────────────── */
@@ -1089,11 +1101,11 @@ code, pre {
     border: none !important;
     font-weight: 700 !important;
     letter-spacing: 0.01em !important;
-    box-shadow: 0 2px 14px rgba(var(--ua-royal-rgb),0.30), 0 1px 3px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 2px 14px rgba(var(--ua-royal-rgb),0.30), 0 1px 3px rgba(var(--ua-shadow-rgb),calc(0.3*var(--ua-shadow-k))) !important;
     transition: all 0.18s cubic-bezier(0.4,0,0.2,1) !important;
 }
 .stButton > button[kind="primary"]:hover {
-    box-shadow: 0 4px 22px rgba(var(--ua-royal-rgb),0.44), 0 2px 6px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 4px 22px rgba(var(--ua-royal-rgb),0.44), 0 2px 6px rgba(var(--ua-shadow-rgb),calc(0.4*var(--ua-shadow-k))) !important;
     filter: brightness(1.06) !important;
     transform: translateY(-1px) !important;
 }
@@ -1212,7 +1224,7 @@ code, pre {
 }
 .ua-chart-card:hover {
     border-color: rgba(var(--ua-green-rgb),0.16);
-    box-shadow: 0 0 28px rgba(var(--ua-green-rgb),0.06), 0 12px 32px rgba(0,0,0,0.4);
+    box-shadow: 0 0 28px rgba(var(--ua-green-rgb),0.06), 0 12px 32px rgba(var(--ua-shadow-rgb),calc(0.4*var(--ua-shadow-k)));
     transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
 }
 .ua-chart-title {
@@ -1912,7 +1924,7 @@ header[data-testid="stHeader"]            { display: none !important; }
   display: flex; align-items: center;
   padding: 0 16px; gap: 0;
   font-family: 'Inter', -apple-system, sans-serif;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 20px rgba(var(--ua-shadow-rgb),calc(0.4*var(--ua-shadow-k)));
 }
 
 /* ── Brand ────────────────────────────────────────────────────────────────── */
@@ -1969,7 +1981,7 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(var(--ua-roy
   background: rgba(12,14,22,0.98);
   border: 1px solid var(--ua-hair); border-radius: 10px;
   padding: 5px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(var(--ua-onbg-rgb),0.03);
+  box-shadow: 0 20px 60px rgba(var(--ua-shadow-rgb),calc(0.7*var(--ua-shadow-k))), 0 0 0 1px rgba(var(--ua-onbg-rgb),0.03);
   backdrop-filter: blur(24px);
   display: flex; flex-direction: column; gap: 1px;
   z-index: 100001;
@@ -2063,7 +2075,7 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(var(--ua-roy
     flex-direction: column; align-items: stretch; gap: 1px;
     background: rgba(9,11,17,0.99);
     border-bottom: 1px solid var(--ua-hair);
-    box-shadow: 0 24px 60px rgba(0,0,0,0.75);
+    box-shadow: 0 24px 60px rgba(var(--ua-shadow-rgb),calc(0.75*var(--ua-shadow-k)));
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     padding: 6px 10px 16px; max-height: 84vh; overflow-y: auto;
   }
@@ -2892,7 +2904,7 @@ def render_sidebar_base(
                     border: 1px solid rgba(var(--ua-label-rgb),0.20);
                     border-radius: 10px;
                     padding: 8px 10px 10px;
-                    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+                    box-shadow: 0 10px 28px rgba(var(--ua-shadow-rgb),calc(0.22*var(--ua-shadow-k)));
                 }
                 </style>
                 """,
