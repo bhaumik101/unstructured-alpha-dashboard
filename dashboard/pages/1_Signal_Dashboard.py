@@ -86,15 +86,15 @@ if _signal_section == "Signal Library":
     # ── Methodology Callout ───────────────────────────────────────────────────────
     with st.expander("How these signals work", expanded=False):
         _m_css = (
-            "background:rgba(18,21,30,0.8);border:1px solid rgba(255,255,255,0.07);"
+            "background:rgba(var(--ua-card-rgb),0.8);border:1px solid rgba(var(--ua-onbg-rgb),0.07);"
             "border-radius:10px;padding:14px 16px;height:100%;"
         )
         _m_title = (
             "font-weight:700;font-size:0.82rem;letter-spacing:0.04em;"
-            "color:#E8EEFF;margin-bottom:6px;font-family:Inter,sans-serif;"
+            "color:var(--ua-ink);margin-bottom:6px;font-family:Inter,sans-serif;"
         )
         _m_body = (
-            "font-size:0.78rem;color:#8892AA;line-height:1.55;font-family:Inter,sans-serif;"
+            "font-size:0.78rem;color:var(--ua-ink-mut);line-height:1.55;font-family:Inter,sans-serif;"
         )
         _m_badge = (
             "display:inline-block;font-size:0.68rem;font-weight:600;letter-spacing:0.05em;"
@@ -110,11 +110,11 @@ if _signal_section == "Signal Library":
         estimated data. Each series is mapped to an official source ID so you can verify it directly.
       </div>
       <div style="margin-top:10px;">
-        <span style="{_m_badge}background:rgba(0,200,224,0.12);color:#00C8E0;">FRED</span>
-        <span style="{_m_badge}background:rgba(0,200,224,0.12);color:#00C8E0;">EIA</span>
-        <span style="{_m_badge}background:rgba(0,200,224,0.12);color:#00C8E0;">SEC EDGAR</span>
-        <span style="{_m_badge}background:rgba(0,200,224,0.12);color:#00C8E0;">FINRA</span>
-        <span style="{_m_badge}background:rgba(0,200,224,0.12);color:#00C8E0;">yfinance</span>
+        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">FRED</span>
+        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">EIA</span>
+        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">SEC EDGAR</span>
+        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">FINRA</span>
+        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">yfinance</span>
       </div>
     </div>""", unsafe_allow_html=True)
         with _mc2:
@@ -249,14 +249,14 @@ if _signal_section == "Signal Library":
         temp_color, temp_label = "#6B7FBF", "No Data"
 
     st.markdown(f"""
-    <div class="ua-slide-up" style="background:rgba(18,21,30,0.78);border-radius:14px;padding:18px 22px;
-                border:1px solid rgba(255,255,255,0.08);border-left:5px solid {temp_color};
+    <div class="ua-slide-up" style="background:rgba(var(--ua-card-rgb),0.78);border-radius:14px;padding:18px 22px;
+                border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-left:5px solid {temp_color};
                 backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
-                box-shadow:0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.04);
+                box-shadow:0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04);
                 font-family:Inter,sans-serif;margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
             <div>
-                <div style="display:flex;align-items:center;gap:6px;font-size:0.60rem;color:#8892AA;
+                <div style="display:flex;align-items:center;gap:6px;font-size:0.60rem;color:var(--ua-ink-mut);
                             letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">
                     <span class="ua-pulse-dot"></span>MARKET TEMPERATURE — {scope_lbl}
                 </div>
@@ -265,27 +265,27 @@ if _signal_section == "Signal Library":
             </div>
             <div style="display:flex;gap:24px;text-align:center;">
                 <div>
-                    <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:#00D566;
-                                 letter-spacing:-1px;line-height:1.0;text-shadow:0 0 20px rgba(0,213,102,0.3);">{bull_n}</div>
-                    <div style="font-size:0.60rem;color:#00D566;letter-spacing:0.10em;font-weight:700;margin-top:3px;">BULLISH</div>
+                    <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:var(--ua-green);
+                                 letter-spacing:-1px;line-height:1.0;text-shadow:0 0 20px rgba(var(--ua-green-rgb),0.3);">{bull_n}</div>
+                    <div style="font-size:0.60rem;color:var(--ua-green);letter-spacing:0.10em;font-weight:700;margin-top:3px;">BULLISH</div>
                 </div>
-                <div style="width:1px;background:rgba(255,255,255,0.06);"></div>
+                <div style="width:1px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>
                 <div>
-                    <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:#FF4444;
-                                 letter-spacing:-1px;line-height:1.0;text-shadow:0 0 20px rgba(255,68,68,0.25);">{bear_n}</div>
-                    <div style="font-size:0.60rem;color:#FF4444;letter-spacing:0.10em;font-weight:700;margin-top:3px;">BEARISH</div>
+                    <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:var(--ua-red);
+                                 letter-spacing:-1px;line-height:1.0;text-shadow:0 0 20px rgba(var(--ua-red-rgb),0.25);">{bear_n}</div>
+                    <div style="font-size:0.60rem;color:var(--ua-red);letter-spacing:0.10em;font-weight:700;margin-top:3px;">BEARISH</div>
                 </div>
-                <div style="width:1px;background:rgba(255,255,255,0.06);"></div>
+                <div style="width:1px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>
                 <div>
-                    <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:#6B7FBF;
+                    <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:var(--ua-ink-label);
                                  letter-spacing:-1px;line-height:1.0;">{neut_n}</div>
-                    <div style="font-size:0.60rem;color:#6B7FBF;letter-spacing:0.10em;font-weight:700;margin-top:3px;">NEUTRAL</div>
+                    <div style="font-size:0.60rem;color:var(--ua-ink-label);letter-spacing:0.10em;font-weight:700;margin-top:3px;">NEUTRAL</div>
                 </div>
-                <div style="width:1px;background:rgba(255,255,255,0.06);"></div>
+                <div style="width:1px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>
                 <div>
-                    <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:#E8EEFF;
+                    <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:var(--ua-ink);
                                  letter-spacing:-1px;line-height:1.0;">{total_n}</div>
-                    <div style="font-size:0.60rem;color:#8892AA;letter-spacing:0.10em;font-weight:700;margin-top:3px;">TOTAL</div>
+                    <div style="font-size:0.60rem;color:var(--ua-ink-mut);letter-spacing:0.10em;font-weight:700;margin-top:3px;">TOTAL</div>
                 </div>
             </div>
         </div>
@@ -306,7 +306,7 @@ if _signal_section == "Signal Library":
 
             st.markdown(
                 f'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;'
-                f'color:#6B7FBF;margin-bottom:4px;font-family:Inter,sans-serif;">'
+                f'color:var(--ua-ink-label);margin-bottom:4px;font-family:Inter,sans-serif;">'
                 f' {len(_flips)} signal{"s" if len(_flips) != 1 else ""} changed status since yesterday'
                 f'</div>',
                 unsafe_allow_html=True,
@@ -322,15 +322,15 @@ if _signal_section == "Signal Library":
                 _to_lbl = _flip["to_status"].replace("_", " ").title()
                 with _flip_cols[_fi]:
                     st.markdown(
-                        f'<div class="ua-pop-in" style="background:rgba(18,21,30,0.80);border-radius:8px;padding:10px 12px;'
-                        f'border:1px solid rgba(255,255,255,0.08);border-top:3px solid {_to_c};'
+                        f'<div class="ua-pop-in" style="background:rgba(var(--ua-card-rgb),0.80);border-radius:8px;padding:10px 12px;'
+                        f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:3px solid {_to_c};'
                         f'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);'
                         f'margin-bottom:8px;font-family:Inter,sans-serif;">'
-                        f'<div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;'
+                        f'<div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink);'
                         f'line-height:1.3;margin-bottom:4px;">{_fname[:36]}</div>'
                         f'<div style="font-size:0.80rem;">'
                         f'<span style="color:{_from_c};">{_from_s} {_flip["from_status"].title()}</span>'
-                        f' <span style="color:#8892AA;">→</span> '
+                        f' <span style="color:var(--ua-ink-mut);">→</span> '
                         f'<span style="color:{_to_c};font-weight:700;">{_to_s} {_to_lbl}</span>'
                         f'</div>'
                         f'</div>',
@@ -377,9 +377,9 @@ if _signal_section == "Signal Library":
     st.markdown("""
     <style>
     @keyframes ua-sd-pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.6); }
-      60%  { box-shadow: 0 0 0 6px rgba(255,255,255,0); }
-      100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+      0%   { box-shadow: 0 0 0 0 rgba(var(--ua-onbg-rgb),0.6); }
+      60%  { box-shadow: 0 0 0 6px rgba(var(--ua-onbg-rgb),0); }
+      100% { box-shadow: 0 0 0 0 rgba(var(--ua-onbg-rgb),0); }
     }
     .ua-sd-live-dot {
       display: inline-block;
@@ -394,13 +394,13 @@ if _signal_section == "Signal Library":
 
     # ── Theme Context Banner ──────────────────────────────────────────────────────
     st.markdown("""
-    <div style="background:rgba(0,200,224,0.05);border-radius:8px;padding:14px 20px;
-                border-left:5px solid #E8EEFF;margin-bottom:14px;font-family:Inter,sans-serif;">
-        <div style="font-size:0.75rem;color:#00C8E0;font-weight:700;letter-spacing:0.08em;
+    <div style="background:rgba(var(--ua-cyan-rgb),0.05);border-radius:8px;padding:14px 20px;
+                border-left:5px solid var(--ua-ink);margin-bottom:14px;font-family:Inter,sans-serif;">
+        <div style="font-size:0.75rem;color:var(--ua-cyan);font-weight:700;letter-spacing:0.08em;
                     text-transform:uppercase;margin-bottom:4px;">
             What This Dashboard Tracks
         </div>
-        <div style="font-size:0.82rem;color:#B8C0D4;line-height:1.6;">
+        <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.6;">
             Core themes: <b>Natural Gas · Copper · AI Infrastructure · Quantum Computing</b>
             — the four forces reshaping the global economy.
             But every signal here also <b>flows through to mainstream stocks</b>:
@@ -487,8 +487,8 @@ if _signal_section == "Signal Library":
             trend_arrow = "↑" if trend > 1 else ("↓" if trend < -1 else "→")
 
             # Score-intensity border color: deeper shade = stronger conviction
-            # Bullish: 60-69 = #00D566, 70-79 = #00A847, 80+ = #34D399
-            # Bearish: 31-40 = #FF4444, 21-30 = #CC3333, ≤20 = #FF2222
+            # Bullish: 60-69 = var(--ua-green), 70-79 = #00A847, 80+ = #34D399
+            # Bearish: 31-40 = var(--ua-red), 21-30 = #CC3333, ≤20 = #FF2222
             if status == "bullish":
                 border = "#34D399" if score >= 80 else ("#00A847" if score >= 70 else "#00D566")
             elif status == "bearish":
@@ -518,11 +518,11 @@ if _signal_section == "Signal Library":
             _trend_dir   = _trend_data.get("trend", "new")
             _trend_delta = _trend_data.get("delta", 0.0)
             if _trend_dir == "up":
-                _trend_badge = f'<span style="color:#00D566;font-size:0.68rem;font-weight:700;" title="Score up {_trend_delta:+.1f} pts vs 7 days ago">▲ +{_trend_delta:.0f}</span>'
+                _trend_badge = f'<span style="color:var(--ua-green);font-size:0.68rem;font-weight:700;" title="Score up {_trend_delta:+.1f} pts vs 7 days ago">▲ +{_trend_delta:.0f}</span>'
             elif _trend_dir == "down":
-                _trend_badge = f'<span style="color:#FF4444;font-size:0.68rem;font-weight:700;" title="Score down {_trend_delta:.1f} pts vs 7 days ago">▼ {_trend_delta:.0f}</span>'
+                _trend_badge = f'<span style="color:var(--ua-red);font-size:0.68rem;font-weight:700;" title="Score down {_trend_delta:.1f} pts vs 7 days ago">▼ {_trend_delta:.0f}</span>'
             elif _trend_dir == "flat":
-                _trend_badge = f'<span style="color:#6B7FBF;font-size:0.68rem;" title="Score unchanged vs 7 days ago">→ flat</span>'
+                _trend_badge = f'<span style="color:var(--ua-ink-label);font-size:0.68rem;" title="Score unchanged vs 7 days ago">→ flat</span>'
             else:
                 _trend_badge = ""  # "new" — no prior history yet
 
@@ -532,10 +532,10 @@ if _signal_section == "Signal Library":
             _streak_days  = _streak.get("days", 0)
             # Only show fatigue for Extended/Exhausted — Fresh/Established add noise
             _fatigue_html = (
-                f'<span style="font-size:0.64rem;color:#6B7FBF;margin-left:6px;" '
+                f'<span style="font-size:0.64rem;color:var(--ua-ink-label);margin-left:6px;" '
                 f'title="{_streak_days} days in current status">{_streak_label}</span>'
                 if _streak_label.startswith(("", "")) else
-                f'<span style="font-size:0.64rem;color:#00D566;margin-left:6px;" '
+                f'<span style="font-size:0.64rem;color:var(--ua-green);margin-left:6px;" '
                 f'title="{_streak_days} days in current status">{_streak_label}</span>'
                 if _streak_label.startswith("") else ""
             )
@@ -591,14 +591,14 @@ if _signal_section == "Signal Library":
 
                         _lag_weeks = cfg.get("lag_weeks", 0)
                         _lag_html  = (
-                            f"<br><span style='color:#6B7FBF;font-size:0.70rem;'>"
+                            f"<br><span style='color:var(--ua-ink-label);font-size:0.70rem;'>"
                             f"~{_lag_weeks}w lead time to price</span>"
                             if _lag_weeks > 0 else ""
                         )
 
                         _flip_html = (
-                            f'<div style="font-size:0.65rem;color:#6B7FBF;margin-top:5px;'
-                            f'border-top:1px solid rgba(255,255,255,0.06);padding-top:4px;">{_flip_note}</div>'
+                            f'<div style="font-size:0.65rem;color:var(--ua-ink-label);margin-top:5px;'
+                            f'border-top:1px solid rgba(var(--ua-onbg-rgb),0.06);padding-top:4px;">{_flip_note}</div>'
                             if _flip_note else ""
                         )
                         _src_badge = source_badge(cfg.get("source", ""), cfg.get("series_id", ""))
@@ -606,9 +606,9 @@ if _signal_section == "Signal Library":
                         _cat_cr, _cat_cg, _cat_cb = int(_cat_color[1:3], 16), int(_cat_color[3:5], 16), int(_cat_color[5:7], 16)
                         st.markdown(
                             f'<div style="background:linear-gradient(180deg,'
-                            f'rgba({_bc_r},{_bc_g},{_bc_b},0.10) 0%,rgba(18,21,30,0.82) 44%);'
+                            f'rgba({_bc_r},{_bc_g},{_bc_b},0.10) 0%,rgba(var(--ua-card-rgb),0.82) 44%);'
                             f'border-radius:12px;padding:14px 16px;'
-                            f'border:1px solid rgba(255,255,255,0.08);border-top:2px solid {border};'
+                            f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:2px solid {border};'
                             f'margin-bottom:10px;font-family:Inter,sans-serif;'
                             f'backdrop-filter:blur(12px) saturate(150%);'
                             f'-webkit-backdrop-filter:blur(12px) saturate(150%);'
@@ -616,7 +616,7 @@ if _signal_section == "Signal Library":
                             f'transition:all 0.18s cubic-bezier(0.4,0,0.2,1);">'
                             f'<div style="display:flex;justify-content:space-between;align-items:flex-start;'
                             f'margin-bottom:8px;">'
-                            f'<div title="{_sig_name}" style="font-size:0.80rem;font-weight:700;color:#E8EEFF;line-height:1.3;'
+                            f'<div title="{_sig_name}" style="font-size:0.80rem;font-weight:700;color:var(--ua-ink);line-height:1.3;'
                             f'flex:1;letter-spacing:-0.1px;overflow:hidden;display:-webkit-box;'
                             f'-webkit-line-clamp:2;-webkit-box-orient:vertical;">{_pulse_dot}{_sig_name}</div>'
                             f'<div style="text-align:right;margin-left:8px;flex-shrink:0;">'
@@ -633,7 +633,7 @@ if _signal_section == "Signal Library":
                             f'</div>'
                             f'</div>'
                             f'</div>'
-                            f'<div style="font-size:0.77rem;color:#B8C0D4;line-height:1.55;margin-bottom:8px;">'
+                            f'<div style="font-size:0.77rem;color:var(--ua-ink-soft);line-height:1.55;margin-bottom:8px;">'
                             f'{_bottom_note}{_lag_html}'
                             f'</div>'
                             f'<div style="display:flex;justify-content:space-between;align-items:center;'
@@ -668,15 +668,15 @@ if _signal_section == "Signal Library":
                         _pro_conf_badge = signal_confidence_badge(_pro_conf["level"])
 
                         _pro_flip_html = (
-                            f'<div style="font-size:0.67rem;color:#6B7FBF;margin-top:6px;'
-                            f'border-top:1px solid rgba(255,255,255,0.08);padding-top:4px;">{_flip_note}</div>'
+                            f'<div style="font-size:0.67rem;color:var(--ua-ink-label);margin-top:6px;'
+                            f'border-top:1px solid rgba(var(--ua-onbg-rgb),0.08);padding-top:4px;">{_flip_note}</div>'
                             if _flip_note else ""
                         )
                         st.markdown(
                             f'<div style="background:linear-gradient(180deg,'
-                            f'rgba({_bc_r},{_bc_g},{_bc_b},0.10) 0%,rgba(18,21,30,0.82) 44%);'
+                            f'rgba({_bc_r},{_bc_g},{_bc_b},0.10) 0%,rgba(var(--ua-card-rgb),0.82) 44%);'
                             f'border-radius:12px;padding:14px 16px;'
-                            f'border:1px solid rgba(255,255,255,0.08);border-top:2px solid {border};'
+                            f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:2px solid {border};'
                             f'backdrop-filter:blur(12px) saturate(150%);'
                             f'-webkit-backdrop-filter:blur(12px) saturate(150%);'
                             f'box-shadow:0 4px 20px rgba(0,0,0,0.30);'
@@ -687,8 +687,8 @@ if _signal_section == "Signal Library":
                             f'border:1px solid rgba({_bc_r},{_bc_g},{_bc_b},0.28);'
                             f'border-radius:6px;padding:1px 6px;font-weight:600;">'
                             f'{_cat_icon} {_cat_name}</span>'
-                            f'<span style="color:#6B7FBF;margin-left:6px;">PCS {cfg["pcs"]}/10</span></div>'
-                            f'<div title="{cfg["name"]}" style="font-weight:700;font-size:0.88rem;color:#E8EEFF;margin-bottom:8px;line-height:1.3;'
+                            f'<span style="color:var(--ua-ink-label);margin-left:6px;">PCS {cfg["pcs"]}/10</span></div>'
+                            f'<div title="{cfg["name"]}" style="font-weight:700;font-size:0.88rem;color:var(--ua-ink);margin-bottom:8px;line-height:1.3;'
                             f'overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">'
                             f'{_pulse_dot}{cfg["name"]}</div>'
                             f'<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">'
@@ -699,8 +699,8 @@ if _signal_section == "Signal Library":
                             f'{_pro_conf_badge}'
                             f'</div>'
                             f'</div>'
-                            f'<div style="font-size:0.65rem;color:#8892AA;">score/100 · 7d trend · confidence</div></div>'
-                            f'<div style="font-size:0.76rem;color:#B8C0D4;line-height:1.7;">'
+                            f'<div style="font-size:0.65rem;color:var(--ua-ink-mut);">score/100 · 7d trend · confidence</div></div>'
+                            f'<div style="font-size:0.76rem;color:var(--ua-ink-soft);line-height:1.7;">'
                             f'<div>Dev: <b>{_dev_fmt}%</b> vs 52w</div>'
                             f'<div>Z-score: <b>{_z_fmt}σ</b> · P{pct_rank:.0f}</div>'
                             f'<div>Trend: {trend_arrow} {_trend_fmt}% / 4w · Lead ~{cfg.get("lag_weeks", 0)}w{("  " + _streak_label) if _streak_label else ""}</div>'
@@ -847,27 +847,27 @@ if _signal_section == "Signal Library":
             )
 
         st.markdown(f"""
-        <div style="background:rgba(18,21,30,0.78);border-radius:14px;padding:20px 24px;
-                    border:1px solid rgba(255,255,255,0.08);border-left:5px solid {_insight_border};
+        <div style="background:rgba(var(--ua-card-rgb),0.78);border-radius:14px;padding:20px 24px;
+                    border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-left:5px solid {_insight_border};
                     backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
                     box-shadow:0 4px 24px rgba(0,0,0,0.35);font-family:Inter,sans-serif;margin-bottom:16px;">
-            <div style="font-size:0.62rem;letter-spacing:0.14em;font-weight:700;color:#6B7FBF;
+            <div style="font-size:0.62rem;letter-spacing:0.14em;font-weight:700;color:var(--ua-ink-label);
                         text-transform:uppercase;margin-bottom:6px;">
                 {_insight_icon} SIGNAL INTERPRETATION
             </div>
-            <div style="font-size:1.0rem;font-weight:800;color:#E8EEFF;margin-bottom:8px;letter-spacing:-0.2px;">
+            <div style="font-size:1.0rem;font-weight:800;color:var(--ua-ink);margin-bottom:8px;letter-spacing:-0.2px;">
                 {_insight_headline}
             </div>
-            <div style="font-size:0.82rem;color:#B8C0D4;line-height:1.65;">
+            <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.65;">
                 {_insight_body}
             </div>
-            <div style="margin-top:14px;font-size:0.75rem;color:#6B7FBF;
-                        border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;">
-                 <b style="color:#8892AA;">Next step:</b>
+            <div style="margin-top:14px;font-size:0.75rem;color:var(--ua-ink-label);
+                        border-top:1px solid rgba(var(--ua-onbg-rgb),0.06);padding-top:10px;">
+                 <b style="color:var(--ua-ink-mut);">Next step:</b>
                 Pick a ticker → run
                 <b style="color:#A78BFA;">Ticker Deep Dive</b> to see exactly which of these {total_n} signals
                 are driving its Confluence Score and what they imply for forward returns.
-                Or check <b style="color:#00C8E0;">Today's Brief</b> for a digest of what moved overnight.
+                Or check <b style="color:var(--ua-cyan);">Today's Brief</b> for a digest of what moved overnight.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -936,12 +936,12 @@ if _signal_section == "Signal Library":
 
             st.markdown(f"""
             <div style="display:flex;align-items:center;gap:16px;padding:10px 14px;
-                        background:rgba(18,21,30,0.85);border-radius:6px;border-left:4px solid {border};
-                        border:1px solid rgba(255,255,255,0.07);margin-bottom:6px;font-family:Inter,sans-serif;">
+                        background:rgba(var(--ua-card-rgb),0.85);border-radius:6px;border-left:4px solid {border};
+                        border:1px solid rgba(var(--ua-onbg-rgb),0.07);margin-bottom:6px;font-family:Inter,sans-serif;">
                 <div style="font-size:1.3rem;color:{border};font-weight:700;min-width:36px;">{sym}</div>
                 <div style="flex:1;">
-                    <div style="font-weight:700;font-size:0.85rem;color:#E8EEFF;">{cfg['name']}</div>
-                    <div style="font-size:0.75rem;color:#B8C0D4;margin-top:2px;">
+                    <div style="font-weight:700;font-size:0.85rem;color:var(--ua-ink);">{cfg['name']}</div>
+                    <div style="font-size:0.75rem;color:var(--ua-ink-soft);margin-top:2px;">
                         {abs(dev):.0f}% {direction} average · Score {score:.0f}/100
                         {f" · leads stocks ~{cfg['lag_weeks']}w" if cfg.get('lag_weeks') else ""}
                     </div>
@@ -1080,8 +1080,8 @@ if _signal_section == "Signal Library":
                     for a, b, r in _high_pairs[:6]
                 )
                 st.markdown(
-                    f'<div style="background:rgba(245,158,11,0.07);border-left:3px solid #F59E0B;padding:8px 12px;'
-                    f'border-radius:8px;font-family:Inter,sans-serif;font-size:0.75rem;color:#B8C0D4;">'
+                    f'<div style="background:rgba(245,158,11,0.07);border-left:3px solid var(--ua-amber);padding:8px 12px;'
+                    f'border-radius:8px;font-family:Inter,sans-serif;font-size:0.75rem;color:var(--ua-ink-soft);">'
                     f'<b>High-correlation pairs (r ≥ 0.70)</b> — these signal pairs are reading similar '
                     f'phenomena and should not be double-counted as independent confirmation:<br>'
                     f'{_pair_html}</div>',
@@ -1122,7 +1122,7 @@ if _signal_section == "Regime Playbook":
         f'<div style="background:{_bg_r};border:2px solid {_rp_color};border-radius:10px;'
         f'padding:18px 24px;text-align:center;margin-bottom:20px;font-family:Inter,sans-serif;">'
         f'<div style="font-size:1.6rem;font-weight:900;color:{_rp_color};">{_regime} MACRO</div>'
-        f'<div style="font-size:0.82rem;color:#8892AA;margin-top:6px;">'
+        f'<div style="font-size:0.82rem;color:var(--ua-ink-mut);margin-top:6px;">'
         f'{_rp_bulls} bullish · {_rp_bears} bearish · {_rp_total} signals · {_rp_pct:.0f}% alignment'
         f'</div></div>',
         unsafe_allow_html=True,
@@ -1156,11 +1156,11 @@ if _signal_section == "Regime Playbook":
         _avg = sum(_cd["scores"]) / max(len(_cd["scores"]), 1)
         _c   = "#00D566" if _avg >= 60 else "#FF4444" if _avg <= 40 else "#6B7FBF"
         _rp_cols[_ci % _rp_ncols].markdown(
-            f'<div style="background:rgba(255,255,255,0.025);border:1px solid {_c}33;'
+            f'<div style="background:rgba(var(--ua-onbg-rgb),0.025);border:1px solid {_c}33;'
             f'border-radius:8px;padding:10px 12px;margin-bottom:8px;">'
-            f'<div style="font-size:0.72rem;font-weight:600;color:#E8EEFF;">{_cn}</div>'
+            f'<div style="font-size:0.72rem;font-weight:600;color:var(--ua-ink);">{_cn}</div>'
             f'<div style="font-size:1.4rem;font-weight:800;color:{_c};">{_avg:.0f}</div>'
-            f'<div style="font-size:0.60rem;color:#8892AA;">▲{_cd["bull"]} ▼{_cd["bear"]} {_cd["neut"]}</div>'
+            f'<div style="font-size:0.60rem;color:var(--ua-ink-mut);">▲{_cd["bull"]} ▼{_cd["bear"]} {_cd["neut"]}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )

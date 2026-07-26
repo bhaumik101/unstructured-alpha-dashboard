@@ -160,39 +160,39 @@ st.markdown(f"""
 <div class="ua-gradient-border" style="margin-bottom:20px;">
   <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap;padding:22px 26px;">
     <div style="text-align:center;min-width:110px;">
-      <div style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;
+      <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;
                   letter-spacing:0.14em;margin-bottom:6px;">Supercycle Score</div>
       <div class="ua-kpi-animate" style="font-size:4.2rem;font-weight:900;color:{sc_color};
            line-height:1.0;text-shadow:0 0 32px {sc_color}55,0 0 8px {sc_color}35;
            letter-spacing:-3px;">{sc_score:.0f}</div>
-      <div style="font-size:0.65rem;color:#8892AA;margin-top:3px;">/ 100</div>
+      <div style="font-size:0.65rem;color:var(--ua-ink-mut);margin-top:3px;">/ 100</div>
     </div>
-    <div style="width:1px;height:72px;background:rgba(255,255,255,0.08);flex-shrink:0;"></div>
+    <div style="width:1px;height:72px;background:rgba(var(--ua-onbg-rgb),0.08);flex-shrink:0;"></div>
     <div style="flex:1;min-width:210px;">
-      <div style="font-size:0.96rem;font-weight:700;color:#E8EEFF;margin-bottom:8px;
+      <div style="font-size:0.96rem;font-weight:700;color:var(--ua-ink);margin-bottom:8px;
                   line-height:1.35;">{sc_status}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-        <span style="font-size:0.64rem;font-weight:700;background:rgba(0,213,102,0.10);
-                     color:#00D566;border:1px solid rgba(0,213,102,0.22);border-radius:20px;
+        <span style="font-size:0.64rem;font-weight:700;background:rgba(var(--ua-green-rgb),0.10);
+                     color:var(--ua-green);border:1px solid rgba(var(--ua-green-rgb),0.22);border-radius:20px;
                      padding:2px 9px;">▲ {supercycle['bull_count']} bullish</span>
-        <span style="font-size:0.64rem;font-weight:700;background:rgba(255,68,68,0.10);
-                     color:#FF4444;border:1px solid rgba(255,68,68,0.22);border-radius:20px;
+        <span style="font-size:0.64rem;font-weight:700;background:rgba(var(--ua-red-rgb),0.10);
+                     color:var(--ua-red);border:1px solid rgba(var(--ua-red-rgb),0.22);border-radius:20px;
                      padding:2px 9px;">▼ {supercycle['bear_count']} bearish</span>
-        <span style="font-size:0.64rem;font-weight:700;background:rgba(107,127,191,0.10);
-                     color:#6B7FBF;border:1px solid rgba(107,127,191,0.22);border-radius:20px;
+        <span style="font-size:0.64rem;font-weight:700;background:rgba(var(--ua-label-rgb),0.10);
+                     color:var(--ua-ink-label);border:1px solid rgba(var(--ua-label-rgb),0.22);border-radius:20px;
                      padding:2px 9px;">● {supercycle['neutral_count']} neutral</span>
       </div>
-      <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">
+      <div style="height:5px;background:rgba(var(--ua-onbg-rgb),0.06);border-radius:4px;overflow:hidden;">
         <div style="height:100%;width:{sc_score:.0f}%;border-radius:4px;
              background:linear-gradient(90deg,{sc_color}80,{sc_color});
              transition:width 0.8s ease;"></div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:4px;">
-        <span style="font-size:0.60rem;color:#8892AA;">Bear</span>
+        <span style="font-size:0.60rem;color:var(--ua-ink-mut);">Bear</span>
         <span style="font-size:0.62rem;font-weight:700;color:{sc_color};">
           {sc_case} &nbsp;·&nbsp; {sc_conv} conviction
         </span>
-        <span style="font-size:0.60rem;color:#8892AA;">Bull</span>
+        <span style="font-size:0.60rem;color:var(--ua-ink-mut);">Bull</span>
       </div>
     </div>
   </div>
@@ -229,13 +229,13 @@ for col, (leg_name, leg_sigs) in zip(leg_cols, leg_map.items()):
         st.markdown(f"""
         <div class="ua-spotlight ua-kpi-animate"
              style="--ua-spotlight-accent:{leg_color};text-align:center;padding:18px 14px 16px;">
-          <div style="font-size:0.62rem;font-weight:700;color:#8892AA;text-transform:uppercase;
+          <div style="font-size:0.62rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;
                       letter-spacing:0.12em;margin-bottom:8px;">{leg_name}</div>
           <div style="font-size:2.6rem;font-weight:900;color:{leg_color};line-height:1.0;
                text-shadow:0 0 24px {leg_color}45;letter-spacing:-1.5px;margin-bottom:6px;">
             {leg_symbol} {leg_avg:.0f}
           </div>
-          <div style="font-size:0.60rem;color:#6B7FBF;line-height:1.5;">{_sig_names}</div>
+          <div style="font-size:0.60rem;color:var(--ua-ink-label);line-height:1.5;">{_sig_names}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -405,7 +405,7 @@ elif section == "Ticker Performance":
     for basket_name, basket_tickers in POWER_SUPERCYCLE_TICKERS.items():
         bc1, bc2 = st.columns([1, 5])
         bc1.markdown(
-            f'<div style="font-size:0.75rem;color:#6B7FBF;font-family:Inter,sans-serif;'
+            f'<div style="font-size:0.75rem;color:var(--ua-ink-label);font-family:Inter,sans-serif;'
             f'padding-top:6px;font-weight:600;">{basket_name}</div>',
             unsafe_allow_html=True,
         )
@@ -582,12 +582,12 @@ elif section == "Nuclear Contracts":
         col.markdown(f"""
         <div class="ua-spotlight ua-kpi-animate"
              style="--ua-spotlight-accent:{vel_color};margin-bottom:8px;padding:16px 14px;">
-            <div style="font-size:0.78rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">{display_name}</div>
+            <div style="font-size:0.78rem;font-weight:700;color:var(--ua-ink);margin-bottom:6px;">{display_name}</div>
             <div style="font-size:1.8rem;font-weight:800;color:{vel_color};letter-spacing:-0.5px;
                  text-shadow:0 0 20px {vel_color}40;line-height:1.1;">{vel_pct:+.1f}%</div>
-            <div style="font-size:0.70rem;color:#8892AA;margin-top:6px;line-height:1.6;">
-                Recent 6m: <b style="color:#B8C0D4;">${vel_recent:,.0f}</b><br>
-                Prior 6m: <b style="color:#B8C0D4;">${vel_prior:,.0f}</b>
+            <div style="font-size:0.70rem;color:var(--ua-ink-mut);margin-top:6px;line-height:1.6;">
+                Recent 6m: <b style="color:var(--ua-ink-soft);">${vel_recent:,.0f}</b><br>
+                Prior 6m: <b style="color:var(--ua-ink-soft);">${vel_prior:,.0f}</b>
             </div>
         </div>
         """, unsafe_allow_html=True)

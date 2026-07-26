@@ -78,25 +78,25 @@ st.markdown(
     <style>
     .ua-profile-hero {
         display:flex;align-items:center;gap:16px;background:#11151C;
-        border:1px solid rgba(255,255,255,.09);border-radius:10px;
+        border:1px solid rgba(var(--ua-onbg-rgb),.09);border-radius:10px;
         padding:18px 20px;margin:4px 0 20px;
     }
     .ua-profile-avatar {
         width:52px;height:52px;border-radius:10px;background:#202632;
-        border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;
+        border:1px solid rgba(var(--ua-onbg-rgb),.12);display:flex;align-items:center;
         justify-content:center;color:#E7EAF0;font-size:1rem;font-weight:750;
         letter-spacing:.04em;flex:0 0 52px;
     }
     .ua-profile-name {color:#E7EAF0;font-size:1.02rem;font-weight:700;line-height:1.3;}
     .ua-profile-email {color:#8D97A8;font-size:.76rem;margin-top:2px;}
     .ua-profile-plan {
-        margin-left:auto;color:#A7B0BF;background:#171C25;border:1px solid rgba(255,255,255,.10);
+        margin-left:auto;color:#A7B0BF;background:#171C25;border:1px solid rgba(var(--ua-onbg-rgb),.10);
         border-radius:5px;padding:4px 9px;font-size:.62rem;font-weight:750;
         text-transform:uppercase;letter-spacing:.09em;
     }
     .ua-profile-note {
         color:#A7B0BF;font-size:.78rem;line-height:1.55;background:#11151C;
-        border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px;
+        border:1px solid rgba(var(--ua-onbg-rgb),.08);border-radius:8px;padding:12px 14px;
     }
     </style>
     """,

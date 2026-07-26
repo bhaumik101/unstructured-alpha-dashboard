@@ -118,28 +118,28 @@ STATUS_EMOJI = {"bullish": "▲", "bearish": "▼", "neutral": "●", "no_data":
 
 
 st.markdown("""
-<div style="background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(0,200,224,0.06));
-            border:1px solid rgba(124,58,237,0.22);border-radius:12px;
+<div style="background:linear-gradient(135deg,rgba(var(--ua-purple-rgb),0.08),rgba(var(--ua-cyan-rgb),0.06));
+            border:1px solid rgba(var(--ua-purple-rgb),0.22);border-radius:12px;
             padding:16px 22px;margin-bottom:16px;font-family:Inter,sans-serif;">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <div style="flex:1;min-width:220px;">
             <div style="font-size:0.60rem;letter-spacing:0.14em;font-weight:700;color:#A78BFA;
                         margin-bottom:4px;">TICKER DEEP DIVE</div>
-            <div style="font-size:0.82rem;color:#B8C0D4;line-height:1.6;">
-                Type any ticker → get a <b style="color:#E8EEFF;">Confluence Score (0–100)</b> from
+            <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.6;">
+                Type any ticker → get a <b style="color:var(--ua-ink);">Confluence Score (0–100)</b> from
                 43 live macro signals, a bull/bear case in plain English, insider activity, earnings
                 catalysts, and signal-by-signal breakdown. Updated every 6 hours from primary sources.
             </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-            <span style="font-size:0.72rem;color:#00D566;background:rgba(0,213,102,0.08);
-                         border:1px solid rgba(0,213,102,0.2);border-radius:6px;padding:3px 10px;">
+            <span style="font-size:0.72rem;color:var(--ua-green);background:rgba(var(--ua-green-rgb),0.08);
+                         border:1px solid rgba(var(--ua-green-rgb),0.2);border-radius:6px;padding:3px 10px;">
                 SEC EDGAR insider filings</span>
-            <span style="font-size:0.72rem;color:#00C8E0;background:rgba(0,200,224,0.08);
-                         border:1px solid rgba(0,200,224,0.2);border-radius:6px;padding:3px 10px;">
+            <span style="font-size:0.72rem;color:var(--ua-cyan);background:rgba(var(--ua-cyan-rgb),0.08);
+                         border:1px solid rgba(var(--ua-cyan-rgb),0.2);border-radius:6px;padding:3px 10px;">
                 FRED + EIA macro signals</span>
-            <span style="font-size:0.72rem;color:#A78BFA;background:rgba(124,58,237,0.08);
-                         border:1px solid rgba(124,58,237,0.2);border-radius:6px;padding:3px 10px;">
+            <span style="font-size:0.72rem;color:#A78BFA;background:rgba(var(--ua-purple-rgb),0.08);
+                         border:1px solid rgba(var(--ua-purple-rgb),0.2);border-radius:6px;padding:3px 10px;">
                 FINRA short interest</span>
         </div>
     </div>
@@ -668,11 +668,11 @@ if section == "Overview":
     # exactly that blank line whenever the condition is false, so both optional
     # fragments are pre-rendered here and appended without ever owning a line.
     _earn_caveat_html = (
-        f'<div style="font-size:0.66rem;color:#F59E0B;margin-top:6px;'
+        f'<div style="font-size:0.66rem;color:var(--ua-amber);margin-top:6px;'
         f'line-height:1.45;">{" ".join(_earn_caveat.split())}</div>'
     ) if _earn_caveat else ""
     _horizon_note_html = (
-        f'<div style="font-size:0.64rem;color:#6B7FBF;margin-top:5px;'
+        f'<div style="font-size:0.64rem;color:var(--ua-ink-label);margin-top:5px;'
         f'line-height:1.45;">{" ".join(_horizon_note.split())}</div>'
     ) if _horizon_note else ""
 
@@ -680,33 +680,33 @@ if section == "Overview":
     <div class="ua-gradient-border" style="margin-bottom:20px;">
       <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:18px 22px;">
         <div style="flex-shrink:0;">{confluence_gauge_svg(score_val, case)}</div>
-        <div style="width:1px;height:72px;background:rgba(255,255,255,0.08);flex-shrink:0;"></div>
+        <div style="width:1px;height:72px;background:rgba(var(--ua-onbg-rgb),0.08);flex-shrink:0;"></div>
         <div style="flex:1;min-width:180px;">
-          <div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;">Signal Case</div>
+          <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;">Signal Case</div>
           <div class="ua-kpi-animate" style="font-size:2.2rem;font-weight:900;color:{score_color};
                text-shadow:0 0 32px {score_color}55,0 0 8px {score_color}35;line-height:1;">{case}</div>
-          <div style="font-size:0.80rem;color:#B8C0D4;margin-top:4px;">Conviction: <b style="color:{score_color};">{conviction}</b>{_earn_badge}{_horizon_badge}</div>{_earn_caveat_html}{_horizon_note_html}
-          <div style="font-size:0.70rem;color:#8892AA;margin-top:6px;line-height:1.5;">
+          <div style="font-size:0.80rem;color:var(--ua-ink-soft);margin-top:4px;">Conviction: <b style="color:{score_color};">{conviction}</b>{_earn_badge}{_horizon_badge}</div>{_earn_caveat_html}{_horizon_note_html}
+          <div style="font-size:0.70rem;color:var(--ua-ink-mut);margin-top:6px;line-height:1.5;">
             {len(relevant_sig_ids)} signals + momentum{" + contracts" if _has_contract_signal else ""}{" + insiders" if _has_insider_signal else ""}{" + short interest" if _has_short_interest_signal else ""}{" + 13F" if _has_13f_signal else ""}
           </div>
-          <div style="font-size:0.70rem;color:#6B7FBF;margin-top:8px;line-height:1.6;
-                      border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
+          <div style="font-size:0.70rem;color:var(--ua-ink-label);margin-top:8px;line-height:1.6;
+                      border-top:1px solid rgba(var(--ua-onbg-rgb),0.06);padding-top:8px;">
             {_conv_ctx_sentence}
           </div>
         </div>
-        <div style="width:1px;height:72px;background:rgba(255,255,255,0.08);flex-shrink:0;"></div>
+        <div style="width:1px;height:72px;background:rgba(var(--ua-onbg-rgb),0.08);flex-shrink:0;"></div>
         <div style="display:flex;gap:20px;align-items:center;flex-shrink:0;">
-          <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:#00D566;text-align:center;padding:14px 20px;">
-            <div style="font-size:2rem;font-weight:900;color:#00D566;text-shadow:0 0 24px #00D56645;">{confluence['bull_count']}</div>
-            <div style="font-size:0.66rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.08em;">▲ Bullish</div>
+          <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:var(--ua-green);text-align:center;padding:14px 20px;">
+            <div style="font-size:2rem;font-weight:900;color:var(--ua-green);text-shadow:0 0 24px var(--ua-green)45;">{confluence['bull_count']}</div>
+            <div style="font-size:0.66rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">▲ Bullish</div>
           </div>
-          <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:#FF4444;text-align:center;padding:14px 20px;">
-            <div style="font-size:2rem;font-weight:900;color:#FF4444;text-shadow:0 0 24px #FF444445;">{confluence['bear_count']}</div>
-            <div style="font-size:0.66rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.08em;">▼ Bearish</div>
+          <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:var(--ua-red);text-align:center;padding:14px 20px;">
+            <div style="font-size:2rem;font-weight:900;color:var(--ua-red);text-shadow:0 0 24px var(--ua-red)45;">{confluence['bear_count']}</div>
+            <div style="font-size:0.66rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">▼ Bearish</div>
           </div>
-          <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:#6B7FBF;text-align:center;padding:14px 20px;">
-            <div style="font-size:2rem;font-weight:900;color:#6B7FBF;">{confluence['neutral_count']}</div>
-            <div style="font-size:0.66rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.08em;">● Neutral</div>
+          <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:var(--ua-ink-label);text-align:center;padding:14px 20px;">
+            <div style="font-size:2rem;font-weight:900;color:var(--ua-ink-label);">{confluence['neutral_count']}</div>
+            <div style="font-size:0.66rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">● Neutral</div>
           </div>
         </div>
       </div>
@@ -759,7 +759,7 @@ if section == "Overview":
                             f'<div style="text-align:center;font-family:Inter,sans-serif;">'
                             f'<div style="height:52px;display:flex;align-items:flex-end;justify-content:center;">'
                             f'<div style="width:60%;height:{_h}px;background:{_col};border-radius:3px;"></div></div>'
-                            f'<div style="font-size:0.62rem;color:#8892AA;margin-top:4px;">{_p.label}</div>'
+                            f'<div style="font-size:0.62rem;color:var(--ua-ink-mut);margin-top:4px;">{_p.label}</div>'
                             f'<div style="font-size:0.56rem;color:#5A6478;">{_eff_lbl}</div>'
                             f'</div>',
                             unsafe_allow_html=True,
@@ -845,7 +845,7 @@ if section == "Overview":
             _dcol = "#00D566" if _dl > 0 else ("#FF4444" if _dl < 0 else "#8892AA")
             st.html(f"""
             <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;
-                        background:rgba(255,255,255,0.025);border:1px solid {_pc}33;
+                        background:rgba(var(--ua-onbg-rgb),0.025);border:1px solid {_pc}33;
                         border-left:4px solid {_pc};border-radius:10px;
                         padding:14px 18px;margin:0 0 18px;">
               <div style="flex-shrink:0;text-align:center;min-width:104px;">
@@ -854,10 +854,10 @@ if section == "Overview":
                 <div style="font-size:2rem;font-weight:900;color:{_pc};line-height:1.15;">{_pv:.0f}</div>
                 <div style="font-size:0.62rem;color:{_dcol};">{_dtxt} vs standard</div>
               </div>
-              <div style="width:1px;height:54px;background:rgba(255,255,255,0.08);flex-shrink:0;"></div>
+              <div style="width:1px;height:54px;background:rgba(var(--ua-onbg-rgb),0.08);flex-shrink:0;"></div>
               <div style="flex:1;min-width:220px;">
                 <div style="font-size:0.68rem;color:#B8C2D9;line-height:1.5;">{_ps['explanation']}</div>
-                <div style="margin-top:6px;font-size:0.58rem;color:#6B7FBF;">
+                <div style="margin-top:6px;font-size:0.58rem;color:var(--ua-ink-label);">
                   {_ps['tolerance_label']} · {_ps['horizon_label']} · {_ps['emphasis_label']}
                 </div>
               </div>
@@ -914,9 +914,9 @@ if section == "Overview":
         if _total_conf > 0:
             _conf_caption = (
                 f"Signal confidence breakdown across {_total_conf} active signals: "
-                f"<b style='color:#00D566;'>◆ {_conf_counts['High']} High</b> · "
-                f"<b style='color:#F59E0B;'>◇ {_conf_counts['Medium']} Medium</b> · "
-                f"<b style='color:#6B7FBF;'>○ {_conf_counts['Low']} Low</b>. "
+                f"<b style='color:var(--ua-green);'>◆ {_conf_counts['High']} High</b> · "
+                f"<b style='color:var(--ua-amber);'>◇ {_conf_counts['Medium']} Medium</b> · "
+                f"<b style='color:var(--ua-ink-label);'>○ {_conf_counts['Low']} Low</b>. "
             )
             if _conf_counts["High"] >= _conf_counts["Medium"] + _conf_counts["Low"]:
                 _conf_caption += "Majority of signals show strong conviction — score is well-supported."
@@ -948,10 +948,10 @@ if section == "Overview":
     def _attr_card(label, value_html, weight_pct, active=True):
         opacity = "1" if active else "0.35"
         return f"""
-        <div style="flex:1;min-width:90px;background:rgba(255,255,255,0.03);
-                    border:1px solid rgba(255,255,255,0.07);border-radius:8px;
+        <div style="flex:1;min-width:90px;background:rgba(var(--ua-onbg-rgb),0.03);
+                    border:1px solid rgba(var(--ua-onbg-rgb),0.07);border-radius:8px;
                     padding:10px 12px;opacity:{opacity};">
-          <div style="font-size:0.58rem;color:#8892AA;text-transform:uppercase;
+          <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;
                       letter-spacing:0.10em;margin-bottom:5px;white-space:nowrap;">{label}</div>
           <div style="font-size:0.90rem;font-weight:700;line-height:1.1;">{value_html}</div>
           <div style="font-size:0.55rem;color:#4A5568;margin-top:4px;">{weight_pct}% of score</div>
@@ -959,9 +959,9 @@ if section == "Overview":
 
     _macro_net  = confluence.get("bull_count", 0) - confluence.get("bear_count", 0)
     _mac_c      = _score_color(score_val if _macro_net >= 0 else 100 - score_val)
-    _mac_label  = (f'<span style="color:#00D566;">▲{confluence["bull_count"]}</span>'
-                   f' <span style="color:#FF4444;">▼{confluence["bear_count"]}</span>'
-                   f' <span style="color:#6B7FBF;">●{confluence["neutral_count"]}</span>')
+    _mac_label  = (f'<span style="color:var(--ua-green);">▲{confluence["bull_count"]}</span>'
+                   f' <span style="color:var(--ua-red);">▼{confluence["bear_count"]}</span>'
+                   f' <span style="color:var(--ua-ink-label);">●{confluence["neutral_count"]}</span>')
 
     _mom_c = _score_color(_mom_score)
     _mom_label = f'<span style="color:{_mom_c};">{_mom_score:.0f}/100</span>'
@@ -981,7 +981,7 @@ if section == "Overview":
 
     st.html(f"""
     <div style="margin-bottom:14px;">
-      <div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;
+      <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.12em;
                   text-transform:uppercase;margin-bottom:8px;">Score Attribution</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         {_attr_card("Macro Signals", _mac_label, _macro_wt)}
@@ -1011,14 +1011,14 @@ if section == "Overview":
             _top_n = round(100 - _vp, 0)
             st.markdown(f"""
             <div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.28);
-                        border-left:4px solid #F59E0B;border-radius:8px;
+                        border-left:4px solid var(--ua-amber);border-radius:8px;
                         padding:10px 18px;margin-bottom:14px;
                         display:flex;align-items:center;gap:14px;">
               <span style="width:3px;height:30px;background:#8187F7;border-radius:2px;flex-shrink:0;"></span>
               <div>
-                <span style="font-size:0.75rem;font-weight:700;color:#F59E0B;
+                <span style="font-size:0.75rem;font-weight:700;color:var(--ua-amber);
                              letter-spacing:0.08em;text-transform:uppercase;">Score Velocity Alert</span>
-                <span style="font-size:0.82rem;color:#8892AA;margin-left:10px;">
+                <span style="font-size:0.82rem;color:var(--ua-ink-mut);margin-left:10px;">
                   <span style="color:{_vc};font-weight:700;">{_va} {_vsign}{_vel:.1f} pts/day</span>
                   &nbsp;over last 5 sessions · faster than {_vp:.0f}% of all historical windows
                 </span>
@@ -1104,10 +1104,10 @@ if section == "Overview":
             if _explanation:
                 _case_color = "#00D566" if case == "BULL" else ("#FF4D6A" if case == "BEAR" else "#F59E0B")
                 st.markdown(f"""
-                <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.20);
-                            border-left:4px solid #7C3AED;border-radius:0 10px 10px 0;
+                <div style="background:rgba(var(--ua-purple-rgb),0.06);border:1px solid rgba(var(--ua-purple-rgb),0.20);
+                            border-left:4px solid var(--ua-purple);border-radius:0 10px 10px 0;
                             padding:16px 20px;margin:0 0 20px;font-family:Inter,sans-serif;">
-                  <div style="font-size:0.60rem;font-weight:700;color:#7C3AED;
+                  <div style="font-size:0.60rem;font-weight:700;color:var(--ua-purple);
                               letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">
                     AI SIGNAL INTERPRETATION — PRO
                   </div>
@@ -1122,11 +1122,11 @@ if section == "Overview":
         else:
             # Non-Pro: show locked preview
             st.markdown("""
-            <div style="background:rgba(124,58,237,0.04);border:1px solid rgba(124,58,237,0.15);
-                        border-left:4px solid rgba(124,58,237,0.4);border-radius:0 10px 10px 0;
+            <div style="background:rgba(var(--ua-purple-rgb),0.04);border:1px solid rgba(var(--ua-purple-rgb),0.15);
+                        border-left:4px solid rgba(var(--ua-purple-rgb),0.4);border-radius:0 10px 10px 0;
                         padding:16px 20px;margin:0 0 20px;font-family:Inter,sans-serif;
                         position:relative;overflow:hidden;">
-              <div style="font-size:0.60rem;font-weight:700;color:#7C3AED;
+              <div style="font-size:0.60rem;font-weight:700;color:var(--ua-purple);
                           letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">
                 AI SIGNAL INTERPRETATION — PRO
               </div>
@@ -1328,8 +1328,8 @@ if section == "Overview":
             st.markdown(
                 f'<div style="font-family:Inter,sans-serif;padding:10px 0;">'
                 f'<div style="font-size:0.70rem;text-transform:uppercase;letter-spacing:0.08em;'
-                f'color:#6B7FBF;margin-bottom:8px;">SIGNAL SHAPE — {ticker_input}</div>'
-                f'<div style="font-size:0.80rem;color:#8892AA;line-height:1.7;">',
+                f'color:var(--ua-ink-label);margin-bottom:8px;">SIGNAL SHAPE — {ticker_input}</div>'
+                f'<div style="font-size:0.80rem;color:var(--ua-ink-mut);line-height:1.7;">',
                 unsafe_allow_html=True,
             )
             for _i, (_aname, _aval, _has) in enumerate(zip(_radar_axes, _radar_vals, _radar_has_data)):
@@ -1339,14 +1339,14 @@ if section == "Overview":
                 _no_data_note = "" if _has else " <span style='color:#9E9E9E;font-size:0.70rem;'>no data yet</span>"
                 st.markdown(
                     f'<div style="display:flex;justify-content:space-between;padding:3px 0;'
-                    f'border-bottom:1px solid rgba(18,21,30,0.85);font-family:Inter,sans-serif;">'
-                    f'<span style="color:#E8EEFF;">{_adisp}{_no_data_note}</span>'
+                    f'border-bottom:1px solid rgba(var(--ua-card-rgb),0.85);font-family:Inter,sans-serif;">'
+                    f'<span style="color:var(--ua-ink);">{_adisp}{_no_data_note}</span>'
                     f'<span style="color:{_acolor};font-weight:700;">{_asym} {_aval:.0f}</span>'
                     f'</div>',
                     unsafe_allow_html=True,
                 )
             st.markdown(
-                '<div style="font-size:0.68rem;color:#8892AA;margin-top:8px;">'
+                '<div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:8px;">'
                 'Dashed ring = 50 (neutral). Score > 60 = bullish, < 40 = bearish.</div>'
                 '</div>',
                 unsafe_allow_html=True,
@@ -1429,11 +1429,11 @@ if section == "Overview":
 
             _expl_color = "#00D566" if case == "BULL" else ("#FF4444" if case == "BEAR" else "#6B7FBF")
             st.markdown(
-                f'<div style="background:#12151E;border-left:4px solid {_expl_color};'
+                f'<div style="background:var(--ua-bg-card);border-left:4px solid {_expl_color};'
                 f'border:1px solid #E0E0E0;border-radius:6px;padding:14px 18px;'
                 f'margin:12px 0;font-family:Inter,sans-serif;">'
                 f'<div style="font-size:0.70rem;text-transform:uppercase;letter-spacing:0.08em;'
-                f'color:#6B7FBF;margin-bottom:6px;">WHY THIS SCORE</div>'
+                f'color:var(--ua-ink-label);margin-bottom:6px;">WHY THIS SCORE</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -1485,7 +1485,7 @@ if section == "Overview":
             f'<span style="font-weight:700;color:{_pct_color};">{ticker_input} sits at the '
             f'#{_sector_pct["rank"]} of {_sector_pct["universe_size"]} · '
             f'{_pct:.0f}th percentile among recent sector peers</span> '
-            f'<span style="color:#8892AA;">(score {score_val:.0f} · '
+            f'<span style="color:var(--ua-ink-mut);">(score {score_val:.0f} · '
             f'{_sector_pct["delta_vs_median"]:+.0f} vs. peer median '
             f'{_sector_pct["sector_median"]:.0f})</span></div>',
             unsafe_allow_html=True,
@@ -1520,10 +1520,10 @@ if section == "Overview":
             _pn   = TICKERS.get(_pt, {}).get("name", _pt)
             with _pcols[_pi]:
                 st.markdown(
-                    f'<div style="background:rgba(107,127,191,0.08);border:1px solid rgba(107,127,191,0.20);'
+                    f'<div style="background:rgba(var(--ua-label-rgb),0.08);border:1px solid rgba(var(--ua-label-rgb),0.20);'
                     f'border-radius:8px;padding:12px 14px;text-align:center;margin-bottom:6px;">'
-                    f'<div style="font-size:1.05rem;font-weight:800;color:#E8EEFF;font-family:Inter,sans-serif;">{_pt}</div>'
-                    f'<div style="font-size:0.72rem;color:#8892AA;margin-bottom:5px;white-space:nowrap;'
+                    f'<div style="font-size:1.05rem;font-weight:800;color:var(--ua-ink);font-family:Inter,sans-serif;">{_pt}</div>'
+                    f'<div style="font-size:0.72rem;color:var(--ua-ink-mut);margin-bottom:5px;white-space:nowrap;'
                     f'overflow:hidden;text-overflow:ellipsis;" title="{_pn}">{_pn}</div>'
                     f'<div style="font-size:1.5rem;font-weight:900;color:{_pc};line-height:1.1;">{_ps:.0f}</div>'
                     f'<div style="font-size:0.68rem;color:#6B7A95;margin-top:2px;">score · {_pa}</div>'
@@ -1623,9 +1623,9 @@ if section == "Overview":
                             _pre_color = "#00D566" if (_pre_c or 0) >= 0 else "#FF4444"
                             _pre_sym   = "▲" if (_pre_c or 0) >= 0 else "▼"
                             st.markdown(
-                                f'<div style="background:rgba(0,200,224,0.08);border-radius:4px;padding:4px 10px;'
+                                f'<div style="background:rgba(var(--ua-cyan-rgb),0.08);border-radius:4px;padding:4px 10px;'
                                 f'font-family:Inter,sans-serif;font-size:0.78rem;margin-top:2px;">'
-                                f'<span style="color:#6B7FBF;font-weight:600;">PRE-MARKET</span> &nbsp;'
+                                f'<span style="color:var(--ua-ink-label);font-weight:600;">PRE-MARKET</span> &nbsp;'
                                 f'<span style="color:{_pre_color};font-weight:700;">'
                                 f'${_pre_p:.2f} &nbsp;{_pre_sym} {abs(_pre_c):.2f}%</span></div>',
                                 unsafe_allow_html=True,
@@ -1636,7 +1636,7 @@ if section == "Overview":
                             st.markdown(
                                 f'<div style="background:rgba(245,158,11,0.08);border-radius:4px;padding:4px 10px;'
                                 f'font-family:Inter,sans-serif;font-size:0.78rem;margin-top:2px;">'
-                                f'<span style="color:#6B7FBF;font-weight:600;">AFTER-HOURS</span> &nbsp;'
+                                f'<span style="color:var(--ua-ink-label);font-weight:600;">AFTER-HOURS</span> &nbsp;'
                                 f'<span style="color:{_post_color};font-weight:700;">'
                                 f'${_post_p:.2f} &nbsp;{_post_sym} {abs(_post_c):.2f}%</span></div>',
                                 unsafe_allow_html=True,
@@ -1846,11 +1846,11 @@ if section == "Overview":
                     _r_color = "#00D566" if (_r_val or 0) > 0.2 else ("#FF4444" if (_r_val or 0) < -0.2 else "#8892AA")
                     st.markdown(
                         f'<div style="background:#0F1118;border-radius:6px;padding:10px 14px;'
-                        f'font-family:Inter,sans-serif;border:1px solid rgba(255,255,255,0.06);">'
-                        f'<div style="font-size:0.65rem;color:#6B7FBF;text-transform:uppercase;'
+                        f'font-family:Inter,sans-serif;border:1px solid rgba(var(--ua-onbg-rgb),0.06);">'
+                        f'<div style="font-size:0.65rem;color:var(--ua-ink-label);text-transform:uppercase;'
                         f'letter-spacing:0.08em;">Correlation (r)</div>'
                         f'<div style="font-size:1.4rem;font-weight:700;color:{_r_color};">{_r_disp}</div>'
-                        f'<div style="font-size:0.68rem;color:#8892AA;">with {ticker_input} price</div>'
+                        f'<div style="font-size:0.68rem;color:var(--ua-ink-mut);">with {ticker_input} price</div>'
                         f'</div>',
                         unsafe_allow_html=True,
                     )
@@ -1860,8 +1860,8 @@ if section == "Overview":
                     _sig_color = "#00D566" if _ov_sig else "#8892AA"
                     st.markdown(
                         f'<div style="background:#0F1118;border-radius:6px;padding:10px 14px;'
-                        f'font-family:Inter,sans-serif;border:1px solid rgba(255,255,255,0.06);">'
-                        f'<div style="font-size:0.65rem;color:#6B7FBF;text-transform:uppercase;'
+                        f'font-family:Inter,sans-serif;border:1px solid rgba(var(--ua-onbg-rgb),0.06);">'
+                        f'<div style="font-size:0.65rem;color:var(--ua-ink-label);text-transform:uppercase;'
                         f'letter-spacing:0.08em;">P-value</div>'
                         f'<div style="font-size:1.4rem;font-weight:700;color:{_sig_color};">{_p_disp}</div>'
                         f'<div style="font-size:0.68rem;color:{_sig_color};">{_sig_label}</div>'
@@ -1873,22 +1873,22 @@ if section == "Overview":
                     _inv_disp = " (inverse)" if _ov_is_inverse else ""
                     st.markdown(
                         f'<div style="background:#0F1118;border-radius:6px;padding:10px 14px;'
-                        f'font-family:Inter,sans-serif;border:1px solid rgba(255,255,255,0.06);">'
-                        f'<div style="font-size:0.65rem;color:#6B7FBF;text-transform:uppercase;'
+                        f'font-family:Inter,sans-serif;border:1px solid rgba(var(--ua-onbg-rgb),0.06);">'
+                        f'<div style="font-size:0.65rem;color:var(--ua-ink-label);text-transform:uppercase;'
                         f'letter-spacing:0.08em;">Configured Lag</div>'
-                        f'<div style="font-size:1.4rem;font-weight:700;color:#E8EEFF;">{_lag_disp}</div>'
-                        f'<div style="font-size:0.68rem;color:#8892AA;">signal leads price{_inv_disp}</div>'
+                        f'<div style="font-size:1.4rem;font-weight:700;color:var(--ua-ink);">{_lag_disp}</div>'
+                        f'<div style="font-size:0.68rem;color:var(--ua-ink-mut);">signal leads price{_inv_disp}</div>'
                         f'</div>',
                         unsafe_allow_html=True,
                     )
                 with _stat_col4:
                     st.markdown(
                         f'<div style="background:#0F1118;border-radius:6px;padding:10px 14px;'
-                        f'font-family:Inter,sans-serif;border:1px solid rgba(255,255,255,0.06);">'
-                        f'<div style="font-size:0.65rem;color:#6B7FBF;text-transform:uppercase;'
+                        f'font-family:Inter,sans-serif;border:1px solid rgba(var(--ua-onbg-rgb),0.06);">'
+                        f'<div style="font-size:0.65rem;color:var(--ua-ink-label);text-transform:uppercase;'
                         f'letter-spacing:0.08em;">Predictive Score</div>'
-                        f'<div style="font-size:1.4rem;font-weight:700;color:#F59E0B;">{_pcs}/10</div>'
-                        f'<div style="font-size:0.68rem;color:#8892AA;">PCS (backtested weight)</div>'
+                        f'<div style="font-size:1.4rem;font-weight:700;color:var(--ua-amber);">{_pcs}/10</div>'
+                        f'<div style="font-size:0.68rem;color:var(--ua-ink-mut);">PCS (backtested weight)</div>'
                         f'</div>',
                         unsafe_allow_html=True,
                     )
@@ -1982,16 +1982,16 @@ if section == "Overview":
                 # Company header
                 st.markdown(
                     f'<div style="font-family:Inter,sans-serif;margin-bottom:12px;">'
-                    f'<span style="font-size:1.05rem;font-weight:700;color:#E8EEFF;">{fund["longName"]}</span>&nbsp;&nbsp;'
-                    f'<span style="font-size:0.78rem;color:#8892AA;">{fund["sector"]} · {fund["industry"]}</span>'
-                    f'{"&nbsp;&nbsp;<a href=" + repr(fund["website"]) + " target=_blank style=color:#7C3AED;font-size:0.78rem;>Website ↗</a>" if fund["website"] else ""}'
+                    f'<span style="font-size:1.05rem;font-weight:700;color:var(--ua-ink);">{fund["longName"]}</span>&nbsp;&nbsp;'
+                    f'<span style="font-size:0.78rem;color:var(--ua-ink-mut);">{fund["sector"]} · {fund["industry"]}</span>'
+                    f'{"&nbsp;&nbsp;<a href=" + repr(fund["website"]) + " target=_blank style=color:var(--ua-purple);font-size:0.78rem;>Website ↗</a>" if fund["website"] else ""}'
                     f'</div>',
                     unsafe_allow_html=True,
                 )
                 if fund["description"]:
                     st.markdown(
-                        f'<div style="font-family:Inter,sans-serif;font-size:0.82rem;color:#8892AA;'
-                        f'line-height:1.65;margin-bottom:14px;border-left:2px solid rgba(124,58,237,0.3);'
+                        f'<div style="font-family:Inter,sans-serif;font-size:0.82rem;color:var(--ua-ink-mut);'
+                        f'line-height:1.65;margin-bottom:14px;border-left:2px solid rgba(var(--ua-purple-rgb),0.3);'
                         f'padding-left:10px;">{fund["description"][:420]}{"…" if len(fund["description"]) > 420 else ""}</div>',
                         unsafe_allow_html=True,
                     )
@@ -1999,9 +1999,9 @@ if section == "Overview":
                 def _fund_table(rows):
                     """Render a 2-column label/value table."""
                     cells = "".join(
-                        f'<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">'
-                        f'<td style="padding:5px 10px;color:#8892AA;font-size:0.78rem;">{label}</td>'
-                        f'<td style="padding:5px 10px;color:#E8EEFF;font-weight:600;font-size:0.82rem;text-align:right;">{val}</td>'
+                        f'<tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">'
+                        f'<td style="padding:5px 10px;color:var(--ua-ink-mut);font-size:0.78rem;">{label}</td>'
+                        f'<td style="padding:5px 10px;color:var(--ua-ink);font-weight:600;font-size:0.82rem;text-align:right;">{val}</td>'
                         f'</tr>'
                         for label, val in rows
                     )
@@ -2168,37 +2168,37 @@ if section == "Overview":
                                  else f"{abs(_days_delta)}d ago (est.)")
                         _bg = "rgba(245,158,11,0.08)"
                         _border = "#F59E0B"
-                        _badge = f'<span style="background:#F59E0B;color:white;font-size:0.68rem;padding:1px 6px;border-radius:3px;font-weight:700;">UPCOMING</span>'
-                        _body = f'<div style="font-size:0.78rem;color:#8892AA;margin-top:4px;">{_when}</div>'
+                        _badge = f'<span style="background:var(--ua-amber);color:white;font-size:0.68rem;padding:1px 6px;border-radius:3px;font-weight:700;">UPCOMING</span>'
+                        _body = f'<div style="font-size:0.78rem;color:var(--ua-ink-mut);margin-top:4px;">{_when}</div>'
                         if _e["eps_estimate"] is not None:
-                            _body += f'<div style="font-size:0.78rem;color:#8892AA;">Est. EPS: <b>{_e["eps_estimate"]:+.2f}</b></div>'
+                            _body += f'<div style="font-size:0.78rem;color:var(--ua-ink-mut);">Est. EPS: <b>{_e["eps_estimate"]:+.2f}</b></div>'
                     else:
                         # Reported
                         _sp = _e["surprise_pct"]
                         if _sp is None:
                             _border = "#6B7FBF"; _bg = "#F5F0E8"
-                            _badge = '<span style="font-size:0.68rem;color:#6B7FBF;font-weight:600;">REPORTED</span>'
+                            _badge = '<span style="font-size:0.68rem;color:var(--ua-ink-label);font-weight:600;">REPORTED</span>'
                             _beat_txt = ""
                         elif _sp >= 0:
                             _border = "#00D566"; _bg = "#F0F8F0"
-                            _badge = f'<span style="background:#00D566;color:#0B0D12;font-size:0.68rem;padding:1px 6px;border-radius:3px;font-weight:700;">BEAT +{_sp:.1f}%</span>'
+                            _badge = f'<span style="background:var(--ua-green);color:var(--ua-bg);font-size:0.68rem;padding:1px 6px;border-radius:3px;font-weight:700;">BEAT +{_sp:.1f}%</span>'
                             _beat_txt = ""
                         else:
                             _border = "#FF4444"; _bg = "rgba(255,68,68,0.08)"
-                            _badge = f'<span style="background:#FF4444;color:#0B0D12;font-size:0.68rem;padding:1px 6px;border-radius:3px;font-weight:700;">MISS {_sp:.1f}%</span>'
+                            _badge = f'<span style="background:var(--ua-red);color:var(--ua-bg);font-size:0.68rem;padding:1px 6px;border-radius:3px;font-weight:700;">MISS {_sp:.1f}%</span>'
                             _beat_txt = ""
                         _when = f"{abs(_days_delta)}d ago" if abs(_days_delta) < 365 else _e["date"].strftime("%b %d, %Y")
                         _act_str = f'<b>{_e["eps_actual"]:+.2f}</b>' if _e["eps_actual"] is not None else "—"
                         _est_str = f'{_e["eps_estimate"]:+.2f}' if _e["eps_estimate"] is not None else "—"
                         _body = (
-                            f'<div style="font-size:0.78rem;color:#8892AA;margin-top:4px;">{_when}</div>'
-                            f'<div style="font-size:0.78rem;color:#8892AA;">EPS: {_act_str} <span style="color:#8892AA;">(est {_est_str})</span></div>'
+                            f'<div style="font-size:0.78rem;color:var(--ua-ink-mut);margin-top:4px;">{_when}</div>'
+                            f'<div style="font-size:0.78rem;color:var(--ua-ink-mut);">EPS: {_act_str} <span style="color:var(--ua-ink-mut);">(est {_est_str})</span></div>'
                         )
 
                     st.markdown(f"""
                     <div style="background:{_bg};border-left:3px solid {_border};border-radius:4px;
                                 padding:8px 12px;margin-bottom:8px;font-family:Inter,sans-serif;">
-                        <div style="font-size:0.80rem;font-weight:700;color:#E8EEFF;">
+                        <div style="font-size:0.80rem;font-weight:700;color:var(--ua-ink);">
                             {_e["date"].strftime("%b %d, %Y")} &nbsp; {_badge}
                         </div>
                         {_body}
@@ -2237,14 +2237,14 @@ if section == "Overview":
                     _meta = " · ".join(filter(None, [_pub, _time_str]))
 
                     if _url:
-                        _title_html = f'<a href="{_url}" target="_blank" style="color:#00C8E0;text-decoration:none;font-weight:600;">{_title}</a>'
+                        _title_html = f'<a href="{_url}" target="_blank" style="color:var(--ua-cyan);text-decoration:none;font-weight:600;">{_title}</a>'
                     else:
-                        _title_html = f'<span style="color:#E8EEFF;font-weight:600;">{_title}</span>'
+                        _title_html = f'<span style="color:var(--ua-ink);font-weight:600;">{_title}</span>'
 
                     st.markdown(f"""
-                    <div style="padding:8px 0 8px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-family:Inter,sans-serif;">
+                    <div style="padding:8px 0 8px 0;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);font-family:Inter,sans-serif;">
                         <div style="font-size:0.85rem;line-height:1.4;">{_title_html}</div>
-                        <div style="font-size:0.72rem;color:#8892AA;margin-top:3px;">{_meta}</div>
+                        <div style="font-size:0.72rem;color:var(--ua-ink-mut);margin-top:3px;">{_meta}</div>
                     </div>
                     """, unsafe_allow_html=True)
             else:
@@ -2273,34 +2273,34 @@ if section == "Overview":
             if _tdd_user:
                 # Logged-in free user → upgrade nudge
                 st.markdown(f"""
-                <div style="background:rgba(124,58,237,0.07);border:1px solid rgba(124,58,237,0.22);
+                <div style="background:rgba(var(--ua-purple-rgb),0.07);border:1px solid rgba(var(--ua-purple-rgb),0.22);
                             border-radius:12px;padding:20px 24px;font-family:Inter,sans-serif;margin:12px 0;">
                     <div style="font-size:0.60rem;letter-spacing:0.16em;font-weight:700;
                                 color:{_PURPLE};margin-bottom:10px;">UNLOCK THE FULL PICTURE — PRO</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
-                        <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
-                                    border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">7 AM Digest</div>
-                            <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
+                        <div style="background:rgba(var(--ua-card-rgb),0.6);border-radius:8px;padding:10px 14px;
+                                    border:1px solid rgba(var(--ua-onbg-rgb),0.06);">
+                            <div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink);margin-bottom:4px;">7 AM Digest</div>
+                            <div style="font-size:0.70rem;color:var(--ua-ink-mut);line-height:1.5;">
                                 Today's top setups from all 47 signals, in your inbox before market open.
                             </div>
                         </div>
-                        <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
-                                    border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">Price and Signal Alerts</div>
-                            <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
+                        <div style="background:rgba(var(--ua-card-rgb),0.6);border-radius:8px;padding:10px 14px;
+                                    border:1px solid rgba(var(--ua-onbg-rgb),0.06);">
+                            <div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink);margin-bottom:4px;">Price and Signal Alerts</div>
+                            <div style="font-size:0.70rem;color:var(--ua-ink-mut);line-height:1.5;">
                                 Get notified the moment a signal flips for a ticker in your watchlist.
                             </div>
                         </div>
-                        <div style="background:rgba(18,21,30,0.6);border-radius:8px;padding:10px 14px;
-                                    border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:0.75rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">Signal Backtester</div>
-                            <div style="font-size:0.70rem;color:#8892AA;line-height:1.5;">
+                        <div style="background:rgba(var(--ua-card-rgb),0.6);border-radius:8px;padding:10px 14px;
+                                    border:1px solid rgba(var(--ua-onbg-rgb),0.06);">
+                            <div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink);margin-bottom:4px;">Signal Backtester</div>
+                            <div style="font-size:0.70rem;color:var(--ua-ink-mut);line-height:1.5;">
                                 Build custom signal rules and backtest them against historical prices.
                             </div>
                         </div>
                     </div>
-                    <div style="font-size:0.72rem;color:#8892AA;">
+                    <div style="font-size:0.72rem;color:var(--ua-ink-mut);">
                         7-day free trial · cancel any time · from $20/mo
                     </div>
                 </div>
@@ -2318,14 +2318,14 @@ if section == "Overview":
             else:
                 # Anonymous user → signup nudge
                 st.markdown(f"""
-                <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.18);
+                <div style="background:rgba(var(--ua-purple-rgb),0.06);border:1px solid rgba(var(--ua-purple-rgb),0.18);
                             border-radius:12px;padding:18px 22px;font-family:Inter,sans-serif;margin:12px 0;">
                     <div style="font-size:0.60rem;letter-spacing:0.16em;font-weight:700;
                                 color:{_PURPLE};margin-bottom:8px;">FREE ACCOUNT — SAVE &amp; TRACK</div>
-                    <div style="font-size:0.85rem;color:#E8EEFF;font-weight:600;margin-bottom:6px;">
+                    <div style="font-size:0.85rem;color:var(--ua-ink);font-weight:600;margin-bottom:6px;">
                         Save {ticker_input} to your watchlist and get alerts when signals flip.
                     </div>
-                    <div style="font-size:0.75rem;color:#8892AA;">
+                    <div style="font-size:0.75rem;color:var(--ua-ink-mut);">
                         Free accounts include watchlist tracking + signal flip alerts.
                         Pro ($20/mo) adds the 7 AM digest, email alerts, and Signal Backtester.
                     </div>
@@ -2377,19 +2377,19 @@ if section == "Overview":
 
     st.markdown(f"""
     <div style="margin-bottom:8px;">
-        <div style="font-size:0.72rem;color:#8892AA;letter-spacing:0.06em;margin-bottom:4px;">
+        <div style="font-size:0.72rem;color:var(--ua-ink-mut);letter-spacing:0.06em;margin-bottom:4px;">
             DIRECTIONAL PROBABILITY (30-DAY HORIZON)
         </div>
         <div style="display:flex;border-radius:6px;overflow:hidden;height:32px;">
-            <div style="width:{bull_w:.0f}%;background:#00D566;display:flex;align-items:center;
+            <div style="width:{bull_w:.0f}%;background:var(--ua-green);display:flex;align-items:center;
                         justify-content:center;color:white;font-size:0.80rem;font-weight:700;">
                 ▲ {bull_w:.0f}%
             </div>
-            <div style="width:{neut_w:.0f}%;background:#6B7FBF;display:flex;align-items:center;
+            <div style="width:{neut_w:.0f}%;background:var(--ua-ink-label);display:flex;align-items:center;
                         justify-content:center;color:white;font-size:0.80rem;font-weight:700;">
                 ● {neut_w:.0f}%
             </div>
-            <div style="width:{bear_w:.0f}%;background:#FF4444;display:flex;align-items:center;
+            <div style="width:{bear_w:.0f}%;background:var(--ua-red);display:flex;align-items:center;
                         justify-content:center;color:white;font-size:0.80rem;font-weight:700;">
                 ▼ {bear_w:.0f}%
             </div>
@@ -2404,15 +2404,15 @@ if section == "Overview":
         with hcol:
             st.markdown(f"""
             <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{h_color};text-align:center;padding:18px 16px 16px;">
-                <div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">{h['label']} Forecast</div>
+                <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">{h['label']} Forecast</div>
                 <div style="font-size:2.6rem;font-weight:900;color:{h_color};
                      text-shadow:0 0 24px {h_color}45;line-height:1;margin-bottom:4px;">
                     {h['bull_pct']:.0f}%
                 </div>
-                <div style="font-size:0.72rem;color:#8892AA;font-weight:600;margin-bottom:8px;">Bull Probability</div>
-                <div style="font-size:0.68rem;color:#6B7FBF;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
+                <div style="font-size:0.72rem;color:var(--ua-ink-mut);font-weight:600;margin-bottom:8px;">Bull Probability</div>
+                <div style="font-size:0.68rem;color:var(--ua-ink-label);border-top:1px solid rgba(var(--ua-onbg-rgb),0.06);padding-top:8px;">
                     Price range<br>
-                    <b style="color:#B8C0D4;">${h['price_low']:.2f} — ${h['price_high']:.2f}</b>
+                    <b style="color:var(--ua-ink-soft);">${h['price_low']:.2f} — ${h['price_high']:.2f}</b>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -2425,9 +2425,9 @@ if section == "Overview":
     with pred_c1:
         _plain = pred['plain_english'].replace("\\$", "$")
         st.markdown(f"""
-        <div style="background:rgba(18,21,30,0.85);border-radius:6px;padding:14px 16px;border:1px solid rgba(255,255,255,0.08);
-                    font-family:Inter,sans-serif;font-size:0.83rem;color:#B8C0D4;line-height:1.6;">
-            <div style="font-size:0.72rem;color:#8892AA;letter-spacing:0.06em;margin-bottom:6px;">
+        <div style="background:rgba(var(--ua-card-rgb),0.85);border-radius:6px;padding:14px 16px;border:1px solid rgba(var(--ua-onbg-rgb),0.08);
+                    font-family:Inter,sans-serif;font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.6;">
+            <div style="font-size:0.72rem;color:var(--ua-ink-mut);letter-spacing:0.06em;margin-bottom:6px;">
                 PLAIN-ENGLISH SUMMARY
             </div>
             {_plain}
@@ -2436,26 +2436,26 @@ if section == "Overview":
 
     with pred_c2:
         st.markdown(f"""
-        <div style="background:rgba(18,21,30,0.85);border-radius:6px;padding:14px 16px;border:1px solid rgba(255,255,255,0.08);
+        <div style="background:rgba(var(--ua-card-rgb),0.85);border-radius:6px;padding:14px 16px;border:1px solid rgba(var(--ua-onbg-rgb),0.08);
                     font-family:Inter,sans-serif;">
-            <div style="font-size:0.72rem;color:#8892AA;letter-spacing:0.06em;margin-bottom:8px;">
+            <div style="font-size:0.72rem;color:var(--ua-ink-mut);letter-spacing:0.06em;margin-bottom:8px;">
                 MOMENTUM SNAPSHOT
             </div>
-            <table style="width:100%;font-size:0.80rem;color:#E8EEFF;">
-                <tr><td style="color:#6B7FBF;">1-Month</td>
+            <table style="width:100%;font-size:0.80rem;color:var(--ua-ink);">
+                <tr><td style="color:var(--ua-ink-label);">1-Month</td>
                     <td style="text-align:right;font-weight:700;color:{'#00D566' if pred['momentum_1m']>0 else '#FF4444'};">
                         {pred['momentum_1m']:+.1f}%</td></tr>
-                <tr><td style="color:#6B7FBF;">3-Month</td>
+                <tr><td style="color:var(--ua-ink-label);">3-Month</td>
                     <td style="text-align:right;font-weight:700;color:{'#00D566' if pred['momentum_3m']>0 else '#FF4444'};">
                         {pred['momentum_3m']:+.1f}%</td></tr>
-                <tr><td style="color:#6B7FBF;">6-Month</td>
+                <tr><td style="color:var(--ua-ink-label);">6-Month</td>
                     <td style="text-align:right;font-weight:700;color:{'#00D566' if pred['momentum_6m']>0 else '#FF4444'};">
                         {pred['momentum_6m']:+.1f}%</td></tr>
-                <tr><td style="color:#6B7FBF;">1-Year</td>
+                <tr><td style="color:var(--ua-ink-label);">1-Year</td>
                     <td style="text-align:right;font-weight:700;color:{'#00D566' if pred['momentum_1y']>0 else '#FF4444'};">
                         {pred['momentum_1y']:+.1f}%</td></tr>
-                <tr><td style="color:#6B7FBF;padding-top:6px;">Ann. Volatility</td>
-                    <td style="text-align:right;font-weight:700;color:#6B7FBF;padding-top:6px;">
+                <tr><td style="color:var(--ua-ink-label);padding-top:6px;">Ann. Volatility</td>
+                    <td style="text-align:right;font-weight:700;color:var(--ua-ink-label);padding-top:6px;">
                         {pred['annual_vol_pct']:.1f}%</td></tr>
             </table>
         </div>
@@ -2495,11 +2495,11 @@ if section == "Overview":
 
     with bull_col:
         st.markdown(f"""
-        <div style="background:rgba(0,213,102,0.05);border-radius:6px;padding:16px;
-                    border-left:4px solid #00D566;border-top:1px solid #A8C09A;
+        <div style="background:rgba(var(--ua-green-rgb),0.05);border-radius:6px;padding:16px;
+                    border-left:4px solid var(--ua-green);border-top:1px solid #A8C09A;
                     border-right:1px solid #A8C09A;border-bottom:1px solid #A8C09A;
                     min-height:200px;font-family:Inter,sans-serif;">
-            <div style="color:#00D566;font-size:0.95rem;font-weight:700;margin-bottom:12px;letter-spacing:0.02em;">
+            <div style="color:var(--ua-green);font-size:0.95rem;font-weight:700;margin-bottom:12px;letter-spacing:0.02em;">
                 BULL CASE — {confluence['bull_count']} signals
             </div>
         """, unsafe_allow_html=True)
@@ -2512,11 +2512,11 @@ if section == "Overview":
 
     with bear_col:
         st.markdown(f"""
-        <div style="background:rgba(255,68,68,0.05);border-radius:6px;padding:16px;
-                    border-left:4px solid #FF4444;border-top:1px solid #E8A8A8;
+        <div style="background:rgba(var(--ua-red-rgb),0.05);border-radius:6px;padding:16px;
+                    border-left:4px solid var(--ua-red);border-top:1px solid #E8A8A8;
                     border-right:1px solid #E8A8A8;border-bottom:1px solid #E8A8A8;
                     min-height:200px;font-family:Inter,sans-serif;">
-            <div style="color:#FF4444;font-size:0.95rem;font-weight:700;margin-bottom:12px;letter-spacing:0.02em;">
+            <div style="color:var(--ua-red);font-size:0.95rem;font-weight:700;margin-bottom:12px;letter-spacing:0.02em;">
                 BEAR CASE — {confluence['bear_count']} signals
             </div>
         """, unsafe_allow_html=True)
@@ -2599,19 +2599,19 @@ if section == "Overview":
         if _tripwire_lines:
             _items_html = "".join(
                 f'<div style="display:flex;gap:10px;margin-bottom:8px;">'
-                f'<span style="color:#F59E0B;font-size:1.0rem;flex-shrink:0;">◈</span>'
-                f'<div style="font-size:0.80rem;color:#B8C0D4;line-height:1.6;">{line}</div>'
+                f'<span style="color:var(--ua-amber);font-size:1.0rem;flex-shrink:0;">◈</span>'
+                f'<div style="font-size:0.80rem;color:var(--ua-ink-soft);line-height:1.6;">{line}</div>'
                 f'</div>'
                 for line in _tripwire_lines
             )
             st.markdown(
                 f'<div style="background:rgba(245,158,11,0.07);border-radius:8px;padding:16px 18px;'
-                f'margin:14px 0;border-left:4px solid #F59E0B;font-family:Inter,sans-serif;">'
-                f'<div style="font-size:0.72rem;font-weight:700;color:#F59E0B;'
+                f'margin:14px 0;border-left:4px solid var(--ua-amber);font-family:Inter,sans-serif;">'
+                f'<div style="font-size:0.72rem;font-weight:700;color:var(--ua-amber);'
                 f'text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">'
                 f'{_header}</div>'
                 f'{_items_html}'
-                f'<div style="font-size:0.65rem;color:#8892AA;margin-top:8px;">'
+                f'<div style="font-size:0.65rem;color:var(--ua-ink-mut);margin-top:8px;">'
                 f'Conditions based on current signal readings · thresholds are directional, not precise price targets</div>'
                 f'</div>',
                 unsafe_allow_html=True,
@@ -2678,7 +2678,7 @@ if section == "Overview":
 
                         if _playbook_rows:
                             st.markdown(
-                                f'<div style="font-size:0.78rem;color:#B8C0D4;margin-bottom:10px;">'
+                                f'<div style="font-size:0.78rem;color:var(--ua-ink-soft);margin-bottom:10px;">'
                                 f'The last <b>{len(_playbook_rows)}</b> time(s) '
                                 f'<b style="color:{_color}">{ticker_input}</b> scored '
                                 f'{_crossing_threshold}+ {_direction}, forward returns were:</div>',
@@ -2763,7 +2763,7 @@ if section == "Overview":
 
                         if _curr_bucket_label:
                             st.markdown(
-                                f'<div style="background:#7C3AED;border-radius:6px;padding:8px 14px;'
+                                f'<div style="background:var(--ua-purple);border-radius:6px;padding:8px 14px;'
                                 f'margin-bottom:12px;font-family:Inter,sans-serif;">'
                                 f'<span style="color:#C9A84C;font-size:0.70rem;text-transform:uppercase;'
                                 f'letter-spacing:0.08em;">CURRENT SCORE BUCKET</span> '
@@ -2970,18 +2970,18 @@ if section == "Overview":
             r_fmt = f"{dr['Corr (r)']:+.2f}"
             r_color = "#00D566" if dr['Corr (r)'] > 0 else "#FF4444"
             driver_html += f"""
-            <div style="flex:1;background:rgba(18,21,30,0.85);border-radius:6px;padding:12px;
-                        border:1px solid rgba(255,255,255,0.08);border-top:3px solid {r_color};font-family:Inter,sans-serif;">
-                <div style="font-size:0.70rem;color:#6B7FBF;text-transform:uppercase;letter-spacing:0.05em;
+            <div style="flex:1;background:rgba(var(--ua-card-rgb),0.85);border-radius:6px;padding:12px;
+                        border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:3px solid {r_color};font-family:Inter,sans-serif;">
+                <div style="font-size:0.70rem;color:var(--ua-ink-label);text-transform:uppercase;letter-spacing:0.05em;
                             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{dr['Signal'][:30]}</div>
                 <div style="font-size:1.4rem;font-weight:700;color:{r_color};margin:4px 0;">{r_fmt}</div>
-                <div style="font-size:0.75rem;color:#8892AA;">r with {ticker_input} price</div>
-                <div style="font-size:0.75rem;color:#E8EEFF;margin-top:4px;">Score: <b>{dr['Score']:.0f}</b> &nbsp; {dr['Status']}</div>
+                <div style="font-size:0.75rem;color:var(--ua-ink-mut);">r with {ticker_input} price</div>
+                <div style="font-size:0.75rem;color:var(--ua-ink);margin-top:4px;">Score: <b>{dr['Score']:.0f}</b> &nbsp; {dr['Status']}</div>
             </div>"""
 
         st.markdown(f"""
         <div style="margin-bottom:12px;">
-            <div style="font-size:0.72rem;color:#6B7FBF;text-transform:uppercase;
+            <div style="font-size:0.72rem;color:var(--ua-ink-label);text-transform:uppercase;
                         letter-spacing:0.07em;margin-bottom:8px;">
                 TOP SIGNAL DRIVERS FOR {ticker_input} — by historical price correlation
             </div>
@@ -3061,9 +3061,9 @@ if section == "Overview":
                 <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;">
                     <span style="color:{card_color};font-weight:700;font-size:0.88rem;">{sym} {sig_name}</span>
                     <span style="font-size:0.75rem;color:{card_color};font-weight:600;">{sig_status}</span>
-                    <span style="font-size:0.75rem;color:#6B7FBF;">Score: {sig_score:.0f}/100{corr_note}</span>
+                    <span style="font-size:0.75rem;color:var(--ua-ink-label);">Score: {sig_score:.0f}/100{corr_note}</span>
                 </div>
-                <div style="font-size:0.82rem;color:#B8C0D4;line-height:1.55;">{reason_txt}</div>
+                <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.55;">{reason_txt}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -3310,10 +3310,10 @@ elif section == "Insider & Short Interest":
                     else len(_recent_buys)
                 if _n_cluster >= 2:
                     st.markdown(
-                        f'<div style="background:rgba(0,213,102,0.08);border-radius:7px;padding:10px 14px;'
-                        f'margin-bottom:10px;border-left:4px solid #00D566;font-family:Inter,sans-serif;">'
+                        f'<div style="background:rgba(var(--ua-green-rgb),0.08);border-radius:7px;padding:10px 14px;'
+                        f'margin-bottom:10px;border-left:4px solid var(--ua-green);font-family:Inter,sans-serif;">'
                         f'<b style="color:#35C98B;font-size:0.88rem;letter-spacing:0.04em;">INSIDER CLUSTER BUY</b> — '
-                        f'<span style="font-size:0.82rem;color:#B8C0D4;">'
+                        f'<span style="font-size:0.82rem;color:var(--ua-ink-soft);">'
                         f'{_n_cluster} distinct insiders made open-market purchases in the last 21 days. '
                         f'Cluster buying (multiple independent insiders, no offsetting sales) is '
                         f'among the strongest signals in academic insider-trading research.</span>'
@@ -4057,26 +4057,26 @@ elif section == "Earnings Track Record":
                     _eps_line = f"EPS: **{_actual:+.2f}** (no estimate available)"
 
                 st.markdown(f"""
-<div style="background:#0B0D12;border:1px solid rgba(255,255,255,0.08);border-left:4px solid {_pred_color};
+<div style="background:var(--ua-bg);border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-left:4px solid {_pred_color};
             border-radius:6px;padding:12px 16px;margin-bottom:8px;font-family:Inter,sans-serif;">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <div>
-            <div style="font-size:0.70rem;color:#6B7FBF;letter-spacing:0.06em;">
+            <div style="font-size:0.70rem;color:var(--ua-ink-label);letter-spacing:0.06em;">
                 EARNINGS · {_earn_d}
             </div>
-            <div style="font-size:0.85rem;color:#E8EEFF;margin-top:2px;">{_eps_line}</div>
+            <div style="font-size:0.85rem;color:var(--ua-ink);margin-top:2px;">{_eps_line}</div>
         </div>
         <div style="display:flex;gap:20px;flex-wrap:wrap;">
             <div style="text-align:center;">
-                <div style="font-size:0.65rem;color:#8892AA;letter-spacing:0.06em;">SCORE {_delta}d BEFORE</div>
+                <div style="font-size:0.65rem;color:var(--ua-ink-mut);letter-spacing:0.06em;">SCORE {_delta}d BEFORE</div>
                 <div style="font-weight:700;color:{_pred_color};font-size:0.88rem;">{_pred_label}</div>
             </div>
             <div style="text-align:center;">
-                <div style="font-size:0.65rem;color:#8892AA;letter-spacing:0.06em;">ACTUAL RESULT</div>
+                <div style="font-size:0.65rem;color:var(--ua-ink-mut);letter-spacing:0.06em;">ACTUAL RESULT</div>
                 <div style="font-weight:700;color:{_outcome_color};font-size:0.88rem;">{_outcome_label}</div>
             </div>
             <div style="text-align:center;">
-                <div style="font-size:0.65rem;color:#8892AA;letter-spacing:0.06em;">CALL</div>
+                <div style="font-size:0.65rem;color:var(--ua-ink-mut);letter-spacing:0.06em;">CALL</div>
                 <div style="font-weight:700;color:{_match_color};font-size:0.88rem;">{_match_label}</div>
             </div>
         </div>

@@ -97,14 +97,14 @@ if _sector_section == "Sector Rotation":
                 sc = info["score"]
                 color = STATUS_COLOR[info["status"]]
                 st.markdown(
-                    f'<div style="background:rgba(255,255,255,0.025);border:1px solid {color}33;'
+                    f'<div style="background:rgba(var(--ua-onbg-rgb),0.025);border:1px solid {color}33;'
                     f'border-left:4px solid {color};border-radius:10px;'
                     f'padding:14px 16px;margin-bottom:12px;">'
                     f'<div style="font-size:1.1rem;">{info["icon"]} '
-                    f'<b style="font-size:0.85rem;color:#E8EEFF;">{info["name"]}</b></div>'
+                    f'<b style="font-size:0.85rem;color:var(--ua-ink);">{info["name"]}</b></div>'
                     f'<div style="font-size:1.6rem;font-weight:800;color:{color};margin:4px 0;">{sc:.0f}</div>'
-                    f'<div style="font-size:0.60rem;color:#6B7FBF;">ETF: {info["etf"]}</div>'
-                    f'<div style="font-size:0.60rem;color:#8892AA;margin-top:4px;">'
+                    f'<div style="font-size:0.60rem;color:var(--ua-ink-label);">ETF: {info["etf"]}</div>'
+                    f'<div style="font-size:0.60rem;color:var(--ua-ink-mut);margin-top:4px;">'
                     f'▲ {info["bull"]} bull · ▼ {info["bear"]} bear · {info["n"]} signals</div>'
                     f'<div style="font-size:0.60rem;color:#4A5568;margin-top:3px;">'
                     f'{" · ".join(info["top_signals"][:2])}</div>'

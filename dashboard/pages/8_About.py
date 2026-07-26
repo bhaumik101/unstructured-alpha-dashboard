@@ -28,8 +28,8 @@ if _about_section == "Methodology":
     # ── Helper ────────────────────────────────────────────────────────────────────
     def _section(title):
         st.markdown(
-            f'<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.13em;'
-            f'text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);'
+            f'<div style="font-size:0.62rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.13em;'
+            f'text-transform:uppercase;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);'
             f'padding-bottom:8px;margin:28px 0 16px;font-family:Inter,sans-serif;">{title}</div>',
             unsafe_allow_html=True,
         )
@@ -37,12 +37,12 @@ if _about_section == "Methodology":
 
     def _callout(title, body, color="#7C3AED"):
         st.markdown(
-            f'<div style="background:rgba(18,21,30,0.85);border-left:3px solid {color};'
-            f'border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 18px;'
+            f'<div style="background:rgba(var(--ua-card-rgb),0.85);border-left:3px solid {color};'
+            f'border:1px solid rgba(var(--ua-onbg-rgb),0.07);border-radius:10px;padding:14px 18px;'
             f'margin-bottom:12px;font-family:Inter,sans-serif;">'
             f'<div style="font-size:0.62rem;font-weight:700;color:{color};letter-spacing:0.10em;'
             f'text-transform:uppercase;margin-bottom:6px;">{title}</div>'
-            f'<div style="font-size:0.83rem;color:#B8C0D4;line-height:1.65;">{body}</div>'
+            f'<div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.65;">{body}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -50,15 +50,15 @@ if _about_section == "Methodology":
 
     # ── Abstract ──────────────────────────────────────────────────────────────────
     st.markdown("""
-    <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);
+    <div style="background:rgba(var(--ua-purple-rgb),0.06);border:1px solid rgba(var(--ua-purple-rgb),0.15);
                  border-radius:12px;padding:20px 24px;margin-bottom:24px;font-family:Inter,sans-serif;">
-      <div style="font-size:0.62rem;font-weight:700;color:#7C3AED;letter-spacing:0.12em;
+      <div style="font-size:0.62rem;font-weight:700;color:var(--ua-purple);letter-spacing:0.12em;
                    text-transform:uppercase;margin-bottom:10px;">Abstract</div>
       <div style="font-size:0.90rem;color:#C8D0E4;line-height:1.75;">
         Unstructured Alpha is a systematic, signal-driven investment research platform that aggregates
         38 alternative data series spanning macroeconomic releases, commodity flows, credit spreads,
         insider transactions, institutional positioning, and short interest into a single
-        <b style="color:#E8EEFF;">Confluence Score</b> for each equity ticker. The score summarizes
+        <b style="color:var(--ua-ink);">Confluence Score</b> for each equity ticker. The score summarizes
         whether the preponderance of non-price evidence is bullish, neutral, or bearish for a given
         security at a given moment. This document describes the construction methodology, statistical
         validation approach, data provenance, and known limitations of the platform.
@@ -71,9 +71,9 @@ if _about_section == "Methodology":
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(f"""
-        <div style="font-family:Inter,sans-serif;font-size:0.87rem;color:#B8C0D4;line-height:1.75;">
+        <div style="font-family:Inter,sans-serif;font-size:0.87rem;color:var(--ua-ink-soft);line-height:1.75;">
         <p>Most retail equity research is backward-looking: it explains why a stock moved after the fact.
-        Unstructured Alpha is built around a single contrarian premise: <b style="color:#E8EEFF;">non-price
+        Unstructured Alpha is built around a single contrarian premise: <b style="color:var(--ua-ink);">non-price
         data leads price data</b>. If you can identify the signals that systematically precede
         directional moves even by just 2-6 weeks you have an actionable edge that price-chart
         analysis alone cannot provide.</p>
@@ -104,7 +104,7 @@ if _about_section == "Methodology":
     _section("2. Signal Construction")
 
     st.markdown("""
-    <div style="font-family:Inter,sans-serif;font-size:0.87rem;color:#B8C0D4;line-height:1.75;margin-bottom:16px;">
+    <div style="font-family:Inter,sans-serif;font-size:0.87rem;color:var(--ua-ink-soft);line-height:1.75;margin-bottom:16px;">
     Each of the 38 signals is converted to a standardized 0-100 score using a consistent methodology:
     </div>
     """, unsafe_allow_html=True)
@@ -113,18 +113,18 @@ if _about_section == "Methodology":
 
     with math_cols[0]:
         st.markdown("""
-        <div style="background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);
+        <div style="background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
                     border-radius:10px;padding:16px;font-family:Inter,sans-serif;">
-            <div style="font-size:0.62rem;color:#7C3AED;font-weight:700;letter-spacing:0.10em;
+            <div style="font-size:0.62rem;color:var(--ua-purple);font-weight:700;letter-spacing:0.10em;
                         text-transform:uppercase;margin-bottom:10px;">Step 1: Z-Score Normalization</div>
-            <div style="font-size:0.83rem;color:#B8C0D4;line-height:1.65;">
+            <div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.65;">
                 For each signal series x at time t with a 52-week rolling window:
             </div>
             <div style="background:#0F1118;border-radius:8px;padding:10px 14px;margin:10px 0;
-                        font-family:'Courier New',monospace;font-size:0.82rem;color:#00C8E0;text-align:center;">
+                        font-family:'Courier New',monospace;font-size:0.82rem;color:var(--ua-cyan);text-align:center;">
                 z(t) = (x(t) - mu_52w) / sigma_52w
             </div>
-            <div style="font-size:0.80rem;color:#8892AA;line-height:1.6;">
+            <div style="font-size:0.80rem;color:var(--ua-ink-mut);line-height:1.6;">
                 Where mu and sigma are the rolling 52-week mean and standard deviation of the signal. This
                 removes level effects and makes signals from very different series (e.g. oil inventories
                 and credit spreads) directly comparable.
@@ -134,19 +134,19 @@ if _about_section == "Methodology":
 
     with math_cols[1]:
         st.markdown("""
-        <div style="background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);
+        <div style="background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
                     border-radius:10px;padding:16px;font-family:Inter,sans-serif;">
-            <div style="font-size:0.62rem;color:#00D566;font-weight:700;letter-spacing:0.10em;
+            <div style="font-size:0.62rem;color:var(--ua-green);font-weight:700;letter-spacing:0.10em;
                         text-transform:uppercase;margin-bottom:10px;">Step 2: Score Mapping</div>
-            <div style="font-size:0.83rem;color:#B8C0D4;line-height:1.65;">
+            <div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.65;">
                 The z-score is mapped to [0, 100] via a sigmoid-like transform that is directionally
                 consistent with the signal's empirically validated lead:
             </div>
             <div style="background:#0F1118;border-radius:8px;padding:10px 14px;margin:10px 0;
-                        font-family:'Courier New',monospace;font-size:0.82rem;color:#00D566;text-align:center;">
+                        font-family:'Courier New',monospace;font-size:0.82rem;color:var(--ua-green);text-align:center;">
                 score = 50 + 30 * tanh(z/2)
             </div>
-            <div style="font-size:0.80rem;color:#8892AA;line-height:1.6;">
+            <div style="font-size:0.80rem;color:var(--ua-ink-mut);line-height:1.6;">
                 Signals that historically invert have their z-scores negated before mapping, so
                 score above 65 is always bullish and below 35 is always bearish regardless of the
                 signal's raw direction.
@@ -156,20 +156,20 @@ if _about_section == "Methodology":
 
     with math_cols[2]:
         st.markdown("""
-        <div style="background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);
+        <div style="background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
                     border-radius:10px;padding:16px;font-family:Inter,sans-serif;">
-            <div style="font-size:0.62rem;color:#F59E0B;font-weight:700;letter-spacing:0.10em;
+            <div style="font-size:0.62rem;color:var(--ua-amber);font-weight:700;letter-spacing:0.10em;
                         text-transform:uppercase;margin-bottom:10px;">Step 3: Confluence Aggregation</div>
-            <div style="font-size:0.83rem;color:#B8C0D4;line-height:1.65;">
+            <div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.65;">
                 For a given ticker, only signals with statistically validated lead times
                 (p below 0.05 after Bonferroni correction) are included. The Confluence Score is
                 their equal-weighted average:
             </div>
             <div style="background:#0F1118;border-radius:8px;padding:10px 14px;margin:10px 0;
-                        font-family:'Courier New',monospace;font-size:0.82rem;color:#F59E0B;text-align:center;">
+                        font-family:'Courier New',monospace;font-size:0.82rem;color:var(--ua-amber);text-align:center;">
                 C = (1/N) * SUM( score_i )
             </div>
-            <div style="font-size:0.80rem;color:#8892AA;line-height:1.6;">
+            <div style="font-size:0.80rem;color:var(--ua-ink-mut);line-height:1.6;">
                 Insider, short-interest, and 13F signals each receive a fixed 12% weight cap regardless
                 of N, since they reflect individual-security information rather than macro regime data.
             </div>
@@ -181,28 +181,28 @@ if _about_section == "Methodology":
 
     with st.expander("Walk-forward out-of-sample lead time validation methodology", expanded=True):
         st.markdown("""
-        <div style="font-family:Inter,sans-serif;font-size:0.87rem;color:#B8C0D4;line-height:1.75;">
+        <div style="font-family:Inter,sans-serif;font-size:0.87rem;color:var(--ua-ink-soft);line-height:1.75;">
 
-        <b style="color:#E8EEFF;">Lag Scan.</b> For each signal i and ticker j, we compute
+        <b style="color:var(--ua-ink);">Lag Scan.</b> For each signal i and ticker j, we compute
         the Pearson correlation between lagged signal values and forward equity returns across lags
         k = 1, 2, ..., 16 weeks:
 
         <div style="background:#0F1118;border-radius:8px;padding:10px 16px;margin:12px 0;
-                    font-family:'Courier New',monospace;font-size:0.82rem;color:#00C8E0;text-align:center;">
+                    font-family:'Courier New',monospace;font-size:0.82rem;color:var(--ua-cyan);text-align:center;">
             rho_k = corr( signal(t-k), return(t) )
         </div>
 
         The lag k* with the highest absolute rho is the "best lag" — the historical offset at which the signal
         most strongly predicts future returns.
 
-        <b style="color:#E8EEFF;">Significance Testing.</b> To avoid data snooping, we:
+        <b style="color:var(--ua-ink);">Significance Testing.</b> To avoid data snooping, we:
         <br>— Apply <b>Bonferroni correction</b> for the 16 lags tested per signal-ticker pair:
             threshold becomes alpha' = 0.05/16 ≈ 0.003 instead of 0.05.
         <br>— Require the <b>out-of-sample</b> (OOS) Pearson r to remain ≥ 0.05 on a held-out
             validation window (the final 25% of the available series length).
         <br>— Signals are only included in the Confluence Score if both conditions are met.
 
-        <br><br><b style="color:#E8EEFF;">Lag Decay Tracking.</b> A signal's validated lead time can erode as
+        <br><br><b style="color:var(--ua-ink);">Lag Decay Tracking.</b> A signal's validated lead time can erode as
         market structure changes. Every 30 days, we rerun the lag scan on the most recent 104 weeks of
         data and flag any signal whose best lag has shifted by more than 4 weeks, or whose OOS correlation
         has dropped below 0.03, as "decayed." Decayed signals are down-weighted until re-validated.
@@ -235,55 +235,55 @@ if _about_section == "Methodology":
     st.markdown("""
     <table style="width:100%;border-collapse:collapse;font-family:Inter,sans-serif;font-size:0.83rem;margin-bottom:16px;">
       <thead>
-        <tr style="border-bottom:1px solid rgba(0,213,102,0.2);">
-          <th style="padding:9px 12px;text-align:left;color:#00D566;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;">Source</th>
-          <th style="padding:9px 12px;text-align:left;color:#00D566;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;">Signal Category</th>
-          <th style="padding:9px 12px;text-align:left;color:#00D566;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;">Series Examples</th>
-          <th style="padding:9px 12px;text-align:left;color:#00D566;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;">Update Frequency</th>
+        <tr style="border-bottom:1px solid rgba(var(--ua-green-rgb),0.2);">
+          <th style="padding:9px 12px;text-align:left;color:var(--ua-green);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;">Source</th>
+          <th style="padding:9px 12px;text-align:left;color:var(--ua-green);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;">Signal Category</th>
+          <th style="padding:9px 12px;text-align:left;color:var(--ua-green);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;">Series Examples</th>
+          <th style="padding:9px 12px;text-align:left;color:var(--ua-green);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;">Update Frequency</th>
         </tr>
       </thead>
       <tbody>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:8px 12px;color:#E8EEFF;font-weight:600;">FRED (St. Louis Fed)</td>
-          <td style="padding:8px 12px;color:#B8C0D4;">Macro, Credit, Liquidity</td>
-          <td style="padding:8px 12px;color:#8892AA;">DGS10, BAMLH0A0HYM2, M2SL, DCOILWTICO</td>
-          <td style="padding:8px 12px;color:#6B7FBF;">Daily / Weekly</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:8px 12px;color:var(--ua-ink);font-weight:600;">FRED (St. Louis Fed)</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-soft);">Macro, Credit, Liquidity</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-mut);">DGS10, BAMLH0A0HYM2, M2SL, DCOILWTICO</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-label);">Daily / Weekly</td>
         </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:8px 12px;color:#E8EEFF;font-weight:600;">EIA</td>
-          <td style="padding:8px 12px;color:#B8C0D4;">Energy Supply/Demand</td>
-          <td style="padding:8px 12px;color:#8892AA;">Crude inventories, nat-gas storage, rig count</td>
-          <td style="padding:8px 12px;color:#6B7FBF;">Weekly</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:8px 12px;color:var(--ua-ink);font-weight:600;">EIA</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-soft);">Energy Supply/Demand</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-mut);">Crude inventories, nat-gas storage, rig count</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-label);">Weekly</td>
         </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:8px 12px;color:#E8EEFF;font-weight:600;">SEC EDGAR</td>
-          <td style="padding:8px 12px;color:#B8C0D4;">Insider Transactions, 13F Filings</td>
-          <td style="padding:8px 12px;color:#8892AA;">Form 4 (insiders), Form 13F (institutions)</td>
-          <td style="padding:8px 12px;color:#6B7FBF;">As filed (2 business days)</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:8px 12px;color:var(--ua-ink);font-weight:600;">SEC EDGAR</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-soft);">Insider Transactions, 13F Filings</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-mut);">Form 4 (insiders), Form 13F (institutions)</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-label);">As filed (2 business days)</td>
         </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:8px 12px;color:#E8EEFF;font-weight:600;">FINRA</td>
-          <td style="padding:8px 12px;color:#B8C0D4;">Short Interest</td>
-          <td style="padding:8px 12px;color:#8892AA;">Short interest volume, short ratio by ticker</td>
-          <td style="padding:8px 12px;color:#6B7FBF;">Semi-monthly</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:8px 12px;color:var(--ua-ink);font-weight:600;">FINRA</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-soft);">Short Interest</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-mut);">Short interest volume, short ratio by ticker</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-label);">Semi-monthly</td>
         </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:8px 12px;color:#E8EEFF;font-weight:600;">yfinance</td>
-          <td style="padding:8px 12px;color:#B8C0D4;">Price, Volume, Earnings</td>
-          <td style="padding:8px 12px;color:#8892AA;">OHLCV, earnings dates, news, financials</td>
-          <td style="padding:8px 12px;color:#6B7FBF;">Real-time / Daily</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:8px 12px;color:var(--ua-ink);font-weight:600;">yfinance</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-soft);">Price, Volume, Earnings</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-mut);">OHLCV, earnings dates, news, financials</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-label);">Real-time / Daily</td>
         </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:8px 12px;color:#E8EEFF;font-weight:600;">Google Trends</td>
-          <td style="padding:8px 12px;color:#B8C0D4;">Social Sentiment</td>
-          <td style="padding:8px 12px;color:#8892AA;">Search interest index by ticker</td>
-          <td style="padding:8px 12px;color:#6B7FBF;">Weekly</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:8px 12px;color:var(--ua-ink);font-weight:600;">Google Trends</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-soft);">Social Sentiment</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-mut);">Search interest index by ticker</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-label);">Weekly</td>
         </tr>
         <tr>
-          <td style="padding:8px 12px;color:#E8EEFF;font-weight:600;">USASpending.gov</td>
-          <td style="padding:8px 12px;color:#B8C0D4;">Federal Contracts</td>
-          <td style="padding:8px 12px;color:#8892AA;">Contract award velocity by vendor/ticker</td>
-          <td style="padding:8px 12px;color:#6B7FBF;">Daily</td>
+          <td style="padding:8px 12px;color:var(--ua-ink);font-weight:600;">USASpending.gov</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-soft);">Federal Contracts</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-mut);">Contract award velocity by vendor/ticker</td>
+          <td style="padding:8px 12px;color:var(--ua-ink-label);">Daily</td>
         </tr>
       </tbody>
     </table>
@@ -327,7 +327,7 @@ if _about_section == "Methodology":
     _section("7. How This Differs from Existing Platforms")
 
     st.markdown("""
-    <div style="font-family:Inter,sans-serif;font-size:0.87rem;color:#B8C0D4;line-height:1.75;margin-bottom:16px;">
+    <div style="font-family:Inter,sans-serif;font-size:0.87rem;color:var(--ua-ink-soft);line-height:1.75;margin-bottom:16px;">
     TipRanks, Seeking Alpha Quant, and Bloomberg PORT all produce composite equity scores.
     None of them publish their scoring methodology, their statistical validation results, or the cases
     where their signals fail. This is not a cosmetic difference — it determines whether the number is
@@ -339,55 +339,55 @@ if _about_section == "Methodology":
     <table style="width:100%;border-collapse:collapse;font-family:Inter,sans-serif;font-size:0.82rem;margin-bottom:20px;">
       <thead>
         <tr style="border-bottom:1px solid rgba(0,197,102,0.25);">
-          <th style="padding:10px 14px;text-align:left;color:#6B7FBF;font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;font-weight:600;"></th>
-          <th style="padding:10px 14px;text-align:center;color:#00D566;font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;">Unstructured Alpha</th>
-          <th style="padding:10px 14px;text-align:center;color:#6B7FBF;font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;">TipRanks Smart Score</th>
-          <th style="padding:10px 14px;text-align:center;color:#6B7FBF;font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;">Seeking Alpha Quant</th>
-          <th style="padding:10px 14px;text-align:center;color:#6B7FBF;font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;">Bloomberg PORT</th>
+          <th style="padding:10px 14px;text-align:left;color:var(--ua-ink-label);font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;font-weight:600;"></th>
+          <th style="padding:10px 14px;text-align:center;color:var(--ua-green);font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;font-weight:700;">Unstructured Alpha</th>
+          <th style="padding:10px 14px;text-align:center;color:var(--ua-ink-label);font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;">TipRanks Smart Score</th>
+          <th style="padding:10px 14px;text-align:center;color:var(--ua-ink-label);font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;">Seeking Alpha Quant</th>
+          <th style="padding:10px 14px;text-align:center;color:var(--ua-ink-label);font-size:0.60rem;letter-spacing:0.10em;text-transform:uppercase;">Bloomberg PORT</th>
         </tr>
       </thead>
       <tbody>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:9px 14px;color:#B8C0D4;font-weight:600;">Methodology published</td>
-          <td style="padding:9px 14px;text-align:center;color:#00D566;font-weight:700;">✓ Full, on this page</td>
-          <td style="padding:9px 14px;text-align:center;color:#FF4444;">✗ Proprietary black box</td>
-          <td style="padding:9px 14px;text-align:center;color:#FF4444;">✗ Factor weights undisclosed</td>
-          <td style="padding:9px 14px;text-align:center;color:#F59E0B;">~ Partial (academic partner docs)</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:9px 14px;color:var(--ua-ink-soft);font-weight:600;">Methodology published</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-green);font-weight:700;">✓ Full, on this page</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ Proprietary black box</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ Factor weights undisclosed</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-amber);">~ Partial (academic partner docs)</td>
         </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:9px 14px;color:#B8C0D4;font-weight:600;">Out-of-sample validation</td>
-          <td style="padding:9px 14px;text-align:center;color:#00D566;font-weight:700;">✓ Walk-forward, Bonferroni</td>
-          <td style="padding:9px 14px;text-align:center;color:#FF4444;">✗ None disclosed</td>
-          <td style="padding:9px 14px;text-align:center;color:#FF4444;">✗ None disclosed</td>
-          <td style="padding:9px 14px;text-align:center;color:#F59E0B;">~ Internal (not user-facing)</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:9px 14px;color:var(--ua-ink-soft);font-weight:600;">Out-of-sample validation</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-green);font-weight:700;">✓ Walk-forward, Bonferroni</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ None disclosed</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ None disclosed</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-amber);">~ Internal (not user-facing)</td>
         </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:9px 14px;color:#B8C0D4;font-weight:600;">Failed signals disclosed</td>
-          <td style="padding:9px 14px;text-align:center;color:#00D566;font-weight:700;">✓ Model Validation page</td>
-          <td style="padding:9px 14px;text-align:center;color:#FF4444;">✗ No</td>
-          <td style="padding:9px 14px;text-align:center;color:#FF4444;">✗ No</td>
-          <td style="padding:9px 14px;text-align:center;color:#FF4444;">✗ No</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:9px 14px;color:var(--ua-ink-soft);font-weight:600;">Failed signals disclosed</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-green);font-weight:700;">✓ Model Validation page</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ No</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ No</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ No</td>
         </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:9px 14px;color:#B8C0D4;font-weight:600;">Alternative data sources</td>
-          <td style="padding:9px 14px;text-align:center;color:#00D566;font-weight:700;">✓ 7 public APIs</td>
-          <td style="padding:9px 14px;text-align:center;color:#B8C0D4;">Analyst consensus + news</td>
-          <td style="padding:9px 14px;text-align:center;color:#B8C0D4;">Factor scores (valuation, growth)</td>
-          <td style="padding:9px 14px;text-align:center;color:#B8C0D4;">Market data + fundamentals</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:9px 14px;color:var(--ua-ink-soft);font-weight:600;">Alternative data sources</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-green);font-weight:700;">✓ 7 public APIs</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-ink-soft);">Analyst consensus + news</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-ink-soft);">Factor scores (valuation, growth)</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-ink-soft);">Market data + fundamentals</td>
         </tr>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:9px 14px;color:#B8C0D4;font-weight:600;">Congressional trades</td>
-          <td style="padding:9px 14px;text-align:center;color:#00D566;font-weight:700;">✓ Live EDGAR feed</td>
-          <td style="padding:9px 14px;text-align:center;color:#F59E0B;">~ Some coverage</td>
-          <td style="padding:9px 14px;text-align:center;color:#FF4444;">✗ Not included</td>
-          <td style="padding:9px 14px;text-align:center;color:#FF4444;">✗ Not included</td>
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">
+          <td style="padding:9px 14px;color:var(--ua-ink-soft);font-weight:600;">Congressional trades</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-green);font-weight:700;">✓ Live EDGAR feed</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-amber);">~ Some coverage</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ Not included</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-red);">✗ Not included</td>
         </tr>
         <tr>
-          <td style="padding:9px 14px;color:#B8C0D4;font-weight:600;">Cost</td>
-          <td style="padding:9px 14px;text-align:center;color:#00D566;font-weight:700;">Free (open source stack)</td>
-          <td style="padding:9px 14px;text-align:center;color:#B8C0D4;">$29–$49 / month</td>
-          <td style="padding:9px 14px;text-align:center;color:#B8C0D4;">$239 / month (Premium)</td>
-          <td style="padding:9px 14px;text-align:center;color:#B8C0D4;">$24,000+ / year</td>
+          <td style="padding:9px 14px;color:var(--ua-ink-soft);font-weight:600;">Cost</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-green);font-weight:700;">Free (open source stack)</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-ink-soft);">$29–$49 / month</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-ink-soft);">$239 / month (Premium)</td>
+          <td style="padding:9px 14px;text-align:center;color:var(--ua-ink-soft);">$24,000+ / year</td>
         </tr>
       </tbody>
     </table>
@@ -398,61 +398,61 @@ if _about_section == "Methodology":
 
     # Data flow diagram (HTML/CSS)
     st.markdown("""
-    <div style="background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:12px;
+    <div style="background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);border-radius:12px;
                 padding:24px;font-family:Inter,sans-serif;margin-bottom:16px;">
-      <div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;
+      <div style="font-size:0.62rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.10em;
                   text-transform:uppercase;margin-bottom:18px;">Data Flow</div>
       <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center;">
 
         <div style="text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;color:#00C8E0;letter-spacing:0.06em;
+          <div style="font-size:0.65rem;font-weight:700;color:var(--ua-cyan);letter-spacing:0.06em;
                       text-transform:uppercase;margin-bottom:6px;">Public APIs</div>
-          <div style="background:rgba(0,200,224,0.08);border:1px solid rgba(0,200,224,0.2);
-                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:#8892AA;line-height:1.9;">
+          <div style="background:rgba(var(--ua-cyan-rgb),0.08);border:1px solid rgba(var(--ua-cyan-rgb),0.2);
+                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:var(--ua-ink-mut);line-height:1.9;">
             FRED &nbsp;·&nbsp; EIA<br>SEC EDGAR<br>FINRA<br>yfinance<br>Google Trends
           </div>
         </div>
 
-        <div style="font-size:1.2rem;color:#6B7FBF;padding:0 12px;">→</div>
+        <div style="font-size:1.2rem;color:var(--ua-ink-label);padding:0 12px;">→</div>
 
         <div style="text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;color:#7C3AED;letter-spacing:0.06em;
+          <div style="font-size:0.65rem;font-weight:700;color:var(--ua-purple);letter-spacing:0.06em;
                       text-transform:uppercase;margin-bottom:6px;">Signal Engine</div>
-          <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);
-                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:#8892AA;line-height:1.9;">
+          <div style="background:rgba(var(--ua-purple-rgb),0.08);border:1px solid rgba(var(--ua-purple-rgb),0.2);
+                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:var(--ua-ink-mut);line-height:1.9;">
             Z-score · tanh map<br>Lead-time scan<br>Bonferroni correction<br>PCS weighting
           </div>
         </div>
 
-        <div style="font-size:1.2rem;color:#6B7FBF;padding:0 12px;">→</div>
+        <div style="font-size:1.2rem;color:var(--ua-ink-label);padding:0 12px;">→</div>
 
         <div style="text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;color:#F59E0B;letter-spacing:0.06em;
+          <div style="font-size:0.65rem;font-weight:700;color:var(--ua-amber);letter-spacing:0.06em;
                       text-transform:uppercase;margin-bottom:6px;">Caching Layer</div>
           <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);
-                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:#8892AA;line-height:1.9;">
+                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:var(--ua-ink-mut);line-height:1.9;">
             @st.cache_data<br>Signals: 2h TTL<br>Prices: 60s TTL<br>max_entries=1
           </div>
         </div>
 
-        <div style="font-size:1.2rem;color:#6B7FBF;padding:0 12px;">→</div>
+        <div style="font-size:1.2rem;color:var(--ua-ink-label);padding:0 12px;">→</div>
 
         <div style="text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;color:#00D566;letter-spacing:0.06em;
+          <div style="font-size:0.65rem;font-weight:700;color:var(--ua-green);letter-spacing:0.06em;
                       text-transform:uppercase;margin-bottom:6px;">PostgreSQL</div>
-          <div style="background:rgba(0,213,102,0.06);border:1px solid rgba(0,213,102,0.15);
-                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:#8892AA;line-height:1.9;">
+          <div style="background:rgba(var(--ua-green-rgb),0.06);border:1px solid rgba(var(--ua-green-rgb),0.15);
+                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:var(--ua-ink-mut);line-height:1.9;">
             Users · Watchlists<br>Score snapshots<br>Alerts · Predictions<br>Macro narratives
           </div>
         </div>
 
-        <div style="font-size:1.2rem;color:#6B7FBF;padding:0 12px;">→</div>
+        <div style="font-size:1.2rem;color:var(--ua-ink-label);padding:0 12px;">→</div>
 
         <div style="text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;color:#E8EEFF;letter-spacing:0.06em;
+          <div style="font-size:0.65rem;font-weight:700;color:var(--ua-ink);letter-spacing:0.06em;
                       text-transform:uppercase;margin-bottom:6px;">26-Page App</div>
           <div style="background:rgba(232,238,255,0.04);border:1px solid rgba(232,238,255,0.10);
-                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:#8892AA;line-height:1.9;">
+                      border-radius:8px;padding:8px 14px;font-size:0.72rem;color:var(--ua-ink-mut);line-height:1.9;">
             Streamlit · Plotly<br>Auth + 2FA<br>Anthropic Claude API<br>Render auto-deploy
           </div>
         </div>
@@ -462,14 +462,14 @@ if _about_section == "Methodology":
     """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:10px;
-                padding:18px 22px;font-family:Inter,sans-serif;font-size:0.84rem;color:#B8C0D4;line-height:1.9;">
-    <b style="color:#E8EEFF;">Stack:</b> Python 3.12 · Streamlit · Plotly · yfinance · pandas · scipy · SQLAlchemy · anthropic<br>
-    <b style="color:#E8EEFF;">Database:</b> PostgreSQL (Render) — users, watchlists, alerts, score history, prediction log, macro narratives<br>
-    <b style="color:#E8EEFF;">Deployment:</b> Render.com — auto-deploy from GitHub main; render.yaml blueprint with rootDir override<br>
-    <b style="color:#E8EEFF;">Caching:</b> Two-tier — FRED/EIA signals at 2h TTL; live prices at 60s; <code>max_entries=1</code> to prevent heap bloat<br>
-    <b style="color:#E8EEFF;">Auth:</b> Email verification + TOTP 2FA via Resend; bcrypt; remember-me tokens; multi-tenant row isolation<br>
-    <b style="color:#E8EEFF;">AI:</b> Anthropic claude-haiku-4-5 — weekly macro research note generation + live signal-aware chat assistant
+    <div style="background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);border-radius:10px;
+                padding:18px 22px;font-family:Inter,sans-serif;font-size:0.84rem;color:var(--ua-ink-soft);line-height:1.9;">
+    <b style="color:var(--ua-ink);">Stack:</b> Python 3.12 · Streamlit · Plotly · yfinance · pandas · scipy · SQLAlchemy · anthropic<br>
+    <b style="color:var(--ua-ink);">Database:</b> PostgreSQL (Render) — users, watchlists, alerts, score history, prediction log, macro narratives<br>
+    <b style="color:var(--ua-ink);">Deployment:</b> Render.com — auto-deploy from GitHub main; render.yaml blueprint with rootDir override<br>
+    <b style="color:var(--ua-ink);">Caching:</b> Two-tier — FRED/EIA signals at 2h TTL; live prices at 60s; <code>max_entries=1</code> to prevent heap bloat<br>
+    <b style="color:var(--ua-ink);">Auth:</b> Email verification + TOTP 2FA via Resend; bcrypt; remember-me tokens; multi-tenant row isolation<br>
+    <b style="color:var(--ua-ink);">AI:</b> Anthropic claude-haiku-4-5 — weekly macro research note generation + live signal-aware chat assistant
     </div>
     """, unsafe_allow_html=True)
 
@@ -479,13 +479,13 @@ if _about_section == "Methodology":
     bio_col, stats_col = st.columns([3, 1])
     with bio_col:
         st.markdown("""
-        <div style="background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);
+        <div style="background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
                     border-radius:10px;padding:20px 24px;font-family:Inter,sans-serif;">
-            <div style="font-size:1.1rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">Bhaumik Giri</div>
-            <div style="font-size:0.78rem;color:#6B7FBF;margin-bottom:14px;letter-spacing:0.04em;">
+            <div style="font-size:1.1rem;font-weight:700;color:var(--ua-ink);margin-bottom:4px;">Bhaumik Giri</div>
+            <div style="font-size:0.78rem;color:var(--ua-ink-label);margin-bottom:14px;letter-spacing:0.04em;">
                 Finance &amp; Data Science · UNC Kenan-Flagler Business School
             </div>
-            <div style="font-size:0.87rem;color:#B8C0D4;line-height:1.80;">
+            <div style="font-size:0.87rem;color:var(--ua-ink-soft);line-height:1.80;">
                 <p>Built Unstructured Alpha to close the gap between institutional-grade alternative data
                 research and what's accessible to individual investors and academic researchers. The work
                 began after noticing that most retail-facing equity platforms treat their scoring
@@ -507,25 +507,25 @@ if _about_section == "Methodology":
 
     with stats_col:
         st.markdown("""
-        <div style="background:rgba(0,213,102,0.05);border:1px solid rgba(0,213,102,0.15);
+        <div style="background:rgba(var(--ua-green-rgb),0.05);border:1px solid rgba(var(--ua-green-rgb),0.15);
                     border-radius:10px;padding:16px;font-family:Inter,sans-serif;">
-            <div style="font-size:0.62rem;color:#00D566;font-weight:700;letter-spacing:0.10em;
+            <div style="font-size:0.62rem;color:var(--ua-green);font-weight:700;letter-spacing:0.10em;
                         text-transform:uppercase;margin-bottom:12px;">By the Numbers</div>
-            <div style="font-size:0.83rem;color:#B8C0D4;line-height:2.4;">
-                <b style="color:#E8EEFF;">{ACTIVE_SIGNAL_COUNT}</b> registered signals<br>
-                <b style="color:#E8EEFF;">26</b> app pages<br>
-                <b style="color:#E8EEFF;">{ACTIVE_SOURCE_COUNT}</b> source families<br>
-                <b style="color:#E8EEFF;">{SUPPORTED_TICKER_COUNT}</b> tracked tickers<br>
-                <b style="color:#E8EEFF;">8</b> signal categories<br>
-                <b style="color:#E8EEFF;">~6,000</b> lines of Python<br>
-                <b style="color:#E8EEFF;">Live</b> on Render
+            <div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:2.4;">
+                <b style="color:var(--ua-ink);">{ACTIVE_SIGNAL_COUNT}</b> registered signals<br>
+                <b style="color:var(--ua-ink);">26</b> app pages<br>
+                <b style="color:var(--ua-ink);">{ACTIVE_SOURCE_COUNT}</b> source families<br>
+                <b style="color:var(--ua-ink);">{SUPPORTED_TICKER_COUNT}</b> tracked tickers<br>
+                <b style="color:var(--ua-ink);">8</b> signal categories<br>
+                <b style="color:var(--ua-ink);">~6,000</b> lines of Python<br>
+                <b style="color:var(--ua-ink);">Live</b> on Render
             </div>
         </div>
-        <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);
+        <div style="background:rgba(var(--ua-purple-rgb),0.06);border:1px solid rgba(var(--ua-purple-rgb),0.15);
                     border-radius:10px;padding:14px 16px;font-family:Inter,sans-serif;margin-top:10px;">
-            <div style="font-size:0.62rem;color:#7C3AED;font-weight:700;letter-spacing:0.10em;
+            <div style="font-size:0.62rem;color:var(--ua-purple);font-weight:700;letter-spacing:0.10em;
                         text-transform:uppercase;margin-bottom:10px;">Validated Features</div>
-            <div style="font-size:0.78rem;color:#8892AA;line-height:2.0;">
+            <div style="font-size:0.78rem;color:var(--ua-ink-mut);line-height:2.0;">
                 ✓ Bonferroni lag-scan<br>
                 ✓ OOS walk-forward<br>
                 ✓ Lag decay tracker<br>
@@ -545,10 +545,10 @@ if _about_section == "Validation Evidence":
     from utils.theme import source_badge
 
     st.markdown("""
-<div style="background:rgba(0,200,224,0.07);border-left:3px solid #00C8E0;border-radius:8px;
-            padding:14px 18px;font-size:0.85rem;color:#B8C0D4;margin-bottom:20px;
+<div style="background:rgba(var(--ua-cyan-rgb),0.07);border-left:3px solid var(--ua-cyan);border-radius:8px;
+            padding:14px 18px;font-size:0.85rem;color:var(--ua-ink-soft);margin-bottom:20px;
             font-family:Inter,sans-serif;line-height:1.6;">
-<b style="color:#E8EEFF;">What this is for:</b> every score on this site traces back to a
+<b style="color:var(--ua-ink);">What this is for:</b> every score on this site traces back to a
 real, checkable validation status — backtested with real significance numbers, validated
 per-ticker on demand, or explicitly <b>not</b> validated and documented as to why.
 Most platforms that show a composite "smart score" disclose none of this.
@@ -592,5 +592,5 @@ Most platforms that show a composite "smart score" disclose none of this.
         source_badge("FRED · EIA · SEC EDGAR · yfinance")
     else:
         _static = get_static_validation_summary()
-        st.markdown(f"<pre style='font-size:0.75rem;color:#8892AA;'>{_static}</pre>", unsafe_allow_html=True)
+        st.markdown(f"<pre style='font-size:0.75rem;color:var(--ua-ink-mut);'>{_static}</pre>", unsafe_allow_html=True)
         st.caption("Showing the published validation summary. Run live validation to refresh the evidence.")

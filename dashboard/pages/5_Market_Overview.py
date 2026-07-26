@@ -382,9 +382,9 @@ if section == "Markets":
             sl = "Normal (positive)" if spread > 0 else "Inverted (recession signal)"
             st.html(f"""
             <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{sc};margin-top:10px;padding:14px 18px;">
-                <div style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">10Y–3M Yield Curve Spread</div>
+                <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">10Y–3M Yield Curve Spread</div>
                 <div style="font-size:2.0rem;font-weight:900;color:{sc};text-shadow:0 0 24px {sc}45;">{spread:+.2f}%</div>
-                <div style="font-size:0.78rem;color:#8892AA;margin-top:2px;">{sl}</div>
+                <div style="font-size:0.78rem;color:var(--ua-ink-mut);margin-top:2px;">{sl}</div>
             </div>""")
 
     with right_col:
@@ -514,17 +514,17 @@ if section == "Markets":
     def signal_card(label: str, status: str, detail: str, context: str = "") -> str:
         color = STATUS_COLOR.get(status, "#6B7FBF")
         sym   = STATUS_SYM.get(status, "●")
-        ctx_html = (f'<div style="font-size:0.66rem;color:#8892AA;margin-top:4px;line-height:1.4;">{context}</div>'
+        ctx_html = (f'<div style="font-size:0.66rem;color:var(--ua-ink-mut);margin-top:4px;line-height:1.4;">{context}</div>'
                     if context else "")
         return (
             f'<div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{color};'
             f'text-align:center;padding:16px 10px 14px;">'
-            f'<div style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;'
+            f'<div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;'
             f'letter-spacing:0.10em;line-height:1.4;margin-bottom:6px;">{label}</div>'
             f'<div style="font-size:1.6rem;font-weight:900;color:{color};'
             f'text-shadow:0 0 20px {color}40;margin-bottom:2px;">{sym}</div>'
             f'<div style="font-size:0.78rem;font-weight:700;color:{color};margin-bottom:4px;">{status.replace("_"," ").capitalize()}</div>'
-            f'<div style="font-size:0.76rem;color:#B8C0D4;font-weight:600;">{detail}</div>'
+            f'<div style="font-size:0.76rem;color:var(--ua-ink-soft);font-weight:600;">{detail}</div>'
             f'{ctx_html}'
             f'</div>'
         )
@@ -607,10 +607,10 @@ if section == "Markets":
         blabel = "Risk-On Environment" if pct >= 60 else ("Risk-Off Environment" if pct <= 30 else "Mixed Signals")
         st.html(f"""
         <div class="ua-spotlight" style="--ua-spotlight-accent:{bc};margin-top:14px;padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-            <span style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;">Market Breadth</span>
+            <span style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;">Market Breadth</span>
             <span style="font-size:0.90rem;font-weight:800;color:{bc};text-shadow:0 0 16px {bc}40;">{blabel}</span>
-            <span style="font-size:0.78rem;color:#8892AA;margin-left:4px;">
-                <span style="color:#00D566;">▲ {bull_n}</span> · <span style="color:#6B7FBF;">● {neut_n}</span> · <span style="color:#FF4444;">▼ {bear_n}</span>
+            <span style="font-size:0.78rem;color:var(--ua-ink-mut);margin-left:4px;">
+                <span style="color:var(--ua-green);">▲ {bull_n}</span> · <span style="color:var(--ua-ink-label);">● {neut_n}</span> · <span style="color:var(--ua-red);">▼ {bear_n}</span>
             </span>
         </div>""")
 
@@ -872,9 +872,9 @@ elif section == "Macro Indicators":
         cal_rows += f"""
         <tr>
             <td><span style="color:{freq_color};font-weight:700;font-size:0.78rem;">{freq}</span></td>
-            <td style="color:#8892AA;font-size:0.82rem;">{timing}</td>
-            <td style="font-weight:600;color:#E8EEFF;">{release}</td>
-            <td style="color:#6B7FBF;font-size:0.80rem;">{source}</td>
+            <td style="color:var(--ua-ink-mut);font-size:0.82rem;">{timing}</td>
+            <td style="font-weight:600;color:var(--ua-ink);">{release}</td>
+            <td style="color:var(--ua-ink-label);font-size:0.80rem;">{source}</td>
         </tr>
         """
 

@@ -100,7 +100,7 @@ if _track_section == "Signal Track Record":
 
     def _hit_html(correct: int | None, ret: float | None, label: str) -> str:
         if correct is None or ret is None:
-            return f'<span style="color:#8892AA;font-size:0.72rem;">{label}: —</span>'
+            return f'<span style="color:var(--ua-ink-mut);font-size:0.72rem;">{label}: —</span>'
         color = BULL_COLOR if correct == 1 else BEAR_COLOR
         sym   = "✓" if correct == 1 else "✗"
         return (
@@ -125,44 +125,44 @@ if _track_section == "Signal Track Record":
 
         <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{CYAN};
              flex:1;min-width:130px;text-align:center;padding:18px 16px;">
-          <div style="font-size:0.58rem;font-weight:700;color:#8892AA;text-transform:uppercase;
+          <div style="font-size:0.58rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;
                       letter-spacing:0.12em;margin-bottom:6px;">Calls Logged</div>
           <div style="font-size:2.2rem;font-weight:900;color:{CYAN};
                       text-shadow:0 0 24px {CYAN}45;line-height:1;">{_total}</div>
-          <div style="font-size:0.68rem;color:#8892AA;margin-top:4px;">
+          <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">
             {_resolved} resolved · {_pending} pending
           </div>
         </div>
 
         <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{BULL_COLOR};
              flex:1;min-width:130px;text-align:center;padding:18px 16px;">
-          <div style="font-size:0.58rem;font-weight:700;color:#8892AA;text-transform:uppercase;
+          <div style="font-size:0.58rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;
                       letter-spacing:0.12em;margin-bottom:6px;">4-Week Accuracy</div>
           <div style="font-size:2.2rem;font-weight:900;color:{BULL_COLOR};
                       text-shadow:0 0 24px {BULL_COLOR}45;line-height:1;">
             {"—" if _acc_4w is None else f"{_acc_4w:.0f}%"}
           </div>
-          <div style="font-size:0.68rem;color:#8892AA;margin-top:4px;">
+          <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">
             {"not enough resolved data yet" if _acc_4w is None else "direction correct"}
           </div>
         </div>
 
         <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{AMBER};
              flex:1;min-width:130px;text-align:center;padding:18px 16px;">
-          <div style="font-size:0.58rem;font-weight:700;color:#8892AA;text-transform:uppercase;
+          <div style="font-size:0.58rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;
                       letter-spacing:0.12em;margin-bottom:6px;">12-Week Accuracy</div>
           <div style="font-size:2.2rem;font-weight:900;color:{AMBER};
                       text-shadow:0 0 24px {AMBER}45;line-height:1;">
             {"—" if _acc_12w is None else f"{_acc_12w:.0f}%"}
           </div>
-          <div style="font-size:0.68rem;color:#8892AA;margin-top:4px;">
+          <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">
             {"building history…" if _acc_12w is None else "direction correct"}
           </div>
         </div>
 
         <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{PURPLE};
              flex:1;min-width:130px;text-align:center;padding:18px 16px;">
-          <div style="font-size:0.58rem;font-weight:700;color:#8892AA;text-transform:uppercase;
+          <div style="font-size:0.58rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;
                       letter-spacing:0.12em;margin-bottom:6px;">Median 12w Return</div>
           <div style="font-size:2.2rem;font-weight:900;
                       color:{"#00D566" if (_med_12w or 0) >= 0 else "#FF4444"};
@@ -170,7 +170,7 @@ if _track_section == "Signal Track Record":
                       line-height:1;">
             {"—" if _med_12w is None else f"{_med_12w:+.1f}%"}
           </div>
-          <div style="font-size:0.68rem;color:#8892AA;margin-top:4px;">on resolved calls</div>
+          <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">on resolved calls</div>
         </div>
 
       </div>
@@ -214,8 +214,8 @@ if _track_section == "Signal Track Record":
 
     if not _feed:
         st.markdown(
-            '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);'
-            'border-radius:10px;padding:24px;text-align:center;color:#8892AA;font-size:0.88rem;">'
+            '<div style="background:rgba(var(--ua-onbg-rgb),0.03);border:1px solid rgba(var(--ua-onbg-rgb),0.06);'
+            'border-radius:10px;padding:24px;text-align:center;color:var(--ua-ink-mut);font-size:0.88rem;">'
             'No predictions logged yet matching these filters. '
             'Predictions are logged automatically when the Confluence Score crosses '
             'a high-confidence threshold on Ticker Deep Dive.'
@@ -239,7 +239,7 @@ if _track_section == "Signal Track Record":
                 # Outcome section
                 if is_res:
                     outcome_html = (
-                        f'<div style="border-top:1px solid rgba(255,255,255,0.07);'
+                        f'<div style="border-top:1px solid rgba(var(--ua-onbg-rgb),0.07);'
                         f'margin-top:10px;padding-top:10px;display:flex;flex-wrap:wrap;gap:8px;">'
                         + _hit_html(row.get("correct_4w"),  row.get("return_4w"),  "4w")
                         + "&nbsp;&nbsp;"
@@ -261,9 +261,9 @@ if _track_section == "Signal Track Record":
                     except Exception:
                         exp_str = "Outcome pending"
                     outcome_html = (
-                        f'<div style="border-top:1px solid rgba(255,255,255,0.07);'
+                        f'<div style="border-top:1px solid rgba(var(--ua-onbg-rgb),0.07);'
                         f'margin-top:10px;padding-top:8px;">'
-                        f'<span style="font-size:0.70rem;color:#8892AA;font-style:italic;">'
+                        f'<span style="font-size:0.70rem;color:var(--ua-ink-mut);font-style:italic;">'
                         f' {exp_str}</span></div>'
                     )
 
@@ -277,24 +277,24 @@ if _track_section == "Signal Track Record":
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <span style="font-size:0.60rem;font-weight:700;color:{dc};text-transform:uppercase;
                      letter-spacing:0.10em;">{dsym}</span>
-        <span style="font-size:0.60rem;color:#8892AA;">{row["event_date"]}</span>
+        <span style="font-size:0.60rem;color:var(--ua-ink-mut);">{row["event_date"]}</span>
       </div>
-      <div style="font-size:1.55rem;font-weight:900;color:#E8EEFF;line-height:1.1;
+      <div style="font-size:1.55rem;font-weight:900;color:var(--ua-ink);line-height:1.1;
                    margin-bottom:4px;">{row["ticker"]}</div>
-      <div style="font-size:0.72rem;color:#8892AA;margin-bottom:6px;">
+      <div style="font-size:0.72rem;color:var(--ua-ink-mut);margin-bottom:6px;">
         {ev_label}{sig_str}
       </div>
       <div style="display:flex;align-items:center;gap:14px;">
         <div>
-          <div style="font-size:0.58rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.08em;">
+          <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">
             Score</div>
           <div style="font-size:1.4rem;font-weight:900;color:{dc};
                       text-shadow:0 0 16px {dc}40;line-height:1.1;">{score:.0f}</div>
         </div>
         <div>
-          <div style="font-size:0.58rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.08em;">
+          <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">
             Entry</div>
-          <div style="font-size:0.88rem;font-weight:700;color:#B8C0D4;">{entry_str}</div>
+          <div style="font-size:0.88rem;font-weight:700;color:var(--ua-ink-soft);">{entry_str}</div>
         </div>
         <div style="margin-left:auto;">
           <span style="font-size:0.66rem;font-weight:700;
@@ -412,30 +412,30 @@ if _track_section == "Signal Track Record":
         st.markdown(f"""
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
       <div class="ua-spotlight" style="--ua-spotlight-accent:{CYAN};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
-        <div style="font-size:0.58rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Instances</div>
+        <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Instances</div>
         <div style="font-size:1.5rem;font-weight:900;color:{CYAN};">{len(_hist_calls)}</div>
-        <div style="font-size:0.64rem;color:#8892AA;">{len(_h_bull)} bull · {len(_h_bear)} bear</div>
+        <div style="font-size:0.64rem;color:var(--ua-ink-mut);">{len(_h_bull)} bull · {len(_h_bear)} bear</div>
       </div>
       <div class="ua-spotlight" style="--ua-spotlight-accent:{BULL_COLOR};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
-        <div style="font-size:0.58rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">30d Hit Rate</div>
+        <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">30d Hit Rate</div>
         <div style="font-size:1.5rem;font-weight:900;color:{BULL_COLOR};">{"—" if _h_acc is None else f"{_h_acc:.0f}%"}</div>
-        <div style="font-size:0.64rem;color:#8892AA;">direction correct</div>
+        <div style="font-size:0.64rem;color:var(--ua-ink-mut);">direction correct</div>
       </div>
       <div class="ua-spotlight" style="--ua-spotlight-accent:{AMBER};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
-        <div style="font-size:0.58rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Median 30d Return</div>
+        <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Median 30d Return</div>
         <div style="font-size:1.5rem;font-weight:900;
                     color:{"#00D566" if (_h_med or 0) >= 0 else "#FF4444"};">
           {"—" if _h_med is None else f"{_h_med:+.1f}%"}
         </div>
-        <div style="font-size:0.64rem;color:#8892AA;">all qualifying instances</div>
+        <div style="font-size:0.64rem;color:var(--ua-ink-mut);">all qualifying instances</div>
       </div>
       <div class="ua-spotlight" style="--ua-spotlight-accent:{PURPLE};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
-        <div style="font-size:0.58rem;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Avg 30d Return</div>
+        <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Avg 30d Return</div>
         <div style="font-size:1.5rem;font-weight:900;
                     color:{"#00D566" if (_h_avg or 0) >= 0 else "#FF4444"};">
           {"—" if _h_avg is None else f"{_h_avg:+.1f}%"}
         </div>
-        <div style="font-size:0.64rem;color:#8892AA;">mean across all calls</div>
+        <div style="font-size:0.64rem;color:var(--ua-ink-mut);">mean across all calls</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -468,16 +468,16 @@ if _track_section == "Signal Track Record":
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <span style="font-size:0.58rem;font-weight:700;color:{dc};text-transform:uppercase;
                      letter-spacing:0.10em;">{dsym}</span>
-        <span style="font-size:0.60rem;color:#8892AA;">{h["snapshot_date"]}</span>
+        <span style="font-size:0.60rem;color:var(--ua-ink-mut);">{h["snapshot_date"]}</span>
       </div>
-      <div style="font-size:1.35rem;font-weight:900;color:#E8EEFF;margin-bottom:2px;">{h["ticker"]}</div>
+      <div style="font-size:1.35rem;font-weight:900;color:var(--ua-ink);margin-bottom:2px;">{h["ticker"]}</div>
       <div style="font-size:0.70rem;color:{dc};margin-bottom:8px;">
         Score: <b style="text-shadow:0 0 12px {dc}40;">{h["score"]:.0f}/100</b>
       </div>
-      <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:8px;
+      <div style="border-top:1px solid rgba(var(--ua-onbg-rgb),0.07);padding-top:8px;
                    display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:0.80rem;font-weight:700;color:{ret_c};">
-          {ret_sym} {ret:+.1f}% <span style="font-size:0.64rem;color:#8892AA;">30d</span>
+          {ret_sym} {ret:+.1f}% <span style="font-size:0.64rem;color:var(--ua-ink-mut);">30d</span>
         </span>
         {hit_badge}
       </div>
@@ -502,8 +502,8 @@ if _track_section == "Signal Track Record":
 
     if not _sig_stats:
         st.markdown(
-            '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);'
-            'border-radius:10px;padding:24px;text-align:center;color:#8892AA;font-size:0.88rem;">'
+            '<div style="background:rgba(var(--ua-onbg-rgb),0.03);border:1px solid rgba(var(--ua-onbg-rgb),0.06);'
+            'border-radius:10px;padding:24px;text-align:center;color:var(--ua-ink-mut);font-size:0.88rem;">'
             'Signal-level accuracy data not yet available. As predictions resolve, each signal\'s '
             'track record will appear here automatically.'
             '</div>',
@@ -513,12 +513,12 @@ if _track_section == "Signal Track Record":
         def _acc_bar(val: float | None, width_px: int = 80) -> str:
             """Tiny horizontal accuracy bar."""
             if val is None:
-                return '<span style="color:#8892AA;font-size:0.75rem;">—</span>'
+                return '<span style="color:var(--ua-ink-mut);font-size:0.75rem;">—</span>'
             color  = BULL_COLOR if val >= 55 else (AMBER if val >= 45 else BEAR_COLOR)
             filled = int(width_px * val / 100)
             return (
                 f'<span style="font-weight:700;color:{color};font-size:0.82rem;">{val:.0f}%</span>'
-                f'<div style="margin-top:3px;background:rgba(255,255,255,0.08);'
+                f'<div style="margin-top:3px;background:rgba(var(--ua-onbg-rgb),0.08);'
                 f'border-radius:3px;height:4px;width:{width_px}px;">'
                 f'<div style="background:{color};width:{filled}px;height:4px;border-radius:3px;'
                 f'box-shadow:0 0 6px {color}60;"></div></div>'
@@ -527,13 +527,13 @@ if _track_section == "Signal Track Record":
         # Table header
         st.markdown(f"""
     <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;
-         padding:8px 14px;background:rgba(255,255,255,0.04);border-radius:8px 8px 0 0;
-         border:1px solid rgba(255,255,255,0.08);border-bottom:none;margin-top:8px;">
-      <div style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;">Signal</div>
-      <div style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;text-align:center;">Predictions</div>
-      <div style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;text-align:center;">4w Acc.</div>
-      <div style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;text-align:center;">8w Acc.</div>
-      <div style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;letter-spacing:0.10em;text-align:center;">12w Acc.</div>
+         padding:8px 14px;background:rgba(var(--ua-onbg-rgb),0.04);border-radius:8px 8px 0 0;
+         border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-bottom:none;margin-top:8px;">
+      <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;">Signal</div>
+      <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;text-align:center;">Predictions</div>
+      <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;text-align:center;">4w Acc.</div>
+      <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;text-align:center;">8w Acc.</div>
+      <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;text-align:center;">12w Acc.</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -562,11 +562,11 @@ if _track_section == "Signal Track Record":
             st.markdown(f"""
     <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;
          padding:10px 14px;background:{bg};border-radius:{border_r};
-         border:1px solid rgba(255,255,255,0.06);border-top:none;
+         border:1px solid rgba(var(--ua-onbg-rgb),0.06);border-top:none;
          align-items:center;">
       <div>
-        <div style="font-size:0.84rem;font-weight:700;color:#E8EEFF;">{sig["signal_name"]}{medal}</div>
-        <div style="font-size:0.64rem;color:#8892AA;margin-top:1px;">{sig["signal_id"]}</div>
+        <div style="font-size:0.84rem;font-weight:700;color:var(--ua-ink);">{sig["signal_name"]}{medal}</div>
+        <div style="font-size:0.64rem;color:var(--ua-ink-mut);margin-top:1px;">{sig["signal_id"]}</div>
         {_evidence}
       </div>
       <div style="text-align:center;font-size:0.88rem;font-weight:700;color:{CYAN};">{sig["predictions"]}</div>
@@ -667,16 +667,16 @@ if _track_section == "Signal Track Record":
     <div class="ua-pro-banner" style="margin-top:24px;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
         <div>
-          <div style="font-size:1.0rem;font-weight:800;color:#E8EEFF;margin-bottom:4px;">
+          <div style="font-size:1.0rem;font-weight:800;color:var(--ua-ink);margin-bottom:4px;">
             Get alerted the moment a new convergence call is logged
           </div>
-          <div style="font-size:0.82rem;color:#B8C0D4;">
+          <div style="font-size:0.82rem;color:var(--ua-ink-soft);">
             Pro subscribers receive instant alerts via Discord, Slack, or email when a new
             high-confidence call is detected — so you don't have to check this page manually.
           </div>
         </div>
         <a href="/upgrade-to-pro" target="_self"
-           style="background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;
+           style="background:linear-gradient(135deg,var(--ua-purple),#5B21B6);color:#fff;
                   font-weight:700;font-size:0.88rem;padding:10px 22px;border-radius:8px;
                   text-decoration:none;white-space:nowrap;flex-shrink:0;">
           Get Pro Alerts →

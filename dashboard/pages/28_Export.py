@@ -584,16 +584,16 @@ score_label = {
 }.get(score_status, "—")
 
 st.markdown(f"""
-<div style="background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);
+<div style="background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
             border-radius:12px;padding:20px 24px;font-family:Inter,sans-serif;margin-bottom:16px;">
   <div style="display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap;">
     <div style="flex:1;min-width:200px;">
-      <div style="font-size:1.4rem;font-weight:700;color:#E8EEFF;">{ticker_input}</div>
-      <div style="font-size:0.82rem;color:#6B7FBF;margin-bottom:12px;">{company_name}</div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;color:#B8C0D4;">
+      <div style="font-size:1.4rem;font-weight:700;color:var(--ua-ink);">{ticker_input}</div>
+      <div style="font-size:0.82rem;color:var(--ua-ink-label);margin-bottom:12px;">{company_name}</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;color:var(--ua-ink-soft);">
         {"".join(
-            f'<div><span style="color:#6B7FBF;">{k}</span><br>'
-            f'<b style="color:#E8EEFF;">{v}</b></div>'
+            f'<div><span style="color:var(--ua-ink-label);">{k}</span><br>'
+            f'<b style="color:var(--ua-ink);">{v}</b></div>'
             for k, v in [
                 ("Price",    f"${price_metrics.get('current', 0):.2f}" if price_metrics else "—"),
                 ("1D",       f"{price_metrics.get('chg_1d', float('nan')):+.2f}%" if price_metrics and not (isinstance(price_metrics.get('chg_1d'), float) and price_metrics.get('chg_1d') != price_metrics.get('chg_1d')) else "—"),
@@ -607,13 +607,13 @@ st.markdown(f"""
     <div style="text-align:center;background:rgba({','.join(str(c) for c in STATUS_RGB.get(score_status,(80,90,140)))},0.15);
                 border:1px solid rgba({','.join(str(c) for c in STATUS_RGB.get(score_status,(80,90,140)))},0.3);
                 border-radius:10px;padding:14px 24px;min-width:120px;">
-      <div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;
+      <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.10em;
                   text-transform:uppercase;margin-bottom:4px;">Confluence Score</div>
       <div style="font-size:2.4rem;font-weight:700;color:{score_color};">{score:.0f}</div>
       <div style="font-size:0.78rem;color:{score_color};font-weight:600;">{score_label}</div>
     </div>
   </div>
-  <div style="margin-top:14px;font-size:0.75rem;color:#6B7FBF;">
+  <div style="margin-top:14px;font-size:0.75rem;color:var(--ua-ink-label);">
     {sum(1 for sv in all_signals.values() if sv.get('status')=='bullish')} bullish ·
     {sum(1 for sv in all_signals.values() if sv.get('status')=='bearish')} bearish ·
     {sum(1 for sv in all_signals.values() if sv.get('status')=='neutral')} neutral ·
@@ -695,8 +695,8 @@ if _pdf_payload.get("ticker") == ticker_input and _pdf_payload.get("bytes"):
 
 # ── Signal preview table ───────────────────────────────────────────────────────
 st.markdown(
-    '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.13em;'
-    'text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);'
+    '<div style="font-size:0.62rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.13em;'
+    'text-transform:uppercase;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);'
     'padding-bottom:8px;margin:20px 0 14px;font-family:Inter,sans-serif;">Signal Preview</div>',
     unsafe_allow_html=True,
 )

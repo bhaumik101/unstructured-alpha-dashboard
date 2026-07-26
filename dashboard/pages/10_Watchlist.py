@@ -112,7 +112,7 @@ st.markdown(
         box-shadow: none !important;
     }
     .ua-watchlist-summary {
-        background: #12151E; border: 1px solid #252B3A; border-radius: 8px;
+        background: var(--ua-bg-card); border: 1px solid #252B3A; border-radius: 8px;
         padding: 14px 16px; min-height: 86px;
     }
     .ua-watchlist-summary-label {
@@ -237,11 +237,11 @@ if _watchlist_section == "Securities":
             _pv_col = "#00D566" if _pv_score >= 65 else ("#FF4444" if _pv_score <= 35 else "#6B7FBF")
             _pv_right = (f'<div style="font-size:1.6rem;font-weight:900;color:{_pv_col};line-height:1;">'
                          f'{_pv_score:.0f}</div>'
-                         f'<div style="font-size:0.56rem;color:#6B7FBF;">'
+                         f'<div style="font-size:0.56rem;color:var(--ua-ink-label);">'
                          f'{"Confluence" if _pv_kind == "full" else "Macro + momentum"} · {_pv_asof or "—"}</div>')
         else:
-            _pv_right = ('<div style="font-size:0.68rem;color:#8892AA;">No score yet</div>'
-                         '<div style="font-size:0.56rem;color:#6B7FBF;">Will be scored on the next run</div>')
+            _pv_right = ('<div style="font-size:0.68rem;color:var(--ua-ink-mut);">No score yet</div>'
+                         '<div style="font-size:0.56rem;color:var(--ua-ink-label);">Will be scored on the next run</div>')
         # "Tracked" means we actively SCORE it (the 280-ticker signal universe) —
         # not merely that it's listed. Anything else is still addable and starts
         # being tracked the moment it's added.
@@ -251,15 +251,15 @@ if _watchlist_section == "Securities":
         except Exception:
             _pv_tracked = bool(_pv_label)
         _pv_new = "" if _pv_tracked else (
-            '<div style="margin-top:6px;font-size:0.60rem;color:#F59E0B;">'
+            '<div style="margin-top:6px;font-size:0.60rem;color:var(--ua-amber);">'
             'Not scored yet — adding it starts tracking it.</div>')
         st.html(f"""
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;
-                    background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
-                    border-left:3px solid #00C8E0;border-radius:9px;padding:12px 16px;margin:2px 0 12px;">
+                    background:rgba(var(--ua-onbg-rgb),0.03);border:1px solid rgba(var(--ua-onbg-rgb),0.08);
+                    border-left:3px solid var(--ua-cyan);border-radius:9px;padding:12px 16px;margin:2px 0 12px;">
           <div>
-            <div style="font-size:1.05rem;font-weight:800;color:#E8EEFF;">{new_ticker}</div>
-            <div style="font-size:0.66rem;color:#8892AA;">{_pv_name}</div>{_pv_new}
+            <div style="font-size:1.05rem;font-weight:800;color:var(--ua-ink);">{new_ticker}</div>
+            <div style="font-size:0.66rem;color:var(--ua-ink-mut);">{_pv_name}</div>{_pv_new}
           </div>
           <div style="text-align:right;flex-shrink:0;">{_pv_right}</div>
         </div>""")
@@ -282,7 +282,7 @@ if _watchlist_section == "Securities":
                 alerts_db.add_to_watchlist(user_id, new_ticker, **_p)
                 st.success(f"{new_ticker} added with the \"{_preset_name}\" preset.")
                 st.rerun()
-            st.caption(f"<span style='font-size:0.60rem;color:#6B7FBF;'>{_PRESET_BLURB[_preset_name]}</span>",
+            st.caption(f"<span style='font-size:0.60rem;color:var(--ua-ink-label);'>{_PRESET_BLURB[_preset_name]}</span>",
                        unsafe_allow_html=True)
 
     with st.expander("Fine-tune alert thresholds"):
@@ -379,11 +379,11 @@ if _watchlist_section == "Securities":
                         _delta_str = f'<span style="font-size:0.88rem;color:{_dc};font-weight:700;"> {_da} {abs(_composite_delta):.1f} <span style="font-size:0.72rem;color:#6B7A95;">7d</span></span>'
 
                     st.markdown(f"""
-                    <div style="background:rgba(18,21,30,0.8);border:1px solid #1E2535;border-radius:12px;
+                    <div style="background:rgba(var(--ua-card-rgb),0.8);border:1px solid #1E2535;border-radius:12px;
                                 padding:16px 24px;margin-bottom:20px;display:flex;align-items:center;
                                 gap:24px;flex-wrap:wrap;">
                       <div>
-                        <div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.12em;
+                        <div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.12em;
                                     text-transform:uppercase;margin-bottom:4px;">Portfolio Macro Score</div>
                         <div style="display:flex;align-items:baseline;gap:6px;">
                           <span style="font-size:2.4rem;font-weight:900;color:{_comp_color};
@@ -393,7 +393,7 @@ if _watchlist_section == "Securities":
                         </div>
                         <div style="font-size:0.78rem;color:{_comp_color};margin-top:2px;font-weight:600;">{_comp_label} · {len(_wl_tickers)} ticker avg</div>
                       </div>
-                      <div style="width:1px;height:56px;background:rgba(255,255,255,0.07);flex-shrink:0;"></div>
+                      <div style="width:1px;height:56px;background:rgba(var(--ua-onbg-rgb),0.07);flex-shrink:0;"></div>
                       <div style="flex:1;min-width:180px;" id="composite-spark"></div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -503,14 +503,14 @@ if _watchlist_section == "Securities":
                     with _bw_col1:
                         _bc = _best["delta_color"]
                         st.markdown(
-                            f'<div style="background:rgba(0,213,102,0.07);border:1px solid rgba(0,213,102,0.18);'
+                            f'<div style="background:rgba(var(--ua-green-rgb),0.07);border:1px solid rgba(var(--ua-green-rgb),0.18);'
                             f'border-radius:10px;padding:12px 16px;">'
-                            f'<div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;'
+                            f'<div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.10em;'
                             f'text-transform:uppercase;margin-bottom:4px;">BEST MOVER — 7 DAYS</div>'
                             f'<span style="font-size:1.15rem;font-weight:900;color:{_bc};">{_best["ticker"]}</span>'
                             f'<span style="font-size:0.85rem;color:{_bc};font-weight:700;margin-left:8px;">'
                             f'▲ +{_best["delta"]:.1f} pts</span>'
-                            f'<div style="font-size:0.75rem;color:#8892AA;margin-top:2px;">'
+                            f'<div style="font-size:0.75rem;color:var(--ua-ink-mut);margin-top:2px;">'
                             f'Score now: {_best["cur"]:.0f}/100 &nbsp;·&nbsp; Grade: '
                             f'<span style="color:{_best["grade_color"]};font-weight:700;">{_best["grade"]}</span></div>'
                             f'</div>',
@@ -521,12 +521,12 @@ if _watchlist_section == "Securities":
                         st.markdown(
                             f'<div style="background:rgba(255,77,106,0.07);border:1px solid rgba(255,77,106,0.18);'
                             f'border-radius:10px;padding:12px 16px;">'
-                            f'<div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;'
+                            f'<div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.10em;'
                             f'text-transform:uppercase;margin-bottom:4px;">WORST MOVER — 7 DAYS</div>'
                             f'<span style="font-size:1.15rem;font-weight:900;color:{_wc};">{_worst["ticker"]}</span>'
                             f'<span style="font-size:0.85rem;color:{_wc};font-weight:700;margin-left:8px;">'
                             f'▼ {_worst["delta"]:.1f} pts</span>'
-                            f'<div style="font-size:0.75rem;color:#8892AA;margin-top:2px;">'
+                            f'<div style="font-size:0.75rem;color:var(--ua-ink-mut);margin-top:2px;">'
                             f'Score now: {_worst["cur"]:.0f}/100 &nbsp;·&nbsp; Grade: '
                             f'<span style="color:{_worst["grade_color"]};font-weight:700;">{_worst["grade"]}</span></div>'
                             f'</div>',
@@ -544,7 +544,7 @@ if _watchlist_section == "Securities":
                             with _col:
                                 _arrow = "▲" if _s["delta"] > 0 else ("▼" if _s["delta"] < 0 else "●")
                                 st.markdown(
-                                    f'<div style="background:rgba(18,21,30,0.8);border:1px solid #1E2535;'
+                                    f'<div style="background:rgba(var(--ua-card-rgb),0.8);border:1px solid #1E2535;'
                                     f'border-radius:10px;padding:14px 16px;text-align:center;">'
                                     f'<div style="font-size:0.72rem;font-weight:700;color:#C5CCDE;'
                                     f'letter-spacing:0.06em;">{_s["ticker"]}</div>'
@@ -778,7 +778,7 @@ if _watchlist_section == "Securities":
                         )
                         _sh_fig = style_sparkline(_sh_fig, height=42, y_range=[0, 100])
                         st.markdown(
-                            f'<div style="font-size:0.60rem;font-weight:600;color:#8892AA;margin-top:4px;letter-spacing:0.06em;text-transform:uppercase;">'
+                            f'<div style="font-size:0.60rem;font-weight:600;color:var(--ua-ink-mut);margin-top:4px;letter-spacing:0.06em;text-transform:uppercase;">'
                             f'{"Standard score" if _score_view.get("personal_applied") else "Score"} 30d '
                             f'&nbsp;·&nbsp; <span style="color:{_sh_color};">{_sh_scores[-1]:.0f}/100</span></div>',
                             unsafe_allow_html=True,
@@ -896,7 +896,7 @@ if _watchlist_section == "Sharing":
         with _sw_col1:
             if st.session_state[_slug_state_key] is None:
                 st.markdown(
-                    '<div style="font-size:0.84rem;color:#8892AA;">'
+                    '<div style="font-size:0.84rem;color:var(--ua-ink-mut);">'
                     'Generate a read-only public link to your watchlist — '
                     'share it anywhere to show your macro positioning. '
                     'No personal data is exposed (email, alert thresholds, etc.).'
@@ -913,11 +913,11 @@ if _watchlist_section == "Sharing":
             else:
                 _share_url = build_share_url(st.session_state[_slug_state_key])
                 st.markdown(
-                    f'<div style="background:rgba(124,58,237,0.07);border:1px solid rgba(124,58,237,0.20);'
+                    f'<div style="background:rgba(var(--ua-purple-rgb),0.07);border:1px solid rgba(var(--ua-purple-rgb),0.20);'
                     f'border-radius:10px;padding:14px 18px;">'
-                    f'<div style="font-size:0.60rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;'
+                    f'<div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.10em;'
                     f'text-transform:uppercase;margin-bottom:6px;">Your share link</div>'
-                    f'<code style="font-size:0.80rem;color:#00C8E0;word-break:break-all;">{_share_url}</code>'
+                    f'<code style="font-size:0.80rem;color:var(--ua-cyan);word-break:break-all;">{_share_url}</code>'
                     f'</div>',
                     unsafe_allow_html=True,
                 )
@@ -968,10 +968,10 @@ if _watchlist_section == "Email Intelligence":
         for _col, (_name, _status, _description) in zip(_email_cols, _email_products):
             with _col:
                 st.markdown(
-                    f'<div style="background:#12151E;border:1px solid #252B3A;border-radius:8px;padding:14px 16px;min-height:130px;">'
+                    f'<div style="background:var(--ua-bg-card);border:1px solid #252B3A;border-radius:8px;padding:14px 16px;min-height:130px;">'
                     f'<div style="font-size:.62rem;font-weight:700;color:#9CA3AF;letter-spacing:.09em;">{_name}</div>'
                     f'<div style="font-size:.84rem;font-weight:800;color:#F3F4F6;margin:7px 0;">{_status}</div>'
-                    f'<div style="font-size:.74rem;line-height:1.55;color:#8892AA;">{_description}</div></div>',
+                    f'<div style="font-size:.74rem;line-height:1.55;color:var(--ua-ink-mut);">{_description}</div></div>',
                     unsafe_allow_html=True,
                 )
 
@@ -1005,10 +1005,10 @@ if _watchlist_section == "Delivery Integrations":
     _user_tier = get_user_tier(user_id)
     if _user_tier != "pro":
         st.markdown(
-            '<div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.22);'
+            '<div style="background:rgba(var(--ua-purple-rgb),0.08);border:1px solid rgba(var(--ua-purple-rgb),0.22);'
             'border-radius:10px;padding:14px 18px;font-family:Inter,sans-serif;">'
             '<span style="font-size:0.72rem;font-weight:700;color:#8187F7;letter-spacing:0.08em;">PRO FEATURE</span>'
-            '<div style="font-size:0.82rem;color:#8892AA;margin-top:4px;">'
+            '<div style="font-size:0.82rem;color:var(--ua-ink-mut);margin-top:4px;">'
             'Get push alerts to Discord, Slack, or any webhook endpoint the moment a watched ticker '
             'crosses a threshold — no need to have the site open.'
             '</div></div>',
@@ -1025,7 +1025,7 @@ if _watchlist_section == "Delivery Integrations":
             if _current_url:
                 _badge = _platform_labels.get(_platform, "")
                 st.markdown(
-                    f'<div style="font-size:0.80rem;color:#00D566;font-family:Inter,sans-serif;margin-bottom:6px;">'
+                    f'<div style="font-size:0.80rem;color:var(--ua-green);font-family:Inter,sans-serif;margin-bottom:6px;">'
                     f'● Webhook active — {_badge}</div>',
                     unsafe_allow_html=True,
                 )
@@ -1125,11 +1125,11 @@ if _watchlist_section == "Alert Feed":
             company = TICKERS.get(a["ticker"], {}).get("name", "")
             ticker_disp = f"{a['ticker']} ({company})" if company else a["ticker"]
             st.markdown(f"""
-            <div style="background:rgba(18,21,30,0.7);border-radius:6px;padding:10px 16px;margin-bottom:8px;
+            <div style="background:rgba(var(--ua-card-rgb),0.7);border-radius:6px;padding:10px 16px;margin-bottom:8px;
                         border-left:4px solid {color};font-family:Inter,sans-serif;">
                 <span style="color:{color};font-weight:700;">{unread_marker} {ticker_disp}</span>
-                <span style="color:#6B7FBF;font-size:0.78rem;letter-spacing:0.04em;"> · {type_label} · {a['created_at'][:16].replace('T', ' ')} UTC</span>
-                <div style="color:#E8EEFF;margin-top:4px;">{a['message']}</div>
+                <span style="color:var(--ua-ink-label);font-size:0.78rem;letter-spacing:0.04em;"> · {type_label} · {a['created_at'][:16].replace('T', ' ')} UTC</span>
+                <div style="color:var(--ua-ink);margin-top:4px;">{a['message']}</div>
             </div>
             """, unsafe_allow_html=True)
 

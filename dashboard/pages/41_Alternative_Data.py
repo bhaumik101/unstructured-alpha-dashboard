@@ -211,9 +211,9 @@ if _alt_section == "Options Flow":
             bias = " Bearish lean"
 
         st.markdown(
-            f'<div style="background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.10);'
-            f'border-radius:8px;padding:10px 16px;margin:8px 0 16px;font-size:0.80rem;color:#8892AA;">'
-            f'Options bias for <b style="color:#E8EEFF;">{ticker_input}</b>: '
+            f'<div style="background:rgba(var(--ua-onbg-rgb),0.03);border:0.5px solid rgba(var(--ua-onbg-rgb),0.10);'
+            f'border-radius:8px;padding:10px 16px;margin:8px 0 16px;font-size:0.80rem;color:var(--ua-ink-mut);">'
+            f'Options bias for <b style="color:var(--ua-ink);">{ticker_input}</b>: '
             f'<b style="color:#4A9EFF;">{bias}</b> based on {len(unusual_calls)} unusual calls '
             f'vs {len(unusual_puts)} unusual puts</div>',
             unsafe_allow_html=True,

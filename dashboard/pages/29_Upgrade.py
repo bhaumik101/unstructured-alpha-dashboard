@@ -83,7 +83,7 @@ st.markdown(f"""
 /* ── Pricing cards ── */
 .card-wrap {{
     background: {BG_CARD};
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(var(--ua-onbg-rgb),0.08);
     border-radius: 16px; padding: 32px 28px; position: relative;
     transition: transform 0.2s;
 }}
@@ -111,10 +111,10 @@ st.markdown(f"""
 .card-price-big .per {{ font-size: 1rem; font-weight: 400; color: #8892B0; margin-bottom: 5px; }}
 .card-price-sub  {{ font-size: 0.78rem; color: #4A5063; margin: 6px 0 20px; }}
 .card-price-sub.billed-annual {{ color: #34D399; font-weight: 600; }}
-.card-divider {{ border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 20px 0; }}
+.card-divider {{ border: none; border-top: 1px solid rgba(var(--ua-onbg-rgb),0.06); margin: 20px 0; }}
 .feat-item {{
     display: flex; align-items: flex-start; gap: 10px;
-    font-size: 0.875rem; color: #B8C0D4; margin-bottom: 11px; line-height: 1.4;
+    font-size: 0.875rem; color: var(--ua-ink-soft); margin-bottom: 11px; line-height: 1.4;
 }}
 .feat-icon-yes {{ color: {GREEN}; font-size: 0.95rem; flex-shrink: 0; margin-top: 1px; }}
 .feat-icon-no  {{ color: #2D3348; font-size: 0.95rem; flex-shrink: 0; margin-top: 1px; }}
@@ -122,8 +122,8 @@ st.markdown(f"""
 
 /* ── Value prop strip ── */
 .value-strip {{
-    background: rgba(124,58,237,0.07);
-    border: 1px solid rgba(124,58,237,0.18);
+    background: rgba(var(--ua-purple-rgb),0.07);
+    border: 1px solid rgba(var(--ua-purple-rgb),0.18);
     border-radius: 12px; padding: 20px 28px;
     display: flex; flex-wrap: wrap; gap: 20px;
     justify-content: space-between; margin: 32px 0;
@@ -146,18 +146,18 @@ st.markdown(f"""
     display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 32px 0;
 }}
 .testimonial {{
-    background: {BG_CARD}; border: 1px solid rgba(255,255,255,0.07);
+    background: {BG_CARD}; border: 1px solid rgba(var(--ua-onbg-rgb),0.07);
     border-radius: 12px; padding: 20px;
 }}
 .testi-text {{
-    font-size: 0.875rem; color: #B8C0D4; line-height: 1.6;
+    font-size: 0.875rem; color: var(--ua-ink-soft); line-height: 1.6;
     font-style: italic; margin-bottom: 14px;
 }}
 .testi-author {{
     font-size: 0.75rem; font-weight: 700; color: {TEXT_PRIMARY};
 }}
 .testi-role {{ font-size: 0.72rem; color: #4A5063; }}
-.stars {{ color: #F59E0B; letter-spacing: 1px; font-size: 0.85rem; margin-bottom: 10px; }}
+.stars {{ color: var(--ua-amber); letter-spacing: 1px; font-size: 0.85rem; margin-bottom: 10px; }}
 
 /* ── Comparison table ── */
 .comp-table {{ width: 100%; border-collapse: collapse; margin: 16px 0; }}
@@ -165,11 +165,11 @@ st.markdown(f"""
     font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
     text-transform: uppercase; color: #4A5063;
     padding: 10px 16px; text-align: left;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(var(--ua-onbg-rgb),0.06);
 }}
 .comp-table td {{
-    padding: 10px 16px; font-size: 0.875rem; color: #B8C0D4;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    padding: 10px 16px; font-size: 0.875rem; color: var(--ua-ink-soft);
+    border-bottom: 1px solid rgba(var(--ua-onbg-rgb),0.04);
     vertical-align: middle;
 }}
 .comp-table tr:last-child td {{ border-bottom: none; }}
@@ -195,14 +195,14 @@ st.markdown(f"""
 
 /* ── Success / Pro status ── */
 .success-box {{
-    background: rgba(0,213,102,0.07);
-    border: 1px solid rgba(0,213,102,0.25);
+    background: rgba(var(--ua-green-rgb),0.07);
+    border: 1px solid rgba(var(--ua-green-rgb),0.25);
     border-radius: 14px; padding: 32px; text-align: center;
     margin-bottom: 28px;
 }}
 .pro-status-box {{
-    background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(0,200,224,0.05));
-    border: 1px solid rgba(124,58,237,0.3);
+    background: linear-gradient(135deg, rgba(var(--ua-purple-rgb),0.1), rgba(var(--ua-cyan-rgb),0.05));
+    border: 1px solid rgba(var(--ua-purple-rgb),0.3);
     border-radius: 14px; padding: 28px 32px; margin-bottom: 28px;
 }}
 </style>
@@ -269,14 +269,14 @@ if stripe_session_id:
         <div class="success-box">
             <div style="font-size:3rem;margin-bottom:14px;"></div>
             <div style="font-size:1.6rem;font-weight:900;
-                        background:linear-gradient(135deg,#00D566,{CYAN});
+                        background:linear-gradient(135deg,var(--ua-green),{CYAN});
                         -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                         background-clip:text;margin-bottom:10px;">
                 Welcome to Pro.
             </div>
             <div style="font-size:0.95rem;color:#8892B0;max-width:480px;margin:0 auto 20px;line-height:1.6;">
                 All 47 signals and every Pro feature are active on your account right now.
-                Your <strong style="color:#E8EEFF;">morning digest</strong> email arrives
+                Your <strong style="color:var(--ua-ink);">morning digest</strong> email arrives
                 tomorrow at 7 AM ET — you're already opted in.
             </div>
             <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;
@@ -297,11 +297,11 @@ if stripe_session_id:
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown(f"""
-            <div style="background:{BG_CARD};border:1px solid rgba(255,255,255,0.08);
+            <div style="background:{BG_CARD};border:1px solid rgba(var(--ua-onbg-rgb),0.08);
                         border-radius:10px;padding:16px;text-align:center;height:110px;
                         display:flex;flex-direction:column;justify-content:center;">
                 <div style="font-size:1.5rem;margin-bottom:6px;"></div>
-                <div style="font-size:0.8rem;font-weight:700;color:#E8EEFF;">Today's Brief</div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--ua-ink);">Today's Brief</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
                     See what signals flipped overnight
                 </div>
@@ -311,11 +311,11 @@ if stripe_session_id:
                 st.switch_page("pages/2_Today_Digest.py")
         with col2:
             st.markdown(f"""
-            <div style="background:{BG_CARD};border:1px solid rgba(124,58,237,0.3);
+            <div style="background:{BG_CARD};border:1px solid rgba(var(--ua-purple-rgb),0.3);
                         border-radius:10px;padding:16px;text-align:center;height:110px;
                         display:flex;flex-direction:column;justify-content:center;">
                 <div style="font-size:1.5rem;margin-bottom:6px;"></div>
-                <div style="font-size:0.8rem;font-weight:700;color:#E8EEFF;">Ticker Deep Dive</div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--ua-ink);">Ticker Deep Dive</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
                     Run any ticker through all 47 signals
                 </div>
@@ -325,11 +325,11 @@ if stripe_session_id:
                 st.switch_page("pages/3_Ticker_Deep_Dive.py")
         with col3:
             st.markdown(f"""
-            <div style="background:{BG_CARD};border:1px solid rgba(0,200,224,0.2);
+            <div style="background:{BG_CARD};border:1px solid rgba(var(--ua-cyan-rgb),0.2);
                         border-radius:10px;padding:16px;text-align:center;height:110px;
                         display:flex;flex-direction:column;justify-content:center;">
                 <div style="font-size:1.5rem;margin-bottom:6px;"></div>
-                <div style="font-size:0.8rem;font-weight:700;color:#E8EEFF;">Factor Exposure</div>
+                <div style="font-size:0.8rem;font-weight:700;color:var(--ua-ink);">Factor Exposure</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
                     Pro-only Fama-French regression
                 </div>
@@ -421,35 +421,35 @@ if user:
             _ref_earned    = _ref_stats["months_earned"]
 
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,rgba(124,58,237,0.10),rgba(0,200,224,0.05));
-                        border:1px solid rgba(124,58,237,0.28);border-radius:14px;
+            <div style="background:linear-gradient(135deg,rgba(var(--ua-purple-rgb),0.10),rgba(var(--ua-cyan-rgb),0.05));
+                        border:1px solid rgba(var(--ua-purple-rgb),0.28);border-radius:14px;
                         padding:24px 28px;font-family:Inter,sans-serif;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                     <span style="font-size:1.4rem;"></span>
-                    <span style="font-size:1.0rem;font-weight:800;color:#E8EEFF;">
+                    <span style="font-size:1.0rem;font-weight:800;color:var(--ua-ink);">
                         Refer a friend — earn a free month
                     </span>
                 </div>
                 <div style="font-size:0.82rem;color:#8892B0;margin-bottom:16px;line-height:1.6;">
                     Share your link. When a friend signs up and goes Pro,
-                    <strong style="color:#E8EEFF;">you get one free month</strong> added to your subscription.
-                    They get a <strong style="color:#00D566;">14-day free trial</strong> instead of 7.
+                    <strong style="color:var(--ua-ink);">you get one free month</strong> added to your subscription.
+                    They get a <strong style="color:var(--ua-green);">14-day free trial</strong> instead of 7.
                 </div>
-                <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);
+                <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(var(--ua-onbg-rgb),0.08);
                             border-radius:8px;padding:10px 14px;font-family:monospace;
                             font-size:0.80rem;color:#A78BFA;word-break:break-all;margin-bottom:12px;">
                     {_ref_link}
                 </div>
                 <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:4px;">
                     <div style="text-align:center;">
-                        <div style="font-size:1.4rem;font-weight:900;color:#E8EEFF;">
+                        <div style="font-size:1.4rem;font-weight:900;color:var(--ua-ink);">
                             {_ref_referred}
                         </div>
                         <div style="font-size:0.70rem;color:#4A5063;font-weight:600;
                                     letter-spacing:0.07em;text-transform:uppercase;">Referred</div>
                     </div>
                     <div style="text-align:center;">
-                        <div style="font-size:1.4rem;font-weight:900;color:#00D566;">
+                        <div style="font-size:1.4rem;font-weight:900;color:var(--ua-green);">
                             {_ref_converted}
                         </div>
                         <div style="font-size:0.70rem;color:#4A5063;font-weight:600;
@@ -518,12 +518,12 @@ st.markdown(f"""
     <div class="ua-guarantee">
         48-hour money-back guarantee
     </div>
-    <div class="ua-guarantee" style="color:#00C8E0;background:rgba(0,200,224,0.06);
-         border-color:rgba(0,200,224,0.22);">
+    <div class="ua-guarantee" style="color:var(--ua-cyan);background:rgba(var(--ua-cyan-rgb),0.06);
+         border-color:rgba(var(--ua-cyan-rgb),0.22);">
          Payments secured by Stripe
     </div>
-    <div class="ua-guarantee" style="color:#A78BFA;background:rgba(124,58,237,0.06);
-         border-color:rgba(124,58,237,0.22);">
+    <div class="ua-guarantee" style="color:#A78BFA;background:rgba(var(--ua-purple-rgb),0.06);
+         border-color:rgba(var(--ua-purple-rgb),0.22);">
         No long-term commitment
     </div>
 </div>
@@ -531,17 +531,17 @@ st.markdown(f"""
 
 # ── "Why not just use Bloomberg/Reddit" objection block ──────────────────────
 st.markdown(f"""
-<div style="background:rgba(18,21,30,0.72);border:1px solid rgba(255,255,255,0.07);
+<div style="background:rgba(var(--ua-card-rgb),0.72);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
             border-radius:14px;padding:22px 28px;margin:8px 0 28px;
             font-family:Inter,sans-serif;">
-  <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.16em;color:#6B7FBF;
+  <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.16em;color:var(--ua-ink-label);
               text-transform:uppercase;margin-bottom:14px;">
     How this is different from what you already use
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;flex-wrap:wrap;">
     <div>
-      <div style="font-size:0.78rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">vs. Bloomberg Terminal</div>
-      <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--ua-ink);margin-bottom:5px;">vs. Bloomberg Terminal</div>
+      <div style="font-size:0.74rem;color:var(--ua-ink-mut);line-height:1.55;">
         Bloomberg shows you the same data every other institutional player sees.
         Unstructured Alpha aggregates <em>signals from that data</em> — pre-scored,
         correlated to specific tickers, validated against forward returns.
@@ -549,16 +549,16 @@ st.markdown(f"""
       </div>
     </div>
     <div>
-      <div style="font-size:0.78rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">vs. Reddit / StockTwits</div>
-      <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--ua-ink);margin-bottom:5px;">vs. Reddit / StockTwits</div>
+      <div style="font-size:0.74rem;color:var(--ua-ink-mut);line-height:1.55;">
         Those surfaces amplify narrative. This surface shows primary-source data:
         what insiders are filing with the SEC, what the FOMC minutes say, how
         EIA crude inventory draws compare to the 52-week trend. No sentiment noise.
       </div>
     </div>
     <div>
-      <div style="font-size:0.78rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">vs. any stock screener</div>
-      <div style="font-size:0.74rem;color:#8892AA;line-height:1.55;">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--ua-ink);margin-bottom:5px;">vs. any stock screener</div>
+      <div style="font-size:0.74rem;color:var(--ua-ink-mut);line-height:1.55;">
         Screeners filter on price and fundamentals — things already priced in.
         The Confluence Score measures how macro and alternative evidence align
         with a ticker, with validation results and methodology visible in-product.
@@ -672,7 +672,7 @@ with col_pro:
             <div style="font-size:1rem;color:#8892B0;margin-bottom:6px;">/month</div>
         </div>
         <div class="card-price-sub {billed_class}">{billing_note}</div>
-        <hr class="card-divider" style="border-color:rgba(124,58,237,0.2);">
+        <hr class="card-divider" style="border-color:rgba(var(--ua-purple-rgb),0.2);">
         {feat_rows_pro}
     </div>
     """, unsafe_allow_html=True)
@@ -752,12 +752,12 @@ if params.get("stripe_cancel"):
 # ── LOSS AVERSION: "What Pro saw this morning" ──────────────────────────────
 st.markdown("<div style='height:36px'></div>", unsafe_allow_html=True)
 st.markdown(f"""
-<div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.20);
+<div style="background:rgba(var(--ua-purple-rgb),0.06);border:1px solid rgba(var(--ua-purple-rgb),0.20);
             border-radius:16px;padding:26px 30px;font-family:Inter,sans-serif;
             position:relative;overflow:hidden;">
     <div style="position:absolute;top:0;left:0;right:0;height:1px;
-                background:linear-gradient(90deg,transparent,rgba(124,58,237,0.5),
-                rgba(0,200,224,0.4),transparent);"></div>
+                background:linear-gradient(90deg,transparent,rgba(var(--ua-purple-rgb),0.5),
+                rgba(var(--ua-cyan-rgb),0.4),transparent);"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
         <span class="ua-pulse-dot" style="background:{PURPLE};"></span>
         <span style="font-size:0.60rem;letter-spacing:0.16em;font-weight:700;color:{PURPLE};">
@@ -765,29 +765,29 @@ st.markdown(f"""
         </span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
-        <div style="background:rgba(255,68,68,0.07);border:1px solid rgba(255,68,68,0.20);
-                    border-radius:10px;padding:14px 16px;border-left:3px solid #FF4444;">
-            <div style="font-size:0.58rem;color:#FF4444;font-weight:700;letter-spacing:0.12em;
+        <div style="background:rgba(var(--ua-red-rgb),0.07);border:1px solid rgba(var(--ua-red-rgb),0.20);
+                    border-radius:10px;padding:14px 16px;border-left:3px solid var(--ua-red);">
+            <div style="font-size:0.58rem;color:var(--ua-red);font-weight:700;letter-spacing:0.12em;
                         margin-bottom:4px;"> BEARISH FLIP</div>
-            <div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">HY Credit Spreads</div>
-            <div style="font-size:0.74rem;color:#8892AA;line-height:1.5;">Widened 8 bps overnight —
+            <div style="font-size:0.88rem;font-weight:700;color:var(--ua-ink);margin-bottom:4px;">HY Credit Spreads</div>
+            <div style="font-size:0.74rem;color:var(--ua-ink-mut);line-height:1.5;">Widened 8 bps overnight —
             score dropped below 40 for first time in 23 days</div>
         </div>
-        <div style="background:rgba(0,213,102,0.06);border:1px solid rgba(0,213,102,0.18);
-                    border-radius:10px;padding:14px 16px;border-left:3px solid #00D566;">
-            <div style="font-size:0.58rem;color:#00D566;font-weight:700;letter-spacing:0.12em;
+        <div style="background:rgba(var(--ua-green-rgb),0.06);border:1px solid rgba(var(--ua-green-rgb),0.18);
+                    border-radius:10px;padding:14px 16px;border-left:3px solid var(--ua-green);">
+            <div style="font-size:0.58rem;color:var(--ua-green);font-weight:700;letter-spacing:0.12em;
                         margin-bottom:4px;"> BULLISH SIGNAL</div>
-            <div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">EIA Crude Draw Streak</div>
-            <div style="font-size:0.74rem;color:#8892AA;line-height:1.5;">7th consecutive weekly draw.
+            <div style="font-size:0.88rem;font-weight:700;color:var(--ua-ink);margin-bottom:4px;">EIA Crude Draw Streak</div>
+            <div style="font-size:0.74rem;color:var(--ua-ink-mut);line-height:1.5;">7th consecutive weekly draw.
             XOM, CVX flagged as macro tailwind names.</div>
         </div>
     </div>
-    <div style="font-size:0.78rem;color:#6B7FBF;line-height:1.6;border-top:1px solid rgba(255,255,255,0.06);
+    <div style="font-size:0.78rem;color:var(--ua-ink-label);line-height:1.6;border-top:1px solid rgba(var(--ua-onbg-rgb),0.06);
                 padding-top:14px;">
         Pro members received this at 7 AM ET with signal-by-signal changes, portfolio impact, and
         the week's top convergence events.
         <span style="color:{PURPLE};font-weight:700;">You didn't get it today.</span>
-        <span style="color:#E8EEFF;"> The trial is free — the brief starts tomorrow morning.</span>
+        <span style="color:var(--ua-ink);"> The trial is free — the brief starts tomorrow morning.</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
