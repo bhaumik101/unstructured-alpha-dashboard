@@ -444,8 +444,8 @@ if _recommender_section == "Top Ideas":
             lag = s.get("lag", "?")
             lag_str = f"{lag}w" if isinstance(lag, (int, float)) else ""
             tags += (
-                f'<span style="display:inline-block;background:rgba(255,255,255,0.05);'
-                f'border:1px solid rgba(255,255,255,0.10);border-radius:12px;'
+                f'<span style="display:inline-block;background:rgba(var(--ua-onbg-rgb),0.05);'
+                f'border:1px solid rgba(var(--ua-onbg-rgb),0.10);border-radius:12px;'
                 f'padding:2px 8px;font-size:0.58rem;color:{color};margin:2px 3px 2px 0;">'
                 f'{s["name"]}{f" · {lag_str}" if lag_str else ""}'
                 f'</span>'
@@ -461,32 +461,32 @@ if _recommender_section == "Top Ideas":
             sc = row.get("insider_score", {})
             status = sc.get("status", "neutral")
             c = "#00D566" if status == "bullish" else "#FF4444" if status == "bearish" else "#6B7FBF"
-            badges.append(f'<span style="font-size:0.58rem;color:{c};background:rgba(255,255,255,0.04);'
+            badges.append(f'<span style="font-size:0.58rem;color:{c};background:rgba(var(--ua-onbg-rgb),0.04);'
                           f'border:1px solid {c}44;border-radius:10px;padding:2px 7px;">Insiders</span>')
         if row.get("has_13f"):
             sc = row.get("thirteenf_score", {})
             status = sc.get("status", "neutral")
             c = "#00D566" if status == "bullish" else "#FF4444" if status == "bearish" else "#6B7FBF"
-            badges.append(f'<span style="font-size:0.58rem;color:{c};background:rgba(255,255,255,0.04);'
+            badges.append(f'<span style="font-size:0.58rem;color:{c};background:rgba(var(--ua-onbg-rgb),0.04);'
                           f'border:1px solid {c}44;border-radius:10px;padding:2px 7px;"> 13F</span>')
         if row.get("has_short_int"):
             sc = row.get("short_interest_score", {})
             status = sc.get("status", "neutral")
             c = "#00D566" if status == "bullish" else "#FF4444" if status == "bearish" else "#6B7FBF"
-            badges.append(f'<span style="font-size:0.58rem;color:{c};background:rgba(255,255,255,0.04);'
+            badges.append(f'<span style="font-size:0.58rem;color:{c};background:rgba(var(--ua-onbg-rgb),0.04);'
                           f'border:1px solid {c}44;border-radius:10px;padding:2px 7px;"> Short Int.</span>')
         if row.get("has_contracts"):
-            badges.append('<span style="font-size:0.58rem;color:#4A9EFF;background:rgba(255,255,255,0.04);'
+            badges.append('<span style="font-size:0.58rem;color:#4A9EFF;background:rgba(var(--ua-onbg-rgb),0.04);'
                           'border:1px solid #4A9EFF44;border-radius:10px;padding:2px 7px;"> Gov Contracts</span>')
         if row.get("momentum_score", 50) >= 65:
-            badges.append('<span style="font-size:0.58rem;color:#FFB347;background:rgba(255,255,255,0.04);'
+            badges.append('<span style="font-size:0.58rem;color:#FFB347;background:rgba(var(--ua-onbg-rgb),0.04);'
                           'border:1px solid #FFB34744;border-radius:10px;padding:2px 7px;"> Momentum</span>')
         return " ".join(badges) if badges else '<span style="font-size:0.58rem;color:#4A5568;">no optional signals</span>'
 
 
     def _score_bar(score: float, color: str) -> str:
         return (
-            f'<div style="background:rgba(255,255,255,0.06);border-radius:4px;height:5px;margin:6px 0 2px;">'
+            f'<div style="background:rgba(var(--ua-onbg-rgb),0.06);border-radius:4px;height:5px;margin:6px 0 2px;">'
             f'<div style="width:{int(score)}%;background:{color};border-radius:4px;height:5px;'
             f'box-shadow:0 0 8px {color}55;"></div></div>'
         )
@@ -536,7 +536,7 @@ if _recommender_section == "Top Ideas":
         accent = "#00D566" if side == "long" else "#FF4444"
         return (
             f'<div style="margin-top:10px;padding:8px 10px;border-radius:8px;'
-            f'background:rgba(255,255,255,0.03);border-left:2px solid {accent}66;">'
+            f'background:rgba(var(--ua-onbg-rgb),0.03);border-left:2px solid {accent}66;">'
             f'<span style="font-size:0.56rem;color:{accent};text-transform:uppercase;'
             f'letter-spacing:0.08em;font-weight:700;"> Why this pick</span>'
             f'<div style="font-size:0.68rem;color:#B8C2D9;margin-top:3px;line-height:1.4;">'
@@ -565,14 +565,14 @@ if _recommender_section == "Top Ideas":
         conv = (row["conviction"] or "—").capitalize()
 
         return f"""
-    <div style="background:rgba(255,255,255,0.025);border:1px solid {border}33;
+    <div style="background:rgba(var(--ua-onbg-rgb),0.025);border:1px solid {border}33;
                 border-left:4px solid {border};border-radius:10px;
                 padding:16px 18px;margin-bottom:12px;
                 box-shadow:inset 0 0 30px {glow};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;">
         <div>
-          <span style="font-size:1.1rem;font-weight:900;color:#E8EEFF;">{row["ticker"]}</span>
-          <span style="font-size:0.70rem;color:#8892AA;margin-left:8px;">{row["name"]}</span>
+          <span style="font-size:1.1rem;font-weight:900;color:var(--ua-ink);">{row["ticker"]}</span>
+          <span style="font-size:0.70rem;color:var(--ua-ink-mut);margin-left:8px;">{row["name"]}</span>
           <span style="font-size:0.60rem;color:#4A5568;margin-left:6px;">· {row["sector"]}</span>
           {enriched_star}
         </div>
@@ -586,15 +586,15 @@ if _recommender_section == "Top Ideas":
       {_score_bar(row["score"], border)}
       {_why_block(row, side)}
       <div style="margin-top:8px;">
-        <span style="font-size:0.58rem;color:#6B7FBF;text-transform:uppercase;letter-spacing:0.08em;">{driver_label}</span>
+        <span style="font-size:0.58rem;color:var(--ua-ink-label);text-transform:uppercase;letter-spacing:0.08em;">{driver_label}</span>
         <div style="margin-top:4px;">{sig_html or "<span style='font-size:0.62rem;color:#4A5568;'>Macro regime alignment</span>"}</div>
       </div>
       <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
         {opt_badges}
       </div>
       <div style="margin-top:6px;display:flex;gap:14px;flex-wrap:wrap;">
-        <span style="font-size:0.58rem;color:#8892AA;">Conviction: <b style="color:{border};">{conv}</b></span>
-        <span style="font-size:0.58rem;color:#8892AA;">{row["n_signals"]} signals scored</span>
+        <span style="font-size:0.58rem;color:var(--ua-ink-mut);">Conviction: <b style="color:{border};">{conv}</b></span>
+        <span style="font-size:0.58rem;color:var(--ua-ink-mut);">{row["n_signals"]} signals scored</span>
         {_alignment_badge(row, border)}
       </div>
     </div>"""
@@ -604,7 +604,7 @@ if _recommender_section == "Top Ideas":
 
     with col_long:
         st.markdown(
-            '<div style="font-size:0.68rem;font-weight:700;color:#00D566;'
+            '<div style="font-size:0.68rem;font-weight:700;color:var(--ua-green);'
             'text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px;">'
             ' Top Long Ideas</div>',
             unsafe_allow_html=True,
@@ -617,7 +617,7 @@ if _recommender_section == "Top Ideas":
 
     with col_short:
         st.markdown(
-            '<div style="font-size:0.68rem;font-weight:700;color:#FF4444;'
+            '<div style="font-size:0.68rem;font-weight:700;color:var(--ua-red);'
             'text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px;">'
             ' Top Short / Avoid Ideas</div>',
             unsafe_allow_html=True,

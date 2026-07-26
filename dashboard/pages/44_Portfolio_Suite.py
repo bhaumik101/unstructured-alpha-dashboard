@@ -396,7 +396,7 @@ if _portfolio_section == "Portfolio Fit Lab":
                 }[fit_result["fit_tone"]]
                 st.markdown(
                     f'<div style="background:linear-gradient(145deg,#111720,#0E131B);'
-                    f'border:1px solid rgba(255,255,255,.08);border-left:3px solid {tone_color};'
+                    f'border:1px solid rgba(var(--ua-onbg-rgb),.08);border-left:3px solid {tone_color};'
                     f'border-radius:11px;padding:17px 19px;margin:14px 0;">'
                     f'<div style="font-size:.61rem;color:{tone_color};font-weight:800;'
                     f'letter-spacing:.12em;text-transform:uppercase;">Portfolio fit read</div>'
@@ -820,9 +820,9 @@ if _portfolio_section == "Stress Tester":
             total_pnl = sum(float(r["Portfolio P&L"].replace("%","")) for r in results)
             color = "#00D566" if total_pnl > 0 else "#FF4444"
             st.markdown(
-                f'<div style="background:rgba(255,255,255,0.03);border:1px solid {color}44;'
+                f'<div style="background:rgba(var(--ua-onbg-rgb),0.03);border:1px solid {color}44;'
                 f'border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;">'
-                f'<div style="font-size:0.70rem;color:#8892AA;">{scenario} — estimated portfolio impact</div>'
+                f'<div style="font-size:0.70rem;color:var(--ua-ink-mut);">{scenario} — estimated portfolio impact</div>'
                 f'<div style="font-size:2rem;font-weight:800;color:{color};">{total_pnl:+.1f}%</div>'
                 f'</div>',
                 unsafe_allow_html=True,

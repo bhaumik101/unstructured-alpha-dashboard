@@ -167,7 +167,7 @@ for _label, _price in [("Pre", pre_price), ("Post", post_price)]:
         _pc = (_price - last_price) / last_price * 100
         _cc = _BULL if _pc >= 0 else _BEAR
         _ext_parts.append(
-            f'<span style="font-size:0.76rem;color:{_cc};background:rgba(255,255,255,0.06);'
+            f'<span style="font-size:0.76rem;color:{_cc};background:rgba(var(--ua-onbg-rgb),0.06);'
             f'padding:2px 8px;border-radius:6px;margin-left:8px;border:1px solid {_cc}33;">'
             f'{_label} ${_price:,.2f} ({_pc:+.2f}%)</span>'
         )
@@ -208,7 +208,7 @@ _tv_html = f"""<!DOCTYPE html>
 <meta charset="utf-8">
 <style>
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-  html, body {{ width: 100%; height: 100%; background: #0b0d12; }}
+  html, body {{ width: 100%; height: 100%; background: var(--ua-bg); }}
   #tv_chart {{ width: 100%; height: 620px; }}
 </style>
 </head>
@@ -281,7 +281,7 @@ _s_cols = st.columns(len(_stats))
 for _col, (label, val) in zip(_s_cols, _stats):
     _col.markdown(
         f'<div style="text-align:center;padding:8px 0 4px;font-family:Inter,sans-serif;">'
-        f'<div style="font-size:0.62rem;color:#6B7FBF;letter-spacing:0.10em;'
+        f'<div style="font-size:0.62rem;color:var(--ua-ink-label);letter-spacing:0.10em;'
         f'text-transform:uppercase;margin-bottom:3px;font-weight:700;">{label}</div>'
         f'<div style="font-size:0.92rem;font-weight:700;color:{_NAVY};">{val}</div>'
         f'</div>',
@@ -289,13 +289,13 @@ for _col, (label, val) in zip(_s_cols, _stats):
     )
 
 st.markdown(
-    f'<div style="font-size:0.68rem;color:#6B7FBF;padding:6px 0;font-family:Inter,sans-serif;">'
+    f'<div style="font-size:0.68rem;color:var(--ua-ink-label);padding:6px 0;font-family:Inter,sans-serif;">'
     f'Charts powered by '
-    f'<a href="https://www.tradingview.com" target="_blank" style="color:#8892AA;">TradingView</a>. '
+    f'<a href="https://www.tradingview.com" target="_blank" style="color:var(--ua-ink-mut);">TradingView</a>. '
     f'Price stats via Yahoo Finance. '
     f'Accepts any global symbol: US stocks, ETFs, indices (^GSPC, ^VIX), '
     f'crypto (BTC-USD), FX (EURUSD=X), international equities (MC.PA, 9984.T). '
-    f'For macro signal analysis, use <b style="color:#8892AA">Ticker Deep Dive</b>.</div>',
+    f'For macro signal analysis, use <b style="color:var(--ua-ink-mut)">Ticker Deep Dive</b>.</div>',
     unsafe_allow_html=True,
 )
 

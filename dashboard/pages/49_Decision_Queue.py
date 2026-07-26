@@ -199,7 +199,7 @@ def _render_item(item: dict) -> None:
     score_text = f'{item["score"]:.0f}' if item.get("score") is not None else "N/A"
     snooze_text = f' · snoozed until {item["snoozed_until"]}' if item.get("snoozed_until") else ""
     st.markdown(
-        f'<div style="background:linear-gradient(145deg,#111720,#0E131B);border:1px solid rgba(255,255,255,.08);'
+        f'<div style="background:linear-gradient(145deg,#111720,#0E131B);border:1px solid rgba(var(--ua-onbg-rgb),.08);'
         f'border-left:3px solid {accent};border-radius:11px;padding:17px 18px 15px;margin:8px 0 4px;">'
         f'<div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;">'
         f'<div><div style="font-size:.60rem;color:{accent};font-weight:800;letter-spacing:.12em;text-transform:uppercase;">'

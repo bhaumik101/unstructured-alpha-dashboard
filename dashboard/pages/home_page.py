@@ -230,7 +230,7 @@ st.markdown(f"""
 <div class="ua-landing-hero" style="position:relative;text-align:center;padding:48px 0 6px;font-family:'Inter',sans-serif;">
     <div aria-hidden="true" style="position:absolute;top:-46px;left:50%;transform:translateX(-50%);
          width:760px;max-width:96vw;height:380px;pointer-events:none;z-index:0;
-         background:radial-gradient(50% 50% at 50% 40%, var(--ua-royal-soft,rgba(100,112,245,0.16)) 0%, rgba(100,112,245,0.05) 42%, transparent 72%);"></div>
+         background:radial-gradient(50% 50% at 50% 40%, var(--ua-royal-soft,rgba(var(--ua-royal-rgb),0.16)) 0%, rgba(var(--ua-royal-rgb),0.05) 42%, transparent 72%);"></div>
     <div style="position:relative;z-index:1;">
       <div class="ua-slide-up-d1" style="margin-bottom:20px;">
           <span class="ua-hero-pill">
@@ -266,8 +266,8 @@ st.markdown(f"""
   .ua-hero-pill {{
       display:inline-flex; align-items:center; gap:7px;
       padding:5px 14px; border-radius:999px;
-      background: var(--ua-royal-soft, rgba(100,112,245,0.14));
-      border:1px solid rgba(100,112,245,0.28);
+      background: var(--ua-royal-soft, rgba(var(--ua-royal-rgb),0.14));
+      border:1px solid rgba(var(--ua-royal-rgb),0.28);
       color: var(--ua-royal-2,#8B7BF7);
       font-size:0.6rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
       font-family:'Inter',sans-serif;
@@ -288,12 +288,12 @@ _components.html("""
     display:flex; justify-content:center; gap:0; flex-wrap:wrap;
     font-family:'Inter',sans-serif; margin:18px 0 0;
     background:rgba(19,22,38,0.55);
-    border:1px solid rgba(100,112,245,0.16);
+    border:1px solid rgba(var(--ua-royal-rgb),0.16);
     border-radius:12px; overflow:hidden;
   }
   .ua-stat-item {
     flex:1; min-width:130px; text-align:center; padding:15px 10px;
-    border-right:1px solid rgba(255,255,255,0.05);
+    border-right:1px solid rgba(var(--ua-onbg-rgb),0.05);
     position:relative;
   }
   .ua-stat-item:last-child { border-right:none; }
@@ -355,77 +355,77 @@ _bar_bull = f"{(_nb / _total * 100):.0f}%" if _total > 0 else "0%"
 _bar_bear = f"{(_nr / _total * 100):.0f}%" if _total > 0 else "0%"
 
 _top_bull_html = (
-    f'<div style="font-size:0.72rem;color:#00D566;margin-top:3px;font-weight:500;">'
+    f'<div style="font-size:0.72rem;color:var(--ua-green);margin-top:3px;font-weight:500;">'
     f'▲ {_h.escape(str(_top_bull))[:32]}</div>'
     if _top_bull else ""
 )
 _top_bear_html = (
-    f'<div style="font-size:0.72rem;color:#FF4444;margin-top:3px;font-weight:500;">'
+    f'<div style="font-size:0.72rem;color:var(--ua-red);margin-top:3px;font-weight:500;">'
     f'▼ {_h.escape(str(_top_bear))[:32]}</div>'
     if _top_bear else ""
 )
 
 st.markdown(
-    f'<div class="ua-slide-up-d4" style="background:rgba(18,21,30,0.82);border:1px solid rgba(0,213,102,0.22);'
+    f'<div class="ua-slide-up-d4" style="background:rgba(var(--ua-card-rgb),0.82);border:1px solid rgba(var(--ua-green-rgb),0.22);'
     f'border-radius:18px;padding:26px 30px 22px;margin:28px auto 0;max-width:900px;'
     f'font-family:Inter,sans-serif;backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);'
-    f'box-shadow:0 0 60px rgba(0,213,102,0.09),0 24px 64px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.05);">'
+    f'box-shadow:0 0 60px rgba(var(--ua-green-rgb),0.09),0 24px 64px rgba(0,0,0,0.6),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.05);">'
     # Top separator accent line
     f'<div style="position:relative;margin-bottom:18px;">'
     f'<div style="position:absolute;top:-26px;left:-30px;right:-30px;height:1px;'
-    f'background:linear-gradient(90deg,transparent,rgba(0,213,102,0.35) 30%,'
+    f'background:linear-gradient(90deg,transparent,rgba(var(--ua-green-rgb),0.35) 30%,'
     f'rgba(0,200,224,0.25) 60%,transparent);"></div>'
     f'</div>'
     f'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:24px;">'
     # Left: regime label
     f'<div style="flex:1;min-width:200px;">'
     f'<div style="display:flex;align-items:center;gap:6px;font-size:0.58rem;letter-spacing:0.18em;'
-    f'color:#8892AA;margin-bottom:10px;font-weight:700;">'
+    f'color:var(--ua-ink-mut);margin-bottom:10px;font-weight:700;">'
     f'<span class="ua-pulse-dot"></span>MACRO REGIME</div>'
     f'<div style="font-size:2.4rem;font-weight:900;color:{_bias_color};letter-spacing:-1px;'
     f'line-height:1.0;text-shadow:0 0 40px {_bias_color}44;">{_h.escape(_bias_label)}</div>'
-    f'<div style="font-size:0.72rem;color:#6B7FBF;margin-top:8px;">'
-    f'across <b style="color:#8892AA;">{len(SIGNALS)}</b> tracked signals'
+    f'<div style="font-size:0.72rem;color:var(--ua-ink-label);margin-top:8px;">'
+    f'across <b style="color:var(--ua-ink-mut);">{len(SIGNALS)}</b> tracked signals'
     f'{f" · {_total} scored" if _total < len(SIGNALS) else ""} · daily snapshot</div>'
     f'</div>'
     # Right: counter trio
     f'<div style="display:flex;gap:28px;flex-wrap:wrap;align-items:center;">'
     f'<div style="text-align:center;min-width:60px;" class="ua-kpi-animate ua-number-in">'
-    f'<div style="font-size:2.8rem;font-weight:900;color:#00D566;letter-spacing:-1.5px;'
-    f'line-height:1.0;text-shadow:0 0 30px rgba(0,213,102,0.4);">{_nb}</div>'
-    f'<div style="font-size:0.58rem;color:#00D566;letter-spacing:0.14em;font-weight:700;'
+    f'<div style="font-size:2.8rem;font-weight:900;color:var(--ua-green);letter-spacing:-1.5px;'
+    f'line-height:1.0;text-shadow:0 0 30px rgba(var(--ua-green-rgb),0.4);">{_nb}</div>'
+    f'<div style="font-size:0.58rem;color:var(--ua-green);letter-spacing:0.14em;font-weight:700;'
     f'margin-top:3px;">BULLISH</div>'
     f'{_top_bull_html}'
     f'</div>'
-    f'<div style="width:1px;height:60px;background:rgba(255,255,255,0.06);"></div>'
+    f'<div style="width:1px;height:60px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>'
     f'<div style="text-align:center;min-width:60px;" class="ua-kpi-animate ua-number-in">'
-    f'<div style="font-size:2.8rem;font-weight:900;color:#FF4444;letter-spacing:-1.5px;'
-    f'line-height:1.0;text-shadow:0 0 30px rgba(255,68,68,0.35);">{_nr}</div>'
-    f'<div style="font-size:0.58rem;color:#FF4444;letter-spacing:0.14em;font-weight:700;'
+    f'<div style="font-size:2.8rem;font-weight:900;color:var(--ua-red);letter-spacing:-1.5px;'
+    f'line-height:1.0;text-shadow:0 0 30px rgba(var(--ua-red-rgb),0.35);">{_nr}</div>'
+    f'<div style="font-size:0.58rem;color:var(--ua-red);letter-spacing:0.14em;font-weight:700;'
     f'margin-top:3px;">BEARISH</div>'
     f'{_top_bear_html}'
     f'</div>'
-    f'<div style="width:1px;height:60px;background:rgba(255,255,255,0.06);"></div>'
+    f'<div style="width:1px;height:60px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>'
     f'<div style="text-align:center;min-width:60px;" class="ua-kpi-animate ua-number-in">'
-    f'<div style="font-size:2.8rem;font-weight:900;color:#6B7FBF;letter-spacing:-1.5px;'
+    f'<div style="font-size:2.8rem;font-weight:900;color:var(--ua-ink-label);letter-spacing:-1.5px;'
     f'line-height:1.0;">{_nn}</div>'
-    f'<div style="font-size:0.58rem;color:#6B7FBF;letter-spacing:0.14em;font-weight:700;'
+    f'<div style="font-size:0.58rem;color:var(--ua-ink-label);letter-spacing:0.14em;font-weight:700;'
     f'margin-top:3px;">NEUTRAL</div>'
     f'</div>'
     f'</div>'
     f'</div>'
     # Progress bar
-    f'<div style="margin-top:20px;background:rgba(255,255,255,0.04);border-radius:6px;'
+    f'<div style="margin-top:20px;background:rgba(var(--ua-onbg-rgb),0.04);border-radius:6px;'
     f'height:5px;overflow:hidden;display:flex;gap:1px;">'
-    f'<div style="width:{_bar_bull};background:linear-gradient(90deg,#00D566,#00A847);'
+    f'<div style="width:{_bar_bull};background:linear-gradient(90deg,var(--ua-green),#00A847);'
     f'border-radius:6px 0 0 6px;transition:width 1s ease;"></div>'
-    f'<div style="width:{_bar_bear};background:#FF4444;"></div>'
-    f'<div style="flex:1;background:rgba(107,127,191,0.25);border-radius:0 6px 6px 0;"></div>'
+    f'<div style="width:{_bar_bear};background:var(--ua-red);"></div>'
+    f'<div style="flex:1;background:rgba(var(--ua-label-rgb),0.25);border-radius:0 6px 6px 0;"></div>'
     f'</div>'
     f'<div style="display:flex;justify-content:space-between;margin-top:7px;">'
-    f'<div style="font-size:0.60rem;color:#00D566;font-weight:600;">▲ Bullish {_bar_bull}</div>'
-    f'<div style="font-size:0.60rem;color:#6B7FBF;">Updated every 6 hours</div>'
-    f'<div style="font-size:0.60rem;color:#FF4444;font-weight:600;">Bearish {_bar_bear} ▼</div>'
+    f'<div style="font-size:0.60rem;color:var(--ua-green);font-weight:600;">▲ Bullish {_bar_bull}</div>'
+    f'<div style="font-size:0.60rem;color:var(--ua-ink-label);">Updated every 6 hours</div>'
+    f'<div style="font-size:0.60rem;color:var(--ua-red);font-weight:600;">Bearish {_bar_bear} ▼</div>'
     f'</div>'
     f'</div>',
     unsafe_allow_html=True,
@@ -438,7 +438,7 @@ with _hcol2:
     if st.button("→ See Today's Full Signal Brief", type="primary", width="stretch", key="hero_cta"):
         st.switch_page("pages/2_Today_Digest.py")
 st.markdown(
-    "<div style='text-align:center;font-size:0.72rem;color:#8892AA;margin-top:6px;"
+    "<div style='text-align:center;font-size:0.72rem;color:var(--ua-ink-mut);margin-top:6px;"
     "font-family:Inter,sans-serif;'>No account needed to browse signals</div>",
     unsafe_allow_html=True,
 )
@@ -477,7 +477,7 @@ try:
             '<div style="font-family:Inter,sans-serif;font-size:0.84rem;color:var(--ua-muted,#9AA0BE);'
             'margin:4px 0 14px;line-height:1.6;">Average signal score in each domain — 50 is neutral, '
             'above is a tailwind, below is a headwind. One snapshot, no cherry-picking.</div>'
-            f'<div style="background:var(--ua-bg-card,#12151E);border:1px solid var(--ua-border,rgba(255,255,255,0.08));'
+            f'<div style="background:var(--ua-bg-card,var(--ua-bg-card));border:1px solid var(--ua-border,rgba(var(--ua-onbg-rgb),0.08));'
             f'border-radius:14px;padding:16px 18px;">{_svg2}</div>'
             '</div>',
             unsafe_allow_html=True,
@@ -500,9 +500,9 @@ try:
             f'display:flex;align-items:center;gap:10px;font-family:Inter,sans-serif;">'
             f'<span style="font-size:1.1rem;">{_fl_icon}</span>'
             f'<span style="font-size:0.60rem;letter-spacing:0.14em;font-weight:700;color:{_fl_c};"> JUST FLIPPED</span>'
-            f'<span style="font-size:0.82rem;font-weight:600;color:#E8EEFF;margin-left:2px;">{_h.escape(_flip["name"])}</span>'
+            f'<span style="font-size:0.82rem;font-weight:600;color:var(--ua-ink);margin-left:2px;">{_h.escape(_flip["name"])}</span>'
             f'<span style="font-size:0.78rem;font-weight:700;color:{_fl_c};margin-left:2px;">{_fl_verb}</span>'
-            f'<span style="font-size:0.70rem;color:#6B7FBF;margin-left:6px;">Score: {_flip["score"]:.0f}/100</span>'
+            f'<span style="font-size:0.70rem;color:var(--ua-ink-label);margin-left:6px;">Score: {_flip["score"]:.0f}/100</span>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -589,50 +589,50 @@ if _anon_user:
     # st.html (not st.markdown): multi-line indented HTML would be parsed as a
     # markdown code block and leak as raw text (same bug as nav/footer).
     st.html("""
-<div style="background:rgba(18,21,30,0.72);border:1px solid rgba(255,255,255,0.09);
+<div style="background:rgba(var(--ua-card-rgb),0.72);border:1px solid rgba(var(--ua-onbg-rgb),0.09);
      border-radius:16px;padding:24px 28px;margin-bottom:32px;font-family:Inter,sans-serif;
      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">
-  <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.14em;color:#6B7FBF;
+  <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.14em;color:var(--ua-ink-label);
               text-transform:uppercase;margin-bottom:14px;">Where to start → 3 steps</div>
   <div style="display:flex;gap:16px;flex-wrap:wrap;">
 
-    <div style="flex:1;min-width:200px;background:rgba(0,213,102,0.06);
-                border:1px solid rgba(0,213,102,0.18);border-radius:12px;padding:16px 18px;">
+    <div style="flex:1;min-width:200px;background:rgba(var(--ua-green-rgb),0.06);
+                border:1px solid rgba(var(--ua-green-rgb),0.18);border-radius:12px;padding:16px 18px;">
       <div style="font-size:1.3rem;margin-bottom:8px;"></div>
-      <div style="font-size:0.84rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">
+      <div style="font-size:0.84rem;font-weight:700;color:var(--ua-ink);margin-bottom:5px;">
         1 · Read Today's Brief
       </div>
-      <div style="font-size:0.76rem;color:#8892AA;line-height:1.55;margin-bottom:10px;">
+      <div style="font-size:0.76rem;color:var(--ua-ink-mut);line-height:1.55;margin-bottom:10px;">
         One page. What the macro machine sees right now — which signals flipped,
         what the regime is, and what to watch.
       </div>
-      <div style="font-size:0.70rem;color:#00D566;font-weight:600;">→ Free · No account needed</div>
+      <div style="font-size:0.70rem;color:var(--ua-green);font-weight:600;">→ Free · No account needed</div>
     </div>
 
-    <div style="flex:1;min-width:200px;background:rgba(124,58,237,0.06);
-                border:1px solid rgba(124,58,237,0.20);border-radius:12px;padding:16px 18px;">
+    <div style="flex:1;min-width:200px;background:rgba(var(--ua-purple-rgb),0.06);
+                border:1px solid rgba(var(--ua-purple-rgb),0.20);border-radius:12px;padding:16px 18px;">
       <div style="font-size:1.3rem;margin-bottom:8px;"></div>
-      <div style="font-size:0.84rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">
+      <div style="font-size:0.84rem;font-weight:700;color:var(--ua-ink);margin-bottom:5px;">
         2 · Browse the Signal Dashboard
       </div>
-      <div style="font-size:0.76rem;color:#8892AA;line-height:1.55;margin-bottom:10px;">
+      <div style="font-size:0.76rem;color:var(--ua-ink-mut);line-height:1.55;margin-bottom:10px;">
         See all 47 macro signals sorted by strength. Filter by category.
         Each card explains what the signal means in plain English.
       </div>
       <div style="font-size:0.70rem;color:#A78BFA;font-weight:600;">→ Free · Signals update every 6 hours</div>
     </div>
 
-    <div style="flex:1;min-width:200px;background:rgba(0,200,224,0.06);
-                border:1px solid rgba(0,200,224,0.20);border-radius:12px;padding:16px 18px;">
+    <div style="flex:1;min-width:200px;background:rgba(var(--ua-cyan-rgb),0.06);
+                border:1px solid rgba(var(--ua-cyan-rgb),0.20);border-radius:12px;padding:16px 18px;">
       <div style="font-size:1.3rem;margin-bottom:8px;"></div>
-      <div style="font-size:0.84rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">
+      <div style="font-size:0.84rem;font-weight:700;color:var(--ua-ink);margin-bottom:5px;">
         3 · Look up a stock you own
       </div>
-      <div style="font-size:0.76rem;color:#8892AA;line-height:1.55;margin-bottom:10px;">
+      <div style="font-size:0.76rem;color:var(--ua-ink-mut);line-height:1.55;margin-bottom:10px;">
         Enter any ticker in Ticker Deep Dive — see which of the 47 signals
         historically move that stock, and what the confluence score is today.
       </div>
-      <div style="font-size:0.70rem;color:#00C8E0;font-weight:600;">→ Free · AAPL, NVDA, XOM and 280+ tickers</div>
+      <div style="font-size:0.70rem;color:var(--ua-cyan);font-weight:600;">→ Free · AAPL, NVDA, XOM and 280+ tickers</div>
     </div>
 
   </div>
@@ -661,27 +661,27 @@ try:
             _steps   = _ob["steps"]
 
             st.markdown(f"""
-<div style="background:rgba(0,197,102,0.05);border:1px solid rgba(0,213,102,0.22);
+<div style="background:rgba(0,197,102,0.05);border:1px solid rgba(var(--ua-green-rgb),0.22);
      border-radius:16px;padding:22px 28px 20px;margin:0 auto 28px;max-width:860px;
      font-family:Inter,sans-serif;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
     <div>
-      <div style="font-size:0.60rem;color:#00D566;letter-spacing:0.16em;font-weight:700;
+      <div style="font-size:0.60rem;color:var(--ua-green);letter-spacing:0.16em;font-weight:700;
                   text-transform:uppercase;margin-bottom:5px;"> Welcome, {_h.escape(_uname)}</div>
-      <div style="font-size:1.05rem;font-weight:700;color:#E8EEFF;letter-spacing:-0.3px;">
+      <div style="font-size:1.05rem;font-weight:700;color:var(--ua-ink);letter-spacing:-0.3px;">
         Start here — 3 steps to your first macro read
       </div>
-      <div style="font-size:0.76rem;color:#8892AA;margin-top:3px;">
+      <div style="font-size:0.76rem;color:var(--ua-ink-mut);margin-top:3px;">
         {_done_n} of 3 steps complete
       </div>
     </div>
     <div style="text-align:right;flex-shrink:0;">
-      <div style="font-size:1.4rem;font-weight:800;color:#00D566;">{_pct_int}%</div>
-      <div style="font-size:0.60rem;color:#6B7FBF;letter-spacing:0.08em;">DONE</div>
+      <div style="font-size:1.4rem;font-weight:800;color:var(--ua-green);">{_pct_int}%</div>
+      <div style="font-size:0.60rem;color:var(--ua-ink-label);letter-spacing:0.08em;">DONE</div>
     </div>
   </div>
-  <div style="background:rgba(255,255,255,0.05);border-radius:4px;height:4px;margin-bottom:18px;overflow:hidden;">
-    <div style="width:{_pct_int}%;height:100%;background:linear-gradient(90deg,#00D566,#00C8E0);border-radius:4px;transition:width 0.6s ease;"></div>
+  <div style="background:rgba(var(--ua-onbg-rgb),0.05);border-radius:4px;height:4px;margin-bottom:18px;overflow:hidden;">
+    <div style="width:{_pct_int}%;height:100%;background:linear-gradient(90deg,var(--ua-green),var(--ua-cyan));border-radius:4px;transition:width 0.6s ease;"></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
 """, unsafe_allow_html=True)
@@ -698,8 +698,8 @@ try:
     <span style="font-size:1.1rem;">{_step["icon"]}</span>
     <span style="font-size:0.60rem;font-weight:800;color:{_sc};letter-spacing:0.1em;">{_chk} STEP</span>
   </div>
-  <div style="font-size:0.82rem;font-weight:600;color:#E8EEFF;margin-bottom:3px;">{_h.escape(_step["label"])}</div>
-  <div style="font-size:0.70rem;color:#8892AA;line-height:1.55;">{_h.escape(_step["desc"])}</div>
+  <div style="font-size:0.82rem;font-weight:600;color:var(--ua-ink);margin-bottom:3px;">{_h.escape(_step["label"])}</div>
+  <div style="font-size:0.70rem;color:var(--ua-ink-mut);line-height:1.55;">{_h.escape(_step["desc"])}</div>
 </div>""", unsafe_allow_html=True)
 
             st.markdown("</div></div>", unsafe_allow_html=True)
@@ -763,20 +763,20 @@ try:
 
             # Return user greeting header
             st.markdown(f"""
-<div style="background:rgba(18,21,30,0.55);border:1px solid rgba(255,255,255,0.07);
+<div style="background:rgba(var(--ua-card-rgb),0.55);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
      border-radius:16px;padding:20px 28px 18px;margin:0 auto 24px;max-width:860px;
      font-family:Inter,sans-serif;">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
     <div>
-      <div style="font-size:0.60rem;color:#6B7FBF;letter-spacing:0.14em;font-weight:700;
+      <div style="font-size:0.60rem;color:var(--ua-ink-label);letter-spacing:0.14em;font-weight:700;
                   text-transform:uppercase;margin-bottom:4px;">Welcome back</div>
-      <div style="font-size:1.0rem;font-weight:700;color:#E8EEFF;">
-        {_h.escape(_uname)} · <span style="color:#8892AA;font-weight:400;font-size:0.88rem;">here's what's changed</span>
+      <div style="font-size:1.0rem;font-weight:700;color:var(--ua-ink);">
+        {_h.escape(_uname)} · <span style="color:var(--ua-ink-mut);font-weight:400;font-size:0.88rem;">here's what's changed</span>
       </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <span style="font-size:0.70rem;background:rgba(0,213,102,0.09);border:1px solid rgba(0,213,102,0.22);
-            color:#00D566;padding:4px 12px;border-radius:100px;font-weight:600;">
+      <span style="font-size:0.70rem;background:rgba(var(--ua-green-rgb),0.09);border:1px solid rgba(var(--ua-green-rgb),0.22);
+            color:var(--ua-green);padding:4px 12px;border-radius:100px;font-weight:600;">
         {len(_changes)} signal{"s" if len(_changes) != 1 else ""} flipped recently
       </span>
     </div>
@@ -790,9 +790,9 @@ try:
                     _fc = "#FF4444" if _ch["from_status"] == "bullish" else ("#00D566" if _ch["from_status"] == "bearish" else "#6B7FBF")
                     _arrow = "↑" if _ch["to_status"] == "bullish" else ("↓" if _ch["to_status"] == "bearish" else "→")
                     st.markdown(f"""
-<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
+<div style="background:rgba(var(--ua-onbg-rgb),0.025);border:1px solid rgba(var(--ua-onbg-rgb),0.06);
      border-radius:10px;padding:12px 14px;">
-  <div title="{_h.escape(_ch["name"])}" style="font-size:0.68rem;color:#8892AA;margin-bottom:4px;font-weight:500;
+  <div title="{_h.escape(_ch["name"])}" style="font-size:0.68rem;color:var(--ua-ink-mut);margin-bottom:4px;font-weight:500;
               white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
     {_h.escape(_ch["name"])}
   </div>
@@ -805,7 +805,7 @@ try:
       {_ch["to_status"][:4]}
     </span>
     <span style="margin-left:auto;font-size:0.72rem;font-weight:700;
-          background:rgba(255,255,255,0.05);border-radius:5px;padding:1px 7px;color:#B8C0D4;">
+          background:rgba(var(--ua-onbg-rgb),0.05);border-radius:5px;padding:1px 7px;color:var(--ua-ink-soft);">
       {_ch["score"]:.0f}
     </span>
   </div>
@@ -813,7 +813,7 @@ try:
                 st.markdown("</div>", unsafe_allow_html=True)
             else:
                 st.markdown(
-                    '<div style="margin-top:10px;font-size:0.78rem;color:#6B7FBF;">'
+                    '<div style="margin-top:10px;font-size:0.78rem;color:var(--ua-ink-label);">'
                     'No signal direction changes detected in recent snapshots. '
                     'Scores are stable — check Today\'s Brief for the full read.</div>',
                     unsafe_allow_html=True,
@@ -828,37 +828,37 @@ st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
 # ── CREDIBILITY STRIP ─────────────────────────────────────────────────────────
 st.markdown("""
-<div style="background:rgba(18,21,30,0.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-            border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);
+<div style="background:rgba(var(--ua-card-rgb),0.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+            border-top:1px solid rgba(var(--ua-onbg-rgb),0.05);border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);
             padding:16px 0;margin:4px 0 28px;text-align:center;font-family:Inter,sans-serif;">
-    <div style="font-size:0.57rem;letter-spacing:0.16em;color:#6B7FBF;margin-bottom:12px;
+    <div style="font-size:0.57rem;letter-spacing:0.16em;color:var(--ua-ink-label);margin-bottom:12px;
                 font-weight:700;">DATA SOURCED FROM THE SAME INSTITUTIONS WALL STREET USES</div>
     <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;align-items:center;">
-        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:#8892AA;
-                     background:rgba(0,213,102,0.05);border:1px solid rgba(0,213,102,0.12);
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--ua-ink-mut);
+                     background:rgba(var(--ua-green-rgb),0.05);border:1px solid rgba(var(--ua-green-rgb),0.12);
                      border-radius:8px;padding:5px 12px;">
-            <span style="width:6px;height:6px;border-radius:50%;background:#00D566;flex-shrink:0;"></span>
-            <b style="color:#E8EEFF;">FRED</b>&nbsp;· Federal Reserve</span>
-        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:#8892AA;
-                     background:rgba(0,200,224,0.05);border:1px solid rgba(0,200,224,0.12);
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--ua-green);flex-shrink:0;"></span>
+            <b style="color:var(--ua-ink);">FRED</b>&nbsp;· Federal Reserve</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--ua-ink-mut);
+                     background:rgba(var(--ua-cyan-rgb),0.05);border:1px solid rgba(var(--ua-cyan-rgb),0.12);
                      border-radius:8px;padding:5px 12px;">
-            <span style="width:6px;height:6px;border-radius:50%;background:#00C8E0;flex-shrink:0;"></span>
-            <b style="color:#E8EEFF;">SEC EDGAR</b>&nbsp;· Insider Filings</span>
-        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:#8892AA;
-                     background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.12);
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--ua-cyan);flex-shrink:0;"></span>
+            <b style="color:var(--ua-ink);">SEC EDGAR</b>&nbsp;· Insider Filings</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--ua-ink-mut);
+                     background:rgba(var(--ua-purple-rgb),0.05);border:1px solid rgba(var(--ua-purple-rgb),0.12);
                      border-radius:8px;padding:5px 12px;">
-            <span style="width:6px;height:6px;border-radius:50%;background:#7C3AED;flex-shrink:0;"></span>
-            <b style="color:#E8EEFF;">FINRA</b>&nbsp;· Short Interest</span>
-        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:#8892AA;
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--ua-purple);flex-shrink:0;"></span>
+            <b style="color:var(--ua-ink);">FINRA</b>&nbsp;· Short Interest</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--ua-ink-mut);
                      background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.12);
                      border-radius:8px;padding:5px 12px;">
-            <span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;flex-shrink:0;"></span>
-            <b style="color:#E8EEFF;">EIA</b>&nbsp;· Energy Data</span>
-        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:#8892AA;
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--ua-amber);flex-shrink:0;"></span>
+            <b style="color:var(--ua-ink);">EIA</b>&nbsp;· Energy Data</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--ua-ink-mut);
                      background:rgba(52,211,153,0.05);border:1px solid rgba(52,211,153,0.12);
                      border-radius:8px;padding:5px 12px;">
             <span style="width:6px;height:6px;border-radius:50%;background:#34D399;flex-shrink:0;"></span>
-            <b style="color:#E8EEFF;">13F Filings</b>&nbsp;· Institutional</span>
+            <b style="color:var(--ua-ink);">13F Filings</b>&nbsp;· Institutional</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -866,10 +866,10 @@ st.markdown("""
 # ── WHO THIS IS FOR ───────────────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center;margin:8px 0 20px;font-family:Inter,sans-serif;">
-    <div style="font-size:0.57rem;letter-spacing:0.18em;font-weight:700;color:#7C3AED;margin-bottom:8px;">
+    <div style="font-size:0.57rem;letter-spacing:0.18em;font-weight:700;color:var(--ua-purple);margin-bottom:8px;">
         WHO IS THIS FOR?
     </div>
-    <div style="font-size:1.35rem;font-weight:800;color:#E8EEFF;letter-spacing:-0.5px;">
+    <div style="font-size:1.35rem;font-weight:800;color:var(--ua-ink);letter-spacing:-0.5px;">
         Anyone tired of investing blind
     </div>
 </div>
@@ -889,12 +889,12 @@ _who_cards = [
 for _col, (_ac, _icon, _title, _body) in zip([_who1, _who2, _who3, _who4], _who_cards):
     with _col:
         st.markdown(f"""
-<div style="background:rgba(18,21,30,0.7);border:1px solid rgba(255,255,255,0.06);
+<div style="background:rgba(var(--ua-card-rgb),0.7);border:1px solid rgba(var(--ua-onbg-rgb),0.06);
             border-top:3px solid {_ac};border-radius:12px;padding:18px 14px;
             font-family:Inter,sans-serif;min-height:165px;text-align:center;">
     <div style="font-size:1.8rem;margin-bottom:10px;">{_icon}</div>
-    <div style="font-size:0.85rem;font-weight:800;color:#E8EEFF;margin-bottom:8px;">{_title}</div>
-    <div style="font-size:0.73rem;color:#8892AA;line-height:1.6;">{_body}</div>
+    <div style="font-size:0.85rem;font-weight:800;color:var(--ua-ink);margin-bottom:8px;">{_title}</div>
+    <div style="font-size:0.73rem;color:var(--ua-ink-mut);line-height:1.6;">{_body}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -903,16 +903,16 @@ st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 # ── INSTANT PORTFOLIO CHECK ───────────────────────────────────────────────────
 if _data_loaded:
     st.markdown("""
-<div style="background:rgba(18,21,30,0.82);border:1px solid rgba(0,200,224,0.22);
+<div style="background:rgba(var(--ua-card-rgb),0.82);border:1px solid rgba(var(--ua-cyan-rgb),0.22);
             border-radius:16px;padding:22px 26px 18px;margin:0 0 24px;
             font-family:Inter,sans-serif;
             backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);
-            box-shadow:0 0 30px rgba(0,200,224,0.07),0 8px 32px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.04);">
-    <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:#00C8E0;
+            box-shadow:0 0 30px rgba(var(--ua-cyan-rgb),0.07),0 8px 32px rgba(0,0,0,0.45),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04);">
+    <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:var(--ua-cyan);
                 margin-bottom:8px;"> INSTANT MACRO CHECK — NO ACCOUNT NEEDED</div>
-    <div style="font-size:1.0rem;font-weight:800;color:#E8EEFF;margin-bottom:4px;
+    <div style="font-size:1.0rem;font-weight:800;color:var(--ua-ink);margin-bottom:4px;
                 letter-spacing:-0.2px;">What does the macro say about your stocks right now?</div>
-    <div style="font-size:0.77rem;color:#8892AA;line-height:1.55;">
+    <div style="font-size:0.77rem;color:var(--ua-ink-mut);line-height:1.55;">
         Enter 3–5 tickers you actually hold — we score each against 47 live signals, then map
         them as a portfolio: shared macro risks, your most-exposed holding, and hidden
         correlations. No account needed.
@@ -959,7 +959,7 @@ if _data_loaded:
                         f'<div style="background:{_pf_bg};border:1px solid {_pf_c}1A;'
                         f'border-top:3px solid {_pf_c};border-radius:10px;padding:14px 10px 12px;'
                         f'font-family:Inter,sans-serif;text-align:center;">'
-                        f'<div style="font-size:1.0rem;font-weight:800;color:#E8EEFF;'
+                        f'<div style="font-size:1.0rem;font-weight:800;color:var(--ua-ink);'
                         f'margin-bottom:2px;">{_h.escape(_pf_res["ticker"])}</div>'
                         f'<div style="font-size:1.9rem;font-weight:900;color:{_pf_c};'
                         f'letter-spacing:-0.5px;line-height:1.1;">{_pf_arr}&nbsp;{_pf_s:.0f}</div>'
@@ -1012,7 +1012,7 @@ if _data_loaded:
                         )
                         st.html(render_portfolio_xray_html(build_portfolio_xray(_ob_inputs)))
                         st.markdown(
-                            '<div style="font-size:0.68rem;color:#8892AA;margin-top:8px;'
+                            '<div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:8px;'
                             'font-family:Inter,sans-serif;"> Want us to watch these for you? Save them to a '
                             'free watchlist and we\'ll flag the moment the macro around any of them '
                             'materially changes.</div>',
@@ -1056,8 +1056,8 @@ if _data_loaded:
             for k, v in _nar["sector_bias"].items()
         )
         _watch_html = (
-            f'<div style="margin-top:10px;padding:8px 12px;background:rgba(0,200,224,0.06);'
-            f'border-left:3px solid #00C8E0;border-radius:0 6px 6px 0;font-size:0.74rem;color:#00C8E0;">'
+            f'<div style="margin-top:10px;padding:8px 12px;background:rgba(var(--ua-cyan-rgb),0.06);'
+            f'border-left:3px solid var(--ua-cyan);border-radius:0 6px 6px 0;font-size:0.74rem;color:var(--ua-cyan);">'
             f' {_nar["watch_note"]}</div>'
             if _nar.get("watch_note") else ""
         )
@@ -1068,9 +1068,9 @@ if _data_loaded:
             f'border-radius:12px;padding:20px 22px;font-family:Inter,sans-serif;">'
             f'<div style="font-size:0.58rem;font-weight:700;letter-spacing:0.14em;color:{_bias_color};'
             f'text-transform:uppercase;margin-bottom:6px;">MACHINE READS THE MARKET</div>'
-            f'<div style="font-size:1.25rem;font-weight:800;color:#E8EEFF;margin-bottom:10px;letter-spacing:-0.3px;">'
+            f'<div style="font-size:1.25rem;font-weight:800;color:var(--ua-ink);margin-bottom:10px;letter-spacing:-0.3px;">'
             f'{_nar.get("headline","")}</div>'
-            f'<div style="font-size:0.83rem;color:#B8C0D4;line-height:1.7;margin-bottom:12px;">'
+            f'<div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.7;margin-bottom:12px;">'
             f'{_nar["summary"]}</div>'
             f'<div style="margin-bottom:8px;">{_sect_items}</div>'
             f'{_watch_html}'
@@ -1084,39 +1084,39 @@ if _data_loaded:
         if _bull_tkrs or _bear_tkrs:
             _bull_rows = "".join(
                 f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                f'padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
-                f'<span style="font-weight:700;font-size:0.82rem;color:#E8EEFF;">{r["ticker"]}</span>'
-                f'<span style="font-size:0.72rem;color:#8892AA;flex:1;padding-left:8px;'
+                f'padding:5px 0;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);">'
+                f'<span style="font-weight:700;font-size:0.82rem;color:var(--ua-ink);">{r["ticker"]}</span>'
+                f'<span style="font-size:0.72rem;color:var(--ua-ink-mut);flex:1;padding-left:8px;'
                 f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'
                 f'{r["name"][:22]}</span>'
-                f'<span style="font-size:0.78rem;font-weight:700;color:#00D566;">'
+                f'<span style="font-size:0.78rem;font-weight:700;color:var(--ua-green);">'
                 f'▲ {r["score"]:.0f}</span>'
                 f'</div>'
                 for r in _bull_tkrs
             )
             _bear_rows = "".join(
                 f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                f'padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
-                f'<span style="font-weight:700;font-size:0.82rem;color:#E8EEFF;">{r["ticker"]}</span>'
-                f'<span style="font-size:0.72rem;color:#8892AA;flex:1;padding-left:8px;'
+                f'padding:5px 0;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);">'
+                f'<span style="font-weight:700;font-size:0.82rem;color:var(--ua-ink);">{r["ticker"]}</span>'
+                f'<span style="font-size:0.72rem;color:var(--ua-ink-mut);flex:1;padding-left:8px;'
                 f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'
                 f'{r["name"][:22]}</span>'
-                f'<span style="font-size:0.78rem;font-weight:700;color:#FF4444;">'
+                f'<span style="font-size:0.78rem;font-weight:700;color:var(--ua-red);">'
                 f'▼ {r["score"]:.0f}</span>'
                 f'</div>'
                 for r in _bear_tkrs
             )
             st.markdown(
-                f'<div class="ua-slide-up-d2" style="background:rgba(18,21,30,0.75);border:1px solid rgba(255,255,255,0.08);'
+                f'<div class="ua-slide-up-d2" style="background:rgba(var(--ua-card-rgb),0.75);border:1px solid rgba(var(--ua-onbg-rgb),0.08);'
                 f'backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);'
                 f'border-radius:12px;padding:18px 20px;font-family:Inter,sans-serif;">'
-                f'<div style="font-size:0.58rem;font-weight:700;letter-spacing:0.14em;color:#00D566;'
+                f'<div style="font-size:0.58rem;font-weight:700;letter-spacing:0.14em;color:var(--ua-green);'
                 f'text-transform:uppercase;margin-bottom:12px;">WHAT THE MACHINE FAVORS NOW</div>'
-                f'<div style="font-size:0.62rem;color:#6B7FBF;margin-bottom:6px;font-weight:700;letter-spacing:0.08em;">MACRO TAILWIND ▲</div>'
+                f'<div style="font-size:0.62rem;color:var(--ua-ink-label);margin-bottom:6px;font-weight:700;letter-spacing:0.08em;">MACRO TAILWIND ▲</div>'
                 f'{_bull_rows}'
-                f'<div style="font-size:0.62rem;color:#6B7FBF;margin:12px 0 6px;font-weight:700;letter-spacing:0.08em;">MACRO HEADWIND ▼</div>'
+                f'<div style="font-size:0.62rem;color:var(--ua-ink-label);margin:12px 0 6px;font-weight:700;letter-spacing:0.08em;">MACRO HEADWIND ▼</div>'
                 f'{_bear_rows}'
-                f'<div style="font-size:0.62rem;color:#6B7FBF;margin-top:12px;">'
+                f'<div style="font-size:0.62rem;color:var(--ua-ink-label);margin-top:12px;">'
                 f'{len(SIGNALS)} macro signals · no price charts · pure fundamentals</div>'
                 f'</div>',
                 unsafe_allow_html=True,
@@ -1126,10 +1126,10 @@ if _data_loaded:
 _conv_events = get_convergence_events(days_back=7, min_signals=3)
 if _conv_events:
     st.markdown("""
-    <div style="font-size:1.1rem;font-weight:800;color:#E8EEFF;margin:20px 0 6px;
+    <div style="font-size:1.1rem;font-weight:800;color:var(--ua-ink);margin:20px 0 6px;
                 font-family:Inter,sans-serif;letter-spacing:-0.3px;">
          Signal Convergence Events
-        <span style="font-size:0.70rem;font-weight:500;color:#8892AA;margin-left:10px;">
+        <span style="font-size:0.70rem;font-weight:500;color:var(--ua-ink-mut);margin-left:10px;">
         3+ independent signals aligned on the same ticker in the last 7 days</span>
     </div>
     """, unsafe_allow_html=True)
@@ -1175,21 +1175,21 @@ try:
             _note_date_str = _note_date
 
         st.markdown(
-            f'<div class="ua-slide-up-d1" style="background:rgba(18,21,30,0.78);border:1px solid rgba(255,255,255,0.07);'
-            f'border-top:2px solid #00D566;'
+            f'<div class="ua-slide-up-d1" style="background:rgba(var(--ua-card-rgb),0.78);border:1px solid rgba(var(--ua-onbg-rgb),0.07);'
+            f'border-top:2px solid var(--ua-green);'
             f'backdrop-filter:blur(12px) saturate(130%);-webkit-backdrop-filter:blur(12px) saturate(130%);'
             f'border-radius:12px;padding:18px 22px;margin-bottom:24px;font-family:Inter,sans-serif;">'
             f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
-            f'<span style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:#00D566;"> LATEST RESEARCH NOTE</span>'
+            f'<span style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:var(--ua-green);"> LATEST RESEARCH NOTE</span>'
             f'<span style="font-size:0.64rem;font-weight:700;letter-spacing:0.08em;padding:2px 8px;'
             f'border-radius:5px;background:{_regime_bg_note};color:{_regime_fg};border:1px solid {_regime_fg}33;">{_note_regime}</span>'
-            f'<span style="font-size:0.68rem;color:#8892AA;margin-left:auto;">{_note_date_str}</span>'
+            f'<span style="font-size:0.68rem;color:var(--ua-ink-mut);margin-left:auto;">{_note_date_str}</span>'
             f'</div>'
-            f'<div style="font-size:1.0rem;font-weight:700;color:#E8EEFF;line-height:1.3;margin-bottom:8px;letter-spacing:-0.2px;">'
+            f'<div style="font-size:1.0rem;font-weight:700;color:var(--ua-ink);line-height:1.3;margin-bottom:8px;letter-spacing:-0.2px;">'
             f'{_note_hl_clean}</div>'
-            f'<div style="font-size:0.81rem;color:#B8C0D4;line-height:1.65;margin-bottom:10px;">'
+            f'<div style="font-size:0.81rem;color:var(--ua-ink-soft);line-height:1.65;margin-bottom:10px;">'
             f'{_note_teaser}</div>'
-            f'<div style="font-size:0.68rem;color:#8892AA;">'
+            f'<div style="font-size:0.68rem;color:var(--ua-ink-mut);">'
             f'{_note_bull_n} bullish · {_note_bear_n} bearish signals</div>'
             f'</div>',
             unsafe_allow_html=True,
@@ -1202,9 +1202,9 @@ except Exception:
 # ── 3 CORE FEATURE SPOTLIGHTS ─────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center;margin:40px 0 28px;font-family:Inter,sans-serif;">
-    <div style="font-size:1.55rem;font-weight:800;color:#E8EEFF;letter-spacing:-0.5px;
+    <div style="font-size:1.55rem;font-weight:800;color:var(--ua-ink);letter-spacing:-0.5px;
                 margin-bottom:8px;">Three tools that change how you invest</div>
-    <div style="font-size:0.86rem;color:#8892AA;max-width:460px;margin:0 auto;line-height:1.6;">
+    <div style="font-size:0.86rem;color:var(--ua-ink-mut);max-width:460px;margin:0 auto;line-height:1.6;">
         Not a screener. Not a news aggregator. Something genuinely different.
     </div>
 </div>
@@ -1214,14 +1214,14 @@ _sp1, _sp2, _sp3 = st.columns(3)
 
 with _sp1:
     st.markdown(f"""
-<div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,#00D566,#00C8E0);">
+<div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,var(--ua-green),var(--ua-cyan));">
     <span class="ua-spotlight-icon"></span>
-    <div class="ua-spotlight-tag" style="color:#00D566;">DAILY INTELLIGENCE</div>
+    <div class="ua-spotlight-tag" style="color:var(--ua-green);">DAILY INTELLIGENCE</div>
     <div class="ua-spotlight-title">Today's Brief — your 2-minute macro read</div>
     <div class="ua-spotlight-body">Every morning: which signals flipped overnight, what the
     macro bias is, and what it means for your holdings. Plain English. No jargon.
     Opt in for a 7 AM email digest.</div>
-    <div class="ua-spotlight-proof" style="color:#00D566;">
+    <div class="ua-spotlight-proof" style="color:var(--ua-green);">
         → Currently: {_bias_label} across {_total} signals
     </div>
 </div>
@@ -1231,7 +1231,7 @@ with _sp1:
 
 with _sp2:
     st.markdown("""
-<div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,#7C3AED,#A78BFA);">
+<div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,var(--ua-purple),#A78BFA);">
     <span class="ua-spotlight-icon"></span>
     <div class="ua-spotlight-tag" style="color:#A78BFA;">STOCK-SPECIFIC ANALYSIS</div>
     <div class="ua-spotlight-title">Ticker Deep Dive — type any stock, get a macro report</div>
@@ -1248,14 +1248,14 @@ with _sp2:
 
 with _sp3:
     st.markdown("""
-<div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,#00C8E0,#06B6D4);">
+<div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,var(--ua-cyan),#06B6D4);">
     <span class="ua-spotlight-icon"></span>
-    <div class="ua-spotlight-tag" style="color:#00C8E0;">SMART ALERTS</div>
+    <div class="ua-spotlight-tag" style="color:var(--ua-cyan);">SMART ALERTS</div>
     <div class="ua-spotlight-title">Watchlist — know the moment a signal flips</div>
     <div class="ua-spotlight-body">Track any ticker with custom alert thresholds. Get notified
     when the Confluence Score crosses your level, a signal changes direction, or a 52-week
     high/low is hit. Morning email to opted-in users.</div>
-    <div class="ua-spotlight-proof" style="color:#00C8E0;">
+    <div class="ua-spotlight-proof" style="color:var(--ua-cyan);">
         → Free · No Bloomberg terminal needed
     </div>
 </div>
@@ -1267,21 +1267,21 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # ── THE CONTRAST / ANCHOR ─────────────────────────────────────────────────────
 st.markdown("""
-<div style="background:linear-gradient(135deg,rgba(18,21,30,0.95),rgba(26,14,61,0.9));
-            border:1px solid rgba(124,58,237,0.2);
+<div style="background:linear-gradient(135deg,rgba(var(--ua-card-rgb),0.95),rgba(26,14,61,0.9));
+            border:1px solid rgba(var(--ua-purple-rgb),0.2);
             border-radius:16px;padding:32px 36px;margin:8px 0 32px;
             font-family:Inter,sans-serif;text-align:center;">
-    <div style="font-size:0.60rem;letter-spacing:0.18em;color:#7C3AED;margin-bottom:12px;
+    <div style="font-size:0.60rem;letter-spacing:0.18em;color:var(--ua-purple);margin-bottom:12px;
                 font-weight:700;">THE EDGE ISN'T THE DATA — IT'S KNOWING WHICH SIGNALS TO WATCH</div>
-    <div style="font-size:1.3rem;font-weight:800;color:#E8EEFF;max-width:640px;margin:0 auto;
+    <div style="font-size:1.3rem;font-weight:800;color:var(--ua-ink);max-width:640px;margin:0 auto;
                 line-height:1.4;letter-spacing:-0.3px;">
-        Bloomberg Terminal charges <span style="color:#F59E0B;">$27,000/year</span>
+        Bloomberg Terminal charges <span style="color:var(--ua-amber);">$27,000/year</span>
         for access to this kind of macro data.<br>
-        <span style="background:linear-gradient(135deg,#00D566,#00C8E0);
+        <span style="background:linear-gradient(135deg,var(--ua-green),var(--ua-cyan));
                      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                      background-clip:text;">We built the same analysis from free public sources.</span>
     </div>
-    <div style="font-size:0.82rem;color:#8892AA;margin-top:14px;max-width:560px;
+    <div style="font-size:0.82rem;color:var(--ua-ink-mut);margin-top:14px;max-width:560px;
                 margin-left:auto;margin-right:auto;line-height:1.65;">
         FRED, SEC EDGAR, FINRA, and EIA are the same primary data sources
         institutional desks rely on. The difference is we packaged it for
@@ -1292,11 +1292,11 @@ st.markdown("""
 
 # ── "SIGNALS CALLED IT BEFORE" — PROOF SECTION ────────────────────────────────
 st.markdown("""
-<div style="font-size:1.1rem;font-weight:800;color:#E8EEFF;text-align:center;
+<div style="font-size:1.1rem;font-weight:800;color:var(--ua-ink);text-align:center;
             margin:32px 0 6px;font-family:Inter,sans-serif;letter-spacing:-0.3px;">
     When these patterns showed up in past cycles
 </div>
-<div style="font-size:0.80rem;color:#8892AA;text-align:center;margin-bottom:20px;
+<div style="font-size:0.80rem;color:var(--ua-ink-mut);text-align:center;margin-bottom:20px;
             font-family:Inter,sans-serif;max-width:620px;margin-left:auto;margin-right:auto;line-height:1.6;">
     A few illustrative cases where similar readings preceded notable moves.
     These are selected examples for context — not a track record, and not evidence
@@ -1332,17 +1332,17 @@ for _pi, (_col, _p) in enumerate(zip([_proof_c1, _proof_c2, _proof_c3], _PROOFS)
     _proof_delay_cls = ["ua-pop-in", "ua-slide-up-d1", "ua-slide-up-d2"][_pi]
     with _col:
         st.markdown(
-            f'<div class="{_proof_delay_cls}" style="background:rgba(18,21,30,0.78);border:1px solid rgba(255,255,255,0.07);'
+            f'<div class="{_proof_delay_cls}" style="background:rgba(var(--ua-card-rgb),0.78);border:1px solid rgba(var(--ua-onbg-rgb),0.07);'
             f'border-left:4px solid {_p["color"]};border-radius:10px;padding:18px 16px 14px;'
             f'backdrop-filter:blur(12px) saturate(130%);-webkit-backdrop-filter:blur(12px) saturate(130%);'
             f'font-family:Inter,sans-serif;min-height:195px;">'
             f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
             f'<span style="font-size:1.2rem;">{_p["icon"]}</span>'
             f'<div>'
-            f'<div style="font-size:0.57rem;letter-spacing:0.12em;color:#6B7FBF;font-weight:700;">{_p["date"]}</div>'
-            f'<div style="font-size:0.84rem;font-weight:700;color:#E8EEFF;">{_p["signal"]}</div>'
+            f'<div style="font-size:0.57rem;letter-spacing:0.12em;color:var(--ua-ink-label);font-weight:700;">{_p["date"]}</div>'
+            f'<div style="font-size:0.84rem;font-weight:700;color:var(--ua-ink);">{_p["signal"]}</div>'
             f'</div></div>'
-            f'<div style="font-size:0.75rem;color:#B8C0D4;line-height:1.55;margin-bottom:10px;">{_p["what"]}</div>'
+            f'<div style="font-size:0.75rem;color:var(--ua-ink-soft);line-height:1.55;margin-bottom:10px;">{_p["what"]}</div>'
             f'<div style="font-size:0.78rem;font-weight:700;color:{_p["color"]};line-height:1.4;margin-bottom:8px;">{_p["outcome"]}</div>'
             f'<span style="font-size:0.60rem;padding:3px 8px;border-radius:5px;'
             f'background:{_p["color"]}18;color:{_p["color"]};font-weight:700;'
@@ -1362,9 +1362,9 @@ st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
 # ── SECTOR ROTATION TEASER ────────────────────────────────────────────────────
 st.markdown("""
-<div style="font-size:1.1rem;font-weight:800;color:#E8EEFF;font-family:Inter,sans-serif;
+<div style="font-size:1.1rem;font-weight:800;color:var(--ua-ink);font-family:Inter,sans-serif;
             margin-bottom:4px;letter-spacing:-0.3px;">Sector Rotation Signal Map — live preview</div>
-<div style="font-size:0.80rem;color:#8892AA;margin-bottom:16px;font-family:Inter,sans-serif;">
+<div style="font-size:0.80rem;color:var(--ua-ink-mut);margin-bottom:16px;font-family:Inter,sans-serif;">
     Which sectors do the signals currently favor? Updated every 6 hours.
 </div>
 """, unsafe_allow_html=True)
@@ -1392,7 +1392,7 @@ try:
             _bg     = "rgba(0,213,102,0.06)" if _avg >= 60 else ("rgba(255,68,68,0.06)" if _avg <= 40 else "rgba(18,21,30,0.6)")
             with _sc_cols[_i % 4]:
                 st.markdown(f"""
-<div style="background:{_bg};border:1px solid rgba(255,255,255,0.06);border-left:3px solid {_sc};
+<div style="background:{_bg};border:1px solid rgba(var(--ua-onbg-rgb),0.06);border-left:3px solid {_sc};
             border-radius:8px;padding:12px 14px;margin-bottom:8px;font-family:Inter,sans-serif;">
     <div style="font-size:0.75rem;font-weight:600;color:#C8D0E4;margin-bottom:4px;">{_name}</div>
     <div style="font-size:1.5rem;font-weight:800;color:{_sc};letter-spacing:-0.5px;">{_arrow} {_avg:.0f}</div>
@@ -1416,10 +1416,10 @@ _da, _db = st.columns(2)
 with _da:
     st.markdown("""
 <div style="font-family:Inter,sans-serif;">
-<div style="font-size:1.05rem;font-weight:800;color:#FF4444;margin-bottom:10px;letter-spacing:-0.2px;">
+<div style="font-size:1.05rem;font-weight:800;color:var(--ua-red);margin-bottom:10px;letter-spacing:-0.2px;">
     What traditional screeners miss
 </div>
-<div style="font-size:0.83rem;color:#B8C0D4;line-height:1.7;">
+<div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.7;">
     Stock screeners filter on price, P/E, and volume. They tell you what
     <i>has happened</i> to a stock — not what's coming. That's rear-view-mirror investing.<br><br>
     By the time a move shows up in price and volume, institutional desks have
@@ -1427,15 +1427,15 @@ with _da:
     4 to 16 weeks earlier.
 </div>
 <br>
-<div style="font-size:1.05rem;font-weight:800;color:#00D566;margin-bottom:10px;letter-spacing:-0.2px;">
+<div style="font-size:1.05rem;font-weight:800;color:var(--ua-green);margin-bottom:10px;letter-spacing:-0.2px;">
     What leading signals actually predict
 </div>
-<div style="font-size:0.83rem;color:#B8C0D4;line-height:1.7;">
+<div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.7;">
     • Trucking freight falls → retail earnings weaken ~6 weeks later<br>
     • Uranium spot rises → nuclear energy stocks follow<br>
     • Credit spreads widen → broad market pullback precedes it 4–8 weeks<br>
     • Hyperscaler capex accelerates → AI infrastructure stocks outperform<br><br>
-    This is what hedge funds call <b style="color:#E8EEFF;">alternative data</b>.
+    This is what hedge funds call <b style="color:var(--ua-ink);">alternative data</b>.
     They pay $50K–$500K/year for it. We built it from public sources.
 </div>
 </div>
@@ -1444,7 +1444,7 @@ with _da:
 with _db:
     st.markdown("""
 <div style="font-family:Inter,sans-serif;">
-<div style="font-size:1.05rem;font-weight:800;color:#E8EEFF;margin-bottom:10px;letter-spacing:-0.2px;">
+<div style="font-size:1.05rem;font-weight:800;color:var(--ua-ink);margin-bottom:10px;letter-spacing:-0.2px;">
     What you get that you can't get anywhere else — for free
 </div>
 """, unsafe_allow_html=True)
@@ -1468,10 +1468,10 @@ with _db:
     ]
     for _title, _body in _diffs:
         st.markdown(f"""
-<div style="border-left:3px solid #00D566;padding:8px 14px;margin-bottom:10px;
-            background:rgba(0,213,102,0.04);border-radius:0 8px 8px 0;">
-    <div style="font-size:0.83rem;font-weight:700;color:#E8EEFF;margin-bottom:3px;font-family:Inter,sans-serif;">{_title}</div>
-    <div style="font-size:0.77rem;color:#B8C0D4;line-height:1.55;font-family:Inter,sans-serif;">{_body}</div>
+<div style="border-left:3px solid var(--ua-green);padding:8px 14px;margin-bottom:10px;
+            background:rgba(var(--ua-green-rgb),0.04);border-radius:0 8px 8px 0;">
+    <div style="font-size:0.83rem;font-weight:700;color:var(--ua-ink);margin-bottom:3px;font-family:Inter,sans-serif;">{_title}</div>
+    <div style="font-size:0.77rem;color:var(--ua-ink-soft);line-height:1.55;font-family:Inter,sans-serif;">{_body}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1479,7 +1479,7 @@ st.divider()
 
 # ── HOW TO USE IN 4 STEPS ────────────────────────────────────────────────────
 st.markdown("""
-<div style="font-size:1.1rem;font-weight:800;color:#E8EEFF;font-family:Inter,sans-serif;
+<div style="font-size:1.1rem;font-weight:800;color:var(--ua-ink);font-family:Inter,sans-serif;
             margin-bottom:18px;letter-spacing:-0.3px;">Start generating insight in under 5 minutes</div>
 """, unsafe_allow_html=True)
 
@@ -1520,10 +1520,10 @@ st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 st.divider()
 st.markdown("""
 <div style="text-align:center;margin:8px 0 24px;font-family:Inter,sans-serif;">
-    <div style="font-size:0.57rem;letter-spacing:0.18em;font-weight:700;color:#F59E0B;margin-bottom:8px;">
+    <div style="font-size:0.57rem;letter-spacing:0.18em;font-weight:700;color:var(--ua-amber);margin-bottom:8px;">
         WHAT USERS SAY
     </div>
-    <div style="font-size:1.2rem;font-weight:800;color:#E8EEFF;letter-spacing:-0.3px;">
+    <div style="font-size:1.2rem;font-weight:800;color:var(--ua-ink);letter-spacing:-0.3px;">
         Real feedback from the community
     </div>
 </div>
@@ -1544,18 +1544,18 @@ _testimonials = [
 for _col, (_ac, _name, _role, _quote) in zip([_t1, _t2, _t3], _testimonials):
     with _col:
         st.markdown(f"""
-<div style="background:rgba(18,21,30,0.78);border:1px solid rgba(255,255,255,0.07);
+<div style="background:rgba(var(--ua-card-rgb),0.78);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
             border-left:4px solid {_ac};border-radius:12px;padding:20px 18px;
             font-family:Inter,sans-serif;">
-    <div style="font-size:0.82rem;color:#B8C0D4;line-height:1.7;margin-bottom:14px;
+    <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.7;margin-bottom:14px;
                 font-style:italic;">{_quote}</div>
     <div style="display:flex;align-items:center;gap:10px;">
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,{_ac}44,{_ac}22);
                     border:2px solid {_ac}55;display:flex;align-items:center;justify-content:center;
                     font-size:0.8rem;font-weight:800;color:{_ac};">{_name[0]}</div>
         <div>
-            <div style="font-size:0.82rem;font-weight:700;color:#E8EEFF;">{_name}</div>
-            <div style="font-size:0.68rem;color:#6B7FBF;">{_role}</div>
+            <div style="font-size:0.82rem;font-weight:700;color:var(--ua-ink);">{_name}</div>
+            <div style="font-size:0.68rem;color:var(--ua-ink-label);">{_role}</div>
         </div>
     </div>
 </div>
@@ -1568,13 +1568,13 @@ st.divider()
 
 st.markdown("""
 <div style="text-align:center;margin-bottom:6px;font-family:Inter,sans-serif;">
-    <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:#00C8E0;margin-bottom:8px;">
+    <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:var(--ua-cyan);margin-bottom:8px;">
         NEW — ALERTS &amp; AUTOMATION
     </div>
-    <div style="font-size:1.15rem;font-weight:800;color:#E8EEFF;letter-spacing:-0.3px;line-height:1.35;">
+    <div style="font-size:1.15rem;font-weight:800;color:var(--ua-ink);letter-spacing:-0.3px;line-height:1.35;">
         The signals come to you — you don't chase them
     </div>
-    <div style="font-size:0.82rem;color:#8892AA;margin-top:6px;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.6;">
+    <div style="font-size:0.82rem;color:var(--ua-ink-mut);margin-top:6px;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.6;">
         Most investors miss signal flips because they're not checking the dashboard at the right moment.
         Pro delivers the insight automatically — wherever you work.
     </div>
@@ -1603,12 +1603,12 @@ _alert_cards = [
 for _col, (_ac, _icon, _title, _body) in zip([_al1, _al2, _al3, _al4], _alert_cards):
     with _col:
         st.markdown(f"""
-<div style="background:rgba(18,21,30,0.7);border:1px solid rgba(255,255,255,0.07);
+<div style="background:rgba(var(--ua-card-rgb),0.7);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
             border-top:3px solid {_ac};border-radius:10px;padding:16px 14px;
             font-family:Inter,sans-serif;min-height:180px;">
     <div style="font-size:1.6rem;margin-bottom:8px;">{_icon}</div>
-    <div style="font-size:0.82rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">{_title}</div>
-    <div style="font-size:0.75rem;color:#8892AA;line-height:1.6;">{_body}</div>
+    <div style="font-size:0.82rem;font-weight:700;color:var(--ua-ink);margin-bottom:6px;">{_title}</div>
+    <div style="font-size:0.75rem;color:var(--ua-ink-mut);line-height:1.6;">{_body}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1622,7 +1622,7 @@ st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
 # ── SIGNAL STRATEGY BACKTEST TEASER ─────────────────────────────────────────
 st.markdown("""
-<div style="background:linear-gradient(135deg,rgba(18,21,30,0.95),rgba(14,24,50,0.95));
+<div style="background:linear-gradient(135deg,rgba(var(--ua-card-rgb),0.95),rgba(14,24,50,0.95));
             border:1px solid rgba(99,102,241,0.25);border-radius:16px;
             padding:28px 32px;margin:8px 0 28px;font-family:Inter,sans-serif;">
   <div style="display:flex;align-items:flex-start;gap:28px;flex-wrap:wrap;">
@@ -1630,11 +1630,11 @@ st.markdown("""
       <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:#818cf8;margin-bottom:10px;">
         NEW — SIGNAL STRATEGY BACKTEST
       </div>
-      <div style="font-size:1.1rem;font-weight:800;color:#E8EEFF;letter-spacing:-0.3px;
+      <div style="font-size:1.1rem;font-weight:800;color:var(--ua-ink);letter-spacing:-0.3px;
                   line-height:1.35;margin-bottom:10px;">
         What if you had traded the signals since 2010?
       </div>
-      <div style="font-size:0.83rem;color:#B8C0D4;line-height:1.7;margin-bottom:14px;">
+      <div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.7;margin-bottom:14px;">
         We built a rules-based strategy using our 7 daily-frequency macro signals —
         Yield Curve, HY Spread, VIX, Copper/Gold, Put/Call Ratio, and M2 — and backtested
         it against SPY buy-and-hold from 2010 to today. No lookahead bias. Transaction costs included.
@@ -1655,8 +1655,8 @@ st.markdown("""
       </div>
     </div>
     <div style="min-width:160px;text-align:center;padding-top:4px;">
-      <div style="font-size:0.65rem;color:#6B7FBF;margin-bottom:4px;">Current position</div>
-      <div style="font-size:0.60rem;color:#6B7FBF;margin-top:6px;">Based on live macro signals</div>
+      <div style="font-size:0.65rem;color:var(--ua-ink-label);margin-bottom:4px;">Current position</div>
+      <div style="font-size:0.60rem;color:var(--ua-ink-label);margin-top:6px;">Based on live macro signals</div>
     </div>
   </div>
 </div>
@@ -1677,45 +1677,45 @@ st.markdown("""
         <div style="flex:1;min-width:280px;">
             <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:#A78BFA;
                         margin-bottom:8px;">UNSTRUCTURED ALPHA PRO</div>
-            <div style="font-size:1.1rem;font-weight:800;color:#E8EEFF;letter-spacing:-0.3px;
+            <div style="font-size:1.1rem;font-weight:800;color:var(--ua-ink);letter-spacing:-0.3px;
                         margin-bottom:6px;line-height:1.3;">
                 All the tools. Plus alerts, automation,<br>and the machine working for you 24/7.
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
-                             background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
+                             background:rgba(var(--ua-purple-rgb),0.12);border:1px solid rgba(var(--ua-purple-rgb),0.28);
                              border-radius:5px;padding:3px 9px;"> Morning Digest</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
-                             background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
+                             background:rgba(var(--ua-purple-rgb),0.12);border:1px solid rgba(var(--ua-purple-rgb),0.28);
                              border-radius:5px;padding:3px 9px;">Daily X/Twitter Signals</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
-                             background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
+                             background:rgba(var(--ua-purple-rgb),0.12);border:1px solid rgba(var(--ua-purple-rgb),0.28);
                              border-radius:5px;padding:3px 9px;"> Watchlist Email Alerts</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
-                             background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
+                             background:rgba(var(--ua-purple-rgb),0.12);border:1px solid rgba(var(--ua-purple-rgb),0.28);
                              border-radius:5px;padding:3px 9px;"> Discord/Slack Webhooks</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
-                             background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
+                             background:rgba(var(--ua-purple-rgb),0.12);border:1px solid rgba(var(--ua-purple-rgb),0.28);
                              border-radius:5px;padding:3px 9px;"> Signal Backtester</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
-                             background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
+                             background:rgba(var(--ua-purple-rgb),0.12);border:1px solid rgba(var(--ua-purple-rgb),0.28);
                              border-radius:5px;padding:3px 9px;"> Factor Exposure</span>
                 <span style="font-size:0.68rem;font-weight:600;color:#A78BFA;
-                             background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);
+                             background:rgba(var(--ua-purple-rgb),0.12);border:1px solid rgba(var(--ua-purple-rgb),0.28);
                              border-radius:5px;padding:3px 9px;">Unlimited Watchlist</span>
             </div>
         </div>
         <div style="text-align:center;min-width:160px;">
-            <div style="font-size:0.62rem;color:#6B7FBF;letter-spacing:0.08em;margin-bottom:4px;
+            <div style="font-size:0.62rem;color:var(--ua-ink-label);letter-spacing:0.08em;margin-bottom:4px;
                         text-decoration:line-through;">Bloomberg: $27,000/yr</div>
             <div style="font-size:2.6rem;font-weight:900;letter-spacing:-1.5px;line-height:1.0;
-                        background:linear-gradient(135deg,#E8EEFF,#A78BFA);
+                        background:linear-gradient(135deg,var(--ua-ink),#A78BFA);
                         -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                         background-clip:text;">$20<span style="font-size:1rem;font-weight:400;
-                        -webkit-text-fill-color:#8892AA;">/mo</span></div>
+                        -webkit-text-fill-color:var(--ua-ink-mut);">/mo</span></div>
             <div style="font-size:0.72rem;color:#34D399;font-weight:700;margin-top:4px;">
                 ✓ 7-day free trial · Cancel anytime</div>
-            <div style="font-size:0.62rem;color:#6B7FBF;margin-top:2px;">
+            <div style="font-size:0.62rem;color:var(--ua-ink-label);margin-top:2px;">
                 48-hour money-back guarantee</div>
         </div>
     </div>
@@ -1746,11 +1746,11 @@ try:
         if _ref_tier == "free":
             # Full referral card for free users — motivate sharing
             st.markdown("""
-<div style="background:linear-gradient(135deg,rgba(0,213,102,0.08),rgba(0,200,224,0.08));
-            border:1px solid rgba(0,213,102,0.25);border-radius:12px;
+<div style="background:linear-gradient(135deg,rgba(var(--ua-green-rgb),0.08),rgba(var(--ua-cyan-rgb),0.08));
+            border:1px solid rgba(var(--ua-green-rgb),0.25);border-radius:12px;
             padding:22px 28px 20px;margin-bottom:6px;">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-    <span style="font-size:1.1rem;font-weight:800;color:#E8EEFF;font-family:Inter,sans-serif;
+    <span style="font-size:1.1rem;font-weight:800;color:var(--ua-ink);font-family:Inter,sans-serif;
                  letter-spacing:-0.3px;">Invite a friend — both of you win</span>
   </div>
   <div style="font-size:0.88rem;color:#9DAFC8;font-family:Inter,sans-serif;margin-bottom:14px;
@@ -1774,9 +1774,9 @@ try:
         else:
             # Pro users — compact share strip
             st.markdown("""
-<div style="background:rgba(0,213,102,0.06);border:1px solid rgba(0,213,102,0.18);
+<div style="background:rgba(var(--ua-green-rgb),0.06);border:1px solid rgba(var(--ua-green-rgb),0.18);
             border-radius:8px;padding:14px 20px 12px;margin-bottom:6px;">
-  <div style="font-size:0.9rem;font-weight:700;color:#E8EEFF;font-family:Inter,sans-serif;
+  <div style="font-size:0.9rem;font-weight:700;color:var(--ua-ink);font-family:Inter,sans-serif;
               margin-bottom:6px;"> Share Unstructured Alpha</div>
   <div style="font-size:0.82rem;color:#9DAFC8;font-family:Inter,sans-serif;margin-bottom:10px;">
     Friends get a 14-day free trial via your link. You earn 1 free month every time one subscribes.
@@ -1801,7 +1801,7 @@ except Exception:
 
 # ── ADDITIONAL TOOLS ──────────────────────────────────────────────────────────
 st.markdown("""
-<div style="font-size:0.86rem;font-weight:700;color:#E8EEFF;font-family:Inter,sans-serif;
+<div style="font-size:0.86rem;font-weight:700;color:var(--ua-ink);font-family:Inter,sans-serif;
             margin-bottom:10px;">More tools</div>
 """, unsafe_allow_html=True)
 
@@ -1826,7 +1826,7 @@ st.divider()
 
 # ── FAQ ───────────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="font-size:1.0rem;font-weight:800;color:#E8EEFF;font-family:Inter,sans-serif;
+<div style="font-size:1.0rem;font-weight:800;color:var(--ua-ink);font-family:Inter,sans-serif;
             margin-bottom:10px;letter-spacing:-0.2px;">Common questions</div>
 """, unsafe_allow_html=True)
 
@@ -1907,8 +1907,8 @@ try:
             '<div style="color:var(--ua-muted,#9AA0BE);font-size:.95rem;margin:8px 0 16px;'
             'max-width:600px;">Every signal carries a researched lead time — how far ahead '
             'it has historically led price. The edge lives in the lag.</div>'
-            '<div style="background:var(--ua-bg-card,#12151E);'
-            'border:1px solid var(--ua-border,rgba(255,255,255,.07));'
+            '<div style="background:var(--ua-bg-card,var(--ua-bg-card));'
+            'border:1px solid var(--ua-border,rgba(var(--ua-onbg-rgb),.07));'
             f'border-radius:16px;padding:20px 22px;">{_svg}</div>'
             '</div>',
             unsafe_allow_html=True,

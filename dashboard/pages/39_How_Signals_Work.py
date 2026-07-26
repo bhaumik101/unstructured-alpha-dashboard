@@ -34,13 +34,13 @@ except Exception:
 # ── Page header ────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center;padding:40px 0 28px;font-family:Inter,sans-serif;">
-  <div style="font-size:0.60rem;color:#00D566;letter-spacing:0.18em;font-weight:700;
+  <div style="font-size:0.60rem;color:var(--ua-green);letter-spacing:0.18em;font-weight:700;
               text-transform:uppercase;margin-bottom:10px;">Methodology</div>
-  <div style="font-size:clamp(1.9rem,3.5vw,2.7rem);font-weight:800;color:#E8EEFF;
+  <div style="font-size:clamp(1.9rem,3.5vw,2.7rem);font-weight:800;color:var(--ua-ink);
               letter-spacing:-1.2px;line-height:1.1;margin-bottom:14px;">
     How macro signals work
   </div>
-  <div style="font-size:0.96rem;color:#8892AA;max-width:580px;margin:0 auto;line-height:1.75;">
+  <div style="font-size:0.96rem;color:var(--ua-ink-mut);max-width:580px;margin:0 auto;line-height:1.75;">
     Every signal, score, and threshold on Unstructured Alpha explained plainly —
     what the data is, where it comes from, what it means, and what it doesn't mean.
   </div>
@@ -55,16 +55,16 @@ if _method_section == "What Are Signals":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
 
-  <h2 style="font-size:1.25rem;font-weight:700;color:#E8EEFF;margin-bottom:10px;">
+  <h2 style="font-size:1.25rem;font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
     What is a macro signal?
   </h2>
-  <p style="color:#8892AA;line-height:1.8;margin-bottom:20px;">
+  <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:20px;">
     A macro signal is a publicly available economic or financial data series that has historically
     moved <em>before</em> broad market prices responded. They include things like the shape of
     the yield curve, how wide credit spreads are, how much crude oil is sitting in storage,
     and how aggressively corporate insiders are buying their own company stock.
   </p>
-  <p style="color:#8892AA;line-height:1.8;margin-bottom:28px;">
+  <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:28px;">
     Unstructured Alpha tracks 47 of these signals across six categories.
     Each one is scored daily on a 0–100 scale. The goal is not to predict individual stock prices —
     it is to give you a clear read on whether the <em>macro environment</em> is supportive
@@ -81,22 +81,22 @@ if _method_section == "What Are Signals":
         ("", "Updated every ~6 hours", "Signal data is refreshed approximately every 6 hours from live API feeds. Timestamps are shown on every signal card."),
     ]:
         st.markdown(f"""
-<div style="background:rgba(18,21,30,0.7);border:1px solid rgba(255,255,255,0.07);
+<div style="background:rgba(var(--ua-card-rgb),0.7);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
      border-radius:12px;padding:18px;">
   <div style="font-size:1.4rem;margin-bottom:8px;">{_card[0]}</div>
-  <div style="font-size:0.85rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">{_card[1]}</div>
-  <div style="font-size:0.75rem;color:#8892AA;line-height:1.6;">{_card[2]}</div>
+  <div style="font-size:0.85rem;font-weight:700;color:var(--ua-ink);margin-bottom:6px;">{_card[1]}</div>
+  <div style="font-size:0.75rem;color:var(--ua-ink-mut);line-height:1.6;">{_card[2]}</div>
 </div>""", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("""
-  <div style="background:rgba(107,127,191,0.07);border:1px solid rgba(107,127,191,0.15);
+  <div style="background:rgba(var(--ua-label-rgb),0.07);border:1px solid rgba(var(--ua-label-rgb),0.15);
        border-radius:12px;padding:18px 22px;margin-bottom:28px;">
-    <div style="font-size:0.75rem;font-weight:700;color:#6B7FBF;letter-spacing:0.1em;
+    <div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink-label);letter-spacing:0.1em;
                 text-transform:uppercase;margin-bottom:6px;">Important distinction</div>
-    <div style="font-size:0.85rem;color:#B8C0D4;line-height:1.7;">
-      Macro signals describe the <strong style="color:#E8EEFF;">economic environment</strong>,
+    <div style="font-size:0.85rem;color:var(--ua-ink-soft);line-height:1.7;">
+      Macro signals describe the <strong style="color:var(--ua-ink);">economic environment</strong>,
       not individual stock price direction. A bullish macro backdrop does not guarantee
       every stock will go up — it means the conditions that have historically supported
       risk-on asset performance are present. Context, not prediction.
@@ -113,11 +113,11 @@ if _method_section == "How Scores Work":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
 
-  <h2 style="font-size:1.25rem;font-weight:700;color:#E8EEFF;margin-bottom:10px;">
+  <h2 style="font-size:1.25rem;font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
     How the 0–100 score is calculated
   </h2>
-  <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
-    Every signal score is a <strong style="color:#B8C0D4;">rolling percentile</strong> of the current raw reading
+  <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
+    Every signal score is a <strong style="color:var(--ua-ink-soft);">rolling percentile</strong> of the current raw reading
     versus the trailing 252 trading days (approximately one calendar year). A score of 72 means
     the current reading is more bullish than 72% of all daily readings in the past year.
     It is not an arbitrary threshold — it reflects where today sits relative to recent history.
@@ -132,40 +132,40 @@ if _method_section == "How Scores Work":
         ("#FF4444", "≤ 34", "Bearish zone",  "The signal is in the bottom third of its 1-year history. Conditions historically associated with risk-off or defensive positioning."),
     ]:
         st.markdown(f"""
-<div style="background:rgba(18,21,30,0.6);border:1px solid rgba(255,255,255,0.07);
+<div style="background:rgba(var(--ua-card-rgb),0.6);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
      border-radius:10px;padding:14px 18px;display:flex;align-items:flex-start;gap:16px;">
   <div style="flex-shrink:0;min-width:56px;text-align:center;">
     <div style="font-size:1.2rem;font-weight:800;color:{_row[0]};letter-spacing:-0.5px;">{_row[1]}</div>
     <div style="font-size:0.58rem;color:{_row[0]};letter-spacing:0.1em;font-weight:700;
                 text-transform:uppercase;margin-top:2px;">{_row[2]}</div>
   </div>
-  <div style="font-size:0.80rem;color:#8892AA;line-height:1.65;">{_row[3]}</div>
+  <div style="font-size:0.80rem;color:var(--ua-ink-mut);line-height:1.65;">{_row[3]}</div>
 </div>""", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("""
-  <h3 style="font-size:1.0rem;font-weight:700;color:#E8EEFF;margin-bottom:10px;">
+  <h3 style="font-size:1.0rem;font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
     What is the Confluence Score?
   </h3>
-  <p style="color:#8892AA;line-height:1.8;margin-bottom:16px;">
-    The <strong style="color:#B8C0D4;">Confluence Score</strong> is a weighted composite of the signals
+  <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:16px;">
+    The <strong style="color:var(--ua-ink-soft);">Confluence Score</strong> is a weighted composite of the signals
     most relevant to a specific stock's sector and business model. An energy company
     is weighted more heavily toward crude inventory and rig count signals.
     A semiconductor company gets more weight on capex cycle and credit signals.
   </p>
-  <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
+  <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
     The word "confluence" is intentional: a score above 65 means <em>multiple</em>
     relevant signals are simultaneously in bullish territory — not just one.
     A single outlier signal rarely drives the composite far into either extreme.
     When it does, it is usually worth investigating why.
   </p>
 
-  <div style="background:rgba(0,213,102,0.05);border:1px solid rgba(0,213,102,0.18);
+  <div style="background:rgba(var(--ua-green-rgb),0.05);border:1px solid rgba(var(--ua-green-rgb),0.18);
        border-radius:12px;padding:18px 22px;margin-bottom:28px;">
-    <div style="font-size:0.75rem;font-weight:700;color:#00D566;letter-spacing:0.1em;
+    <div style="font-size:0.75rem;font-weight:700;color:var(--ua-green);letter-spacing:0.1em;
                 text-transform:uppercase;margin-bottom:6px;">No lookahead bias</div>
-    <div style="font-size:0.82rem;color:#B8C0D4;line-height:1.7;">
+    <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.7;">
       Every score is calculated using only data available at the time of calculation.
       Percentile rankings use only historical data up to the current date.
       Backtests in the Signal Backtester page use <code>score.shift(1)</code>
@@ -182,19 +182,19 @@ if _method_section == "How Scores Work":
 if _method_section == "Why It Works":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
-  <h2 style="font-size:1.25rem;font-weight:700;color:#E8EEFF;margin-bottom:10px;">
+  <h2 style="font-size:1.25rem;font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
     Why a signal can lead price — and what that's honestly worth
   </h2>
-  <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
+  <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
     A signal is only worth watching if there's a <em>reason</em> it moves before price does,
     and only worth trusting if we're honest about how large that edge really is. Both matter,
     so both are spelled out here.
   </p>
 
-  <div style="background:rgba(18,21,30,0.55);border:1px solid rgba(255,255,255,0.06);
-       border-left:3px solid rgba(0,200,224,0.5);border-radius:0 12px 12px 0;
+  <div style="background:rgba(var(--ua-card-rgb),0.55);border:1px solid rgba(var(--ua-onbg-rgb),0.06);
+       border-left:3px solid rgba(var(--ua-cyan-rgb),0.5);border-radius:0 12px 12px 0;
        padding:18px 22px;margin-bottom:14px;">
-    <div style="font-size:0.9rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">
+    <div style="font-size:0.9rem;font-weight:700;color:var(--ua-ink);margin-bottom:6px;">
       The mechanism: markets under-react to slow-moving information
     </div>
     <div style="font-size:0.82rem;color:#9AA4BC;line-height:1.8;">
@@ -210,10 +210,10 @@ if _method_section == "Why It Works":
     </div>
   </div>
 
-  <div style="background:rgba(18,21,30,0.55);border:1px solid rgba(255,255,255,0.06);
+  <div style="background:rgba(var(--ua-card-rgb),0.55);border:1px solid rgba(var(--ua-onbg-rgb),0.06);
        border-left:3px solid rgba(255,180,60,0.5);border-radius:0 12px 12px 0;
        padding:18px 22px;margin-bottom:14px;">
-    <div style="font-size:0.9rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">
+    <div style="font-size:0.9rem;font-weight:700;color:var(--ua-ink);margin-bottom:6px;">
       What to realistically expect: small, stackable edges — not forecasts
     </div>
     <div style="font-size:0.82rem;color:#9AA4BC;line-height:1.8;">
@@ -228,10 +228,10 @@ if _method_section == "Why It Works":
     </div>
   </div>
 
-  <div style="background:rgba(18,21,30,0.55);border:1px solid rgba(255,255,255,0.06);
-       border-left:3px solid rgba(0,213,102,0.5);border-radius:0 12px 12px 0;
+  <div style="background:rgba(var(--ua-card-rgb),0.55);border:1px solid rgba(var(--ua-onbg-rgb),0.06);
+       border-left:3px solid rgba(var(--ua-green-rgb),0.5);border-radius:0 12px 12px 0;
        padding:18px 22px;margin-bottom:14px;">
-    <div style="font-size:0.9rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">
+    <div style="font-size:0.9rem;font-weight:700;color:var(--ua-ink);margin-bottom:6px;">
       How we hold ourselves to it
     </div>
     <div style="font-size:0.82rem;color:#9AA4BC;line-height:1.8;">
@@ -244,7 +244,7 @@ if _method_section == "Why It Works":
     </div>
   </div>
 
-  <p style="color:#6B7FBF;line-height:1.7;font-size:0.8rem;margin-top:6px;">
+  <p style="color:var(--ua-ink-label);line-height:1.7;font-size:0.8rem;margin-top:6px;">
     See the measured, per-signal numbers on the <strong style="color:#9EDBE3;">Model Validation</strong>
     page, and how much independent evidence stands behind any score on a ticker's
     <strong style="color:#9EDBE3;">Deep Dive</strong>.
@@ -259,7 +259,7 @@ if _method_section == "Why It Works":
 if _method_section == "Signal Categories":
     st.markdown("""
 <div style="max-width:860px;margin:28px auto 0;font-family:Inter,sans-serif;">
-  <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
+  <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
     Unstructured Alpha's 47 signals are grouped into six categories.
     Each category captures a different dimension of the macro environment.
   </p>
@@ -318,25 +318,25 @@ if _method_section == "Signal Categories":
 
     for _cat in _categories:
         _sigs_html = "".join(
-            f'<span style="font-size:0.68rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);'
-            f'color:#8892AA;border-radius:5px;padding:2px 8px;white-space:nowrap;">{s}</span> '
+            f'<span style="font-size:0.68rem;background:rgba(var(--ua-onbg-rgb),0.04);border:1px solid rgba(var(--ua-onbg-rgb),0.08);'
+            f'color:var(--ua-ink-mut);border-radius:5px;padding:2px 8px;white-space:nowrap;">{s}</span> '
             for s in _cat["signals"]
         )
         _srcs_html = "".join(
-            f'<span style="font-size:0.65rem;background:rgba(107,127,191,0.08);border:1px solid rgba(107,127,191,0.18);'
-            f'color:#6B7FBF;border-radius:5px;padding:2px 8px;font-weight:600;">{s}</span> '
+            f'<span style="font-size:0.65rem;background:rgba(var(--ua-label-rgb),0.08);border:1px solid rgba(var(--ua-label-rgb),0.18);'
+            f'color:var(--ua-ink-label);border-radius:5px;padding:2px 8px;font-weight:600;">{s}</span> '
             for s in _cat["sources"]
         )
         st.markdown(f"""
-<div style="background:rgba(18,21,30,0.65);border:1px solid rgba(255,255,255,0.07);
+<div style="background:rgba(var(--ua-card-rgb),0.65);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
      border-radius:14px;padding:20px 24px;margin-bottom:14px;">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
     <span style="font-size:1.3rem;">{_cat["icon"]}</span>
     <span style="font-size:1.0rem;font-weight:700;color:{_cat["color"]};">{_cat["name"]}</span>
   </div>
-  <p style="font-size:0.80rem;color:#8892AA;line-height:1.7;margin-bottom:12px;">{_cat["desc"]}</p>
+  <p style="font-size:0.80rem;color:var(--ua-ink-mut);line-height:1.7;margin-bottom:12px;">{_cat["desc"]}</p>
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">{_sigs_html}</div>
-  <div style="border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
+  <div style="border-top:1px solid rgba(var(--ua-onbg-rgb),0.05);padding-top:10px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
     <span style="font-size:0.60rem;color:#4A5280;letter-spacing:0.1em;font-weight:700;text-transform:uppercase;margin-right:4px;">Sources:</span>
     {_srcs_html}
   </div>
@@ -351,7 +351,7 @@ if _method_section == "Signal Categories":
 if _method_section == "Data Sources":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
-  <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
+  <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
     Every data point on Unstructured Alpha comes from official public sources — government agencies,
     regulatory bodies, and exchange-operated feeds. We do not use proprietary estimates,
     paid data vendors, or scraped social media sentiment as primary inputs.
@@ -405,18 +405,18 @@ if _method_section == "Data Sources":
 
     for _src in _sources_detail:
         st.markdown(f"""
-<div style="background:rgba(18,21,30,0.65);border:1px solid rgba(255,255,255,0.07);
+<div style="background:rgba(var(--ua-card-rgb),0.65);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
      border-radius:13px;padding:18px 22px;margin-bottom:12px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
     <div>
-      <div style="font-size:0.90rem;font-weight:700;color:#E8EEFF;margin-bottom:2px;">{_src["name"]}</div>
-      <div style="font-size:0.70rem;color:#6B7FBF;">{_src["org"]}</div>
+      <div style="font-size:0.90rem;font-weight:700;color:var(--ua-ink);margin-bottom:2px;">{_src["name"]}</div>
+      <div style="font-size:0.70rem;color:var(--ua-ink-label);">{_src["org"]}</div>
     </div>
   </div>
-  <div style="margin-top:10px;font-size:0.78rem;color:#8892AA;line-height:1.65;">
-    <strong style="color:#B8C0D4;">Signals:</strong> {_src["signals"]}
+  <div style="margin-top:10px;font-size:0.78rem;color:var(--ua-ink-mut);line-height:1.65;">
+    <strong style="color:var(--ua-ink-soft);">Signals:</strong> {_src["signals"]}
   </div>
-  <div style="margin-top:6px;font-size:0.75rem;color:#6B7FBF;line-height:1.6;">
+  <div style="margin-top:6px;font-size:0.75rem;color:var(--ua-ink-label);line-height:1.6;">
     <strong>Notes:</strong> {_src["notes"]}
   </div>
 </div>""", unsafe_allow_html=True)
@@ -430,10 +430,10 @@ if _method_section == "Data Sources":
 if _method_section == "Limitations":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
-  <h2 style="font-size:1.15rem;font-weight:700;color:#E8EEFF;margin-bottom:10px;">
+  <h2 style="font-size:1.15rem;font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
     What Unstructured Alpha does not do
   </h2>
-  <p style="color:#8892AA;line-height:1.8;margin-bottom:24px;">
+  <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
     We believe transparent limitations are a feature, not a weakness.
     This section exists so you can make an informed decision about how to use this tool.
   </p>
@@ -451,19 +451,19 @@ if _method_section == "Limitations":
 
     for _i, (_title, _desc) in enumerate(_limits):
         st.markdown(f"""
-<div style="background:rgba(18,21,30,0.55);border:1px solid rgba(255,255,255,0.06);
-     border-left:3px solid rgba(255,68,68,0.4);border-radius:0 12px 12px 0;
+<div style="background:rgba(var(--ua-card-rgb),0.55);border:1px solid rgba(var(--ua-onbg-rgb),0.06);
+     border-left:3px solid rgba(var(--ua-red-rgb),0.4);border-radius:0 12px 12px 0;
      padding:16px 20px;margin-bottom:10px;">
-  <div style="font-size:0.85rem;font-weight:700;color:#E8EEFF;margin-bottom:5px;">{_title}</div>
-  <div style="font-size:0.78rem;color:#8892AA;line-height:1.7;">{_desc}</div>
+  <div style="font-size:0.85rem;font-weight:700;color:var(--ua-ink);margin-bottom:5px;">{_title}</div>
+  <div style="font-size:0.78rem;color:var(--ua-ink-mut);line-height:1.7;">{_desc}</div>
 </div>""", unsafe_allow_html=True)
 
     st.markdown("""
-  <div style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.2);
+  <div style="background:rgba(var(--ua-red-rgb),0.05);border:1px solid rgba(var(--ua-red-rgb),0.2);
        border-radius:12px;padding:18px 22px;margin-top:20px;margin-bottom:28px;">
     <div style="font-size:0.75rem;font-weight:700;color:#FF6B6B;letter-spacing:0.1em;
                 text-transform:uppercase;margin-bottom:6px;">Full disclaimer</div>
-    <div style="font-size:0.78rem;color:#B8C0D4;line-height:1.75;">
+    <div style="font-size:0.78rem;color:var(--ua-ink-soft);line-height:1.75;">
       Unstructured Alpha is an educational and informational platform only.
       Nothing on this platform constitutes personalized financial, investment,
       tax, or legal advice. Macro signal scores reflect historical percentile rankings
@@ -511,7 +511,7 @@ if _method_section == "FAQ":
 
     for _q, _a in _faqs:
         with st.expander(_q):
-            st.markdown(f'<div style="font-size:0.82rem;color:#8892AA;line-height:1.8;padding:6px 0;">{_a}</div>',
+            st.markdown(f'<div style="font-size:0.82rem;color:var(--ua-ink-mut);line-height:1.8;padding:6px 0;">{_a}</div>',
                         unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -520,13 +520,13 @@ if _method_section == "FAQ":
 # ── Bottom CTA ─────────────────────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("""
-<div style="background:rgba(0,213,102,0.04);border:1px solid rgba(0,213,102,0.15);
+<div style="background:rgba(var(--ua-green-rgb),0.04);border:1px solid rgba(var(--ua-green-rgb),0.15);
      border-radius:16px;padding:28px;text-align:center;max-width:620px;margin:0 auto 40px;
      font-family:Inter,sans-serif;">
-  <div style="font-size:1.1rem;font-weight:700;color:#E8EEFF;margin-bottom:8px;">
+  <div style="font-size:1.1rem;font-weight:700;color:var(--ua-ink);margin-bottom:8px;">
     See the signals live
   </div>
-  <div style="font-size:0.82rem;color:#8892AA;margin-bottom:20px;line-height:1.7;">
+  <div style="font-size:0.82rem;color:var(--ua-ink-mut);margin-bottom:20px;line-height:1.7;">
     The Signal Dashboard shows all 47 signals with live scores, trend direction,
     and the regime read. No account required to browse.
   </div>
@@ -538,10 +538,10 @@ with _c2:
         st.switch_page("pages/1_Signal_Dashboard.py")
 
 st.markdown("""
-  <div style="margin-top:16px;font-size:0.72rem;color:#6B7FBF;">
-    Also see: <a href="#" style="color:#6B7FBF;">Model Validation</a> ·
-    <a href="#" style="color:#6B7FBF;">About & Methodology</a> ·
-    <a href="#" style="color:#6B7FBF;">Track Record</a>
+  <div style="margin-top:16px;font-size:0.72rem;color:var(--ua-ink-label);">
+    Also see: <a href="#" style="color:var(--ua-ink-label);">Model Validation</a> ·
+    <a href="#" style="color:var(--ua-ink-label);">About & Methodology</a> ·
+    <a href="#" style="color:var(--ua-ink-label);">Track Record</a>
   </div>
 </div>
 """, unsafe_allow_html=True)

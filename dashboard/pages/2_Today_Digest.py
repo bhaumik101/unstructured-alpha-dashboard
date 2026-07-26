@@ -98,7 +98,7 @@ if _brief_section == "My Priorities":
             or _priority_user.get("email", "Member").split("@", 1)[0]
         )
         st.markdown(
-            f'<div style="background:#11161E;border:1px solid rgba(255,255,255,.09);'
+            f'<div style="background:#11161E;border:1px solid rgba(var(--ua-onbg-rgb),.09);'
             f'border-radius:10px;padding:16px 18px;margin-bottom:18px;display:flex;'
             f'align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;">'
             f'<div><div style="font-size:.66rem;color:#8F9AAD;text-transform:uppercase;letter-spacing:.11em;">'
@@ -364,18 +364,18 @@ elif _brief_section == "Market Intelligence":
         pass
 
     st.markdown(
-        f'<div style="background:#12151E;border:1px solid rgba(255,255,255,0.07);border-radius:10px;'
+        f'<div style="background:var(--ua-bg-card);border:1px solid rgba(var(--ua-onbg-rgb),0.07);border-radius:10px;'
         f'padding:10px 18px;margin-bottom:14px;display:flex;align-items:center;'
         f'justify-content:space-between;flex-wrap:wrap;gap:8px;font-family:Inter,sans-serif;">'
         f'<div style="display:flex;align-items:center;gap:8px;">'
         f'<span class="ua-pulse-dot"></span>'
         f'<div>'
-        f'<div style="font-size:0.60rem;font-weight:700;color:#8892AA;text-transform:uppercase;letter-spacing:0.12em;">'
+        f'<div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.12em;">'
         f'{_today_str}</div>'
-        f'<div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;">As of {_as_of}</div>'
+        f'<div style="font-size:0.88rem;font-weight:700;color:var(--ua-ink);">As of {_as_of}</div>'
         f'</div>'
         f'</div>'
-        f'<div style="font-size:0.72rem;color:#6B7FBF;text-align:right;">'
+        f'<div style="font-size:0.72rem;color:var(--ua-ink-label);text-align:right;">'
         f'{len(_all_scores)} signals · 2h cache<br>'
         f'<span style="color:#4A5478;">weekly/monthly signals; 2h refresh is appropriate</span>'
         f'</div>'
@@ -391,7 +391,7 @@ elif _brief_section == "Market Intelligence":
                    ("rgba(255,68,68,0.08)" if ("BEAR" in _nar["regime"] or "OFF" in _nar["regime"]) else "#12151E")
         _nar_watch_html = (
             f'<div style="margin-top:8px;padding:7px 10px;background:rgba(245,158,11,0.08);'
-            f'border-left:3px solid #F59E0B;border-radius:4px;font-size:0.73rem;color:#F59E0B;">'
+            f'border-left:3px solid var(--ua-amber);border-radius:4px;font-size:0.73rem;color:var(--ua-amber);">'
             f' {_nar["watch_note"]}</div>'
             if _nar.get("watch_note") else ""
         )
@@ -402,9 +402,9 @@ elif _brief_section == "Market Intelligence":
             f'<span style="font-size:0.62rem;font-weight:700;letter-spacing:0.14em;color:{_nar_rc};'
             f'text-transform:uppercase;">Today\'s Macro Call</span>'
             f'</div>'
-            f'<div style="font-size:1.05rem;font-weight:800;color:#E8EEFF;margin-bottom:8px;'
+            f'<div style="font-size:1.05rem;font-weight:800;color:var(--ua-ink);margin-bottom:8px;'
             f'line-height:1.3;letter-spacing:-0.2px;">{_nar["headline"]}</div>'
-            f'<div style="font-size:0.80rem;color:#B8C0D4;line-height:1.65;">'
+            f'<div style="font-size:0.80rem;color:var(--ua-ink-soft);line-height:1.65;">'
             f'{_nar["summary"]}</div>'
             f'{_nar_watch_html}'
             f'</div>',
@@ -424,8 +424,8 @@ elif _brief_section == "Market Intelligence":
 
         if _d_flip_total > 0 or _d_movers or _d_regime:
             _regime_shift_html = (
-                f'<div style="background:rgba(245,158,11,0.08);border-left:3px solid #F59E0B;padding:5px 10px;'
-                f'border-radius:4px;font-size:0.76rem;color:#F59E0B;margin-bottom:8px;">'
+                f'<div style="background:rgba(245,158,11,0.08);border-left:3px solid var(--ua-amber);padding:5px 10px;'
+                f'border-radius:4px;font-size:0.76rem;color:var(--ua-amber);margin-bottom:8px;">'
                 f' Regime shift: <b>{_d_regime}</b></div>'
                 if _d_regime else ""
             )
@@ -447,23 +447,23 @@ elif _brief_section == "Market Intelligence":
                 f'{"▲" if m["direction"]=="up" else "▼"} {m["name"][:24]} ({m["delta"]:+.0f}pts)</span>'
                 for m in _d_movers
             )
-            _diff_lbl_style = 'style="font-size:0.72rem;color:#B8C0D4;margin-bottom:4px"'
-            _diff_lbl_bear  = 'style="font-size:0.72rem;color:#B8C0D4;margin:6px 0 4px"'
-            _diff_lbl_move  = 'style="font-size:0.72rem;color:#B8C0D4;margin:6px 0 4px"'
+            _diff_lbl_style = 'style="font-size:0.72rem;color:var(--ua-ink-soft);margin-bottom:4px"'
+            _diff_lbl_bear  = 'style="font-size:0.72rem;color:var(--ua-ink-soft);margin:6px 0 4px"'
+            _diff_lbl_move  = 'style="font-size:0.72rem;color:var(--ua-ink-soft);margin:6px 0 4px"'
             _bull_section  = (f'<div {_diff_lbl_style}>Flipped bullish</div>' + _bull_pills) if _bull_pills else ""
             _bear_section  = (f'<div {_diff_lbl_bear}>Flipped bearish</div>' + _bear_pills) if _bear_pills else ""
             _mover_section = (f'<div {_diff_lbl_move}>Biggest score movers</div>' + _mover_pills) if _mover_pills else ""
             _flip_word     = "signals" if _d_flip_total != 1 else "signal"
             st.markdown(
-                f'<div style="background:rgba(18,21,30,0.85);border-radius:12px;padding:18px 22px;'
-                f'margin-bottom:18px;border:1px solid rgba(255,255,255,0.10);'
-                f'border-left:4px solid #F59E0B;font-family:Inter,sans-serif;'
+                f'<div style="background:rgba(var(--ua-card-rgb),0.85);border-radius:12px;padding:18px 22px;'
+                f'margin-bottom:18px;border:1px solid rgba(var(--ua-onbg-rgb),0.10);'
+                f'border-left:4px solid var(--ua-amber);font-family:Inter,sans-serif;'
                 f'box-shadow:0 4px 20px rgba(0,0,0,0.30);">'
                 f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
                 f'<span style="font-size:1.1rem;"></span>'
-                f'<div style="font-size:0.70rem;font-weight:700;letter-spacing:0.12em;color:#F59E0B;'
+                f'<div style="font-size:0.70rem;font-weight:700;letter-spacing:0.12em;color:var(--ua-amber);'
                 f'text-transform:uppercase;">What Changed Since Last Week</div>'
-                f'<div style="margin-left:auto;font-size:0.62rem;color:#6B7FBF;">'
+                f'<div style="margin-left:auto;font-size:0.62rem;color:var(--ua-ink-label);">'
                 f'{_d_flip_total} {_flip_word} flipped · vs 7 days ago</div>'
                 f'</div>'
                 f'{_regime_shift_html}'
@@ -479,8 +479,8 @@ elif _brief_section == "Market Intelligence":
         _conv = get_convergence_events(days_back=7, min_signals=3)
         if _conv:
             st.markdown(
-                '<div style="font-size:0.68rem;font-weight:700;color:#8892AA;letter-spacing:0.10em;'
-                'text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:6px;margin-bottom:10px;">'
+                '<div style="font-size:0.68rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.10em;'
+                'text-transform:uppercase;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.08);padding-bottom:6px;margin-bottom:10px;">'
                 ' SIGNAL CONVERGENCE EVENTS — 3+ signals aligned this week</div>',
                 unsafe_allow_html=True,
             )
@@ -496,10 +496,10 @@ elif _brief_section == "Market Intelligence":
         _n_bear_flip  = _near.get("near_bearish_flip", [])
         if _n_bull_flip or _n_bear_flip:
             st.markdown(
-                '<div style="background:#12151E;border-radius:10px;padding:14px 18px;margin-bottom:18px;'
-                'border:1px solid rgba(255,255,255,0.08);font-family:Inter,sans-serif;">'
-                '<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.10em;color:#8892AA;'
-                'text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:6px;">'
+                '<div style="background:var(--ua-bg-card);border-radius:10px;padding:14px 18px;margin-bottom:18px;'
+                'border:1px solid rgba(var(--ua-onbg-rgb),0.08);font-family:Inter,sans-serif;">'
+                '<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.10em;color:var(--ua-ink-mut);'
+                'text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.08);padding-bottom:6px;">'
                 ' ABOUT TO FLIP — signals within 5 pts of a threshold crossing</div>',
                 unsafe_allow_html=True,
             )
@@ -507,7 +507,7 @@ elif _brief_section == "Market Intelligence":
             with _flip_cols[0]:
                 if _n_bull_flip:
                     st.markdown(
-                        '<div style="font-size:0.72rem;font-weight:700;color:#00D566;text-transform:uppercase;'
+                        '<div style="font-size:0.72rem;font-weight:700;color:var(--ua-green);text-transform:uppercase;'
                         'letter-spacing:0.06em;margin-bottom:6px;">▲ Approaching BULLISH (≥65)</div>',
                         unsafe_allow_html=True,
                     )
@@ -520,23 +520,23 @@ elif _brief_section == "Market Intelligence":
                         )
                         _vel_color = "#00D566" if _v > 0 else ("#FF4444" if _v < 0 else "#8892AA")
                         st.markdown(
-                            f'<div style="background:rgba(0,213,102,0.08);border-radius:5px;padding:7px 12px;margin-bottom:5px;'
-                            f'border-left:3px solid #00D566;">'
-                            f'<div style="font-size:0.80rem;font-weight:700;color:#E8EEFF;">{_nf["name"][:32]}</div>'
-                            f'<div style="font-size:0.72rem;color:#B8C0D4;margin-top:2px;">'
+                            f'<div style="background:rgba(var(--ua-green-rgb),0.08);border-radius:5px;padding:7px 12px;margin-bottom:5px;'
+                            f'border-left:3px solid var(--ua-green);">'
+                            f'<div style="font-size:0.80rem;font-weight:700;color:var(--ua-ink);">{_nf["name"][:32]}</div>'
+                            f'<div style="font-size:0.72rem;color:var(--ua-ink-soft);margin-top:2px;">'
                             f'Score: <b>{_nf["score"]}</b> · '
-                            f'<span style="color:#00D566;font-weight:700;">{_nf["pts_away"]} pts to flip</span>'
+                            f'<span style="color:var(--ua-green);font-weight:700;">{_nf["pts_away"]} pts to flip</span>'
                             f' · <span style="color:{_vel_color};">'
                             f'{"▲" if _v > 0 else ("▼" if _v < 0 else "→")} {abs(_v):.1f} pts/wk</span>'
                             f'{_eta_txt}</div>'
-                            f'<div style="font-size:0.67rem;color:#8892AA;margin-top:1px;">{_nf["category"]}</div>'
+                            f'<div style="font-size:0.67rem;color:var(--ua-ink-mut);margin-top:1px;">{_nf["category"]}</div>'
                             f'</div>',
                             unsafe_allow_html=True,
                         )
             with _flip_cols[1]:
                 if _n_bear_flip:
                     st.markdown(
-                        '<div style="font-size:0.72rem;font-weight:700;color:#FF4444;text-transform:uppercase;'
+                        '<div style="font-size:0.72rem;font-weight:700;color:var(--ua-red);text-transform:uppercase;'
                         'letter-spacing:0.06em;margin-bottom:6px;">▼ Approaching BEARISH (≤35)</div>',
                         unsafe_allow_html=True,
                     )
@@ -549,16 +549,16 @@ elif _brief_section == "Market Intelligence":
                         )
                         _vel_color = "#FF4444" if _v < 0 else ("#00D566" if _v > 0 else "#8892AA")
                         st.markdown(
-                            f'<div style="background:rgba(255,68,68,0.08);border-radius:5px;padding:7px 12px;margin-bottom:5px;'
-                            f'border-left:3px solid #FF4444;">'
-                            f'<div style="font-size:0.80rem;font-weight:700;color:#E8EEFF;">{_nf["name"][:32]}</div>'
-                            f'<div style="font-size:0.72rem;color:#B8C0D4;margin-top:2px;">'
+                            f'<div style="background:rgba(var(--ua-red-rgb),0.08);border-radius:5px;padding:7px 12px;margin-bottom:5px;'
+                            f'border-left:3px solid var(--ua-red);">'
+                            f'<div style="font-size:0.80rem;font-weight:700;color:var(--ua-ink);">{_nf["name"][:32]}</div>'
+                            f'<div style="font-size:0.72rem;color:var(--ua-ink-soft);margin-top:2px;">'
                             f'Score: <b>{_nf["score"]}</b> · '
-                            f'<span style="color:#FF4444;font-weight:700;">{_nf["pts_away"]} pts to flip</span>'
+                            f'<span style="color:var(--ua-red);font-weight:700;">{_nf["pts_away"]} pts to flip</span>'
                             f' · <span style="color:{_vel_color};">'
                             f'{"▲" if _v > 0 else ("▼" if _v < 0 else "→")} {abs(_v):.1f} pts/wk</span>'
                             f'{_eta_txt}</div>'
-                            f'<div style="font-size:0.67rem;color:#8892AA;margin-top:1px;">{_nf["category"]}</div>'
+                            f'<div style="font-size:0.67rem;color:var(--ua-ink-mut);margin-top:1px;">{_nf["category"]}</div>'
                             f'</div>',
                             unsafe_allow_html=True,
                         )
@@ -600,7 +600,7 @@ elif _brief_section == "Market Intelligence":
             score_str = f"{score:.0f}"
         return (
             f'<div style="background:{bg_tint};border-radius:7px;padding:7px 12px;margin-bottom:5px;'
-            f'border-left:2px solid {color};border:1px solid rgba(255,255,255,0.06);'
+            f'border-left:2px solid {color};border:1px solid rgba(var(--ua-onbg-rgb),0.06);'
             f'border-left-width:2px;font-family:Inter,sans-serif;'
             f'transition:border-color 0.15s ease;">'
             f'<div style="display:flex;align-items:center;justify-content:space-between;">'
@@ -616,10 +616,10 @@ elif _brief_section == "Market Intelligence":
 
     with _pulse_col1:
         st.markdown(
-            f'<div style="font-size:0.70rem;font-weight:700;color:#00D566;letter-spacing:0.08em;'
-            f'text-transform:uppercase;border-bottom:2px solid rgba(0,213,102,0.4);'
+            f'<div style="font-size:0.70rem;font-weight:700;color:var(--ua-green);letter-spacing:0.08em;'
+            f'text-transform:uppercase;border-bottom:2px solid rgba(var(--ua-green-rgb),0.4);'
             f'padding-bottom:5px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">'
-            f'<span style="background:rgba(0,213,102,0.12);border:1px solid rgba(0,213,102,0.3);'
+            f'<span style="background:rgba(var(--ua-green-rgb),0.12);border:1px solid rgba(var(--ua-green-rgb),0.3);'
             f'border-radius:12px;padding:1px 8px;font-size:0.68rem;">▲ {len(_bull_sigs)}</span>'
             f'BULLISH</div>',
             unsafe_allow_html=True,
@@ -632,10 +632,10 @@ elif _brief_section == "Market Intelligence":
 
     with _pulse_col2:
         st.markdown(
-            f'<div style="font-size:0.70rem;font-weight:700;color:#FF4444;letter-spacing:0.08em;'
-            f'text-transform:uppercase;border-bottom:2px solid rgba(255,68,68,0.4);'
+            f'<div style="font-size:0.70rem;font-weight:700;color:var(--ua-red);letter-spacing:0.08em;'
+            f'text-transform:uppercase;border-bottom:2px solid rgba(var(--ua-red-rgb),0.4);'
             f'padding-bottom:5px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">'
-            f'<span style="background:rgba(255,68,68,0.12);border:1px solid rgba(255,68,68,0.3);'
+            f'<span style="background:rgba(var(--ua-red-rgb),0.12);border:1px solid rgba(var(--ua-red-rgb),0.3);'
             f'border-radius:12px;padding:1px 8px;font-size:0.68rem;">▼ {len(_bear_sigs)}</span>'
             f'BEARISH</div>',
             unsafe_allow_html=True,
@@ -648,7 +648,7 @@ elif _brief_section == "Market Intelligence":
 
     with _pulse_col3:
         st.markdown(
-            f'<div style="font-size:0.70rem;font-weight:700;color:#8892AA;letter-spacing:0.08em;'
+            f'<div style="font-size:0.70rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.08em;'
             f'text-transform:uppercase;border-bottom:2px solid rgba(136,146,170,0.3);'
             f'padding-bottom:5px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">'
             f'<span style="background:rgba(136,146,170,0.10);border:1px solid rgba(136,146,170,0.25);'
@@ -675,16 +675,16 @@ elif _brief_section == "Market Intelligence":
     _bias_color = "#00D566" if "BULL" in _overall_bias else ("#FF4444" if "BEAR" in _overall_bias else "#8892AA")
 
     st.markdown(
-        f'<div style="background:#12151E;border:1px solid rgba(255,255,255,0.08);border-radius:10px;'
+        f'<div style="background:var(--ua-bg-card);border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-radius:10px;'
         f'padding:12px 18px;margin-top:8px;font-family:Inter,sans-serif;">'
         f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
         f'<b style="font-size:0.88rem;color:{_bias_color};">{_overall_bias}</b>'
-        f'<span style="font-size:0.72rem;color:#8892AA;">{_n_bull}B / {_n_bear}Be / {_n_neut}N</span>'
+        f'<span style="font-size:0.72rem;color:var(--ua-ink-mut);">{_n_bull}B / {_n_bear}Be / {_n_neut}N</span>'
         f'</div>'
         f'<div style="display:flex;height:6px;border-radius:4px;overflow:hidden;gap:1px;">'
-        f'<div style="flex:{_bull_pct:.0f};background:#00D566;min-width:{"2px" if _bull_pct > 0 else "0"};"></div>'
-        f'<div style="flex:{_bear_pct:.0f};background:#FF4444;min-width:{"2px" if _bear_pct > 0 else "0"};"></div>'
-        f'<div style="flex:{_neut_pct:.0f};background:#6B7FBF;min-width:{"2px" if _neut_pct > 0 else "0"};"></div>'
+        f'<div style="flex:{_bull_pct:.0f};background:var(--ua-green);min-width:{"2px" if _bull_pct > 0 else "0"};"></div>'
+        f'<div style="flex:{_bear_pct:.0f};background:var(--ua-red);min-width:{"2px" if _bear_pct > 0 else "0"};"></div>'
+        f'<div style="flex:{_neut_pct:.0f};background:var(--ua-ink-label);min-width:{"2px" if _neut_pct > 0 else "0"};"></div>'
         f'</div>'
         f'</div>',
         unsafe_allow_html=True,
@@ -701,10 +701,10 @@ elif _brief_section == "Market Intelligence":
         _week_flips = get_signal_flips(days_back=7)
         if _week_flips:
             st.markdown(
-                f'<div style="background:#12151E;border:1px solid rgba(255,255,255,0.08);border-left:5px solid #12151E;'
+                f'<div style="background:var(--ua-bg-card);border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-left:5px solid var(--ua-bg-card);'
                 f'border-radius:8px;padding:14px 20px;margin-bottom:14px;font-family:Inter,sans-serif;">'
                 f'<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;'
-                f'color:#12151E;font-weight:700;margin-bottom:10px;">'
+                f'color:var(--ua-bg-card);font-weight:700;margin-bottom:10px;">'
                 f' {len(_week_flips)} signal change{"s" if len(_week_flips) != 1 else ""} this week — what you may have missed</div>'
                 f'<div style="display:flex;flex-wrap:wrap;gap:8px;">',
                 unsafe_allow_html=True,
@@ -723,14 +723,14 @@ elif _brief_section == "Market Intelligence":
                 _wflip_cells += (
                     f'<div style="background:{_wf_bg};border:1px solid {_wf_tc}40;border-left:3px solid {_wf_tc};'
                     f'border-radius:5px;padding:6px 10px;min-width:160px;flex:1;">'
-                    f'<div style="font-size:0.76rem;font-weight:700;color:#E8EEFF;line-height:1.3;margin-bottom:3px;">'
+                    f'<div style="font-size:0.76rem;font-weight:700;color:var(--ua-ink);line-height:1.3;margin-bottom:3px;">'
                     f'{_wf_name[:30]}</div>'
                     f'<div style="font-size:0.78rem;">'
                     f'<span style="color:{_wf_fc};">{_wf_fs}</span>'
-                    f' <span style="color:#6B7FBF;">→</span> '
+                    f' <span style="color:var(--ua-ink-label);">→</span> '
                     f'<span style="font-weight:700;color:{_wf_tc};">{_wf_ts} {_wf["to_status"].replace("_"," ").title()}</span>'
                     f'</div>'
-                    f'<div style="font-size:0.67rem;color:#8892AA;margin-top:2px;">{_wf["to_date"]}</div>'
+                    f'<div style="font-size:0.67rem;color:var(--ua-ink-mut);margin-top:2px;">{_wf["to_date"]}</div>'
                     f'</div>'
                 )
             st.markdown(_wflip_cells + f'</div></div>', unsafe_allow_html=True)
@@ -761,12 +761,12 @@ elif _brief_section == "Market Intelligence":
             fa = FLIP_ARROW.get(flip["to_status"], "●")
             fc_from = FLIP_COLOR.get(flip["from_status"], "#8892AA")
             st.markdown(
-                f'<div style="background:#12151E;border-left:3px solid {fc};border-radius:4px;'
+                f'<div style="background:var(--ua-bg-card);border-left:3px solid {fc};border-radius:4px;'
                 f'padding:8px 14px;margin-bottom:6px;font-family:Inter,sans-serif;font-size:0.85rem;">'
                 f'<b>{sig_name}</b> &nbsp;'
                 f'<span style="color:{fc_from};">{flip["from_status"]}</span> → '
                 f'<span style="color:{fc};font-weight:700;">{fa} {flip["to_status"]}</span>'
-                f'<span style="color:#8892AA;font-size:0.75rem;float:right;">'
+                f'<span style="color:var(--ua-ink-mut);font-size:0.75rem;float:right;">'
                 f'{flip["from_date"]} → {flip["to_date"]}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
@@ -842,16 +842,16 @@ elif _brief_section == "Market Intelligence":
                     st.caption(company)
                 if ticker in _watch_set:
                     st.markdown(
-                        '<span style="font-size:0.68rem;font-weight:700;color:#00C8E0;'
-                        'background:rgba(0,200,224,0.12);border-radius:3px;'
+                        '<span style="font-size:0.68rem;font-weight:700;color:var(--ua-cyan);'
+                        'background:rgba(var(--ua-cyan-rgb),0.12);border-radius:3px;'
                         'padding:1px 6px;letter-spacing:0.02em;"> Watching</span>',
                         unsafe_allow_html=True,
                     )
             with mc2:
                 st.markdown(
                     f'<div style="font-family:Inter,sans-serif;font-size:0.85rem;padding-top:4px;">'
-                    f'<span style="color:#8892AA;">{from_date}</span> → <span style="color:#E8EEFF;font-weight:700;">{to_date}</span>'
-                    f'<br><span style="color:#8892AA;">{from_score:.0f}</span> → '
+                    f'<span style="color:var(--ua-ink-mut);">{from_date}</span> → <span style="color:var(--ua-ink);font-weight:700;">{to_date}</span>'
+                    f'<br><span style="color:var(--ua-ink-mut);">{from_score:.0f}</span> → '
                     f'<b style="color:{case_color};">{to_score:.0f}</b>'
                     f'</div>',
                     unsafe_allow_html=True,
@@ -948,7 +948,7 @@ elif _brief_section == "Market Intelligence":
                             f'<div style="text-align:right;font-family:Inter,sans-serif;">'
                             f'<span style="font-size:1.2rem;font-weight:700;color:{_sc_color};">{_snap_score:.0f}</span>'
                             f'<span style="font-size:0.72rem;font-weight:700;color:{_sc_color};margin-left:4px;">{_snap_case}</span>'
-                            f'<br><span style="font-size:0.70rem;color:#8892AA;">as of {_snap_date}</span>'
+                            f'<br><span style="font-size:0.70rem;color:var(--ua-ink-mut);">as of {_snap_date}</span>'
                             f'</div>',
                             unsafe_allow_html=True,
                         )
@@ -974,11 +974,11 @@ elif _brief_section == "Market Intelligence":
             <div>
                 <div style="font-size:0.60rem;font-weight:700;letter-spacing:0.16em;color:#A78BFA;
                             text-transform:uppercase;margin-bottom:6px;"> Want this in your inbox?</div>
-                <div style="font-size:1.0rem;font-weight:800;color:#E8EEFF;margin-bottom:4px;
+                <div style="font-size:1.0rem;font-weight:800;color:var(--ua-ink);margin-bottom:4px;
                             letter-spacing:-0.2px;">
                     Get Today's Brief every morning at 7 AM ET
                 </div>
-                <div style="font-size:0.78rem;color:#8892AA;line-height:1.55;">
+                <div style="font-size:0.78rem;color:var(--ua-ink-mut);line-height:1.55;">
                     47 signals distilled into a 2-minute read. Pro feature · 7-day free trial.
                 </div>
             </div>
@@ -1047,10 +1047,10 @@ if _brief_section == "Weekly Research":
             _wb_date_disp = _wb_date
 
         st.markdown(
-            f'<div style="border-bottom:2px solid rgba(255,255,255,0.12);'
+            f'<div style="border-bottom:2px solid rgba(var(--ua-onbg-rgb),0.12);'
             f'padding-bottom:10px;margin-bottom:16px;display:flex;align-items:center;'
             f'justify-content:space-between;flex-wrap:wrap;gap:8px;">'
-            f'<span style="font-size:1.1rem;font-weight:700;color:#E8EEFF;">'
+            f'<span style="font-size:1.1rem;font-weight:700;color:var(--ua-ink);">'
             f' Unstructured Alpha — Weekly Brief</span>'
             f'<span style="font-size:0.70rem;color:#4A5478;">Machine intelligence · Macro synthesis</span>'
             f'</div>',
@@ -1059,7 +1059,7 @@ if _brief_section == "Weekly Research":
 
         st.markdown(
             f'{_wb_regime_chip(_wb_regime)}&nbsp;&nbsp;'
-            f'<span style="font-size:0.70rem;color:#8892AA;">'
+            f'<span style="font-size:0.70rem;color:var(--ua-ink-mut);">'
             f'Published {_wb_date_disp} · {_wb_bull} bullish · {_wb_bear} bearish · {_wb_model}'
             f'</span>',
             unsafe_allow_html=True,
@@ -1067,7 +1067,7 @@ if _brief_section == "Weekly Research":
 
         if _wb_headline:
             st.markdown(
-                f'<div style="font-size:1.25rem;font-weight:800;color:#E8EEFF;'
+                f'<div style="font-size:1.25rem;font-weight:800;color:var(--ua-ink);'
                 f'margin:16px 0 12px;line-height:1.35;">{_wb_headline}</div>',
                 unsafe_allow_html=True,
             )
@@ -1078,7 +1078,7 @@ if _brief_section == "Weekly Research":
 
         for _p in _wb_paras:
             st.markdown(
-                f'<p style="font-size:0.90rem;color:#B8C0D4;line-height:1.75;'
+                f'<p style="font-size:0.90rem;color:var(--ua-ink-soft);line-height:1.75;'
                 f'margin-bottom:14px;font-family:Inter,sans-serif;">{_p}</p>',
                 unsafe_allow_html=True,
             )
@@ -1096,10 +1096,10 @@ if _brief_section == "Weekly Research":
                 _a_reg  = _an.get("regime","MIXED / TRANSITION")
                 st.markdown(
                     f'<div style="display:flex;align-items:baseline;gap:10px;'
-                    f'padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">'
-                    f'<span style="font-size:0.70rem;color:#6B7FBF;min-width:90px;font-family:monospace;">{_a_date}</span>'
+                    f'padding:6px 0;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.06);">'
+                    f'<span style="font-size:0.70rem;color:var(--ua-ink-label);min-width:90px;font-family:monospace;">{_a_date}</span>'
                     f'{_wb_regime_chip(_a_reg)}'
-                    f'<span style="font-size:0.82rem;color:#E8EEFF;flex:1;line-height:1.3;">{_a_hl}</span>'
+                    f'<span style="font-size:0.82rem;color:var(--ua-ink);flex:1;line-height:1.3;">{_a_hl}</span>'
                     f'</div>',
                     unsafe_allow_html=True,
                 )

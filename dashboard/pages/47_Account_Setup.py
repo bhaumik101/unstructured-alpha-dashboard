@@ -45,10 +45,10 @@ st.markdown(
     .ua-setup-copy {font-size:.92rem;line-height:1.65;color:#A7B0BF;max-width:620px;}
     .ua-progress {height:3px;background:#262D38;border-radius:8px;margin:26px 0 28px;overflow:hidden;}
     .ua-progress > div {height:100%;background:#9CA8B8;border-radius:8px;}
-    .ua-value-card {background:#11161E;border:1px solid rgba(255,255,255,.09);
+    .ua-value-card {background:#11161E;border:1px solid rgba(var(--ua-onbg-rgb),.09);
         border-radius:10px;padding:15px 17px;margin:12px 0 18px;color:#B7C0CD;
         font-size:.8rem;line-height:1.55;}
-    .ua-complete {text-align:center;background:#11161E;border:1px solid rgba(255,255,255,.09);
+    .ua-complete {text-align:center;background:#11161E;border:1px solid rgba(var(--ua-onbg-rgb),.09);
         border-radius:12px;padding:34px 28px;margin-top:22px;}
     .ua-complete h2 {color:#EDF1F7;font-size:1.5rem;margin:0 0 8px;}
     .ua-complete p {color:#A7B0BF;font-size:.88rem;margin:0;}

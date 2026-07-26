@@ -65,7 +65,7 @@ if section == "Coverage Overview":
 
     st.markdown(
         """
-        <div style="background:#0F141C;border:1px solid rgba(0,200,224,.18);border-radius:9px;
+        <div style="background:#0F141C;border:1px solid rgba(var(--ua-cyan-rgb),.18);border-radius:9px;
                     padding:16px 18px;margin:14px 0 22px;font-family:Inter,sans-serif;">
           <div style="font-size:.68rem;color:#8ECAD3;text-transform:uppercase;letter-spacing:.10em;
                       font-weight:750;">Integrity standard</div>

@@ -261,7 +261,7 @@ if _factor_section == "Exposure Summary":
     r2_color    = "#00C8E0"
 
     kpi_css = (
-        "background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);"
+        "background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);"
         "border-radius:10px;padding:16px 18px;font-family:Inter,sans-serif;text-align:center;"
     )
     k1, k2, k3, k4, k5 = st.columns(5)
@@ -279,10 +279,10 @@ if _factor_section == "Exposure Summary":
     ]:
         col.markdown(
             f'<div style="{kpi_css}">'
-            f'<div style="font-size:0.60rem;font-weight:700;color:#6B7FBF;letter-spacing:0.08em;'
+            f'<div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-label);letter-spacing:0.08em;'
             f'text-transform:uppercase;margin-bottom:6px;">{label}</div>'
             f'<div style="font-size:1.55rem;font-weight:700;color:{color};">{val}</div>'
-            f'<div style="font-size:0.68rem;color:#8892AA;margin-top:4px;line-height:1.3;">{hint}</div>'
+            f'<div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;line-height:1.3;">{hint}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -291,8 +291,8 @@ if _factor_section == "Exposure Summary":
 
     # ── Factor Loadings ───────────────────────────────────────────────────────────
     st.markdown(
-        '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.13em;'
-        'text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);'
+        '<div style="font-size:0.62rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.13em;'
+        'text-transform:uppercase;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);'
         'padding-bottom:8px;margin:4px 0 18px;font-family:Inter,sans-serif;">Factor Loadings</div>',
         unsafe_allow_html=True,
     )
@@ -370,13 +370,13 @@ if _factor_section == "Exposure Summary":
             c_col = "#00D566" if coef >= 0 else "#FF4444"
             p_col = "#00D566" if p < 0.05 else ("#F59E0B" if p < 0.10 else "#6B7FBF")
             rows_html += (
-                f'<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">'
-                f'<td style="padding:7px 10px;color:#E8EEFF;font-weight:600;">'
+                f'<tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.04);">'
+                f'<td style="padding:7px 10px;color:var(--ua-ink);font-weight:600;">'
                 f'{FACTOR_META[fname]["label"]}</td>'
                 f'<td style="padding:7px 10px;color:{c_col};font-weight:700;text-align:right;">'
                 f'{coef:+.3f}</td>'
-                f'<td style="padding:7px 10px;color:#8892AA;text-align:right;">{se:.3f}</td>'
-                f'<td style="padding:7px 10px;color:#8892AA;text-align:right;">{t:+.2f}</td>'
+                f'<td style="padding:7px 10px;color:var(--ua-ink-mut);text-align:right;">{se:.3f}</td>'
+                f'<td style="padding:7px 10px;color:var(--ua-ink-mut);text-align:right;">{t:+.2f}</td>'
                 f'<td style="padding:7px 10px;color:{p_col};text-align:right;font-weight:600;">'
                 f'{p:.3f} {sig}</td>'
                 f'</tr>'
@@ -385,22 +385,22 @@ if _factor_section == "Exposure Summary":
     <div style="font-family:Inter,sans-serif;font-size:0.80rem;">
     <table style="width:100%;border-collapse:collapse;">
       <thead>
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.10);">
-          <th style="padding:7px 10px;text-align:left;color:#6B7FBF;font-size:0.60rem;
+        <tr style="border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.10);">
+          <th style="padding:7px 10px;text-align:left;color:var(--ua-ink-label);font-size:0.60rem;
                      letter-spacing:0.08em;text-transform:uppercase;">Factor</th>
-          <th style="padding:7px 10px;text-align:right;color:#6B7FBF;font-size:0.60rem;
+          <th style="padding:7px 10px;text-align:right;color:var(--ua-ink-label);font-size:0.60rem;
                      letter-spacing:0.08em;text-transform:uppercase;">β</th>
-          <th style="padding:7px 10px;text-align:right;color:#6B7FBF;font-size:0.60rem;
+          <th style="padding:7px 10px;text-align:right;color:var(--ua-ink-label);font-size:0.60rem;
                      letter-spacing:0.08em;text-transform:uppercase;">SE</th>
-          <th style="padding:7px 10px;text-align:right;color:#6B7FBF;font-size:0.60rem;
+          <th style="padding:7px 10px;text-align:right;color:var(--ua-ink-label);font-size:0.60rem;
                      letter-spacing:0.08em;text-transform:uppercase;">t</th>
-          <th style="padding:7px 10px;text-align:right;color:#6B7FBF;font-size:0.60rem;
+          <th style="padding:7px 10px;text-align:right;color:var(--ua-ink-label);font-size:0.60rem;
                      letter-spacing:0.08em;text-transform:uppercase;">p-value</th>
         </tr>
       </thead>
       <tbody>{rows_html}</tbody>
     </table>
-    <div style="font-size:0.67rem;color:#6B7FBF;margin-top:8px;">
+    <div style="font-size:0.67rem;color:var(--ua-ink-label);margin-top:8px;">
       Significance labels show p&lt;0.05 or p&lt;0.10 &nbsp;·&nbsp; Error bars = 95% CI
     </div>
     </div>
@@ -413,24 +413,24 @@ if _factor_section == "Exposure Summary":
             interp_parts = []
             if "MKT" in sig_fs:
                 interp_parts.append(
-                    f"<b style='color:#00C8E0;'>Market β = {mkt_b:.2f}</b> — "
+                    f"<b style='color:var(--ua-cyan);'>Market β = {mkt_b:.2f}</b> — "
                     f"{'amplifies' if mkt_b > 1 else 'dampens'} broad market moves"
                 )
             if "SMB" in sig_fs:
                 smb = coefs[1]
                 interp_parts.append(
-                    f"<b style='color:#7C3AED;'>Size</b>: trades like a "
+                    f"<b style='color:var(--ua-purple);'>Size</b>: trades like a "
                     f"{'small-cap' if smb > 0 else 'large-cap'}"
                 )
             if "HML" in sig_fs:
                 hml = coefs[2]
                 interp_parts.append(
-                    f"<b style='color:#F59E0B;'>Value</b>: {'value' if hml > 0 else 'growth'} tilt"
+                    f"<b style='color:var(--ua-amber);'>Value</b>: {'value' if hml > 0 else 'growth'} tilt"
                 )
             if "MOM" in sig_fs:
                 mom = coefs[3]
                 interp_parts.append(
-                    f"<b style='color:#00D566;'>Momentum</b>: {'rides' if mom > 0 else 'bucks'} recent winners"
+                    f"<b style='color:var(--ua-green);'>Momentum</b>: {'rides' if mom > 0 else 'bucks'} recent winners"
                 )
             if "QUAL" in sig_fs:
                 q = coefs[4]
@@ -440,16 +440,16 @@ if _factor_section == "Exposure Summary":
             interp_html = " &nbsp;·&nbsp; ".join(interp_parts)
         else:
             interp_html = (
-                f"<b style='color:#00C8E0;'>Market β = {mkt_b:.2f}</b>. "
+                f"<b style='color:var(--ua-cyan);'>Market β = {mkt_b:.2f}</b>. "
                 "No other factors are statistically significant at the 5% level — "
                 "returns are predominantly driven by broad market movements."
             )
 
         st.markdown(
-            f'<div style="background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);'
+            f'<div style="background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);'
             f'border-radius:8px;padding:12px 14px;font-family:Inter,sans-serif;'
-            f'font-size:0.79rem;color:#B8C0D4;line-height:1.6;margin-top:12px;">'
-            f'<b style="color:#E8EEFF;">Interpretation: </b>{interp_html}'
+            f'font-size:0.79rem;color:var(--ua-ink-soft);line-height:1.6;margin-top:12px;">'
+            f'<b style="color:var(--ua-ink);">Interpretation: </b>{interp_html}'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -457,8 +457,8 @@ if _factor_section == "Exposure Summary":
 if _factor_section == "Rolling Beta":
     # ── Rolling Beta ──────────────────────────────────────────────────────────────
     st.markdown(
-        '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.13em;'
-        'text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);'
+        '<div style="font-size:0.62rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.13em;'
+        'text-transform:uppercase;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);'
         'padding-bottom:8px;margin:24px 0 18px;font-family:Inter,sans-serif;">Rolling Market Beta (63-day)</div>',
         unsafe_allow_html=True,
     )
@@ -521,8 +521,8 @@ if _factor_section == "Rolling Beta":
 if _factor_section == "Risk Decomposition":
     # ── Risk Decomposition ────────────────────────────────────────────────────────
     st.markdown(
-        '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.13em;'
-        'text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);'
+        '<div style="font-size:0.62rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.13em;'
+        'text-transform:uppercase;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);'
         'padding-bottom:8px;margin:24px 0 18px;font-family:Inter,sans-serif;">Return Variance Decomposition</div>',
         unsafe_allow_html=True,
     )
@@ -534,7 +534,7 @@ if _factor_section == "Risk Decomposition":
     idio_vol  = np.sqrt(max(0, total_vol**2 - sys_vol**2))
 
     _vol_css = (
-        "background:rgba(18,21,30,0.85);border:1px solid rgba(255,255,255,0.07);"
+        "background:rgba(var(--ua-card-rgb),0.85);border:1px solid rgba(var(--ua-onbg-rgb),0.07);"
         "border-radius:10px;padding:14px 16px;font-family:Inter,sans-serif;text-align:center;"
     )
     for col, label, val, color, desc in [
@@ -547,10 +547,10 @@ if _factor_section == "Risk Decomposition":
     ]:
         col.markdown(
             f'<div style="{_vol_css}">'
-            f'<div style="font-size:0.60rem;font-weight:700;color:#6B7FBF;letter-spacing:0.08em;'
+            f'<div style="font-size:0.60rem;font-weight:700;color:var(--ua-ink-label);letter-spacing:0.08em;'
             f'text-transform:uppercase;margin-bottom:6px;">{label}</div>'
             f'<div style="font-size:1.45rem;font-weight:700;color:{color};">{val}</div>'
-            f'<div style="font-size:0.68rem;color:#8892AA;margin-top:4px;">{desc}</div>'
+            f'<div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">{desc}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -604,7 +604,7 @@ if _factor_section == "Risk Decomposition":
         )
         # Center label
         fig_pie.add_annotation(
-            text=f"R²<br><b style='color:#00C8E0'>{r2:.0%}</b>",
+            text=f"R²<br><b style='color:var(--ua-cyan)'>{r2:.0%}</b>",
             x=0.5, y=0.5, showarrow=False,
             font=dict(color="#E8EEFF", size=11, family="Inter"),
         )
@@ -618,12 +618,12 @@ if _factor_section == "Risk Decomposition":
             c = FACTOR_META[fname]["color"]
             sig_marker = "●" if p < 0.05 else "○"
             st.markdown(
-                f'<div style="background:rgba(18,21,30,0.7);border-left:2px solid {c};'
+                f'<div style="background:rgba(var(--ua-card-rgb),0.7);border-left:2px solid {c};'
                 f'border-radius:6px;padding:7px 12px;margin-bottom:7px;font-family:Inter,sans-serif;">'
                 f'<span style="color:{c};font-weight:700;font-size:0.78rem;">'
                 f'{sig_marker} {FACTOR_META[fname]["label"]}: {b:+.3f}</span>'
-                f'<span style="color:#6B7FBF;font-size:0.70rem;"> (p={p:.3f})</span><br>'
-                f'<span style="color:#8892AA;font-size:0.74rem;">{FACTOR_META[fname]["desc"]}</span>'
+                f'<span style="color:var(--ua-ink-label);font-size:0.70rem;"> (p={p:.3f})</span><br>'
+                f'<span style="color:var(--ua-ink-mut);font-size:0.74rem;">{FACTOR_META[fname]["desc"]}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -631,8 +631,8 @@ if _factor_section == "Risk Decomposition":
 if _factor_section == "Compare Tickers":
     # ── Multi-ticker comparison ───────────────────────────────────────────────────
     st.markdown(
-        '<div style="font-size:0.62rem;font-weight:700;color:#8892AA;letter-spacing:0.13em;'
-        'text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.05);'
+        '<div style="font-size:0.62rem;font-weight:700;color:var(--ua-ink-mut);letter-spacing:0.13em;'
+        'text-transform:uppercase;border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);'
         'padding-bottom:8px;margin:24px 0 18px;font-family:Inter,sans-serif;">Compare Across Tickers</div>',
         unsafe_allow_html=True,
     )
@@ -714,10 +714,10 @@ if _factor_section == "Compare Tickers":
 
 # ── Disclaimer ────────────────────────────────────────────────────────────────
 st.markdown("""
-<div style="background:rgba(18,21,30,0.6);border:1px solid rgba(255,255,255,0.05);border-radius:8px;
-            padding:10px 14px;font-size:0.73rem;color:#6B7FBF;font-family:Inter,sans-serif;
+<div style="background:rgba(var(--ua-card-rgb),0.6);border:1px solid rgba(var(--ua-onbg-rgb),0.05);border-radius:8px;
+            padding:10px 14px;font-size:0.73rem;color:var(--ua-ink-label);font-family:Inter,sans-serif;
             line-height:1.5;margin-top:20px;">
-<b style="color:#8892AA;">Methodology note:</b> Factor proxies use liquid ETFs (SPY, IWM, VTV/VUG, MTUM, QUAL)
+<b style="color:var(--ua-ink-mut);">Methodology note:</b> Factor proxies use liquid ETFs (SPY, IWM, VTV/VUG, MTUM, QUAL)
 as stand-ins for the academic Fama-French factors, which require daily Ken French library data.
 ETF proxies introduce tracking error and expense ratios. Results are indicative, not replicable as
 exact academic factors. Not financial advice.

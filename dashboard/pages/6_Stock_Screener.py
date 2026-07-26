@@ -50,7 +50,7 @@ render_page_header(
 
 if _screener_section == "Screen Securities":
     st.markdown(
-        '<div style="font-size:0.76rem;color:#6B7FBF;font-family:Inter,sans-serif;'
+        '<div style="font-size:0.76rem;color:var(--ua-ink-label);font-family:Inter,sans-serif;'
         'margin:-4px 0 12px;">The <b>Macro + Momentum Rank</b> orders tickers by current signal '
         'agreement (70% macro / 30% price momentum) — a fast screen, not a validated return '
         'forecast. For a ticker\'s full <b>Confluence Score</b> (with insider, 13F and short-interest '
@@ -137,10 +137,10 @@ if _screener_section == "Screen Securities":
 
         in_universe = r["symbol"] in TICKERS
         badge = (
-            '<span style="background:rgba(0,213,102,0.1);color:#00D566;border:1px solid rgba(0,213,102,0.25);'
+            '<span style="background:rgba(var(--ua-green-rgb),0.1);color:var(--ua-green);border:1px solid rgba(var(--ua-green-rgb),0.25);'
             'padding:1px 6px;border-radius:4px;font-size:0.60rem;font-weight:700;margin-left:6px;">IN UNIVERSE</span>'
             if in_universe else
-            '<span style="background:rgba(107,127,191,0.1);color:#6B7FBF;border:1px solid rgba(107,127,191,0.2);'
+            '<span style="background:rgba(var(--ua-label-rgb),0.1);color:var(--ua-ink-label);border:1px solid rgba(var(--ua-label-rgb),0.2);'
             'padding:1px 6px;border-radius:4px;font-size:0.60rem;font-weight:700;margin-left:6px;">QUICK SCORE</span>'
         )
 
@@ -149,20 +149,20 @@ if _screener_section == "Screen Securities":
                 border-radius:12px;padding:20px 24px;font-family:Inter,sans-serif;margin:10px 0;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
             <div style="flex:2;min-width:200px;">
-                <div style="font-size:1.1rem;font-weight:700;color:#E8EEFF;letter-spacing:-0.2px;">
+                <div style="font-size:1.1rem;font-weight:700;color:var(--ua-ink);letter-spacing:-0.2px;">
                     {r['company']} {badge}
                 </div>
-                <div style="font-size:0.75rem;color:#8892AA;margin-top:3px;letter-spacing:0.04em;">
+                <div style="font-size:0.75rem;color:var(--ua-ink-mut);margin-top:3px;letter-spacing:0.04em;">
                     {r['symbol']} &nbsp;·&nbsp; {r['sector']}
                 </div>
-                <div style="margin-top:12px;font-size:0.80rem;color:#8892AA;">
-                    Price: <b style="color:#E8EEFF;">${r['last']:,.2f}</b>
+                <div style="margin-top:12px;font-size:0.80rem;color:var(--ua-ink-mut);">
+                    Price: <b style="color:var(--ua-ink);">${r['last']:,.2f}</b>
                     &nbsp;·&nbsp;
                     1D: <span style="color:{chg_c};">{chg_a}{abs(r['chg_1d']):.2f}%</span>
                     &nbsp;·&nbsp;
                     1Y: <span style="color:{yr_c};">{r['chg_1y']:+.1f}%</span>
                 </div>
-                <div style="margin-top:6px;font-size:0.76rem;color:#6B7FBF;">
+                <div style="margin-top:6px;font-size:0.76rem;color:var(--ua-ink-label);">
                     {r['sig_count']} macro signals mapped · {conf['bull_count']} bullish
                     · {conf['bear_count']} bearish
                     · {r['sig_count'] - conf['bull_count'] - conf['bear_count']} neutral
@@ -179,7 +179,7 @@ if _screener_section == "Screen Securities":
 
         if not in_universe:
             st.markdown(
-                '<div style="font-size:0.72rem;color:#6B7FBF;font-family:Inter,sans-serif;'
+                '<div style="font-size:0.72rem;color:var(--ua-ink-label);font-family:Inter,sans-serif;'
                 'margin:-4px 0 8px;padding-left:2px;">'
                 ' Not in tracked universe — score uses sector-mapped signals as a proxy. '
                 'For the deepest analysis, open Ticker Deep Dive with this symbol.</div>',
@@ -196,9 +196,9 @@ if _screener_section == "Screen Securities":
 
     # ── Quick Analyze Any Ticker ──────────────────────────────────────────────────
     st.markdown("""
-    <div style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:#00D566;
+    <div style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:var(--ua-green);
                 font-family:Inter,sans-serif;margin-bottom:6px;">ANALYZE ANY TICKER</div>
-    <div style="font-size:0.80rem;color:#8892AA;font-family:Inter,sans-serif;margin-bottom:10px;">
+    <div style="font-size:0.80rem;color:var(--ua-ink-mut);font-family:Inter,sans-serif;margin-bottom:10px;">
         Any global symbol — US stocks, ETFs, crypto (BTC-USD), indices (^GSPC), international (MC.PA).
         If it's on Yahoo Finance, it works.
     </div>
@@ -228,7 +228,7 @@ if _screener_section == "Screen Securities":
 
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
     st.markdown(
-        '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0 20px;">',
+        '<hr style="border:none;border-top:1px solid rgba(var(--ua-onbg-rgb),0.06);margin:8px 0 20px;">',
         unsafe_allow_html=True,
     )
 
@@ -236,7 +236,7 @@ if _screener_section == "Screen Securities":
     with st.sidebar:
         st.markdown(
             '<div style="font-size:0.70rem;font-weight:700;letter-spacing:0.12em;'
-            'color:#8892AA;font-family:Inter,sans-serif;margin-bottom:10px;">SCREENER FILTERS</div>',
+            'color:var(--ua-ink-mut);font-family:Inter,sans-serif;margin-bottom:10px;">SCREENER FILTERS</div>',
             unsafe_allow_html=True,
         )
         search_text = st.text_input(
@@ -309,9 +309,9 @@ if _screener_section == "Screen Securities":
 
     # ── Build screener table ──────────────────────────────────────────────────────
     st.markdown(f"""
-    <div style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:#00D566;
+    <div style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:var(--ua-green);
                 font-family:Inter,sans-serif;margin-bottom:4px;">ALTERNATIVE DATA SCREENER</div>
-    <div style="font-size:0.76rem;color:#8892AA;font-family:Inter,sans-serif;margin-bottom:12px;">
+    <div style="font-size:0.76rem;color:var(--ua-ink-mut);font-family:Inter,sans-serif;margin-bottom:12px;">
         {len(TICKERS)} tickers ranked by <b>Macro + Momentum Rank</b> = 70% macro signal confluence (PCS-weighted) + 30% price momentum.
         This is a fast screen; the full Confluence Score (with insider, 13F &amp; short-interest overlays) lives on each Ticker Deep Dive.
         Click any row to preview. Can't find your ticker? Use the search box above or type it in "Analyze Any Ticker."
@@ -364,12 +364,12 @@ if _screener_section == "Screen Securities":
         _candidate = search_text.strip().upper()
         if _candidate:
             st.markdown(
-                f'<div style="background:rgba(107,127,191,0.06);border:1px solid rgba(107,127,191,0.15);'
-                f'border-left:3px solid #6B7FBF;border-radius:8px;padding:14px 18px;'
+                f'<div style="background:rgba(var(--ua-label-rgb),0.06);border:1px solid rgba(var(--ua-label-rgb),0.15);'
+                f'border-left:3px solid var(--ua-ink-label);border-radius:8px;padding:14px 18px;'
                 f'font-family:Inter,sans-serif;margin-bottom:16px;">'
-                f'<div style="font-size:0.84rem;color:#E8EEFF;font-weight:600;margin-bottom:4px;">'
+                f'<div style="font-size:0.84rem;color:var(--ua-ink);font-weight:600;margin-bottom:4px;">'
                 f'"{_candidate}" not found in our tracked universe</div>'
-                f'<div style="font-size:0.76rem;color:#8892AA;">'
+                f'<div style="font-size:0.76rem;color:var(--ua-ink-mut);">'
                 f'Analyzing it as a custom symbol using sector-mapped macro signals…</div>'
                 f'</div>',
                 unsafe_allow_html=True,
@@ -552,14 +552,14 @@ if _screener_section == "Screen Securities":
         for _tsid, _tsv in _top_bull_sigs:
             _tn = SIGNALS.get(_tsid, {}).get("name", _tsid)[:36]
             _sig_rows += (
-                f'<div style="font-size:0.72rem;color:#00D566;padding:2px 0;">'
-                f'▲ {_tn} <span style="color:#6B7FBF;">({_tsv["score"]:.0f})</span></div>'
+                f'<div style="font-size:0.72rem;color:var(--ua-green);padding:2px 0;">'
+                f'▲ {_tn} <span style="color:var(--ua-ink-label);">({_tsv["score"]:.0f})</span></div>'
             )
         for _tsid, _tsv in _top_bear_sigs:
             _tn = SIGNALS.get(_tsid, {}).get("name", _tsid)[:36]
             _sig_rows += (
-                f'<div style="font-size:0.72rem;color:#FF4444;padding:2px 0;">'
-                f'▼ {_tn} <span style="color:#6B7FBF;">({_tsv["score"]:.0f})</span></div>'
+                f'<div style="font-size:0.72rem;color:var(--ua-red);padding:2px 0;">'
+                f'▼ {_tn} <span style="color:var(--ua-ink-label);">({_tsv["score"]:.0f})</span></div>'
             )
 
         st.markdown(f"""
@@ -567,19 +567,19 @@ if _screener_section == "Screen Securities":
                 border-radius:12px;padding:20px 24px;font-family:Inter,sans-serif;margin:14px 0;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;">
             <div style="flex:2;min-width:220px;">
-                <div style="font-size:1.05rem;font-weight:700;color:#E8EEFF;letter-spacing:-0.2px;">
+                <div style="font-size:1.05rem;font-weight:700;color:var(--ua-ink);letter-spacing:-0.2px;">
                     {sel_name}
-                    <span style="font-size:0.80rem;color:#8892AA;font-weight:400;margin-left:6px;">
+                    <span style="font-size:0.80rem;color:var(--ua-ink-mut);font-weight:400;margin-left:6px;">
                         ({sel_ticker})
                     </span>
                 </div>
-                <div style="font-size:0.72rem;color:#6B7FBF;margin-top:2px;">{sel_sector}</div>
-                <div style="margin-top:10px;font-size:0.78rem;color:#8892AA;">
+                <div style="font-size:0.72rem;color:var(--ua-ink-label);margin-top:2px;">{sel_sector}</div>
+                <div style="margin-top:10px;font-size:0.78rem;color:var(--ua-ink-mut);">
                     {int(sel_row['Bull Sigs'])} bullish signals &nbsp;·&nbsp;
                     {int(sel_row['Bear Sigs'])} bearish signals &nbsp;·&nbsp;
                     {int(sel_row['Signals'])} total
                 </div>
-                <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;">
+                <div style="margin-top:10px;border-top:1px solid rgba(var(--ua-onbg-rgb),0.05);padding-top:10px;">
                     {_sig_rows}
                 </div>
             </div>
@@ -591,13 +591,13 @@ if _screener_section == "Screen Securities":
                 <div style="font-size:0.74rem;color:{ac};font-weight:600;margin-top:3px;">
                     {sel_case} · {sel_conv}
                 </div>
-                <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px;">
-                    <div style="font-size:1.3rem;font-weight:700;color:#E8EEFF;letter-spacing:-0.3px;">
+                <div style="margin-top:14px;border-top:1px solid rgba(var(--ua-onbg-rgb),0.06);padding-top:10px;">
+                    <div style="font-size:1.3rem;font-weight:700;color:var(--ua-ink);letter-spacing:-0.3px;">
                         {_price_str}
                         <span style="font-size:0.85rem;color:{_chg_c};"> {_chg_str}</span>
                         {_ext_html}
                     </div>
-                    <div style="font-size:0.62rem;color:#6B7FBF;margin-top:2px;">live · 60s cache</div>
+                    <div style="font-size:0.62rem;color:var(--ua-ink-label);margin-top:2px;">live · 60s cache</div>
                 </div>
             </div>
         </div>
@@ -620,7 +620,7 @@ if _screener_section == "Screen Securities":
             st.session_state.selected_ticker_name = sel_name
 
     st.markdown(
-        '<div style="font-size:0.68rem;color:#6B7FBF;font-family:Inter,sans-serif;margin-top:8px;">'
+        '<div style="font-size:0.68rem;color:var(--ua-ink-label);font-family:Inter,sans-serif;margin-top:8px;">'
         'Click any row to preview. Scores recalculate every 6 hours. '
         'Ticker not listed? Use "Analyze Any Ticker" above or type it in the sidebar search — '
         'it will automatically fall through to a custom analysis.</div>',
