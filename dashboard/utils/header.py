@@ -1316,7 +1316,10 @@ code, pre {
 
 /* ── Streamlit dataframe — dark overrides ─────────────────────────────────── */
 [data-testid="stDataFrame"] iframe { border-radius: 10px !important; }
-.dvn-scroller { background: var(--ua-bg-card) !important; }
+/* Glide Data Grid paints its cells on an underlay canvas. The scroller sits
+   above that canvas and must stay transparent; an opaque themed background
+   hides every row while leaving a blank, correctly sized rectangle. */
+.dvn-scroller { background: transparent !important; }
 .dvn-scroller::-webkit-scrollbar       { width: 4px; height: 4px; }
 .dvn-scroller::-webkit-scrollbar-thumb { background: rgba(var(--ua-green-rgb),0.22); border-radius: 2px; }
 
