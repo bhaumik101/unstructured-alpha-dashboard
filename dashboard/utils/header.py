@@ -240,10 +240,25 @@ html[data-ua-theme="light"] .ua-tnav-drop {
     box-shadow: var(--ua-shadow-lg) !important;
 }
 html[data-ua-theme="light"] .ua-tnav-drop::before { background: #FFFFFF !important; }
-html[data-ua-theme="light"] .ua-tnav-drop a { color: var(--ua-ink-mut) !important; }
+html[data-ua-theme="light"] .ua-tnav-drop a {
+    color: var(--ua-ink-mut) !important;
+    background: rgba(var(--ua-royal-rgb),0.025);
+    border-color: rgba(var(--ua-royal-rgb),0.12);
+}
 html[data-ua-theme="light"] .ua-tnav-drop a:hover {
     background: rgba(var(--ua-royal-rgb),0.08) !important;
     color: var(--ua-royal) !important;
+    border-color: rgba(var(--ua-royal-rgb),0.38) !important;
+}
+html[data-ua-theme="light"] .ua-tnav-drop a.pro-link {
+    color: #6D4FC2 !important;
+    background: rgba(var(--ua-purple-rgb),0.07);
+    border-color: rgba(var(--ua-purple-rgb),0.24);
+}
+html[data-ua-theme="light"] .ua-tnav-drop a.pro-link:hover {
+    color: #5736AD !important;
+    background: rgba(var(--ua-purple-rgb),0.12) !important;
+    border-color: rgba(var(--ua-purple-rgb),0.44) !important;
 }
 html[data-ua-theme="light"] .ua-tnav-drop-rule { background: var(--ua-hair) !important; }
 html[data-ua-theme="light"] .ua-tnav-drop-label { color: var(--ua-ink-dim) !important; }
@@ -2395,10 +2410,10 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(var(--ua-roy
   min-width: 172px;
   background: rgba(12,14,22,0.98);
   border: 1px solid var(--ua-hair); border-radius: 10px;
-  padding: 5px;
+  padding: 6px;
   box-shadow: 0 20px 60px rgba(var(--ua-shadow-rgb),calc(0.7*var(--ua-shadow-k))), 0 0 0 1px rgba(var(--ua-onbg-rgb),0.03);
   backdrop-filter: blur(24px);
-  display: flex; flex-direction: column; gap: 1px;
+  display: flex; flex-direction: column; gap: 4px;
   z-index: 100001;
   /* Close only after a short grace period, so moving the cursor from the trigger
      down into the menu doesn't snap it shut mid-transit. Opens instantly (the
@@ -2416,15 +2431,48 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(var(--ua-roy
   visibility: visible; opacity: 1; pointer-events: auto; transition-delay: 0s;
 }
 .ua-tnav-drop a {
-  display: block; padding: 7px 10px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 8px 10px; border-radius: 7px;
+  background: rgba(var(--ua-onbg-rgb),0.025);
+  border: 1px solid rgba(var(--ua-onbg-rgb),0.075);
   font-size: 0.74rem; font-weight: 500; color: var(--ua-ink-soft);
   text-decoration: none !important; white-space: nowrap;
-  transition: color .1s ease, background .1s ease;
+  transition: color .12s ease, background .12s ease, border-color .12s ease,
+              transform .12s ease, box-shadow .12s ease;
 }
-.ua-tnav-drop a:hover { color: var(--ua-ink); background: var(--ua-border); }
-.ua-tnav-drop a.active { color: var(--ua-green) !important; background: rgba(var(--ua-green-rgb),0.09) !important; }
-.ua-tnav-drop a.pro-link { color: #A78BFA; }
-.ua-tnav-drop a.pro-link:hover { color: #C4B5FD; background: rgba(var(--ua-purple-rgb),0.10); }
+.ua-tnav-drop a:hover {
+  color: var(--ua-ink);
+  background: rgba(var(--ua-royal-rgb),0.10);
+  border-color: rgba(var(--ua-royal-rgb),0.42);
+  box-shadow: inset 2px 0 0 rgba(var(--ua-royal-rgb),0.88);
+  transform: translateX(1px);
+}
+.ua-tnav-drop a.active {
+  color: var(--ua-green) !important;
+  background: rgba(var(--ua-green-rgb),0.09) !important;
+  border-color: rgba(var(--ua-green-rgb),0.34) !important;
+  box-shadow: inset 2px 0 0 rgba(var(--ua-green-rgb),0.88);
+}
+.ua-tnav-drop a.pro-link {
+  color: #C4B5FD;
+  background: rgba(var(--ua-purple-rgb),0.08);
+  border-color: rgba(var(--ua-purple-rgb),0.25);
+}
+.ua-tnav-drop a.pro-link::after {
+  content: "PRO";
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; padding: 2px 5px; border-radius: 999px;
+  background: rgba(var(--ua-purple-rgb),0.18);
+  border: 1px solid rgba(var(--ua-purple-rgb),0.38);
+  color: #D8CCFF; font-size: 0.50rem; font-weight: 800;
+  line-height: 1; letter-spacing: 0.08em;
+}
+.ua-tnav-drop a.pro-link:hover {
+  color: #E2D9FF;
+  background: rgba(var(--ua-purple-rgb),0.15);
+  border-color: rgba(var(--ua-purple-rgb),0.52);
+  box-shadow: inset 2px 0 0 rgba(var(--ua-purple-rgb),0.95);
+}
 .ua-tnav-drop-rule { height: 1px; background: var(--ua-hair-3); margin: 3px 2px; }
 
 /* ── Right controls ───────────────────────────────────────────────────────── */
