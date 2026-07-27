@@ -45,3 +45,31 @@ jobs:
 
       - name: Run full regression suite
         run: python -m pytest -q
+
+  public-landing:
+    name: Public landing lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: dashboard/unstructured-alpha-web
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/unstructured-alpha-web/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Lint public landing
+        run: npm run lint
+
+      - name: Build public landing
+        run: npm run build
