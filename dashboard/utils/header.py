@@ -49,6 +49,9 @@ _CSS = """
     --ua-royal-2:    #8B7BF7;
     --ua-royal-deep: #3B45C9;
     --ua-royal-soft: rgba(100,112,245,0.14);
+    --ua-brand-alpha-1: #7975EE;
+    --ua-brand-alpha-2: #9A82E2;
+    --ua-brand-alpha-3: #C19EC8;
     --ua-gold:       #D4B26A;
     --ua-text:       #ECEEF9;
     --ua-muted:      #9AA0BE;
@@ -124,6 +127,9 @@ html[data-ua-theme="light"] {
     --ua-royal-2:    #5A46C0;
     --ua-royal-deep: #333BA8;
     --ua-royal-soft: rgba(64,72,198,0.10);
+    --ua-brand-alpha-1: #5048BE;
+    --ua-brand-alpha-2: #7054B8;
+    --ua-brand-alpha-3: #86598D;
     --ua-gold:       #9C7A2C;
     --ua-text:       #161A2E;
     --ua-muted:      #5A6079;
@@ -563,11 +569,13 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
     font-family: 'Inter', sans-serif; letter-spacing: -0.8px; line-height: 1.05;
 }
 .ua-wordmark span {
-    background: linear-gradient(135deg, var(--ua-green) 0%, var(--ua-cyan) 60%, var(--ua-purple) 100%);
-    background-size: 200% 200%;
+    background: linear-gradient(120deg,
+        var(--ua-brand-alpha-1) 0%,
+        var(--ua-brand-alpha-2) 58%,
+        var(--ua-brand-alpha-3) 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: ua_gradient_x 6s ease infinite;
+    animation: none;
 }
 .ua-tagline {
     font-size: 0.70rem; color: var(--ua-ink-label); font-family: 'Inter', sans-serif;
@@ -1587,9 +1595,14 @@ section[data-testid="stSidebar"] {
 }
 .ua-header::after, .ua-card-shine::after { display: none !important; }
 .ua-wordmark span {
-    background: none !important;
-    -webkit-text-fill-color: var(--ua-text-mid) !important;
-    color: var(--ua-text-mid) !important;
+    background: linear-gradient(120deg,
+        var(--ua-brand-alpha-1) 0%,
+        var(--ua-brand-alpha-2) 58%,
+        var(--ua-brand-alpha-3) 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: var(--ua-brand-alpha-2) !important;
     animation: none !important;
 }
 .metric-card, .page-card, .stat-box,
@@ -2019,7 +2032,10 @@ header[data-testid="stHeader"]            { display: none !important; }
 }
 .ua-tnav-brand-text em {
   font-style: normal;
-  background: linear-gradient(135deg, #6470F5, #8B7BF7 60%, #D4B26A 120%);
+  background: linear-gradient(120deg,
+      var(--ua-brand-alpha-1) 0%,
+      var(--ua-brand-alpha-2) 58%,
+      var(--ua-brand-alpha-3) 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
