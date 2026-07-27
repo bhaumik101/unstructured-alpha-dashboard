@@ -10,7 +10,6 @@ Public-facing landing page. Psychological design goals:
 """
 
 import streamlit as st
-import streamlit.components.v1 as _components
 
 # Analytics + onboarding — imported lazily inside their sections to avoid
 # circular-import risk on cold start (these modules themselves import from utils.db).
@@ -225,130 +224,165 @@ _bias_bg = (
 _top_bull = _hd["bull"][0][0] if _hd["bull"] else None
 _top_bear = _hd["bear"][0][0] if _hd["bear"] else None
 
-# ── HERO ──────────────────────────────────────────────────────────────────────
+# ── PRODUCT-ALIGNED LANDING HERO ──────────────────────────────────────────────
+# This page previously used a separate serif/gradient marketing language and an
+# iframe-only animated counter. Keeping the proof points in the normal document
+# makes them inherit the exact same light/dark tokens as the application.
 st.markdown(f"""
-<div class="ua-landing-hero" style="position:relative;text-align:center;padding:48px 0 6px;font-family:'Inter',sans-serif;">
-    <div aria-hidden="true" style="position:absolute;top:-46px;left:50%;transform:translateX(-50%);
-         width:760px;max-width:96vw;height:380px;pointer-events:none;z-index:0;
-         background:radial-gradient(50% 50% at 50% 40%, var(--ua-royal-soft,rgba(var(--ua-royal-rgb),0.16)) 0%, rgba(var(--ua-royal-rgb),0.05) 42%, transparent 72%);"></div>
-    <div style="position:relative;z-index:1;">
-      <div class="ua-slide-up-d1" style="margin-bottom:20px;">
-          <span class="ua-hero-pill">
-              <span class="ua-pulse-dot"></span>
-              INSTITUTIONAL-GRADE MACRO INTELLIGENCE · FREE
-          </span>
-      </div>
-      <div class="ua-slide-up-d2 ua-hero-head" style="font-size:clamp(2.3rem,4.8vw,3.35rem);
-                  line-height:1.06;max-width:820px;margin:0 auto 18px;">
-          Before the market moves,<br>
-          <span class="ua-hero-accent">the signals already did.</span>
-      </div>
-      <div class="ua-slide-up-d3" style="font-size:1.0rem;color:var(--ua-muted,#9AA0BE);margin:0 auto;max-width:580px;
-                  line-height:1.75;font-weight:400;">
-          {len(SIGNALS)} macro signals — Fed policy, energy flows, credit spreads, insider buying,
-          put/call sentiment — scored daily and mapped to the stocks you actually hold.
-      </div>
-      <div class="ua-slide-up-d3" style="margin-top:20px;">
-          <span style="font-size:0.78rem;color:var(--ua-faint,#646A88);font-family:Inter,sans-serif;">
-              No account needed to browse · Pro from <b style="color:var(--ua-royal-2,#8B7BF7);">$20/mo</b>
-          </span>
-      </div>
-    </div>
-</div>
 <style>
-  .ua-hero-head {{ font-family: var(--ua-serif); font-weight:600; color:var(--ua-text,#ECEEF9);
-                   letter-spacing:-0.6px; }}
-  .ua-hero-accent {{
-      background: linear-gradient(120deg, var(--ua-royal,#6470F5) 0%, var(--ua-royal-2,#8B7BF7) 55%, var(--ua-gold,#D4B26A) 128%);
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-      font-style: italic;
-  }}
-  .ua-hero-pill {{
-      display:inline-flex; align-items:center; gap:7px;
-      padding:5px 14px; border-radius:999px;
-      background: var(--ua-royal-soft, rgba(var(--ua-royal-rgb),0.14));
-      border:1px solid rgba(var(--ua-royal-rgb),0.28);
-      color: var(--ua-royal-2,#8B7BF7);
-      font-size:0.6rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
-      font-family:'Inter',sans-serif;
-  }}
-</style>
-""", unsafe_allow_html=True)
-
-# ── Hero CTA row ───────────────────────────────────────────────────────────────
-_hcta1, _hcta2, _hcta3 = st.columns([2, 1.4, 2])
-with _hcta2:
-    if st.button("→ See Today's Signal Brief", type="primary", width="stretch", key="hero_cta_brief"):
-        st.switch_page("pages/2_Today_Digest.py")
-
-# ── Animated stat counter strip ────────────────────────────────────────────────
-_components.html("""
-<style>
-  .ua-stat-strip {
-    display:flex; justify-content:center; gap:0; flex-wrap:wrap;
-    font-family:'Inter',sans-serif; margin:18px 0 0;
-    background:rgba(19,22,38,0.55);
-    border:1px solid rgba(var(--ua-royal-rgb),0.16);
-    border-radius:12px; overflow:hidden;
-  }
-  .ua-stat-item {
-    flex:1; min-width:130px; text-align:center; padding:15px 10px;
-    border-right:1px solid rgba(var(--ua-onbg-rgb),0.05);
+  .ua-landing-hero {{
     position:relative;
-  }
-  .ua-stat-item:last-child { border-right:none; }
-  .ua-stat-num {
-    font-size:1.85rem; font-weight:800; letter-spacing:-1px;
-    font-family:'Fraunces',Georgia,serif;
-    background:linear-gradient(135deg,#6470F5 0%,#8B7BF7 60%,#D4B26A 135%);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    background-clip:text; display:block; line-height:1.1;
-  }
-  .ua-stat-label {
-    font-size:0.62rem; color:#9AA0BE; text-transform:uppercase;
-    letter-spacing:0.10em; font-weight:600; margin-top:4px; display:block;
-  }
+    overflow:hidden;
+    display:grid;
+    grid-template-columns:minmax(0,1.6fr) minmax(220px,.65fr);
+    gap:28px;
+    align-items:end;
+    margin:24px 0 16px;
+    padding:30px 32px;
+    border:1px solid var(--ua-hair);
+    border-radius:12px;
+    background:
+      linear-gradient(135deg,rgba(var(--ua-royal-rgb),0.11),transparent 56%),
+      var(--ua-bg-card);
+    box-shadow:var(--ua-shadow-1);
+    font-family:Inter,system-ui,sans-serif;
+  }}
+  .ua-landing-hero::before {{
+    content:"";
+    position:absolute;
+    inset:0 auto 0 0;
+    width:3px;
+    background:var(--ua-royal);
+  }}
+  .ua-landing-kicker {{
+    color:var(--ua-royal-2);
+    font-size:.64rem;
+    font-weight:750;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }}
+  .ua-landing-title {{
+    max-width:760px;
+    color:var(--ua-ink);
+    font-size:clamp(1.8rem,3.7vw,2.75rem);
+    font-weight:780;
+    line-height:1.08;
+    letter-spacing:-.035em;
+    margin:0 0 14px;
+  }}
+  .ua-landing-copy {{
+    max-width:720px;
+    color:var(--ua-ink-mut);
+    font-size:.96rem;
+    line-height:1.7;
+  }}
+  .ua-landing-access {{
+    padding:16px;
+    border:1px solid var(--ua-hair);
+    border-radius:8px;
+    background:rgba(var(--ua-card-rgb),.62);
+  }}
+  .ua-landing-access strong {{
+    display:block;
+    color:var(--ua-ink);
+    font-size:.82rem;
+    margin-bottom:5px;
+  }}
+  .ua-landing-access span {{
+    display:block;
+    color:var(--ua-ink-mut);
+    font-size:.72rem;
+    line-height:1.55;
+  }}
+  .ua-stat-strip {{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    margin:14px 0 2px;
+    overflow:hidden;
+    border:1px solid var(--ua-hair);
+    border-radius:10px;
+    background:var(--ua-bg-card);
+    font-family:Inter,system-ui,sans-serif;
+  }}
+  .ua-stat-item {{
+    min-width:0;
+    padding:15px 18px;
+    border-right:1px solid var(--ua-hair);
+  }}
+  .ua-stat-item:last-child {{border-right:0}}
+  .ua-stat-num {{
+    display:block;
+    color:var(--ua-ink);
+    font-size:1.35rem;
+    font-weight:780;
+    letter-spacing:-.035em;
+    line-height:1.1;
+  }}
+  .ua-stat-label {{
+    display:block;
+    margin-top:5px;
+    color:var(--ua-ink-mut);
+    font-size:.62rem;
+    font-weight:650;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }}
+  @media(max-width:760px) {{
+    .ua-landing-hero {{grid-template-columns:1fr;padding:24px 22px;gap:18px}}
+    .ua-stat-strip {{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .ua-stat-item:nth-child(2) {{border-right:0}}
+    .ua-stat-item:nth-child(-n+2) {{border-bottom:1px solid var(--ua-hair)}}
+  }}
 </style>
+<section class="ua-landing-hero">
+  <div>
+    <div class="ua-landing-kicker">Macro intelligence for real portfolios</div>
+    <div class="ua-landing-title">See the conditions shaping your next investment decision.</div>
+    <div class="ua-landing-copy">
+      {len(SIGNALS)} real macro and alternative-data signals, scored on first-print
+      observations and connected to the stocks you own. Start with the market
+      regime, then inspect the evidence behind any ticker.
+    </div>
+  </div>
+  <div class="ua-landing-access">
+    <strong>Browse before you subscribe</strong>
+    <span>Today's Brief, the full Signal Dashboard, and market context are free. Pro starts at $20/month.</span>
+  </div>
+</section>
 <div class="ua-stat-strip">
   <div class="ua-stat-item">
-    <span class="ua-stat-num" id="s1">0</span>
-    <span class="ua-stat-label">Signals scored daily</span>
+    <span class="ua-stat-num">{len(SIGNALS)}</span>
+    <span class="ua-stat-label">Documented signals</span>
   </div>
   <div class="ua-stat-item">
-    <span class="ua-stat-num" id="s2">0</span>
-    <span class="ua-stat-label">Week avg lead time</span>
+    <span class="ua-stat-num">4–16w</span>
+    <span class="ua-stat-label">Research horizon</span>
   </div>
   <div class="ua-stat-item">
-    <span class="ua-stat-num" id="s3">0</span>
-    <span class="ua-stat-label">Data sources used</span>
+    <span class="ua-stat-num">5</span>
+    <span class="ua-stat-label">Primary-source families</span>
   </div>
   <div class="ua-stat-item">
-    <span class="ua-stat-num" id="s4">$0</span>
-    <span class="ua-stat-label">Bloomberg charges / yr</span>
-  </div>
-  <div class="ua-stat-item">
-    <span class="ua-stat-num" id="s5">$0</span>
-    <span class="ua-stat-label">Our Pro plan / mo</span>
+    <span class="ua-stat-num">0</span>
+    <span class="ua-stat-label">Synthetic observations</span>
   </div>
 </div>
-<script>
-function animateCount(el, target, prefix, suffix, duration) {
-  var start = 0, step = target / (duration / 16);
-  var timer = setInterval(function() {
-    start = Math.min(start + step, target);
-    el.textContent = prefix + Math.round(start).toLocaleString() + suffix;
-    if (start >= target) clearInterval(timer);
-  }, 16);
-}
-setTimeout(function() {
-  animateCount(document.getElementById('s1'), 47, '', '', 1000);
-  animateCount(document.getElementById('s2'), 8, '', 'w', 1200);
-  animateCount(document.getElementById('s3'), 5, '', '', 900);
-  animateCount(document.getElementById('s4'), 27000, '$', '', 1400);
-  animateCount(document.getElementById('s5'), 20, '$', '', 800);
-}, 300);
-</script>
-""", height=110, scrolling=False)
+""", unsafe_allow_html=True)
+
+_hcta1, _hcta2 = st.columns([1, 3.2], vertical_alignment="center")
+with _hcta1:
+    if st.button(
+        "Open Today's Brief",
+        type="primary",
+        width="stretch",
+        key="hero_cta_brief",
+    ):
+        st.switch_page("pages/2_Today_Digest.py")
+with _hcta2:
+    st.caption(
+        "No account required · Scores update on the same schedule as their source data."
+    )
 
 # ── LIVE SIGNAL PULSE ─────────────────────────────────────────────────────────
 _bar_bull = f"{(_nb / _total * 100):.0f}%" if _total > 0 else "0%"

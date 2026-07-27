@@ -239,13 +239,16 @@ def build_payload(
 # signs, and every brace-or-dollar-aware formatter needs the whole template
 # escaped. Distinctive @@TOKEN@@ markers cannot collide with valid JS.
 _TEMPLATE = r"""
-<div id="ua-wrap" style="font-family:Inter,system-ui,sans-serif;color:var(--ua-ink);">
+<style>
+  html,body{margin:0;background:transparent;color:@@INK@@;}
+</style>
+<div id="ua-wrap" style="font-family:Inter,system-ui,sans-serif;color:@@INK@@;">
   <div id="ua-readout" style="display:flex;gap:26px;align-items:baseline;flex-wrap:wrap;
        padding:2px 4px 12px 4px;min-height:44px;"></div>
   <div id="ua-chart" style="width:100%;height:@@HEIGHT@@px;"></div>
   <div id="ua-fallback" style="display:none;padding:18px;border-radius:8px;
-       background:rgba(var(--ua-red-rgb),0.08);border:1px solid rgba(var(--ua-red-rgb),0.25);
-       font-size:0.82rem;color:#FFB4B4;">
+       background:@@RED_SOFT@@;border:1px solid @@RED_BORDER@@;
+       font-size:0.82rem;color:@@ERROR_TEXT@@;">
     Chart library failed to load. The price data is unaffected — reload the page
     to try again.
   </div>
@@ -263,12 +266,14 @@ _TEMPLATE = r"""
     return;
   }
   if (!D.dates.length) {
-    readout.innerHTML = '<span style="color:var(--ua-ink-mut);">No price history available.</span>';
+    readout.innerHTML = '<span style="color:@@MUTED@@;">No price history available.</span>';
     return;
   }
 
   var CUR = D.currency || '$';
   var GREEN = '#00D566', RED = '#FF4444', CYAN = '#00C8E0';
+  var INK = '@@INK@@', MUTED = '@@MUTED@@', FAINT = '@@FAINT@@';
+  var GRID = '@@GRID@@', HAIR = '@@HAIR@@', HOVER = '@@HOVER@@';
 
   // ── Readout ────────────────────────────────────────────────────────────────
   // Recomputed from the VISIBLE slice on every zoom, so the numbers above the
@@ -296,8 +301,8 @@ _TEMPLATE = r"""
 
   function stat(label, value, colour) {
     return '<div><div style="font-size:0.58rem;letter-spacing:0.11em;text-transform:uppercase;'
-         + 'color:#6B7A95;font-weight:700;margin-bottom:2px;">' + label + '</div>'
-         + '<div style="font-size:1.02rem;font-weight:800;color:' + (colour || '#E8EEFF') + ';">'
+         + 'color:' + FAINT + ';font-weight:700;margin-bottom:2px;">' + label + '</div>'
+         + '<div style="font-size:1.02rem;font-weight:800;color:' + (colour || INK) + ';">'
          + value + '</div></div>';
   }
 
@@ -363,29 +368,29 @@ _TEMPLATE = r"""
 
   var layout = {
     height: @@HEIGHT@@,
-    paper_bgcolor: '#0B0D12', plot_bgcolor: '#0F1118',
-    font: { family: 'Inter, sans-serif', size: 12, color: '#E8EEFF' },
+    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { family: 'Inter, sans-serif', size: 12, color: INK },
     margin: { l: 58, r: @@RIGHT_MARGIN@@, t: 8, b: 40 },
     hovermode: 'x unified',
-    hoverlabel: { bgcolor: '#151925', bordercolor: 'rgba(255,255,255,0.12)',
-                  font: { color: '#E8EEFF', size: 12 } },
+    hoverlabel: { bgcolor: HOVER, bordercolor: HAIR,
+                  font: { color: INK, size: 12 } },
     dragmode: 'zoom',
     shapes: shapes,
     showlegend: true,
-    legend: { orientation: 'h', y: -0.16, x: 0, font: { size: 11, color: '#B8C0D4' },
+    legend: { orientation: 'h', y: -0.16, x: 0, font: { size: 11, color: MUTED },
               bgcolor: 'rgba(0,0,0,0)' },
     xaxis: {
       type: 'date',
-      showgrid: true, gridcolor: 'rgba(255,255,255,0.045)',
-      tickfont: { color: '#8892AA', size: 11 },
+      showgrid: true, gridcolor: GRID,
+      tickfont: { color: MUTED, size: 11 },
       showspikes: true, spikemode: 'across', spikethickness: 1,
-      spikecolor: 'rgba(255,255,255,0.28)', spikedash: 'solid',
+      spikecolor: HAIR, spikedash: 'solid',
       rangeslider: { visible: false }
     },
     yaxis: {
-      title: { text: 'Price', font: { color: '#6B7A95', size: 11 } },
-      showgrid: true, gridcolor: 'rgba(255,255,255,0.045)',
-      tickfont: { color: '#8892AA', size: 11 },
+      title: { text: 'Price', font: { color: FAINT, size: 11 } },
+      showgrid: true, gridcolor: GRID,
+      tickfont: { color: MUTED, size: 11 },
       tickprefix: CUR, fixedrange: false, zeroline: false
     },
     yaxis2: {
@@ -473,20 +478,49 @@ def render(
     if st_module is None:  # pragma: no cover - import cost only in the app
         import streamlit as st_module  # type: ignore
 
-    html = build_html(payload, height=height)
+    try:
+        _theme = str(st_module.query_params.get("theme") or "dark").lower()
+    except Exception:
+        _theme = "dark"
+    html = build_html(payload, height=height, theme=_theme)
     # +130 covers the readout row above and the horizontal legend below, which
     # live outside the plot's own height.
     st_module.components.v1.html(html, height=height + 130, scrolling=False)
 
 
-def build_html(payload: ChartPayload, height: int = 420) -> str:
+def build_html(
+    payload: ChartPayload,
+    height: int = 420,
+    theme: str = "dark",
+) -> str:
     """Pure string build, separated from Streamlit so it can be unit-tested."""
     has_score = bool(payload.score_dates)
+    _light = str(theme).lower() == "light"
+    _palette = {
+        "ink": "#202534" if _light else "#E7EAF0",
+        "muted": "#626B7E" if _light else "#A7B0BF",
+        "faint": "#747E94" if _light else "#8D97A8",
+        "grid": "rgba(36,42,57,0.10)" if _light else "rgba(255,255,255,0.05)",
+        "hair": "rgba(36,42,57,0.20)" if _light else "rgba(255,255,255,0.14)",
+        "hover": "#F2F1F7" if _light else "#171C25",
+        "red_soft": "rgba(185,28,28,0.07)" if _light else "rgba(224,108,117,0.08)",
+        "red_border": "rgba(185,28,28,0.24)" if _light else "rgba(224,108,117,0.28)",
+        "error_text": "#991B1B" if _light else "#FFB4B4",
+    }
     subs = {
         "@@PAYLOAD@@": payload.to_json(),
         "@@HEIGHT@@": str(int(height)),
         "@@RIGHT_MARGIN@@": "58" if has_score else "18",
         "@@SCORE_AXIS@@": "true" if has_score else "false",
+        "@@INK@@": _palette["ink"],
+        "@@MUTED@@": _palette["muted"],
+        "@@FAINT@@": _palette["faint"],
+        "@@GRID@@": _palette["grid"],
+        "@@HAIR@@": _palette["hair"],
+        "@@HOVER@@": _palette["hover"],
+        "@@RED_SOFT@@": _palette["red_soft"],
+        "@@RED_BORDER@@": _palette["red_border"],
+        "@@ERROR_TEXT@@": _palette["error_text"],
     }
     html = _TEMPLATE
     for token, value in subs.items():
