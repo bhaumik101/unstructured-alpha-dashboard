@@ -21,9 +21,13 @@ Kill switch:
   ANALYTICS_ENABLED=false  — disables tracking regardless of provider
 """
 
+import hashlib
+import hmac
+import ipaddress
 import json
 import logging
 import os
+import re
 import threading
 from datetime import datetime, timezone
 from typing import Optional
@@ -32,6 +36,115 @@ logger = logging.getLogger(__name__)
 
 _ENABLED  = os.getenv("ANALYTICS_ENABLED",  "true").lower() != "false"
 _PROVIDER = os.getenv("ANALYTICS_PROVIDER", "db").lower()
+
+
+def _request_headers() -> dict:
+    """Capture request headers while still on the Streamlit render thread."""
+    try:
+        import streamlit as st
+        return {str(k).lower(): str(v) for k, v in st.context.headers.items()}
+    except Exception:
+        return {}
+
+
+def _client_address(headers: dict) -> Optional[str]:
+    """Return a validated proxy-provided client address, never persisted raw."""
+    candidate = (
+        headers.get("cf-connecting-ip")
+        or (headers.get("x-forwarded-for", "").split(",", 1)[0].strip())
+        or headers.get("x-real-ip")
+        or ""
+    ).strip()
+    if not candidate:
+        return None
+    # Some proxies append a port to an IPv4 address.
+    if candidate.count(":") == 1 and "." in candidate:
+        candidate = candidate.rsplit(":", 1)[0]
+    try:
+        return ipaddress.ip_address(candidate).compressed
+    except ValueError:
+        return None
+
+
+def _device_signature(user_agent: str) -> tuple[str, str]:
+    """
+    Reduce a user agent to broad, non-identifying device characteristics.
+
+    The full user-agent string is intentionally discarded. The coarse signature
+    only helps distinguish, for example, a phone and laptop sharing one IP.
+    """
+    ua = (user_agent or "").lower()
+    if not ua:
+        return "unknown", "unknown|unknown"
+
+    if re.search(r"\b(bot|spider|crawler|slurp|headless|preview)\b", ua):
+        device = "bot"
+    elif "ipad" in ua or "tablet" in ua or ("android" in ua and "mobile" not in ua):
+        device = "tablet"
+    elif any(token in ua for token in ("mobile", "iphone", "ipod", "windows phone")):
+        device = "mobile"
+    else:
+        device = "desktop"
+
+    if any(token in ua for token in ("iphone", "ipad", "ipod")):
+        os_family = "ios"
+    elif "android" in ua:
+        os_family = "android"
+    elif "windows" in ua:
+        os_family = "windows"
+    elif any(token in ua for token in ("macintosh", "mac os")):
+        os_family = "macos"
+    elif "linux" in ua:
+        os_family = "linux"
+    else:
+        os_family = "other"
+
+    # Browser family/version is deliberately excluded: switching browsers on
+    # the same device should not manufacture another "unique" visitor.
+    return device, f"{device}|{os_family}"
+
+
+def _visitor_salt() -> str:
+    """Use a dedicated secret in production, with a stable local-dev fallback."""
+    return (
+        os.getenv("ANALYTICS_HASH_SALT")
+        or os.getenv("UNSTRUCTURED_ALPHA_DATABASE_URL")
+        or os.getenv("DATABASE_URL")
+        or "unstructured-alpha-local-analytics"
+    )
+
+
+def visitor_context(
+    user_id: Optional[int] = None,
+    headers: Optional[dict] = None,
+) -> dict:
+    """
+    Build a privacy-safe, stable visitor identity for aggregate analytics.
+
+    Raw IP and full user agent are used only in memory to create a salted HMAC
+    and are never returned, logged, or stored. When no network address is
+    available, signed-in users get a user/device fallback; anonymous visitors
+    remain unidentified rather than being miscounted as sessions.
+    """
+    normalized = {
+        str(k).lower(): str(v)
+        for k, v in (headers if headers is not None else _request_headers()).items()
+    }
+    device_type, device_signature = _device_signature(normalized.get("user-agent", ""))
+    client_address = _client_address(normalized)
+    if client_address:
+        material = f"ip:{client_address}|device:{device_signature}"
+    elif user_id is not None:
+        material = f"user:{user_id}|device:{device_signature}"
+    else:
+        return {"visitor_id": None, "device_type": device_type}
+
+    visitor_id = hmac.new(
+        _visitor_salt().encode("utf-8"),
+        material.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()[:32]
+    return {"visitor_id": visitor_id, "device_type": device_type}
 
 
 # ── Event name constants (use these everywhere — no bare strings) ─────────────
@@ -107,10 +220,13 @@ def track(
     if not _ENABLED or _PROVIDER == "none":
         return
 
+    identity = visitor_context(user_id=user_id)
     payload = {
         "event":      event,
         "user_id":    user_id,
         "session_id": session_id,
+        "visitor_id": identity["visitor_id"],
+        "device_type": identity["device_type"],
         "properties": properties or {},
         "ts":         datetime.now(timezone.utc).isoformat(),
     }
@@ -140,16 +256,19 @@ def _write_db(payload: dict) -> None:
         conn.execute(
             text("""
                 INSERT INTO analytics_events
-                    (event_name, user_id, session_id, properties, created_at)
+                    (event_name, user_id, session_id, visitor_id, device_type,
+                     properties, created_at)
                 VALUES
-                    (:event, :uid, :sid, :props, :ts)
+                    (:event, :uid, :sid, :visitor_id, :device_type, :props, :ts)
             """),
             {
-                "event": payload["event"],
-                "uid":   payload["user_id"],
-                "sid":   payload.get("session_id"),
-                "props": json.dumps(payload["properties"]),
-                "ts":    payload["ts"],
+                "event":       payload["event"],
+                "uid":         payload["user_id"],
+                "sid":         payload.get("session_id"),
+                "visitor_id":  payload.get("visitor_id"),
+                "device_type": payload.get("device_type"),
+                "props":       json.dumps(payload["properties"]),
+                "ts":          payload["ts"],
             },
         )
         conn.commit()
@@ -167,8 +286,16 @@ def _write_posthog(payload: dict) -> None:
         json={
             "api_key":     api_key,
             "event":       payload["event"],
-            "distinct_id": str(payload["user_id"] or payload.get("session_id") or "anon"),
-            "properties":  payload["properties"],
+            "distinct_id": str(
+                payload["user_id"]
+                or payload.get("visitor_id")
+                or payload.get("session_id")
+                or "anon"
+            ),
+            "properties": {
+                **payload["properties"],
+                "$device_type": payload.get("device_type"),
+            },
             "timestamp":   payload["ts"],
         },
         timeout=3,

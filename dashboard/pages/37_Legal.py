@@ -40,7 +40,7 @@ if _legal_section == "Privacy Policy":
     st.markdown("""
 <div style="font-family:Inter,sans-serif;color:#C5CCDE;line-height:1.75;max-width:800px;">
 
-<p style="font-size:0.78rem;color:var(--ua-ink-mut);">Last updated: July 7, 2026 &nbsp;·&nbsp; Unstructured Alpha</p>
+<p style="font-size:0.78rem;color:var(--ua-ink-mut);">Last updated: July 26, 2026 &nbsp;·&nbsp; Unstructured Alpha</p>
 
 <h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">What we collect</h3>
 <p>
@@ -54,15 +54,22 @@ If you subscribe to Pro, Stripe processes your payment. We receive only a Stripe
 and subscription status — not your card number, bank details, or billing address.
 </p>
 <p>
-When you use the platform, our hosting provider (Render) may retain standard web server logs
-including IP addresses, browser type, and page-request timestamps for up to 30 days. We do
-not store or process these logs ourselves beyond what Render retains operationally.
+For first-party traffic measurement, we create a salted one-way identifier from your network
+address and broad device category. The raw network address and full browser user-agent are
+discarded immediately and are never stored in our analytics database. We retain the anonymous
+identifier, broad device category, page viewed, and timestamp so we can measure unique visitors,
+page usage, and product reliability without tracking you across other websites.
+</p>
+<p>
+Our hosting provider (Render) may separately retain standard web server logs including IP
+addresses, browser type, and page-request timestamps for up to 30 days for operational and
+security purposes.
 </p>
 
 <h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">What we don't collect</h3>
 <p>
-We do not use tracking cookies, ad pixels, or behavioral analytics. We do not sell or share
-your data with third parties for marketing purposes. We do not collect your real name, phone
+We do not use analytics cookies, ad pixels, cross-site tracking, or advertising profiles. We
+do not sell or share your data with third parties for marketing purposes. We do not collect your real name, phone
 number, or mailing address. We do not collect financial account numbers or trading history.
 </p>
 

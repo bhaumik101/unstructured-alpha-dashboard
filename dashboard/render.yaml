@@ -73,6 +73,10 @@ services:
         value: redis://red-d9cipkeq1p3s73ben9cg:6379
       - key: DATABASE_URL
         sync: false
+      # Rotatable secret used only for one-way visitor IDs. Raw IP addresses
+      # and full user-agent strings are never written to the database.
+      - key: ANALYTICS_HASH_SALT
+        generateValue: true
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL

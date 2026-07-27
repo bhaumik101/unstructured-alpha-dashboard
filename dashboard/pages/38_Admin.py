@@ -14,6 +14,8 @@
 #   • Referral stats
 #   • Watchlist adoption
 
+import json
+
 import streamlit as st
 
 st.set_page_config(
@@ -201,66 +203,149 @@ def load_traffic() -> dict:
     d30 = _iso(now - timedelta(days=30))
     out = {
         "pv_today": 0, "pv_7d": 0, "pv_30d": 0,
-        "uniq_7d": 0, "uniq_30d": 0,
+        "uniq_today": 0, "uniq_7d": 0, "uniq_30d": 0,
+        "sessions_7d": 0, "new_visitors_7d": 0, "returning_visitors_7d": 0,
+        "engaged_visitors_7d": 0, "identity_coverage_30d": 0.0,
         "anon_7d": 0, "loggedin_7d": 0,
-        "top_pages": [], "daily_views": {}, "event_breakdown": [],
-        "total_events": 0,
+        "top_pages": [], "daily_views": {}, "daily_visitors": {},
+        "device_breakdown": [], "event_breakdown": [], "total_events": 0,
     }
     try:
         with engine.connect() as conn:
-            def _cnt(where_sql: str, params: dict) -> int:
-                return conn.execute(
-                    text(f"SELECT COUNT(*) FROM analytics_events WHERE {where_sql}"),
-                    params,
-                ).scalar() or 0
-
-            out["pv_today"] = _cnt("event_name='page_view' AND created_at >= :d", {"d": d1})
-            out["pv_7d"]    = _cnt("event_name='page_view' AND created_at >= :d", {"d": d7})
-            out["pv_30d"]   = _cnt("event_name='page_view' AND created_at >= :d", {"d": d30})
-
-            out["uniq_7d"] = conn.execute(
-                text("SELECT COUNT(DISTINCT session_id) FROM analytics_events "
-                     "WHERE event_name='page_view' AND created_at >= :d"), {"d": d7}
-            ).scalar() or 0
-            out["uniq_30d"] = conn.execute(
-                text("SELECT COUNT(DISTINCT session_id) FROM analytics_events "
-                     "WHERE event_name='page_view' AND created_at >= :d"), {"d": d30}
-            ).scalar() or 0
-
-            out["loggedin_7d"] = _cnt(
-                "event_name='page_view' AND created_at >= :d AND user_id IS NOT NULL", {"d": d7})
-            out["anon_7d"] = _cnt(
-                "event_name='page_view' AND created_at >= :d AND user_id IS NULL", {"d": d7})
-
             out["total_events"] = conn.execute(
                 text("SELECT COUNT(*) FROM analytics_events")
             ).scalar() or 0
 
-            # Top pages (last 30d) — parse page label out of the properties JSON.
+            # One bounded query feeds all traffic, page, and device metrics.
             pv_rows = conn.execute(
-                text("SELECT properties FROM analytics_events "
-                     "WHERE event_name='page_view' AND created_at >= :d"), {"d": d30}
+                text(
+                    "SELECT visitor_id, session_id, user_id, properties, "
+                    "created_at, device_type FROM analytics_events "
+                    "WHERE event_name='page_view' AND created_at >= :d"
+                ),
+                {"d": d30},
             ).fetchall()
-            page_counts: dict[str, int] = {}
-            for (props,) in pv_rows:
+            page_stats: dict[str, dict] = {}
+            daily_views: dict[str, int] = {}
+            daily_visitor_sets: dict[str, set] = {}
+            device_stats: dict[str, dict] = {}
+            visitor_views_7d: dict[str, int] = {}
+            visitors_today: set[str] = set()
+            visitors_7d: set[str] = set()
+            visitors_30d: set[str] = set()
+            sessions_7d: set[str] = set()
+            identified_30d = 0
+
+            for visitor_id, session_id, user_id, props, ts, device_type in pv_rows:
+                ts = str(ts or "")
+                in_7d = ts >= d7
+                in_1d = ts >= d1
+                out["pv_30d"] += 1
+                if in_7d:
+                    out["pv_7d"] += 1
+                    if user_id is None:
+                        out["anon_7d"] += 1
+                    else:
+                        out["loggedin_7d"] += 1
+                    if session_id:
+                        sessions_7d.add(str(session_id))
+                if in_1d:
+                    out["pv_today"] += 1
+
+                if visitor_id:
+                    visitor_id = str(visitor_id)
+                    identified_30d += 1
+                    visitors_30d.add(visitor_id)
+                    if in_7d:
+                        visitors_7d.add(visitor_id)
+                        visitor_views_7d[visitor_id] = visitor_views_7d.get(visitor_id, 0) + 1
+                    if in_1d:
+                        visitors_today.add(visitor_id)
+
                 try:
                     page = (json.loads(props) or {}).get("page", "?") if props else "?"
                 except Exception:
                     page = "?"
-                page_counts[page] = page_counts.get(page, 0) + 1
-            out["top_pages"] = sorted(page_counts.items(), key=lambda kv: -kv[1])[:15]
+                page = str(page or "?")
+                stats = page_stats.setdefault(
+                    page, {"views": 0, "visitors": set(), "logged_in": 0}
+                )
+                stats["views"] += 1
+                if visitor_id:
+                    stats["visitors"].add(visitor_id)
+                if user_id is not None:
+                    stats["logged_in"] += 1
 
-            # Daily page views (last 30d), bucketed in Python (portable).
-            day_rows = conn.execute(
-                text("SELECT created_at FROM analytics_events "
-                     "WHERE event_name='page_view' AND created_at >= :d"), {"d": d30}
-            ).fetchall()
-            dv: dict[str, int] = {}
-            for (ts,) in day_rows:
                 day = ts[:10] if ts else None
                 if day:
-                    dv[day] = dv.get(day, 0) + 1
-            out["daily_views"] = dv
+                    daily_views[day] = daily_views.get(day, 0) + 1
+                    if visitor_id:
+                        daily_visitor_sets.setdefault(day, set()).add(visitor_id)
+
+                device = str(device_type or "unknown").title()
+                device_row = device_stats.setdefault(
+                    device, {"views": 0, "visitors": set()}
+                )
+                device_row["views"] += 1
+                if visitor_id:
+                    device_row["visitors"].add(visitor_id)
+
+            out["uniq_today"] = len(visitors_today)
+            out["uniq_7d"] = len(visitors_7d)
+            out["uniq_30d"] = len(visitors_30d)
+            out["sessions_7d"] = len(sessions_7d)
+            out["engaged_visitors_7d"] = sum(
+                count >= 2 for count in visitor_views_7d.values()
+            )
+            out["identity_coverage_30d"] = (
+                identified_30d / out["pv_30d"] * 100 if out["pv_30d"] else 0.0
+            )
+            out["daily_views"] = daily_views
+            out["daily_visitors"] = {
+                day: len(ids) for day, ids in daily_visitor_sets.items()
+            }
+
+            out["top_pages"] = [
+                {
+                    "Page": page,
+                    "Views": stats["views"],
+                    "Visitors": len(stats["visitors"]),
+                    "Views / Visitor": round(
+                        stats["views"] / len(stats["visitors"]), 1
+                    ) if stats["visitors"] else 0.0,
+                    "Traffic Share": f"{stats['views'] / out['pv_30d'] * 100:.1f}%",
+                    "Signed-in Share": f"{stats['logged_in'] / stats['views'] * 100:.1f}%",
+                }
+                for page, stats in sorted(
+                    page_stats.items(), key=lambda item: -item[1]["views"]
+                )[:15]
+            ]
+            out["device_breakdown"] = [
+                {
+                    "Device": device,
+                    "Visitors": len(stats["visitors"]),
+                    "Views": stats["views"],
+                    "Traffic Share": f"{stats['views'] / out['pv_30d'] * 100:.1f}%",
+                }
+                for device, stats in sorted(
+                    device_stats.items(), key=lambda item: -item[1]["views"]
+                )
+            ]
+
+            first_seen_rows = conn.execute(
+                text(
+                    "SELECT visitor_id, MIN(created_at) FROM analytics_events "
+                    "WHERE event_name='page_view' AND visitor_id IS NOT NULL "
+                    "GROUP BY visitor_id"
+                )
+            ).fetchall()
+            first_seen = {str(visitor_id): str(ts) for visitor_id, ts in first_seen_rows}
+            out["new_visitors_7d"] = sum(
+                first_seen.get(visitor_id, "") >= d7 for visitor_id in visitors_7d
+            )
+            out["returning_visitors_7d"] = (
+                out["uniq_7d"] - out["new_visitors_7d"]
+            )
 
             # Event-type breakdown (last 30d) — what are users actually doing.
             ev_rows = conn.execute(
@@ -274,8 +359,6 @@ def load_traffic() -> dict:
 
 
 # ── Load data ─────────────────────────────────────────────────────────────────
-
-import json  # for parsing analytics properties JSON
 
 with st.spinner("Loading metrics..."):
     m = load_metrics()
@@ -315,20 +398,42 @@ st.markdown("---")
 # ── Traffic ───────────────────────────────────────────────────────────────────
 
 st.markdown("###  Traffic")
-st.caption("Page views are logged on every navigation (deduped per session). "
-           "Unique visitors = distinct sessions.")
+st.caption(
+    "Unique visitors use a salted, one-way network + coarse-device identifier — "
+    "not Streamlit sessions. Raw IP addresses and full user-agent strings are never "
+    "stored. Corrected visitor identity applies to events collected after this deploy."
+)
 
 t1, t2, t3, t4 = st.columns(4)
-t1.metric("Page Views Today", f"{tr['pv_today']:,}")
+t1.metric("Page Views (24h)", f"{tr['pv_today']:,}")
 t2.metric("Page Views (7d)",  f"{tr['pv_7d']:,}")
-t3.metric("Unique Visitors (7d)", f"{tr['uniq_7d']:,}")
-t4.metric("Unique Visitors (30d)", f"{tr['uniq_30d']:,}")
+t3.metric("Page Views (30d)", f"{tr['pv_30d']:,}")
+t4.metric("Unique Visitors (24h)", f"{tr['uniq_today']:,}")
 
-t5, t6, t7 = st.columns(3)
+t5, t6, t7, t8 = st.columns(4)
 _views_per_visitor = (tr["pv_7d"] / tr["uniq_7d"]) if tr["uniq_7d"] else 0
-t5.metric("Views / Visitor (7d)", f"{_views_per_visitor:.1f}")
-t6.metric("Logged-in Views (7d)", f"{tr['loggedin_7d']:,}")
-t7.metric("Anonymous Views (7d)", f"{tr['anon_7d']:,}")
+t5.metric("Unique Visitors (7d)", f"{tr['uniq_7d']:,}")
+t6.metric("Unique Visitors (30d)", f"{tr['uniq_30d']:,}")
+t7.metric("Views / Visitor (7d)", f"{_views_per_visitor:.1f}")
+t8.metric(
+    "Sessions (7d)", f"{tr['sessions_7d']:,}",
+    help="Sessions remain an engagement metric, but no longer define unique visitors.",
+)
+
+t9, t10, t11, t12 = st.columns(4)
+_engaged_rate = (
+    tr["engaged_visitors_7d"] / tr["uniq_7d"] * 100 if tr["uniq_7d"] else 0
+)
+t9.metric("New Visitors (7d)", f"{tr['new_visitors_7d']:,}")
+t10.metric("Returning Visitors (7d)", f"{tr['returning_visitors_7d']:,}")
+t11.metric(
+    "Engaged Visitors (7d)", f"{_engaged_rate:.1f}%",
+    help="Identified visitors with two or more page views in the last 7 days.",
+)
+t12.metric(
+    "Identity Coverage (30d)", f"{tr['identity_coverage_30d']:.1f}%",
+    help="Share of page views carrying the new privacy-safe visitor ID.",
+)
 
 if tr["pv_30d"] == 0:
     st.info("No page-view data yet. Traffic accrues from now that page-view "
@@ -339,27 +444,58 @@ else:
     today = datetime.now(timezone.utc).date()
     all_days = [(today - timedelta(days=i)).isoformat() for i in range(29, -1, -1)]
     view_counts = [tr["daily_views"].get(d, 0) for d in all_days]
-    figv = go.Figure(go.Bar(x=all_days, y=view_counts, marker_color="#3DD68C"))
+    visitor_counts = [tr["daily_visitors"].get(d, 0) for d in all_days]
+    figv = go.Figure()
+    figv.add_bar(
+        x=all_days, y=view_counts, name="Page views", marker_color="#6470F5"
+    )
+    figv.add_scatter(
+        x=all_days, y=visitor_counts, name="Unique visitors",
+        mode="lines+markers", line={"color": "#8B7BF7", "width": 2},
+    )
     figv.update_layout(
-        title="Daily Page Views (last 30 days)",
+        title="Daily Traffic (last 30 days)",
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#E2E8F0", xaxis={"showgrid": False},
+        xaxis={"showgrid": False},
         yaxis={"showgrid": True, "gridcolor": "rgba(255,255,255,0.08)"},
-        margin={"t": 40, "b": 40, "l": 40, "r": 10}, height=260,
+        margin={"t": 40, "b": 40, "l": 40, "r": 10}, height=280,
+        legend={"orientation": "h", "y": 1.12},
     )
     st.plotly_chart(figv, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
-    tp_col, ev_col = st.columns(2)
+    tp_col, device_col = st.columns([2, 1])
     with tp_col:
-        st.markdown("**Top Pages (30d)**")
+        st.markdown("**Page Performance (30d)**")
         if tr["top_pages"]:
             import pandas as pd
             st.dataframe(
-                pd.DataFrame(tr["top_pages"], columns=["Page", "Views"]),
+                pd.DataFrame(tr["top_pages"]),
                 width="stretch", hide_index=True,
             )
         else:
             st.caption("No page data yet.")
+    with device_col:
+        st.markdown("**Devices (30d)**")
+        if tr["device_breakdown"]:
+            import pandas as pd
+            st.dataframe(
+                pd.DataFrame(tr["device_breakdown"]),
+                width="stretch", hide_index=True,
+            )
+        else:
+            st.caption("No device data yet.")
+
+    mix_col, ev_col = st.columns(2)
+    with mix_col:
+        st.markdown("**Audience Mix (7d)**")
+        import pandas as pd
+        st.dataframe(
+            pd.DataFrame([
+                {"Audience": "Logged-in page views", "Views": tr["loggedin_7d"]},
+                {"Audience": "Anonymous page views", "Views": tr["anon_7d"]},
+            ]),
+            width="stretch", hide_index=True,
+        )
     with ev_col:
         st.markdown("**Event Breakdown (30d)**")
         if tr["event_breakdown"]:

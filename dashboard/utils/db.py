@@ -655,15 +655,18 @@ referrals = Table(
 
 # Analytics event log (added 2026-07-08). Keyed by event_name + user_id + ts.
 # user_id is nullable — anonymous page views before login are still tracked.
+# visitor_id is a one-way salted HMAC derived from network address + broad
+# device class. The source IP and full user agent are never persisted.
 # properties is a JSON string for arbitrary per-event context.
 # No unique constraint — duplicate events are legitimate (two page views = two rows).
-# Brand-new table, create_all() handles it — no ALTER TABLE migration needed.
 analytics_events = Table(
     "analytics_events", metadata,
     Column("id",         Integer, primary_key=True),
     Column("event_name", String(64), nullable=False),
     Column("user_id",    Integer),              # nullable — anonymous events
     Column("session_id", String(64)),           # Streamlit session ID for anon stitching
+    Column("visitor_id", String(64)),            # privacy-safe cross-session identity
+    Column("device_type", String(16)),           # desktop/mobile/tablet/bot/unknown
     Column("properties", Text),                 # JSON string
     Column("created_at", String(64), nullable=False),
 )
@@ -838,6 +841,29 @@ def _migrate_saved_recommender_screens_table() -> None:
                 ))
 
 
+def _migrate_analytics_events_table() -> None:
+    """Add privacy-safe visitor fields to databases created before July 2026."""
+    inspector = inspect(engine)
+    if "analytics_events" not in inspector.get_table_names():
+        return
+    existing_cols = {c["name"] for c in inspector.get_columns("analytics_events")}
+    new_cols = [c for c in analytics_events.columns if c.name not in existing_cols]
+    with engine.begin() as conn:
+        for col in new_cols:
+            conn.execute(text(
+                f"ALTER TABLE analytics_events ADD COLUMN {col.name} TEXT"
+            ))
+        # Both supported production/test dialects accept IF NOT EXISTS.
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_analytics_events_visitor_id "
+            "ON analytics_events (visitor_id)"
+        ))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_analytics_events_event_created "
+            "ON analytics_events (event_name, created_at)"
+        ))
+
+
 def init_db() -> None:
     """Create every table if it doesn't already exist, then apply any
     pending column migrations. Safe to call on every page load."""
@@ -847,6 +873,7 @@ def init_db() -> None:
     _migrate_alert_state_table()
     _migrate_score_snapshots_table()
     _migrate_saved_recommender_screens_table()
+    _migrate_analytics_events_table()
 
 
 # Probability that any single page load triggers run_periodic_maintenance()
