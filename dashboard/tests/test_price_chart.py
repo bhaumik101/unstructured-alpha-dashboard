@@ -231,6 +231,18 @@ def test_html_embeds_payload_and_is_self_contained(series):
     assert "CCJ" in html
 
 
+def test_html_uses_theme_specific_chart_chrome(series):
+    dark = build_html(build_payload("CCJ", series, "1Y"), theme="dark")
+    light = build_html(build_payload("CCJ", series, "1Y"), theme="light")
+
+    assert "var(--ua-" not in dark
+    assert "paper_bgcolor: 'rgba(0,0,0,0)'" in dark
+    assert "var INK = '#E7EAF0'" in dark
+    assert "var INK = '#202534'" in light
+    assert "var GRID = 'rgba(36,42,57,0.10)'" in light
+    assert "hoverlabel: { bgcolor: HOVER" in light
+
+
 def test_html_hides_score_axis_when_there_is_no_score_history(series):
     html = build_html(build_payload("CCJ", series, "1Y"))
     assert "visible: false" in html

@@ -1,5 +1,7 @@
 """Unstructured Alpha's restrained dark product and chart system."""
+import functools as _functools
 import math as _math
+import re as _re
 
 import plotly.graph_objects as _go
 import plotly.io as _pio
@@ -131,6 +133,243 @@ PLOTLY_CONFIG_TIMESERIES: dict = {
     "responsive": True,
     "doubleClick": "reset",
 }
+
+
+_CHART_COLOR_REMAP = {
+    "#00d566": GREEN,
+    "#34d399": GREEN,
+    "#ff4444": BEAR_RED,
+    "#ff4d6a": BEAR_RED,
+    "#7c3aed": PURPLE,
+    "#00c8e0": CYAN,
+    "#f59e0b": AMBER,
+    "#e8eeff": TEXT_PRIMARY,
+    "#b8c0d4": TEXT_SECONDARY,
+    "#8892aa": TEXT_SECONDARY,
+    "#6b7fbf": NEUTRAL,
+}
+_CHART_RGBA_REMAP = {
+    (0, 213, 102): (53, 201, 139),
+    (52, 211, 153): (53, 201, 139),
+    (255, 68, 68): (224, 108, 117),
+    (255, 77, 106): (224, 108, 117),
+    (124, 58, 237): (129, 135, 247),
+    (0, 200, 224): (85, 167, 216),
+    (245, 158, 11): (214, 163, 74),
+}
+
+
+def _remap_chart_colors(value):
+    """Recursively replace legacy fluorescent chart colors only."""
+    if isinstance(value, dict):
+        return {key: _remap_chart_colors(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_remap_chart_colors(item) for item in value]
+    if not isinstance(value, str):
+        return value
+
+    _mapped = _CHART_COLOR_REMAP.get(value.lower())
+    if _mapped:
+        return _mapped
+
+    _rgba = _re.fullmatch(
+        r"rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([^)]+)\)",
+        value,
+        flags=_re.IGNORECASE,
+    )
+    if _rgba:
+        _rgb = tuple(int(_rgba.group(index)) for index in (1, 2, 3))
+        if _rgb in _CHART_RGBA_REMAP:
+            _new = _CHART_RGBA_REMAP[_rgb]
+            return f"rgba({_new[0]},{_new[1]},{_new[2]},{_rgba.group(4).strip()})"
+    return value
+
+
+def normalize_plotly_figure(fig) -> object:
+    """Apply the non-negotiable chart-system layer before a figure renders.
+
+    Older pages still contain local Plotly layout overrides. Those overrides
+    are useful for chart-specific height, margins, annotations, and semantic
+    series colors, but dark-only paper backgrounds and typography caused the
+    product to fragment—especially after switching to light mode. This final
+    pass standardizes presentation chrome without rewriting trace data.
+    """
+    if fig is None or not hasattr(fig, "update_layout"):
+        return fig
+
+    for _trace in getattr(fig, "data", ()):
+        _trace.update(_remap_chart_colors(_trace.to_plotly_json()))
+    fig.update_layout(_remap_chart_colors(fig.layout.to_plotly_json()))
+
+    _tick_font = dict(
+        family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+        size=10,
+        color=TEXT_SECONDARY,
+    )
+    _title_font = dict(
+        family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+        size=11,
+        color=TEXT_MUTED,
+    )
+    _axis = dict(
+        automargin=True,
+        gridcolor=GRID_COLOR,
+        gridwidth=1,
+        linecolor=BORDER_LIGHT,
+        tickfont=_tick_font,
+        title_font=_title_font,
+        zerolinecolor=BORDER_LIGHT,
+        zerolinewidth=1,
+    )
+
+    fig.update_layout(
+        autosize=True,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(
+            family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+            size=11,
+            color=TEXT_SECONDARY,
+        ),
+        title_font=dict(
+            family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+            size=14,
+            color=TEXT_PRIMARY,
+        ),
+        hoverlabel=dict(
+            bgcolor=BG_CARD_RAISED,
+            bordercolor=BORDER_LIGHT,
+            font=dict(
+                family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                size=11,
+                color=TEXT_PRIMARY,
+            ),
+            namelength=-1,
+        ),
+        legend=dict(
+            bgcolor="rgba(0,0,0,0)",
+            borderwidth=0,
+            font=dict(
+                family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                size=10,
+                color=TEXT_SECONDARY,
+            ),
+        ),
+        modebar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            color=TEXT_MUTED,
+            activecolor=TEXT_PRIMARY,
+        ),
+    )
+
+    # Apply to every cartesian subplot, including xaxis2/yaxis2 created by
+    # make_subplots. Plotly treats these calls as no-ops for non-cartesian plots.
+    fig.update_xaxes(**_axis)
+    fig.update_yaxes(**_axis)
+
+    _layout = fig.layout.to_plotly_json()
+    for _name in tuple(_layout):
+        if _name.startswith("polar"):
+            getattr(fig.layout, _name).update(
+                bgcolor="rgba(0,0,0,0)",
+                angularaxis=dict(
+                    gridcolor=GRID_COLOR,
+                    linecolor=BORDER_LIGHT,
+                    tickfont=_tick_font,
+                ),
+                radialaxis=dict(
+                    gridcolor=GRID_COLOR,
+                    linecolor=BORDER_LIGHT,
+                    tickfont=_tick_font,
+                ),
+            )
+        elif _name.startswith("scene"):
+            getattr(fig.layout, _name).update(
+                bgcolor="rgba(0,0,0,0)",
+                xaxis=dict(
+                    backgroundcolor="rgba(0,0,0,0)",
+                    gridcolor=GRID_COLOR,
+                    tickfont=_tick_font,
+                    title_font=_title_font,
+                ),
+                yaxis=dict(
+                    backgroundcolor="rgba(0,0,0,0)",
+                    gridcolor=GRID_COLOR,
+                    tickfont=_tick_font,
+                    title_font=_title_font,
+                ),
+                zaxis=dict(
+                    backgroundcolor="rgba(0,0,0,0)",
+                    gridcolor=GRID_COLOR,
+                    tickfont=_tick_font,
+                    title_font=_title_font,
+                ),
+            )
+        elif _name.startswith("coloraxis"):
+            getattr(fig.layout, _name).update(
+                colorbar=dict(
+                    tickfont=_tick_font,
+                    title_font=_title_font,
+                    outlinecolor=BORDER_LIGHT,
+                )
+            )
+
+    for _trace in getattr(fig, "data", ()):
+        _colorbar = getattr(_trace, "colorbar", None)
+        if _colorbar is not None:
+            try:
+                _colorbar.update(
+                    tickfont=_tick_font,
+                    title_font=_title_font,
+                    outlinecolor=BORDER_LIGHT,
+                )
+            except (TypeError, ValueError):
+                # Some trace families expose a read-only/partial colorbar
+                # object. Their layout-level coloraxis is normalized above.
+                pass
+
+    return fig
+
+
+def _install_plotly_renderer() -> None:
+    """Normalize all Streamlit Plotly renders, including column containers."""
+    try:
+        import streamlit as _st
+        from streamlit.delta_generator import DeltaGenerator as _DeltaGenerator
+    except Exception:  # pragma: no cover - Streamlit is always present in app
+        return
+
+    def _wrap_function(_render):
+        if getattr(_render, "_ua_chart_system", False):
+            return _render
+
+        @_functools.wraps(_render)
+        def _normalized(figure_or_data, *args, **kwargs):
+            normalize_plotly_figure(figure_or_data)
+            kwargs["theme"] = None
+            return _render(figure_or_data, *args, **kwargs)
+
+        _normalized._ua_chart_system = True
+        return _normalized
+
+    def _wrap_method(_render):
+        if getattr(_render, "_ua_chart_system", False):
+            return _render
+
+        @_functools.wraps(_render)
+        def _normalized(self, figure_or_data, *args, **kwargs):
+            normalize_plotly_figure(figure_or_data)
+            kwargs["theme"] = None
+            return _render(self, figure_or_data, *args, **kwargs)
+
+        _normalized._ua_chart_system = True
+        return _normalized
+
+    _st.plotly_chart = _wrap_function(_st.plotly_chart)
+    _DeltaGenerator.plotly_chart = _wrap_method(_DeltaGenerator.plotly_chart)
+
+
+_install_plotly_renderer()
 
 # ── Chart Style Helper ────────────────────────────────────────────────────────
 

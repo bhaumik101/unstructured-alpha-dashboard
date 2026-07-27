@@ -54,6 +54,9 @@ def test_light_plotly_chrome_uses_theme_tokens_without_rewriting_traces():
     assert ".xtick text, .ytick text, .gtitle, .legendtext" in HEADER
     assert "fill: var(--ua-ink-mut) !important;" in HEADER
     assert ".gridlayer path" in HEADER
+    assert ".barlayer .bartext" in HEADER
+    assert ".hoverlayer .hovertext path" in HEADER
+    assert ".rangeselector .button rect" in HEADER
 
 
 def test_compact_inline_styles_receive_the_same_semantic_remap():

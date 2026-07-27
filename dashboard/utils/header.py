@@ -397,6 +397,31 @@ html[data-ua-theme="light"] [data-testid="stPlotlyChart"] .modebar {
 html[data-ua-theme="light"] [data-testid="stPlotlyChart"] .modebar-btn path {
     fill: var(--ua-ink-mut) !important;
 }
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] :is(
+    .barlayer .bartext, .scatterlayer .textpoint text,
+    .pielayer .slicetext, .treemaplayer .slicetext,
+    .sunburstlayer .slicetext, .funnellayer .bartext
+) {
+    fill: var(--ua-ink) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] :is(
+    .hoverlayer .hovertext path, .hoverlayer .axistext path
+) {
+    fill: var(--ua-bg-raised) !important;
+    stroke: var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] :is(
+    .hoverlayer .hovertext text, .hoverlayer .axistext text
+) {
+    fill: var(--ua-ink) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] .rangeselector .button rect {
+    fill: var(--ua-bg-raised) !important;
+    stroke: var(--ua-hair) !important;
+}
+html[data-ua-theme="light"] [data-testid="stPlotlyChart"] .rangeselector .button text {
+    fill: var(--ua-ink-mut) !important;
+}
 
 /* ── Guided workflow cards ───────────────────────────────────────────────── */
 .ua-guide-shell {
