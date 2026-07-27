@@ -260,6 +260,11 @@ html[data-ua-theme="light"] .ua-tnav-drop a.pro-link:hover {
     background: rgba(var(--ua-purple-rgb),0.12) !important;
     border-color: rgba(var(--ua-purple-rgb),0.44) !important;
 }
+html[data-ua-theme="light"] .ua-tnav-drop a.pro-link::after {
+    color: #4B2A91 !important;
+    background: rgba(var(--ua-purple-rgb),0.14) !important;
+    border-color: rgba(var(--ua-purple-rgb),0.42) !important;
+}
 html[data-ua-theme="light"] .ua-tnav-drop-rule { background: var(--ua-hair) !important; }
 html[data-ua-theme="light"] .ua-tnav-drop-label { color: var(--ua-ink-dim) !important; }
 
@@ -2515,8 +2520,10 @@ html[data-ua-theme="light"] .ua-tnav-admin {
   color: #7A5E1E;
   border-color: rgba(156,122,44,0.35);
 }
-html[data-ua-theme="light"] .ua-tnav-pro {
-  color: #5A46C0;
+html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
+  color: #4B2A91;
+  background: rgba(var(--ua-purple-rgb),0.12);
+  border-color: rgba(var(--ua-purple-rgb),0.38);
 }
 
 /* ── Mobile hamburger (JS-free checkbox toggle) ───────────────────────────── */

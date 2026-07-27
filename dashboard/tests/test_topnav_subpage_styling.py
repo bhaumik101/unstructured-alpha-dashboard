@@ -23,3 +23,12 @@ def test_dark_theme_pro_links_have_badge_and_purple_surface():
 def test_light_theme_keeps_pro_links_distinct():
     assert 'html[data-ua-theme="light"] .ua-tnav-drop a.pro-link {' in HEADER
     assert "color: #6D4FC2 !important;" in HEADER
+    assert 'html[data-ua-theme="light"] .ua-tnav-drop a.pro-link::after {' in HEADER
+    assert "color: #4B2A91 !important;" in HEADER
+    assert "background: rgba(var(--ua-purple-rgb),0.14) !important;" in HEADER
+    assert "border-color: rgba(var(--ua-purple-rgb),0.42) !important;" in HEADER
+
+
+def test_light_theme_pro_status_keeps_admin_gold_override():
+    assert 'html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {' in HEADER
+    assert "color: #4B2A91;" in HEADER
