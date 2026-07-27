@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
+import Link from 'next/link';
 
 const APP_URL = "https://app.unstructuredalpha.com";
 
@@ -39,32 +40,32 @@ const PREVIEW_SIGNALS = [
 
 const FEATURES = [
   {
-    icon: "⚡", title: "Signal Dashboard", accent: "#00d566", pro: false,
+    icon: "SD", title: "Signal Dashboard", accent: "#8b7cff", pro: false,
     body: "All 47 macro signals in one view — categorized by macro, credit, energy, sentiment, inflation, and growth. Spot regime shifts before they hit price.",
     detail: "Updated every ~2h from FRED, SEC, FINRA, EIA, CBOE.",
   },
   {
-    icon: "🔍", title: "Ticker Deep Dive", accent: "#00c8e0", pro: false,
+    icon: "TD", title: "Ticker Deep Dive", accent: "#5fc4e8", pro: false,
     body: "Enter any ticker: get a Confluence Score, the signals most relevant to its sector, insider activity, factor exposure, and a plain-English bull/bear case.",
     detail: "Works on any publicly-traded US stock or ETF.",
   },
   {
-    icon: "📋", title: "Today's Brief", accent: "#7c3aed", pro: false,
+    icon: "TB", title: "Today's Brief", accent: "#b5a7ff", pro: false,
     body: "A daily macro briefing that tells you which signals moved, by how much, and what it means. No charts to decode — just context you can act on.",
     detail: "Digestible in under 5 minutes. Delivered in-app and by email.",
   },
   {
-    icon: "📈", title: "Score History", accent: "#00d566", pro: true,
+    icon: "SH", title: "Score History", accent: "#8b7cff", pro: true,
     body: "Track how a ticker's Confluence Score has evolved over time. See which macro regimes preceded past moves, and where the current regime sits historically.",
     detail: "30, 60, 90-day charts with snapshot comparison.",
   },
   {
-    icon: "🏭", title: "Sector Percentiles", accent: "#00c8e0", pro: true,
+    icon: "SP", title: "Sector Percentiles", accent: "#5fc4e8", pro: true,
     body: "Rank every sector by its current macro tailwind strength. Instantly see which sectors are in the top quartile of macro support.",
     detail: "Relative ranking updated daily from snapshot history.",
   },
   {
-    icon: "🔔", title: "Continuous Monitoring", accent: "#7c3aed", pro: true,
+    icon: "CM", title: "Continuous Monitoring", accent: "#b5a7ff", pro: true,
     body: "We watch the macro backdrop around your holdings when you're not there. Get alerted the moment a Confluence Score materially moves or a signal flips — email, Discord, or Slack.",
     detail: "So you never miss when the macro around a holding turns.",
   },
@@ -72,15 +73,15 @@ const FEATURES = [
 
 const FOR_WHO = [
   {
-    icon: "📊", title: "Active stock pickers",
+    icon: "01", title: "Active stock pickers",
     body: "You have a thesis. Unstructured Alpha tells you whether the macro backdrop supports it — before you size in. No more blind macro exposure.",
   },
   {
-    icon: "🏦", title: "Macro-aware investors",
+    icon: "02", title: "Macro-aware investors",
     body: "You follow Fed policy, credit spreads, and energy markets but track them in scattered tabs. We aggregate all of it into one scored view.",
   },
   {
-    icon: "⚙️", title: "Systematic thinkers",
+    icon: "03", title: "Systematic thinkers",
     body: "You want data and logic, not opinions. Every signal is pulled from primary public sources, scored against a rolling 1-year history, and explained.",
   },
 ];
@@ -154,16 +155,18 @@ function ScoreCell({ score, status }: { score: number; status: string }) {
 }
 
 const T = {
-  muted:   "#8892aa" as const,
-  dimmer:  "#4a5280" as const,
-  label:   "#6b7fbb" as const,
-  bright:  "#e8eaf2" as const,
-  mid:     "#b8c0d4" as const,
-  green:   "#00d566" as const,
-  cyan:    "#00c8e0" as const,
-  purple:  "#7c3aed" as const,
-  bg:      "#0b0d12" as const,
-  card:    "#12151e" as const,
+  muted:   "var(--text-lo)" as const,
+  dimmer:  "var(--text-dim)" as const,
+  label:   "var(--text-cap)" as const,
+  bright:  "var(--text-hi)" as const,
+  mid:     "var(--text-mid)" as const,
+  green:   "var(--accent)" as const,
+  cyan:    "var(--cyan)" as const,
+  purple:  "var(--purple)" as const,
+  bull:    "var(--bull)" as const,
+  bear:    "var(--bear)" as const,
+  bg:      "var(--bg-page)" as const,
+  card:    "var(--bg-card)" as const,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -174,6 +177,12 @@ export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [email,      setEmail]      = useState("");
   const [subStatus,  setSubStatus]  = useState<"idle"|"loading"|"success"|"error">("idle");
+  const toggleTheme = () => {
+    const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    window.localStorage.setItem("ua-theme", next);
+  };
 
   const handleSubscribe = async (e: FormEvent) => {
     e.preventDefault();
@@ -230,36 +239,36 @@ export default function Home() {
   const annualTotal = proPrice * 12;
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, color: T.bright,
+    <div className="site-shell" style={{ minHeight: "100vh", background: T.bg, color: T.bright,
                   fontFamily: "var(--font-geist), Inter, system-ui, sans-serif" }}>
 
       {/* ── Ambient background glows (fixed so they don't scroll) ── */}
       <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
         <div aria-hidden className="aurora-1" style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)",
                                    width: 900, height: 600,
-                                   background: "radial-gradient(ellipse at center, rgba(0,213,102,0.09) 0%, transparent 65%)",
+                                   background: "radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 65%)",
                                    filter: "blur(40px)" }} />
         <div aria-hidden className="aurora-2" style={{ position: "absolute", top: 200, right: -100, width: 500, height: 400,
-                                   background: "radial-gradient(ellipse at center, rgba(124,58,237,0.08) 0%, transparent 65%)",
+                                   background: "radial-gradient(ellipse at center, var(--purple-glow) 0%, transparent 65%)",
                                    filter: "blur(60px)" }} />
         <div aria-hidden className="aurora-3" style={{ position: "absolute", bottom: "20%", left: -80, width: 400, height: 300,
-                                   background: "radial-gradient(ellipse at center, rgba(0,200,224,0.07) 0%, transparent 65%)",
+                                   background: "radial-gradient(ellipse at center, var(--cyan-glow) 0%, transparent 65%)",
                                    filter: "blur(60px)" }} />
       </div>
 
       {/* ──────────────────────────── NAV ──────────────────────────────────── */}
-      <nav style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, zIndex: 50,
-                    background: "rgba(11,13,18,0.92)", backdropFilter: "blur(12px)" }}>
+      <nav className="site-nav" style={{ borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 50,
+                    background: "var(--nav-bg)", backdropFilter: "blur(12px)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", height: 60,
                       display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
           {/* Logo */}
-          <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700,
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700,
                                fontSize: 15, letterSpacing: "-0.02em", color: T.bright }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="UA logo" style={{ width: 28, height: 28, borderRadius: "50%" }} />
+            <img src="/logo.svg" alt="UA logo" style={{ width: 28, height: 28 }} />
             Unstructured Alpha
-          </a>
+          </Link>
 
           {/* Desktop nav */}
           <div className="nav-desktop" style={{ display: "flex", gap: 24, alignItems: "center" }}>
@@ -267,8 +276,17 @@ export default function Home() {
             <a href="#features"     className="nav-link">Features</a>
             <a href="#pricing"      className="nav-link">Pricing</a>
             <a href="#faq"          className="nav-link">FAQ</a>
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={toggleTheme}
+              aria-label="Toggle light and dark theme"
+            >
+              Light / Dark
+            </button>
             <a href={`${APP_URL}`}
-               style={{ background: T.green, color: "#000", padding: "8px 18px",
+               className="nav-cta"
+               style={{ background: T.green, color: "var(--button-ink)", padding: "8px 18px",
                         borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
               Launch App →
             </a>
@@ -292,6 +310,9 @@ export default function Home() {
           <a href="#features"     onClick={() => setMobileOpen(false)}>Features</a>
           <a href="#pricing"      onClick={() => setMobileOpen(false)}>Pricing</a>
           <a href="#faq"          onClick={() => setMobileOpen(false)}>FAQ</a>
+          <button type="button" className="mobile-theme-toggle" onClick={toggleTheme}>
+            Toggle light / dark theme
+          </button>
           <a href={APP_URL}       onClick={() => setMobileOpen(false)}>Launch App — Free →</a>
         </div>
       </nav>
@@ -308,7 +329,7 @@ export default function Home() {
         {/* Trust pill — glass, glowing, with live signal bars */}
         <div data-reveal className="trust-pill"
              style={{ display: "inline-flex", alignItems: "center", gap: 10,
-                      background: "rgba(0,213,102,0.08)", border: "1px solid rgba(0,213,102,0.25)",
+                      background: "var(--accent-soft)", border: "1px solid var(--accent-border)",
                       borderRadius: 100, padding: "6px 16px", fontSize: 12, color: T.green,
                       fontWeight: 600, marginBottom: 28, letterSpacing: "0.04em" }}>
           <span className="sigbars" aria-hidden>
@@ -342,7 +363,7 @@ export default function Home() {
              className="hero-cta-row"
              style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 52 }}>
           <a href={APP_URL} className="btn-primary"
-             style={{ background: T.green, color: "#000", padding: "14px 36px",
+             style={{ background: T.green, color: "var(--button-ink)", padding: "14px 36px",
                       borderRadius: 10, fontSize: 15, fontWeight: 700, display: "inline-block" }}>
             Analyze my portfolio →
           </a>
@@ -389,7 +410,7 @@ export default function Home() {
             </p>
           )}
           {subStatus === "error" && (
-            <p style={{ fontSize: 12, color: "#ff4444", marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: T.bear, marginTop: 8 }}>
               Something went wrong — try again.
             </p>
           )}
@@ -431,8 +452,8 @@ export default function Home() {
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 18, fontWeight: 800, color: T.bright }}>NVDA</span>
                 <span style={{ fontFamily: "monospace", color: T.muted }}>
-                  71 &rarr; <span style={{ color: "#ff5a5a", fontWeight: 700 }}>54</span></span>
-                <span style={{ fontSize: 14, color: "#ff8080", fontWeight: 600 }}>Macro support weakened</span>
+                  71 &rarr; <span style={{ color: T.bear, fontWeight: 700 }}>54</span></span>
+                <span style={{ fontSize: 14, color: T.bear, fontWeight: 600 }}>Macro support weakened</span>
               </div>
               <div style={{ fontSize: 13, color: T.dimmer, marginTop: 6 }}>
                 Real yields &minus;8 &nbsp;·&nbsp; Liquidity &minus;5 &nbsp;·&nbsp; AI capex &minus;4</div>
@@ -441,8 +462,8 @@ export default function Home() {
               <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 18, fontWeight: 800, color: T.bright }}>JPM</span>
                 <span style={{ fontFamily: "monospace", color: T.muted }}>
-                  58 &rarr; <span style={{ color: T.green, fontWeight: 700 }}>67</span></span>
-                <span style={{ fontSize: 14, color: T.green, fontWeight: 600 }}>Credit backdrop improved</span>
+                  58 &rarr; <span style={{ color: T.bull, fontWeight: 700 }}>67</span></span>
+                <span style={{ fontSize: 14, color: T.bull, fontWeight: 600 }}>Credit backdrop improved</span>
               </div>
               <div style={{ fontSize: 13, color: T.dimmer, marginTop: 6 }}>
                 HY spreads +6 &nbsp;·&nbsp; Financial conditions +3</div>
@@ -453,7 +474,7 @@ export default function Home() {
           </p>
           <div style={{ textAlign: "center", marginTop: 22 }}>
             <a href={APP_URL} className="btn-primary"
-               style={{ background: T.green, color: "#000", padding: "13px 30px",
+               style={{ background: T.green, color: "var(--button-ink)", padding: "13px 30px",
                         borderRadius: 10, fontSize: 15, fontWeight: 700, display: "inline-block" }}>
               Analyze my watchlist
             </a>
@@ -462,8 +483,8 @@ export default function Home() {
       </div>
 
       {/* ─────────────────── SIGNAL PREVIEW ──────────────────────────────────── */}
-      <div style={{ borderTop: "1px solid rgba(0,213,102,0.14)",
-                    background: "linear-gradient(180deg, rgba(0,213,102,0.035) 0%, transparent 100%)",
+      <div style={{ borderTop: "1px solid var(--accent-border)",
+                    background: "linear-gradient(180deg, var(--accent-wash) 0%, transparent 100%)",
                     padding: "60px 24px" }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }} data-reveal>
 
@@ -510,9 +531,9 @@ export default function Home() {
                     <div className="score-fill"
                          style={{ width: `${sig.score}%`, height: "100%",
                                   background: sig.status === "bull"
-                                    ? "linear-gradient(90deg, #00d566, #00c8e0)"
+                                    ? "linear-gradient(90deg, var(--bull), var(--cyan))"
                                     : sig.status === "bear"
-                                    ? "linear-gradient(90deg, #ff4444, #ff7777)"
+                                    ? "linear-gradient(90deg, var(--bear), #d65c68)"
                                     : T.muted }} />
                   </div>
                   <ScoreCell score={sig.score} status={sig.status} />
@@ -526,9 +547,9 @@ export default function Home() {
                           flexWrap: "wrap", gap: 12 }}>
               <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
                 {[
-                  { label: "≥65 Bullish macro", color: T.green },
+                  { label: "≥65 Bullish macro", color: T.bull },
                   { label: "36–64 Neutral", color: T.muted },
-                  { label: "≤35 Bearish macro", color: "#ff4444" },
+                  { label: "≤35 Bearish macro", color: T.bear },
                 ].map((l) => (
                   <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6,
                                               fontSize: 11, color: T.dimmer }}>
@@ -584,8 +605,8 @@ export default function Home() {
             ].map((step) => (
               <div key={step.n} className="hiw-card" data-reveal data-delay={step.delay}>
                 <div className="step-num"
-                     style={{ width: 38, height: 38, background: "rgba(0,213,102,0.1)",
-                              border: "1px solid rgba(0,213,102,0.25)", borderRadius: 10,
+                     style={{ width: 38, height: 38, background: "var(--accent-soft)",
+                              border: "1px solid var(--accent-border)", borderRadius: 10,
                               display: "flex", alignItems: "center", justifyContent: "center",
                               fontSize: 13, fontWeight: 800, color: T.green, letterSpacing: "-0.03em",
                               flexShrink: 0 }}>
@@ -648,7 +669,7 @@ export default function Home() {
                    }}>
                 {f.pro && (
                   <span className="badge badge-purple" style={{ position: "absolute", top: 16, right: 16 }}>
-                    Pro ⚡
+                    Pro
                   </span>
                 )}
                 {/* Icon with accent tint bg */}
@@ -810,13 +831,13 @@ export default function Home() {
                     : "Per month · cancel anytime · 7-day free trial"}
                 </div>
                 <div style={{ fontSize: 13, color: T.bright, lineHeight: 1.6, marginBottom: 22,
-                              paddingLeft: 12, borderLeft: "2px solid #7c3aed" }}>
+                              paddingLeft: 12, borderLeft: "2px solid var(--purple)" }}>
                   Don&apos;t miss the moment the macro backdrop around one of your holdings materially changes.
                 </div>
                 <ul className="checklist" style={{ marginBottom: 28 }}>
                   {PRO_FEATURES.map((f) => (
-                    <li key={f} style={{ color: "#c4c9e0" }}>
-                      <span style={{ color: "#a78bfa", flexShrink: 0, marginTop: 1, fontSize: 13 }}>✓</span>
+                    <li key={f} style={{ color: T.mid }}>
+                      <span style={{ color: T.purple, flexShrink: 0, marginTop: 1, fontSize: 13 }}>✓</span>
                       <span>{f}</span>
                     </li>
                   ))}
@@ -825,7 +846,7 @@ export default function Home() {
                    style={{ display: "block", textAlign: "center", padding: "13px", borderRadius: 10,
                             background: T.purple, color: "#fff", fontSize: 14, fontWeight: 700,
                             transition: "all 0.2s ease", boxShadow: "0 4px 20px rgba(124,58,237,0.35)" }}>
-                  Start 7-Day Free Trial ⚡
+                  Start 7-Day Free Trial
                 </a>
                 <p style={{ fontSize: 11, color: T.dimmer, textAlign: "center", marginTop: 10 }}>
                   No charge until trial ends · Cancel anytime
@@ -884,14 +905,14 @@ export default function Home() {
       </div>
 
       {/* ─────────────────── CLOSING CTA ─────────────────────────────────────── */}
-      <div style={{ background: "linear-gradient(180deg, rgba(0,213,102,0.04) 0%, transparent 60%)",
+      <div style={{ background: "linear-gradient(180deg, var(--accent-wash) 0%, transparent 60%)",
                     borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "96px 24px", textAlign: "center" }}>
           <h2 data-reveal
               style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 800,
                        letterSpacing: "-0.04em", marginBottom: 18, lineHeight: 1.08 }}>
             Start understanding<br />
-            <span style={{ background: "linear-gradient(90deg, #00d566, #00c8e0, #7c3aed)",
+            <span style={{ background: "linear-gradient(90deg, var(--cyan), var(--accent), var(--purple))",
                            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               your macro environment.
             </span>
@@ -904,7 +925,7 @@ export default function Home() {
           </p>
           <div data-reveal data-delay="2">
             <a href={APP_URL} className="btn-primary"
-               style={{ background: T.green, color: "#000", padding: "16px 44px", borderRadius: 12,
+               style={{ background: T.green, color: "var(--button-ink)", padding: "16px 44px", borderRadius: 12,
                         fontSize: 16, fontWeight: 800, display: "inline-block", letterSpacing: "-0.01em" }}>
               Open the Dashboard — Free →
             </a>
@@ -950,7 +971,7 @@ export default function Home() {
             </form>
             {subStatus === "success" && (
               <p style={{ fontSize: 12, color: T.green, marginTop: 10 }}>
-                You're subscribed. See you Sunday.
+                You&apos;re subscribed. See you Sunday.
               </p>
             )}
           </div>
