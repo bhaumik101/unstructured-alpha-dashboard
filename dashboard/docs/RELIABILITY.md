@@ -100,6 +100,11 @@ headroom; these keep RSS lean regardless.
 
 ## Tests
 
+- `python scripts/production_audit.py` — one deploy-time, network-free gate for
+  route registration, Render/env configuration, cron count/memory/deadline
+  budgets, a 30-second external-call ceiling, bounded provider caches, and a
+  health/freshness contract for every advertised data source. Use `--json` for
+  machine-readable CI output; any violation exits non-zero.
 - `tests/test_resilience.py` — breaker CLOSED/OPEN/HALF-OPEN logic.
 - `tests/test_ratelimit.py` — fallback + policy behavior.
 - `tests/test_observability.py` — JSON shape, correlation id, `log_event`.

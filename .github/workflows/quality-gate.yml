@@ -43,5 +43,8 @@ jobs:
       - name: Compile every Python module
         run: python -m compileall -q .
 
+      - name: Audit production contracts
+        run: python scripts/production_audit.py --json
+
       - name: Run full regression suite
         run: python -m pytest -q
