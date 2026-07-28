@@ -10,7 +10,13 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+import html as _h
+
 from utils.config import CATEGORIES, SIGNALS, TICKERS
+from utils.product_metrics import (
+    signal_source_labels as _signal_source_labels,
+    signal_sources_phrase as _signal_sources_phrase,
+)
 from utils.header import render_header, render_sidebar_base, render_page_header, ticker_chips, render_data_unavailable_banner, render_data_quality_strip, render_footer
 from utils.score_history import get_signal_flips, get_signal_trends, get_signal_streaks, compute_signal_correlation_matrix
 from utils.signals_cache import get_all_signal_scores
@@ -73,7 +79,10 @@ if _signal_section == "Signal Library":
     with _hdr_col:
         st.markdown(
             render_data_freshness(
-                source="FRED / EIA / SEC EDGAR / FINRA / yfinance",
+                # Derived from the SIGNALS config, not hand-listed. This caption
+                # sits directly under the signal table, so it must name the
+                # providers that actually feed the signals.
+                source=_signal_sources_phrase(),
                 cadence=f"Cached up to 6 hours · computed ~{_load_ts}",
             ),
             unsafe_allow_html=True,
@@ -100,6 +109,14 @@ if _signal_section == "Signal Library":
             "display:inline-block;font-size:0.68rem;font-weight:600;letter-spacing:0.05em;"
             "padding:2px 7px;border-radius:4px;margin-right:4px;margin-bottom:4px;"
         )
+        # One badge per provider that genuinely feeds a signal, straight from the
+        # config. Previously hand-listed, which is how SEC EDGAR and FINRA came
+        # to be shown here despite sourcing none of the signals.
+        _source_badges = "".join(
+            f'<span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);'
+            f'color:var(--ua-cyan);">{_h.escape(_label)}</span>'
+            for _label in _signal_source_labels()
+        )
         _mc1, _mc2, _mc3, _mc4 = st.columns(4)
         with _mc1:
             st.markdown(f"""
@@ -110,11 +127,7 @@ if _signal_section == "Signal Library":
         estimated data. Each series is mapped to an official source ID so you can verify it directly.
       </div>
       <div style="margin-top:10px;">
-        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">FRED</span>
-        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">EIA</span>
-        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">SEC EDGAR</span>
-        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">FINRA</span>
-        <span style="{_m_badge}background:rgba(var(--ua-cyan-rgb),0.12);color:var(--ua-cyan);">yfinance</span>
+        {_source_badges}
       </div>
     </div>""", unsafe_allow_html=True)
         with _mc2:

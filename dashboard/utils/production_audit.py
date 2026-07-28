@@ -390,10 +390,23 @@ def _check_provider_health(root: Path) -> tuple[list[AuditFinding], dict[str, in
             root / "utils" / "config.py",
         ))
 
+    # The check above enforces active ⊆ advertised (no untracked source). The
+    # reverse gap is what actually shipped a false claim: the Signal Dashboard
+    # hand-listed SEC EDGAR and FINRA as signal sources while zero signals used
+    # them. Surface it as a metric so the divergence is visible in CI output
+    # rather than silently passing. It is reported, not failed, because a
+    # provider can legitimately power a non-signal feature (SEC EDGAR and FINRA
+    # really do drive Ticker Deep Dive) -- what must never happen is a UI
+    # claiming one of them as a source of the macro signals, which
+    # tests/test_signal_source_claims.py pins directly.
+    advertised_not_sourcing_signals = sorted(advertised - signal_sources)
+
     return findings, {
         "status": "pass" if not findings else "fail",
         "advertised_providers": len(advertised),
         "active_signal_sources": len(signal_sources),
+        "advertised_not_sourcing_signals": len(advertised_not_sourcing_signals),
+        "non_signal_providers": ",".join(advertised_not_sourcing_signals) or "none",
         "health_rows": len(rows),
     }
 
