@@ -1,34 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="title">
+  <title id="title">Unstructured Alpha</title>
   <defs>
-    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1a1e2c"/>
-      <stop offset="100%" stop-color="#0b0d12"/>
-    </radialGradient>
-    <linearGradient id="aGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00d566"/>
-      <stop offset="100%" stop-color="#00c8e0"/>
+    <linearGradient id="ua-fill" x1="18%" y1="10%" x2="84%" y2="92%">
+      <stop offset="0%" stop-color="#5fc4e8"/>
+      <stop offset="52%" stop-color="#8b7cff"/>
+      <stop offset="100%" stop-color="#d1b5ae"/>
     </linearGradient>
-    <clipPath id="circle-clip">
-      <circle cx="100" cy="100" r="96"/>
-    </clipPath>
+    <linearGradient id="ua-edge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5fc4e8"/>
+      <stop offset="100%" stop-color="#b5a7ff"/>
+    </linearGradient>
+    <filter id="ua-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-
-  <!-- Background circle -->
-  <circle cx="100" cy="100" r="96" fill="url(#bgGrad)"/>
-  <circle cx="100" cy="100" r="96" fill="none" stroke="rgba(0,213,102,0.25)" stroke-width="1.5"/>
-
-  <!-- U letter (white) -->
-  <text x="52" y="118" font-family="Inter, Arial, sans-serif" font-size="68" font-weight="800"
-        fill="#ffffff" letter-spacing="-2">U</text>
-
-  <!-- A letter (cyan-green gradient) -->
-  <text x="100" y="118" font-family="Inter, Arial, sans-serif" font-size="68" font-weight="800"
-        fill="url(#aGrad)" letter-spacing="-2">A</text>
-
-  <!-- Heartbeat / pulse line -->
-  <polyline
-    points="18,155 36,155 44,138 52,172 60,130 68,165 76,155 124,155 132,138 140,165 148,145 156,155 182,155"
-    fill="none" stroke="url(#aGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-    clip-path="url(#circle-clip)"
+  <path
+    d="M100 8 177 52v96l-77 44-77-44V52z"
+    fill="#0d1018"
+    stroke="url(#ua-edge)"
+    stroke-width="4"
   />
+  <path
+    d="M100 25 161 60v80l-61 35-61-35V60z"
+    fill="url(#ua-fill)"
+    opacity="0.96"
+    filter="url(#ua-glow)"
+  />
+  <text
+    x="100"
+    y="121"
+    text-anchor="middle"
+    font-family="Inter, Arial, sans-serif"
+    font-size="62"
+    font-weight="760"
+    letter-spacing="-4"
+    fill="#0a0b10"
+  >UA</text>
 </svg>
