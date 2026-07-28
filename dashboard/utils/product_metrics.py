@@ -48,8 +48,44 @@ PRO_PRICE_ANNUAL_PER_MONTH: int = 16
 
 
 def source_names() -> list[str]:
-    """Display names of the primary data providers, in canonical order."""
+    """Display names of the primary data providers, in canonical order.
+
+    NOTE: this is every provider the product touches ANYWHERE, including ones
+    that power per-ticker analysis (SEC EDGAR insider filings, FINRA short
+    interest) rather than the macro signal library. Do not use it to describe
+    where the signals come from -- use signal_source_labels() for that.
+    """
     return list(PRIMARY_SOURCES.values())
+
+
+def signal_source_labels(*, short: bool = True) -> list[str]:
+    """Providers that actually feed the macro signal library, most-used first.
+
+    Derived from the SIGNALS config rather than hand-listed, because the two
+    drifted: the Signal Dashboard advertised "FRED / EIA / SEC EDGAR / FINRA /
+    yfinance" as the signal sources while zero signals were sourced from SEC
+    EDGAR or FINRA (those power Ticker Deep Dive instead). Reading the config
+    means the claim cannot go stale again.
+    """
+    from collections import Counter
+
+    from utils.config import SIGNALS
+    from utils.provider_health import canonical_provider, provider_label
+
+    counts = Counter(canonical_provider(cfg.get("source")) for cfg in SIGNALS.values())
+    labels = []
+    for provider, _n in counts.most_common():
+        label = provider_label(provider)
+        labels.append(label.split(" (")[0] if short else label)
+    return labels
+
+
+def signal_sources_phrase(*, limit: int = 5) -> str:
+    """Short 'A / B / C' string naming the real signal sources for UI captions."""
+    labels = signal_source_labels()
+    if len(labels) <= limit:
+        return " / ".join(labels)
+    return " / ".join(labels[:limit]) + f" +{len(labels) - limit} more"
 
 
 def signals_phrase() -> str:
