@@ -301,6 +301,166 @@ html[data-ua-theme="light"] .stTabs [data-baseweb="tab-highlight"] {
     background: var(--ua-royal) !important;
 }
 
+/* ── Light mode: inline text-colour remap, part 2 ────────────────────────
+   Complements the existing remap above (that block covers the bright brand
+   accents). These 16 are the LIGHT GREYS used as text on a dark surface —
+   invisible once the background flips. They live in quoted Python literals
+   that the migration guard skips on purpose, because sibling variables get
+   parsed with int(hex[1:3],16) or handed to plotly, where var() would crash.
+   Matching the inline style instead touches no Python at all.
+   Anchored on ^color:/;color: so background:, background-color: and
+   border-color: are provably NOT matched (verified in-browser). */
+html[data-ua-theme="light"] [style*=";color: #C3CBE0"],
+html[data-ua-theme="light"] [style*=";color: #c3cbe0"],
+html[data-ua-theme="light"] [style*=";color:#C3CBE0"],
+html[data-ua-theme="light"] [style*=";color:#c3cbe0"],
+html[data-ua-theme="light"] [style^="color: #C3CBE0"],
+html[data-ua-theme="light"] [style^="color: #c3cbe0"],
+html[data-ua-theme="light"] [style^="color:#C3CBE0"],
+html[data-ua-theme="light"] [style^="color:#c3cbe0"] {
+    color: #333A52 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #E7ECF5"],
+html[data-ua-theme="light"] [style*=";color: #e7ecf5"],
+html[data-ua-theme="light"] [style*=";color:#E7ECF5"],
+html[data-ua-theme="light"] [style*=";color:#e7ecf5"],
+html[data-ua-theme="light"] [style^="color: #E7ECF5"],
+html[data-ua-theme="light"] [style^="color: #e7ecf5"],
+html[data-ua-theme="light"] [style^="color:#E7ECF5"],
+html[data-ua-theme="light"] [style^="color:#e7ecf5"] {
+    color: #1D2136 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #EDF1F7"],
+html[data-ua-theme="light"] [style*=";color: #edf1f7"],
+html[data-ua-theme="light"] [style*=";color:#EDF1F7"],
+html[data-ua-theme="light"] [style*=";color:#edf1f7"],
+html[data-ua-theme="light"] [style^="color: #EDF1F7"],
+html[data-ua-theme="light"] [style^="color: #edf1f7"],
+html[data-ua-theme="light"] [style^="color:#EDF1F7"],
+html[data-ua-theme="light"] [style^="color:#edf1f7"] {
+    color: #1D2136 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #E4E9F2"],
+html[data-ua-theme="light"] [style*=";color: #e4e9f2"],
+html[data-ua-theme="light"] [style*=";color:#E4E9F2"],
+html[data-ua-theme="light"] [style*=";color:#e4e9f2"],
+html[data-ua-theme="light"] [style^="color: #E4E9F2"],
+html[data-ua-theme="light"] [style^="color: #e4e9f2"],
+html[data-ua-theme="light"] [style^="color:#E4E9F2"],
+html[data-ua-theme="light"] [style^="color:#e4e9f2"] {
+    color: #161A2E !important;
+}
+html[data-ua-theme="light"] [style*=";color: #A7B0BF"],
+html[data-ua-theme="light"] [style*=";color: #a7b0bf"],
+html[data-ua-theme="light"] [style*=";color:#A7B0BF"],
+html[data-ua-theme="light"] [style*=";color:#a7b0bf"],
+html[data-ua-theme="light"] [style^="color: #A7B0BF"],
+html[data-ua-theme="light"] [style^="color: #a7b0bf"],
+html[data-ua-theme="light"] [style^="color:#A7B0BF"],
+html[data-ua-theme="light"] [style^="color:#a7b0bf"] {
+    color: #3A4059 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #C8D0E4"],
+html[data-ua-theme="light"] [style*=";color: #c8d0e4"],
+html[data-ua-theme="light"] [style*=";color:#C8D0E4"],
+html[data-ua-theme="light"] [style*=";color:#c8d0e4"],
+html[data-ua-theme="light"] [style^="color: #C8D0E4"],
+html[data-ua-theme="light"] [style^="color: #c8d0e4"],
+html[data-ua-theme="light"] [style^="color:#C8D0E4"],
+html[data-ua-theme="light"] [style^="color:#c8d0e4"] {
+    color: #2C3149 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #8892B0"],
+html[data-ua-theme="light"] [style*=";color: #8892b0"],
+html[data-ua-theme="light"] [style*=";color:#8892B0"],
+html[data-ua-theme="light"] [style*=";color:#8892b0"],
+html[data-ua-theme="light"] [style^="color: #8892B0"],
+html[data-ua-theme="light"] [style^="color: #8892b0"],
+html[data-ua-theme="light"] [style^="color:#8892B0"],
+html[data-ua-theme="light"] [style^="color:#8892b0"] {
+    color: #5A6079 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #8F9AAD"],
+html[data-ua-theme="light"] [style*=";color: #8f9aad"],
+html[data-ua-theme="light"] [style*=";color:#8F9AAD"],
+html[data-ua-theme="light"] [style*=";color:#8f9aad"],
+html[data-ua-theme="light"] [style^="color: #8F9AAD"],
+html[data-ua-theme="light"] [style^="color: #8f9aad"],
+html[data-ua-theme="light"] [style^="color:#8F9AAD"],
+html[data-ua-theme="light"] [style^="color:#8f9aad"] {
+    color: #4A5069 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #8D97A8"],
+html[data-ua-theme="light"] [style*=";color: #8d97a8"],
+html[data-ua-theme="light"] [style*=";color:#8D97A8"],
+html[data-ua-theme="light"] [style*=";color:#8d97a8"],
+html[data-ua-theme="light"] [style^="color: #8D97A8"],
+html[data-ua-theme="light"] [style^="color: #8d97a8"],
+html[data-ua-theme="light"] [style^="color:#8D97A8"],
+html[data-ua-theme="light"] [style^="color:#8d97a8"] {
+    color: #4A5069 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #9AA4BC"],
+html[data-ua-theme="light"] [style*=";color: #9aa4bc"],
+html[data-ua-theme="light"] [style*=";color:#9AA4BC"],
+html[data-ua-theme="light"] [style*=";color:#9aa4bc"],
+html[data-ua-theme="light"] [style^="color: #9AA4BC"],
+html[data-ua-theme="light"] [style^="color: #9aa4bc"],
+html[data-ua-theme="light"] [style^="color:#9AA4BC"],
+html[data-ua-theme="light"] [style^="color:#9aa4bc"] {
+    color: #454B63 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #6B7A95"],
+html[data-ua-theme="light"] [style*=";color: #6b7a95"],
+html[data-ua-theme="light"] [style*=";color:#6B7A95"],
+html[data-ua-theme="light"] [style*=";color:#6b7a95"],
+html[data-ua-theme="light"] [style^="color: #6B7A95"],
+html[data-ua-theme="light"] [style^="color: #6b7a95"],
+html[data-ua-theme="light"] [style^="color:#6B7A95"],
+html[data-ua-theme="light"] [style^="color:#6b7a95"] {
+    color: #4F5570 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #C4B5FD"],
+html[data-ua-theme="light"] [style*=";color: #c4b5fd"],
+html[data-ua-theme="light"] [style*=";color:#C4B5FD"],
+html[data-ua-theme="light"] [style*=";color:#c4b5fd"],
+html[data-ua-theme="light"] [style^="color: #C4B5FD"],
+html[data-ua-theme="light"] [style^="color: #c4b5fd"],
+html[data-ua-theme="light"] [style^="color:#C4B5FD"],
+html[data-ua-theme="light"] [style^="color:#c4b5fd"] {
+    color: #4B2A91 !important;
+}
+html[data-ua-theme="light"] [style*=";color: #FF8888"],
+html[data-ua-theme="light"] [style*=";color: #ff8888"],
+html[data-ua-theme="light"] [style*=";color:#FF8888"],
+html[data-ua-theme="light"] [style*=";color:#ff8888"],
+html[data-ua-theme="light"] [style^="color: #FF8888"],
+html[data-ua-theme="light"] [style^="color: #ff8888"],
+html[data-ua-theme="light"] [style^="color:#FF8888"],
+html[data-ua-theme="light"] [style^="color:#ff8888"] {
+    color: #C0392B !important;
+}
+html[data-ua-theme="light"] [style*=";color: #FF8C42"],
+html[data-ua-theme="light"] [style*=";color: #ff8c42"],
+html[data-ua-theme="light"] [style*=";color:#FF8C42"],
+html[data-ua-theme="light"] [style*=";color:#ff8c42"],
+html[data-ua-theme="light"] [style^="color: #FF8C42"],
+html[data-ua-theme="light"] [style^="color: #ff8c42"],
+html[data-ua-theme="light"] [style^="color:#FF8C42"],
+html[data-ua-theme="light"] [style^="color:#ff8c42"] {
+    color: #B4530A !important;
+}
+html[data-ua-theme="light"] [style*=";color: #7BDE6B"],
+html[data-ua-theme="light"] [style*=";color: #7bde6b"],
+html[data-ua-theme="light"] [style*=";color:#7BDE6B"],
+html[data-ua-theme="light"] [style*=";color:#7bde6b"],
+html[data-ua-theme="light"] [style^="color: #7BDE6B"],
+html[data-ua-theme="light"] [style^="color: #7bde6b"],
+html[data-ua-theme="light"] [style^="color:#7BDE6B"],
+html[data-ua-theme="light"] [style^="color:#7bde6b"] {
+    color: #3E8E2F !important;
+}
+
 /* ── Theme toggle ─────────────────────────────────────────────────────────
    Deliberately a real <a href>, not a JS button: it works with keyboard and
    screen readers for free, survives Streamlit reruns, and needs no script
