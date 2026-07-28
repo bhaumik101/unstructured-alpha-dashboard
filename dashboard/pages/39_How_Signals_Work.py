@@ -6,6 +6,8 @@ and limitations. Public (no login required). SEO-friendly.
 
 import streamlit as st
 
+from utils.config import SIGNALS
+
 st.set_page_config(
     page_title="How Macro Signals Work — Unstructured Alpha",
     layout="wide",
@@ -271,7 +273,7 @@ if _method_section == "Signal Categories":
             "name": "Rates & Yield Curve",
             "color": "#00C8E0",
             "desc": "The shape of the Treasury yield curve is one of the most studied macroeconomic indicators. An inverted curve (2Y > 10Y) has preceded every U.S. recession since 1955. We track the 10Y–2Y spread, the 10Y Treasury yield level, and TIPS breakeven inflation expectations.",
-            "signals": ["10Y–2Y Yield Curve", "10Y Treasury Yield", "TIPS Breakeven Inflation (T10YIE)"],
+            "signals": ["Yield Curve Spread (10Y–2Y)", "10-Year Treasury Yield", "10Y TIPS Breakeven Inflation Rate"],
             "sources": ["FRED", "Yahoo Finance"],
         },
         {
@@ -279,40 +281,40 @@ if _method_section == "Signal Categories":
             "name": "Credit Spreads",
             "color": "#FF6B6B",
             "desc": "Credit markets move before equity markets. When institutional investors become risk-averse, they demand higher yields on corporate debt, widening spreads. We track high-yield and investment-grade spreads as leading risk sentiment indicators.",
-            "signals": ["HY Credit Spread (BAMLH0A0HYM2)", "IG Credit Spread", "Bank Lending Standards"],
-            "sources": ["FRED"],
+            "signals": ["High-Yield Credit Spread (ICE BofA)", "Investment Grade Credit (LQD ETF)", "Senior Loan Officer Survey — C&I Lending Standards", "Credit Card Delinquency Rate (All Commercial Banks)"],
+            "sources": ["FRED", "Yahoo Finance"],
         },
         {
             "icon": "",
             "name": "Energy & Commodities",
             "color": "#F59E0B",
-            "desc": "Energy markets reflect real economic activity. EIA weekly inventory data for crude oil and natural gas, rig count trends, and the Copper/Gold ratio (an economic vs. safety-asset barometer) are all included.",
-            "signals": ["EIA Crude Inventory Change", "EIA Natural Gas Storage", "Baker Hughes Rig Count", "Copper/Gold Ratio", "Gasoline Price Trend"],
-            "sources": ["EIA", "Yahoo Finance"],
+            "desc": "Energy markets reflect real economic activity. EIA weekly inventory data for crude oil and natural gas, spot energy prices, and the Copper/Gold ratio (an economic vs. safety-asset barometer) are all included.",
+            "signals": ["US Crude Oil Inventories (EIA Weekly)", "US Natural Gas Storage (EIA Weekly)", "WTI Crude Oil (Daily)", "Henry Hub Natural Gas Spot", "US Retail Gasoline Price", "Copper/Gold Ratio", "Copper Futures (COMEX HG)"],
+            "sources": ["EIA", "FRED", "Yahoo Finance"],
         },
         {
             "icon": "",
             "name": "Sentiment & Positioning",
             "color": "#7C3AED",
-            "desc": "Fear, greed, and positioning extremes tend to be contrarian or confirming depending on context. We track VIX level and term structure, the CBOE put/call ratio, institutional 13F positioning, and insider buying clusters from SEC Form 4 filings.",
-            "signals": ["VIX (CBOE Volatility Index)", "VIX Term Structure (VIX9D–VIX spread)", "CBOE Put/Call Ratio", "Insider Buy Ratio (Form 4)", "Insider Cluster Detection", "13F Institutional Positioning", "Short Interest (FINRA)", "Michigan Consumer Sentiment"],
-            "sources": ["CBOE", "SEC EDGAR", "FINRA", "FRED", "Yahoo Finance"],
+            "desc": "Fear, greed, and positioning extremes tend to be contrarian or confirming depending on context. We track VIX level and term structure, the CBOE equity put/call ratio, retail search behaviour, and consumer sentiment.",
+            "signals": ["CBOE Volatility Index (VIX)", "VIX Term Structure (9D/30D Ratio)", "CBOE Equity Put/Call Ratio", "U. Michigan Consumer Sentiment", "Retail Fear Index (Google Trends)", "US Dollar Index (DXY)"],
+            "sources": ["FRED", "Yahoo Finance", "Google Trends"],
         },
         {
             "icon": "",
             "name": "Manufacturing & Growth",
             "color": "#00D566",
             "desc": "Manufacturing PMI, jobless claims, and M2 money supply growth capture the real-economy cycle. Slowing manufacturing and rising claims often precede margin compression and earnings disappointments.",
-            "signals": ["ISM Manufacturing PMI (FRED NAPM)", "Initial Jobless Claims", "M2 Money Supply Growth", "Industrial Production"],
+            "signals": ["Philly Fed Manufacturing Index (ISM PMI proxy)", "Initial Jobless Claims (WARN Proxy)", "M2 Money Supply Growth", "JOLTS Job Openings (Labor Demand)", "Layoffs & Discharges Rate (BLS JOLTS)", "Durable Goods Orders ex. Defense", "Housing Starts (New Residential Construction)"],
             "sources": ["FRED"],
         },
         {
             "icon": "",
-            "name": "Insider & Alternative",
+            "name": "Supply Chain & Alternative Data",
             "color": "#00C8E0",
-            "desc": "SEC-reported insider transactions, congressional trades, and unusual options activity provide a window into informed positioning. These are scored using event-rate methods rather than level percentiles.",
-            "signals": ["Congressional Trade Activity", "Unusual Options Activity", "Earnings Transcript Sentiment", "Social Sentiment Index"],
-            "sources": ["SEC EDGAR", "EDGAR Congressional Disclosures", "Public API"],
+            "desc": "The non-obvious series: physical freight movement, supply-chain pressure, and research/approval velocity. These are the signals least likely to already be priced in, because they are not on a standard terminal dashboard.",
+            "signals": ["NY Fed Global Supply Chain Pressure Index", "ATA Trucking Tonnage Index", "AAR Rail Traffic (Intermodal)", "Breakwave Dry Bulk Shipping ETF (BDRY)", "Total Business Inventory/Sales Ratio", "Quantum Computing arXiv Paper Velocity", "FDA Drug Approval Velocity (openFDA)", "Fed Policy Hawkishness (FOMC AI Score)"],
+            "sources": ["New York Fed", "FRED", "arXiv", "openFDA", "Yahoo Finance"],
         },
     ]
 
@@ -340,6 +342,40 @@ if _method_section == "Signal Categories":
     <span style="font-size:0.60rem;color:#4A5280;letter-spacing:0.1em;font-weight:700;text-transform:uppercase;margin-right:4px;">Sources:</span>
     {_srcs_html}
   </div>
+</div>""", unsafe_allow_html=True)
+
+    # ── Per-ticker / Pro data, explicitly NOT part of the macro signal library ──
+    # SEC EDGAR insider filings, 13F positioning and FINRA short interest are
+    # genuinely fetched and used -- but by Ticker Deep Dive, not by any of the
+    # scored macro signals. They used to be listed above as if they were signals,
+    # which overstated the library. Kept, and kept credited, but scoped honestly.
+    _pro_rows = [
+        ("Insider filings (SEC Form 4)", "Buy/sell transactions and cluster detection for a single ticker.", "SEC EDGAR"),
+        ("13F institutional positioning", "Quarterly fund holdings for the tickers you look up.", "SEC EDGAR"),
+        ("Short interest", "Reported short interest and trend for a single ticker.", "FINRA"),
+        ("Options activity", "Per-ticker options flow on the Options Flow page.", "Yahoo Finance"),
+    ]
+    _pro_html = "".join(
+        f'<div style="display:flex;gap:10px;align-items:baseline;padding:7px 0;'
+        f'border-bottom:1px solid rgba(var(--ua-onbg-rgb),0.05);">'
+        f'<span style="font-size:0.76rem;font-weight:650;color:var(--ua-ink-soft);min-width:210px;">{_n}</span>'
+        f'<span style="font-size:0.74rem;color:var(--ua-ink-mut);flex:1;">{_d}</span>'
+        f'<span style="font-size:0.62rem;color:var(--ua-ink-label);font-weight:700;">{_s}</span>'
+        f'</div>'
+        for _n, _d, _s in _pro_rows
+    )
+    st.markdown(f"""
+<div style="background:rgba(var(--ua-royal-rgb),0.05);border:1px solid rgba(var(--ua-royal-rgb),0.20);
+     border-radius:14px;padding:20px 24px;margin-top:18px;">
+  <div style="font-size:1.0rem;font-weight:700;color:var(--ua-royal-2);margin-bottom:6px;">
+    Per-ticker data — not part of the {len(SIGNALS)}-signal library
+  </div>
+  <p style="font-size:0.79rem;color:var(--ua-ink-mut);line-height:1.7;margin-bottom:10px;">
+    These run on demand for a single ticker in Ticker Deep Dive and the Pro tools. They are
+    <strong style="color:var(--ua-ink-soft);">not</strong> scored macro signals and do not feed the
+    Confluence Score, so they are listed separately rather than counted in the {len(SIGNALS)}.
+  </p>
+  {_pro_html}
 </div>""", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
