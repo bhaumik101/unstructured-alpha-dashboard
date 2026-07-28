@@ -161,8 +161,18 @@ def build_decision_cockpit(
     attention.sort(key=lambda row: (-row["priority"], row["ticker"]))
 
     priorities = list(priority_brief.get("priorities") or [])
-    strongest = max(priorities, key=lambda row: row.get("personal_score", 0), default=None)
-    challenged = min(priorities, key=lambda row: row.get("personal_score", 100), default=None)
+    # Only rank rows that actually carry a score. Defaulting a missing score to
+    # 0 (for max) and 100 (for min) silently ranks unscored holdings as both the
+    # worst and the best, which is how an unscored name could surface as
+    # "most challenged" without any evidence behind it.
+    _scored = [row for row in priorities if row.get("personal_score") is not None]
+    strongest = max(_scored, key=lambda row: row.get("personal_score"), default=None)
+    challenged = min(_scored, key=lambda row: row.get("personal_score"), default=None)
+    # With a single scored holding, max and min are the same row, so the UI would
+    # show one ticker as simultaneously the strongest and the most challenged.
+    # A contrast needs two sides; below that, report only the strongest.
+    if len(_scored) < 2:
+        challenged = None
     largest = max(
         evidence or [],
         key=lambda row: float(row.get("weight_pct") or 0),
@@ -204,7 +214,13 @@ def build_decision_cockpit(
             "weighted_score": priority_brief.get("weighted_personal_score"),
             "covered_weight_pct": min(float(priority_brief.get("scored_weight_pct") or 0), 100.0),
             "n_scored": int(priority_brief.get("n_evidence") or 0),
-            "n_total": int(priority_brief.get("n_total") or len(evidence)),
+            # `or` would treat a genuine 0 as missing and substitute the
+            # evidence count, reporting holdings the brief says it doesn't have.
+            "n_total": int(
+                priority_brief["n_total"]
+                if priority_brief.get("n_total") is not None
+                else len(evidence or [])
+            ),
             "material_changes": int(priority_brief.get("material_changes") or 0),
             "strongest": strongest,
             "challenged": challenged,
