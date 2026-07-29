@@ -37,22 +37,16 @@ _SECTION_SLUGS = {
     "data-quality": "Data Quality",
     "methodology": "Methodology",
 }
-_requested_section = str(st.query_params.get("section") or "").lower()
 _pending_section = st.session_state.pop("_signal_research_pending_section", None)
 if _pending_section in _SECTIONS:
     st.session_state["signal_research_section_rail"] = _pending_section
-elif (
-    _requested_section in _SECTION_SLUGS
-    and st.session_state.get("_signal_research_query_seed") != _requested_section
-):
-    st.session_state["signal_research_section_rail"] = _SECTION_SLUGS[_requested_section]
-    st.session_state["_signal_research_query_seed"] = _requested_section
 
 render_header("Signal Research Center")
 _section = render_sidebar_base(
     page_title="Signal Research Center",
     sections=_SECTIONS,
     section_key="signal_research_section_rail",
+    section_aliases=_SECTION_SLUGS,
 )
 inject_all_css()
 render_page_header(
@@ -72,6 +66,10 @@ def _open_section(label: str, *, key: str) -> None:
         # The rail widget already exists by the time these overview cards render.
         # Queue the selection for the next run instead of mutating its state late.
         st.session_state["_signal_research_pending_section"] = label
+        st.query_params["section"] = next(
+            slug for slug, section_label in _SECTION_SLUGS.items()
+            if section_label == label
+        )
         st.rerun()
 
 

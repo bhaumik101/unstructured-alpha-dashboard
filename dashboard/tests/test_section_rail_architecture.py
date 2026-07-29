@@ -71,10 +71,52 @@ def test_shared_helper_exposes_section_rail_outside_hidden_sidebar():
     assert 'position: sticky;' in header_source
     assert "The menu stays visible while you scroll." in header_source
     assert "padding-left:" in header_source
+    assert 'st.query_params.get("section")' in header_source
+    assert 'st.query_params["section"] = requested_slug' in header_source
+    assert "on_change=_sync_section_query" in header_source
 
     helper_source = header_source[header_source.index("def render_sidebar_base("):]
     assert "with st.sidebar:" not in helper_source
     assert "sidebar_logout" not in helper_source
+
+
+def test_section_rail_deep_link_selects_requested_section(app_test):
+    from streamlit.testing.v1 import AppTest
+
+    page = PAGES / "8_About.py"
+    app = AppTest.from_file(str(page), default_timeout=120)
+    app.session_state["user"] = {"id": 1, "email": "test@example.com"}
+    app.session_state["_tier_1"] = "pro"
+    app.session_state["_sync_done_1"] = True
+    app.query_params["section"] = "validation-evidence"
+    app.query_params["theme"] = "light"
+    app.query_params["ticker"] = "MSFT"
+    app.run()
+
+    rail = next(control for control in app.radio if control.key == "about_section_rail")
+    assert rail.value == "Validation Evidence"
+    assert app.query_params["theme"] == ["light"]
+    assert app.query_params["ticker"] == ["MSFT"]
+    assert not app.exception
+
+
+def test_section_rail_selection_updates_url_without_dropping_context(app_test):
+    app = app_test("pages/8_About.py")
+    app.query_params["theme"] = "dark"
+    app.query_params["ticker"] = "NVDA"
+    app.run()
+
+    rail = next(control for control in app.radio if control.key == "about_section_rail")
+    rail.set_value("Validation Evidence").run()
+    assert app.query_params["section"] == ["validation-evidence"]
+    assert app.query_params["theme"] == ["dark"]
+    assert app.query_params["ticker"] == ["NVDA"]
+
+    rail = next(control for control in app.radio if control.key == "about_section_rail")
+    rail.set_value("Overview").run()
+    assert "section" not in app.query_params
+    assert app.query_params["theme"] == ["dark"]
+    assert app.query_params["ticker"] == ["NVDA"]
 
 
 def test_visible_header_and_footer_own_removed_sidebar_actions():
