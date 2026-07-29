@@ -3551,7 +3551,7 @@ def render_sidebar_base(
     default_section: str | None = None,
 ) -> str | None:
     """
-    Render a visible page-local section rail plus the legacy sidebar utilities.
+    Render a visible, lazy-loading page-local section rail.
 
     The section rail intentionally uses a radio + normal Python branching
     instead of st.tabs(). Streamlit eagerly executes every tab body, while this
@@ -3561,8 +3561,12 @@ def render_sidebar_base(
     The global top navigation intentionally hides Streamlit's native sidebar,
     so the section control must live in the main canvas. On desktop it becomes
     a persistent left rail and reserves canvas space; on smaller screens it
-    becomes a compact sticky horizontal switcher. The hidden sidebar still owns
-    secondary account and assistant controls for backward compatibility.
+    becomes a compact sticky horizontal switcher.
+
+    Do not rebuild account, theme, assistant, or disclaimer widgets here: those
+    actions already live in the visible header/footer. Rendering duplicates in
+    a display:none sidebar adds elements and rerun work without giving the user
+    any reachable control.
     """
     selected_section: str | None = None
     if sections:
@@ -3728,50 +3732,4 @@ body:has(.st-key-ua_page_section_rail) .ua-topnav {
                 unsafe_allow_html=True,
             )
 
-    with st.sidebar:
-        # Account info — most pages no longer require login (per explicit
-        # user request), so an anonymous visitor is a completely normal,
-        # expected case here, not an edge case. This sidebar block is just
-        # a secondary "you're logged in" indicator + quick Log Out; the
-        # actual sign-in entry point is the top-right widget rendered by
-        # render_header() (utils.auth_ui.render_account_widget()).
-        user = st.session_state.get("user")
-        if user:
-            _sidebar_identity = html_escape(user.get("display_name") or user.get("email", "Account"))
-            st.markdown(
-                f'<div style="font-size:0.78rem;color:var(--ua-ink-mut);margin-bottom:4px;">'
-                f'Signed in as<br><b style="color:var(--ua-ink);">{_sidebar_identity}</b></div>',
-                unsafe_allow_html=True,
-            )
-            if st.button("Log Out", key="sidebar_logout", width="stretch"):
-                from utils.auth_ui import logout
-                logout()
-                st.rerun()
-            st.divider()
-
-        # Dark mode toggle — persists preference in localStorage
-        render_dark_mode_toggle()
-        st.divider()
-
-        # AI Assistant quick-access
-        st.markdown(
-            '<div style="background:rgba(184,134,11,0.13);border-radius:6px;padding:10px 12px;'
-            'border:1px solid rgba(184,134,11,0.35);margin-bottom:6px;">'
-            '<div style="font-size:0.68rem;color:#C9A84C;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">AI Research Assistant</div>'
-            '<div style="font-size:0.79rem;color:rgba(var(--ua-onbg-rgb),0.75);margin-top:3px;line-height:1.4;">'
-            'Questions about signals, tickers, or methodology?</div>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-        st.page_link("pages/9_AI_Assistant.py", label="Open AI Assistant")
-
-        st.divider()
-        st.markdown(
-            '<div style="font-size:0.72rem;color:rgba(201,168,76,0.55);line-height:1.5;padding:0 2px;">'
-            '<b style="color:rgba(201,168,76,0.70);">Not financial advice.</b> '
-            'All signals are interpretations of publicly available data. '
-            'Do your own research before making any investment decision.'
-            '</div>',
-            unsafe_allow_html=True,
-        )
     return selected_section

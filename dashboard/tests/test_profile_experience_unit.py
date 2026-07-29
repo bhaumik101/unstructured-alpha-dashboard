@@ -40,5 +40,6 @@ def test_display_name_updates_the_live_authenticated_session():
 
 def test_header_uses_display_name_as_the_signed_in_identity():
     assert '_identity_name = (_hdr_user.get("display_name") or "Account").strip()' in HEADER
-    assert 'user.get("display_name") or user.get("email", "Account")' in HEADER
     assert "with st.popover(_identity_button" in HEADER
+    assert 'key="topright_logout"' in HEADER
+    assert "sidebar_logout" not in HEADER
