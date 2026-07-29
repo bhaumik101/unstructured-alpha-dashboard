@@ -3551,43 +3551,168 @@ def render_sidebar_base(
     default_section: str | None = None,
 ) -> str | None:
     """
-    Render the standard sidebar content (account info, FRED key input, AI
-    assistant link, disclaimer) and, when supplied, a page-local section rail.
+    Render a visible page-local section rail plus the legacy sidebar utilities.
 
     The section rail intentionally uses a radio + normal Python branching
     instead of st.tabs(). Streamlit eagerly executes every tab body, while this
     pattern executes only the selected section — reducing load time and keeping
-    long research pages focused. Existing call sites remain backward compatible.
+    long research pages focused.
+
+    The global top navigation intentionally hides Streamlit's native sidebar,
+    so the section control must live in the main canvas. On desktop it becomes
+    a persistent left rail and reserves canvas space; on smaller screens it
+    becomes a compact sticky horizontal switcher. The hidden sidebar still owns
+    secondary account and assistant controls for backward compatibility.
     """
     selected_section: str | None = None
-    with st.sidebar:
-        if sections:
-            _options = list(sections)
-            _default = default_section if default_section in _options else _options[0]
-            # The page-local navigator belongs at the top of the sidebar, before
-            # account/settings chrome, so it is immediately discoverable. The
-            # radio itself remains sticky while the main research canvas scrolls.
+    if sections:
+        _options = list(sections)
+        _default = default_section if default_section in _options else _options[0]
+        st.markdown(
+            """
+<style>
+/* The native Streamlit sidebar is hidden by the global top-nav. Keep the
+   section selector in the visible main canvas and reserve room for it. */
+.st-key-ua_page_section_rail {
+    position: absolute;
+    /* Offset from Streamlit's padded inner canvas to land at viewport x=18px. */
+    left: min(-220px, calc((1500px - 100vw) / 2 - 220px));
+    top: -164px;
+    width: 202px;
+    max-height: calc(100vh - 92px);
+    overflow-y: auto;
+    z-index: 910;
+    padding: 13px 12px 11px;
+    background: rgba(var(--ua-shell-rgb),0.97);
+    border: 1px solid rgba(var(--ua-label-rgb),0.20);
+    border-radius: 12px;
+    box-shadow: 0 12px 34px rgba(var(--ua-shadow-rgb),calc(0.24*var(--ua-shadow-k)));
+    backdrop-filter: blur(12px);
+}
+body:has(.st-key-ua_page_section_rail) [data-testid="stMainBlockContainer"] {
+    padding-left: max(238px, calc((100vw - 1500px) / 2 + 238px)) !important;
+}
+/* Streamlit's inner canvas establishes a containing block, so position:fixed
+   scrolls with the page. A zero-height sticky parent keeps the rail anchored
+   without adding a blank row above the selected section's content. */
+body:has(.st-key-ua_page_section_rail)
+  [data-testid="stMainBlockContainer"] div:has(> .st-key-ua_page_section_rail) {
+    position: sticky;
+    top: 236px;
+    height: 0;
+    overflow: visible;
+    z-index: 910;
+}
+body:has(.st-key-ua_page_section_rail) .ua-topnav {
+    left: min(-238px, calc((1500px - 100vw) / 2 - 238px));
+    right: auto;
+    width: 100vw;
+}
+.st-key-ua_page_section_rail [data-testid="stVerticalBlock"] {
+    gap: 0.35rem !important;
+}
+.st-key-ua_page_section_rail [data-testid="stRadio"] [role="radiogroup"] {
+    gap: 3px !important;
+}
+.st-key-ua_page_section_rail [data-testid="stRadio"] label {
+    border: 1px solid transparent;
+    border-radius: 7px;
+    padding: 7px 8px !important;
+    margin: 0 !important;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.st-key-ua_page_section_rail [data-testid="stRadio"] label:hover {
+    background: rgba(var(--ua-onbg-rgb),0.045);
+    border-color: var(--ua-hair-2);
+}
+.st-key-ua_page_section_rail [data-testid="stRadio"] label:has(input:checked) {
+    background: rgba(var(--ua-purple-rgb),0.11);
+    border-color: rgba(var(--ua-purple-rgb),0.32);
+}
+.st-key-ua_page_section_rail [data-testid="stRadio"] label p {
+    color: var(--ua-ink-mut) !important;
+    font-size: 0.76rem !important;
+    font-weight: 650 !important;
+    line-height: 1.25 !important;
+}
+.st-key-ua_page_section_rail [data-testid="stRadio"] label:has(input:checked) p {
+    color: var(--ua-ink) !important;
+}
+.ua-page-rail-kicker {
+    color: var(--ua-ink-label);
+    font-size: 0.59rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    line-height: 1.35;
+    text-transform: uppercase;
+}
+.ua-page-rail-note {
+    color: var(--ua-ink-dim);
+    font-size: 0.61rem;
+    line-height: 1.45;
+    margin-top: 3px;
+}
+@media (max-width: 1150px) {
+    body:has(.st-key-ua_page_section_rail) [data-testid="stMainBlockContainer"] {
+        padding-left: 1rem !important;
+    }
+    .st-key-ua_page_section_rail {
+        position: sticky;
+        top: 54px;
+        left: auto;
+        width: auto;
+        max-height: none;
+        overflow: visible;
+        z-index: 900;
+        margin: 0 0 14px;
+        padding: 10px 11px 9px;
+    }
+    body:has(.st-key-ua_page_section_rail)
+      [data-testid="stMainBlockContainer"] div:has(> .st-key-ua_page_section_rail) {
+        position: static;
+        top: auto;
+        height: auto;
+    }
+    body:has(.st-key-ua_page_section_rail) .ua-topnav {
+        left: -1rem;
+    }
+    .st-key-ua_page_section_rail [data-testid="stRadio"] [role="radiogroup"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 5px !important;
+    }
+    .st-key-ua_page_section_rail [data-testid="stRadio"] label {
+        flex: 0 1 auto !important;
+        padding: 6px 8px !important;
+    }
+    .ua-page-rail-note { display: none; }
+}
+@media (max-width: 640px) {
+    body:has(.st-key-ua_page_section_rail) [data-testid="stMainBlockContainer"] {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    .st-key-ua_page_section_rail {
+        top: 48px;
+        border-radius: 9px;
+        margin-bottom: 10px;
+    }
+    body:has(.st-key-ua_page_section_rail) .ua-topnav {
+        left: -0.5rem;
+    }
+    .st-key-ua_page_section_rail [data-testid="stRadio"] label p {
+        font-size: 0.70rem !important;
+    }
+}
+</style>
+""",
+            unsafe_allow_html=True,
+        )
+        with st.container(key="ua_page_section_rail"):
             st.markdown(
-                """
-                <style>
-                [data-testid="stSidebar"] [data-testid="stRadio"]:has(input[aria-label="Page section"]) {
-                    position: sticky;
-                    top: 0.75rem;
-                    z-index: 20;
-                    background: rgba(10, 14, 24, 0.97);
-                    border: 1px solid rgba(var(--ua-label-rgb),0.20);
-                    border-radius: 10px;
-                    padding: 8px 10px 10px;
-                    box-shadow: 0 10px 28px rgba(var(--ua-shadow-rgb),calc(0.22*var(--ua-shadow-k)));
-                }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.markdown(
-                f'<div style="font-size:0.60rem;font-weight:800;color:#8C9BC8;'
-                f'letter-spacing:0.13em;text-transform:uppercase;margin:2px 0 5px;">'
-                f'{page_title or "On this page"}</div>',
+                f'<div class="ua-page-rail-kicker">'
+                f'{html_escape(page_title or "On this page")}</div>',
                 unsafe_allow_html=True,
             )
             selected_section = st.radio(
@@ -3597,9 +3722,13 @@ def render_sidebar_base(
                 key=section_key or f"section_rail_{(page_title or 'page').lower().replace(' ', '_')}",
                 label_visibility="collapsed",
             )
-            st.caption("Choose a section. Only this section is loaded. This menu stays available while you scroll.")
-            st.divider()
+            st.markdown(
+                '<div class="ua-page-rail-note">Only this section loads. '
+                'The menu stays visible while you scroll.</div>',
+                unsafe_allow_html=True,
+            )
 
+    with st.sidebar:
         # Account info — most pages no longer require login (per explicit
         # user request), so an anonymous visitor is a completely normal,
         # expected case here, not an edge case. This sidebar block is just

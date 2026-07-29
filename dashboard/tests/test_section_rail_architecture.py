@@ -60,12 +60,21 @@ def test_major_product_pages_do_not_use_eager_tabs():
         assert not eager_tabs, f"{page_name} eagerly executes hidden tab content"
 
 
-def test_sidebar_helper_documents_lazy_execution_contract():
+def test_shared_helper_exposes_section_rail_outside_hidden_sidebar():
     header_source = (PAGES.parent / "utils" / "header.py").read_text(encoding="utf-8")
-    assert "Only this section is loaded." in header_source
+    assert "Only this section loads." in header_source
     assert "selected_section = st.radio(" in header_source
+    assert 'with st.container(key="ua_page_section_rail")' in header_source
+    assert ".st-key-ua_page_section_rail" in header_source
+    assert "position: absolute;" in header_source
+    assert "div:has(> .st-key-ua_page_section_rail)" in header_source
     assert 'position: sticky;' in header_source
-    assert "This menu stays available while you scroll." in header_source
+    assert "The menu stays visible while you scroll." in header_source
+    assert "padding-left:" in header_source
+
+    rail_position = header_source.index('with st.container(key="ua_page_section_rail")')
+    hidden_sidebar_position = header_source.index("with st.sidebar:", rail_position)
+    assert rail_position < hidden_sidebar_position
 
 
 def test_dense_pages_conditionally_execute_selected_sections():
