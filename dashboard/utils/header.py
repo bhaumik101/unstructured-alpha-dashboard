@@ -4,6 +4,7 @@ Call render_header() as the very first Streamlit call after st.set_page_config()
 """
 
 from html import escape as html_escape
+import re
 from urllib.parse import urlencode
 
 import streamlit as st
@@ -20,6 +21,32 @@ def _theme_switch_href(target: str, query_values: dict[str, list[str]]) -> str:
         pairs.extend((str(key), str(value)) for value in (values or []))
     pairs.append(("theme", "light" if target == "light" else "dark"))
     return "?" + urlencode(pairs)
+
+
+def _section_slug(label: str) -> str:
+    """Return a stable, URL-safe identifier for a visible section label."""
+    return re.sub(r"[^a-z0-9]+", "-", str(label).strip().lower()).strip("-")
+
+
+def _sync_section_query(
+    *,
+    widget_key: str,
+    default_section: str,
+    slugs_by_section: dict[str, str],
+) -> None:
+    """Keep the selected rail section shareable without dropping other state."""
+    selected = str(st.session_state.get(widget_key) or "")
+    requested_slug = (
+        None
+        if selected == default_section
+        else slugs_by_section.get(selected)
+    )
+    current_slug = str(st.query_params.get("section") or "").strip().lower()
+
+    if requested_slug and current_slug != requested_slug:
+        st.query_params["section"] = requested_slug
+    elif not requested_slug and current_slug:
+        del st.query_params["section"]
 
 
 # ── Modern Dark Design System CSS ────────────────────────────────────────────
@@ -3549,6 +3576,7 @@ def render_sidebar_base(
     sections: list[str] | tuple[str, ...] | None = None,
     section_key: str | None = None,
     default_section: str | None = None,
+    section_aliases: dict[str, str] | None = None,
 ) -> str | None:
     """
     Render a visible, lazy-loading page-local section rail.
@@ -3556,7 +3584,9 @@ def render_sidebar_base(
     The section rail intentionally uses a radio + normal Python branching
     instead of st.tabs(). Streamlit eagerly executes every tab body, while this
     pattern executes only the selected section — reducing load time and keeping
-    long research pages focused.
+    long research pages focused. Its selected value is mirrored to a stable
+    ``?section=`` deep link so a refresh, bookmark, or browser history action
+    returns to the same view without dropping other query-string state.
 
     The global top navigation intentionally hides Streamlit's native sidebar,
     so the section control must live in the main canvas. On desktop it becomes
@@ -3572,6 +3602,29 @@ def render_sidebar_base(
     if sections:
         _options = list(sections)
         _default = default_section if default_section in _options else _options[0]
+        _widget_key = (
+            section_key
+            or f"section_rail_{(page_title or 'page').lower().replace(' ', '_')}"
+        )
+        _slugs_by_section = {option: _section_slug(option) for option in _options}
+        _sections_by_slug = {
+            slug: option for option, slug in _slugs_by_section.items()
+        }
+        for alias, option in (section_aliases or {}).items():
+            if option in _options:
+                _sections_by_slug[_section_slug(alias)] = option
+
+        _requested_slug = str(
+            st.query_params.get("section") or ""
+        ).strip().lower()
+        _requested_option = _sections_by_slug.get(_requested_slug)
+        if _requested_option:
+            # This runs before the widget is instantiated, so direct links and
+            # browser back/forward can safely override stale session state.
+            st.session_state[_widget_key] = _requested_option
+        _active_option = st.session_state.get(_widget_key, _default)
+        if _active_option not in _options:
+            _active_option = _default
         st.markdown(
             """
 <style>
@@ -3722,9 +3775,27 @@ body:has(.st-key-ua_page_section_rail) .ua-topnav {
             selected_section = st.radio(
                 "Page section",
                 _options,
-                index=_options.index(_default),
-                key=section_key or f"section_rail_{(page_title or 'page').lower().replace(' ', '_')}",
+                # Match the widget's declared default to restored/deep-linked
+                # state. A mismatched index can make the browser briefly report
+                # the first option during hydration and fire a false change.
+                index=_options.index(_active_option),
+                key=_widget_key,
                 label_visibility="collapsed",
+                on_change=_sync_section_query,
+                kwargs={
+                    "widget_key": _widget_key,
+                    "default_section": _default,
+                    "slugs_by_section": _slugs_by_section,
+                },
+            )
+            # Streamlit can rebuild widget state in a second browser pass after
+            # a hard refresh. Reconcile once more from the value actually on
+            # screen so that pass cannot leave a selected subsection behind a
+            # URL whose ``section`` parameter was transiently cleared.
+            _sync_section_query(
+                widget_key=_widget_key,
+                default_section=_default,
+                slugs_by_section=_slugs_by_section,
             )
             st.markdown(
                 '<div class="ua-page-rail-note">Only this section loads. '
