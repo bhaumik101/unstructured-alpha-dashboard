@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
 import "./globals.css";
-
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 const SITE_URL = "https://unstructuredalpha.com";
 const OG_IMAGE = `${SITE_URL}/og-image.png`;
@@ -14,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s | Unstructured Alpha",
   },
   description:
-    "43 macro signals — insider flows, credit spreads, energy positioning, Fed indicators — scored daily from public data. Understand the macro environment behind your stocks before you size in. Free to start.",
+    "47 macro signals — insider flows, credit spreads, energy positioning, Fed indicators — scored daily from public data. Understand the macro environment behind your stocks before you size in. Free to start.",
   keywords: [
     "macro signals",
     "investing dashboard",
@@ -41,7 +38,7 @@ export const metadata: Metadata = {
     siteName: "Unstructured Alpha",
     title: "Unstructured Alpha — Macro Signals for Active Investors",
     description:
-      "43 macro signals scored daily from FRED, SEC EDGAR, FINRA, EIA, and CBOE. Know whether the macro environment supports your thesis — before the move.",
+      "47 macro signals scored daily from FRED, SEC EDGAR, FINRA, EIA, and CBOE. Know whether the macro environment supports your thesis — before the move.",
     images: [
       {
         url: OG_IMAGE,
@@ -57,7 +54,7 @@ export const metadata: Metadata = {
     creator: "@UnstructuredAlpha",
     title: "Unstructured Alpha — Macro Signals for Active Investors",
     description:
-      "43 macro signals scored daily. Insider flows, credit spreads, energy data, Fed indicators. Free dashboard for active investors.",
+      "47 macro signals scored daily. Insider flows, credit spreads, energy data, Fed indicators. Free dashboard for active investors.",
     images: [OG_IMAGE],
   },
 };
@@ -66,12 +63,20 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={geist.variable}>
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              '(function(){try{var s=localStorage.getItem("ua-theme");' +
+              'var t=(s==="light"||s==="dark")?s:' +
+              '(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");' +
+              'document.documentElement.setAttribute("data-theme",t)}catch(e){}})()',
+          }}
+        />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/logo.svg" />
-        <meta name="theme-color" content="#0b0d12" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <meta name="theme-color" content="#090b11" />
         {/* WebApplication JSON-LD — helps Google understand product type and pricing */}
         <script
           type="application/ld+json"
@@ -83,12 +88,12 @@ export default function RootLayout({
               "url": "https://unstructuredalpha.com",
               "applicationCategory": "FinanceApplication",
               "operatingSystem": "Web",
-              "description": "43 macro signals scored daily from FRED, SEC EDGAR, FINRA, EIA, and CBOE. Understand the macro environment behind your portfolio. Free dashboard for active investors.",
+              "description": "47 macro signals scored daily from FRED, SEC EDGAR, FINRA, EIA, and CBOE. Understand the macro environment behind your portfolio. Free dashboard for active investors.",
               "offers": [
                 { "@type": "Offer", "name": "Free Plan", "price": "0", "priceCurrency": "USD", "description": "Signal Dashboard, Today's Brief, Ticker Deep Dive — free forever." },
                 { "@type": "Offer", "name": "Pro Plan", "price": "20", "priceCurrency": "USD", "description": "Score history, sector percentiles, watchlist alerts, morning digest.", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "20", "priceCurrency": "USD", "unitCode": "MON" } }
               ],
-              "featureList": ["43 macro signals from FRED, SEC EDGAR, FINRA, EIA, CBOE", "Confluence Score per ticker", "Today's Brief", "Signal Dashboard", "Sector Percentile Rankings", "Score History Charts", "Watchlist Alerts"],
+              "featureList": ["47 macro signals from FRED, SEC EDGAR, FINRA, EIA, CBOE", "Confluence Score per ticker", "Today's Brief", "Signal Dashboard", "Sector Percentile Rankings", "Score History Charts", "Watchlist Alerts"],
               "publisher": { "@type": "Organization", "name": "Unstructured Alpha", "url": "https://unstructuredalpha.com" }
             })
           }}
@@ -101,7 +106,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "FAQPage",
               "mainEntity": [
-                { "@type": "Question", "name": "What is a macro signal?", "acceptedAnswer": { "@type": "Answer", "text": "A macro signal is a publicly available economic or financial data series — like the yield curve, credit spreads, or insider buying — that has historically moved before broad market prices responded. Unstructured Alpha tracks 43 such signals scored daily from FRED, SEC EDGAR, FINRA, EIA, and CBOE." } },
+                { "@type": "Question", "name": "What is a macro signal?", "acceptedAnswer": { "@type": "Answer", "text": "A macro signal is a publicly available economic or financial data series — like the yield curve, credit spreads, or insider buying — that has historically moved before broad market prices responded. Unstructured Alpha tracks 47 such signals scored daily from FRED, SEC EDGAR, FINRA, EIA, and CBOE." } },
                 { "@type": "Question", "name": "How much does Unstructured Alpha cost?", "acceptedAnswer": { "@type": "Answer", "text": "The core Signal Dashboard, Today's Brief, and Ticker Deep Dive are free with an account — no credit card required. Pro is $20/month and adds score history charts, sector percentile rankings, watchlist alerts, and the morning email digest." } },
                 { "@type": "Question", "name": "How is Unstructured Alpha different from a Bloomberg Terminal?", "acceptedAnswer": { "@type": "Answer", "text": "Bloomberg Terminal costs approximately $27,000/year and is designed for institutional desks. Unstructured Alpha focuses on the macro signal layer at $20/month for active individual investors. Different scope, different audience, very different price." } }
               ]
