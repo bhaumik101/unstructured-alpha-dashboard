@@ -13,6 +13,7 @@ import re
 from pathlib import Path
 
 from utils.config import SIGNAL_COUNT
+from utils.product_metrics import ACTIVE_SIGNAL_COUNT
 
 PAGE = Path(__file__).resolve().parent.parent / "pages" / "39_How_Signals_Work.py"
 
@@ -40,10 +41,9 @@ def test_mechanism_and_honesty_are_both_covered():
 
 
 def test_page_signal_count_matches_ssot_everywhere():
-    """No 'same fact, two numbers' on the education page: every 'N signals'
-    mention must equal the canonical SIGNAL_COUNT (was 43 in two spots, 47 in
-    two others)."""
+    """The education page must render the SSOT instead of copying its value."""
     src = _src()
-    counts = set(int(n) for n in re.findall(r"(\d+)\s+(?:of these signals|well-validated signals|signals)", src))
-    assert counts, "expected at least one 'N signals' phrase on the page"
-    assert counts == {SIGNAL_COUNT}, f"page signal counts {counts} != SSOT {SIGNAL_COUNT}"
+    assert ACTIVE_SIGNAL_COUNT == SIGNAL_COUNT
+    assert "ACTIVE_SIGNAL_COUNT" in src
+    hardcoded_counts = set(int(n) for n in re.findall(r"\b(\d+)[ -]signals\b", src))
+    assert not hardcoded_counts, f"page hardcodes signal counts: {hardcoded_counts}"
