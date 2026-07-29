@@ -72,9 +72,17 @@ def test_shared_helper_exposes_section_rail_outside_hidden_sidebar():
     assert "The menu stays visible while you scroll." in header_source
     assert "padding-left:" in header_source
 
-    rail_position = header_source.index('with st.container(key="ua_page_section_rail")')
-    hidden_sidebar_position = header_source.index("with st.sidebar:", rail_position)
-    assert rail_position < hidden_sidebar_position
+    helper_source = header_source[header_source.index("def render_sidebar_base("):]
+    assert "with st.sidebar:" not in helper_source
+    assert "sidebar_logout" not in helper_source
+
+
+def test_visible_header_and_footer_own_removed_sidebar_actions():
+    header_source = (PAGES.parent / "utils" / "header.py").read_text(encoding="utf-8")
+    assert 'key="topright_logout"' in header_source
+    assert 'href="/ai-research-assistant"' in header_source
+    assert "Switch to light theme" in header_source
+    assert "Important Disclaimer" in header_source
 
 
 def test_dense_pages_conditionally_execute_selected_sections():
