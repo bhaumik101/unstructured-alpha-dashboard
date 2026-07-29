@@ -4,9 +4,18 @@ Educational methodology page explaining signal construction, scoring, data sourc
 and limitations. Public (no login required). SEO-friendly.
 """
 
+from collections import Counter
+
 import streamlit as st
 
 from utils.config import SIGNALS
+from utils.product_metrics import (
+    ACTIVE_SIGNAL_COUNT,
+    PRO_PRICE_MONTHLY,
+    SCORE_REFRESH_DESCRIPTION,
+    signal_sources_phrase,
+)
+from utils.provider_health import canonical_provider, provider_label
 
 st.set_page_config(
     page_title="How Macro Signals Work — Unstructured Alpha",
@@ -54,7 +63,7 @@ st.markdown("""
 # TAB 1 — What are signals
 # ─────────────────────────────────────────────────────────────────────────────
 if _method_section == "What Are Signals":
-    st.markdown("""
+    st.markdown(f"""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
 
   <h2 style="font-size:1.25rem;font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
@@ -64,10 +73,10 @@ if _method_section == "What Are Signals":
     A macro signal is a publicly available economic or financial data series that has historically
     moved <em>before</em> broad market prices responded. They include things like the shape of
     the yield curve, how wide credit spreads are, how much crude oil is sitting in storage,
-    and how aggressively corporate insiders are buying their own company stock.
+    and how physical freight or supply-chain pressure is changing.
   </p>
   <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:28px;">
-    Unstructured Alpha tracks 47 of these signals across six categories.
+    Unstructured Alpha tracks {ACTIVE_SIGNAL_COUNT} of these signals across six research categories.
     Each one is scored daily on a 0–100 scale. The goal is not to predict individual stock prices —
     it is to give you a clear read on whether the <em>macro environment</em> is supportive
     or hostile to risk assets at any given time.
@@ -77,10 +86,10 @@ if _method_section == "What Are Signals":
 """, unsafe_allow_html=True)
 
     for _card in [
-        ("", "Based on public data", "Every signal uses official government or exchange data sources. No proprietary estimates, no surveys of uncertain reliability."),
-        ("", "Historically leading", "We only include signals that have shown statistically measurable lead times ahead of market moves — typically 4 to 16 weeks."),
+        ("", "Based on attributable data", f"The registry currently draws from {signal_sources_phrase(limit=20)}. Every reading retains its provider and timestamp."),
+        ("", "Lead-time tested", "Each signal has an intended lead window and can be evaluated against forward returns. Validation status is shown rather than assumed."),
         ("", "Percentile-scored", "Raw data values are converted to 0–100 percentile scores relative to the past 12 months so they are directly comparable across signals."),
-        ("", "Updated every ~6 hours", "Signal data is refreshed approximately every 6 hours from live API feeds. Timestamps are shown on every signal card."),
+        ("", SCORE_REFRESH_DESCRIPTION.capitalize(), "The platform refreshes provider data on its configured cadence. The underlying release date remains visible on each signal."),
     ]:
         st.markdown(f"""
 <div style="background:rgba(var(--ua-card-rgb),0.7);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
@@ -259,10 +268,10 @@ if _method_section == "Why It Works":
 # TAB 3 — Signal categories
 # ─────────────────────────────────────────────────────────────────────────────
 if _method_section == "Signal Categories":
-    st.markdown("""
+    st.markdown(f"""
 <div style="max-width:860px;margin:28px auto 0;font-family:Inter,sans-serif;">
   <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
-    Unstructured Alpha's 47 signals are grouped into six categories.
+    Unstructured Alpha's {ACTIVE_SIGNAL_COUNT} signals are grouped into six research categories.
     Each category captures a different dimension of the macro environment.
   </p>
 """, unsafe_allow_html=True)
@@ -385,79 +394,71 @@ if _method_section == "Signal Categories":
 # TAB 4 — Data sources
 # ─────────────────────────────────────────────────────────────────────────────
 if _method_section == "Data Sources":
-    st.markdown("""
+    st.markdown(f"""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
   <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
-    Every data point on Unstructured Alpha comes from official public sources — government agencies,
-    regulatory bodies, and exchange-operated feeds. We do not use proprietary estimates,
-    paid data vendors, or scraped social media sentiment as primary inputs.
+    The {ACTIVE_SIGNAL_COUNT}-signal registry currently draws from
+    <strong style="color:var(--ua-ink-soft);">{signal_sources_phrase(limit=20)}</strong>.
+    This list is generated from the same configuration that powers the Signal Dashboard, so a
+    provider cannot be credited here unless at least one registered macro signal uses it.
   </p>
 """, unsafe_allow_html=True)
 
-    _sources_detail = [
-        {
-            "name": "FRED — Federal Reserve Economic Data",
-            "org":  "Federal Reserve Bank of St. Louis",
-            "url":  "https://fred.stlouisfed.org",
-            "signals": "Yield curve, credit spreads, M2, jobless claims, CPI, manufacturing PMI, consumer sentiment, TIPS breakeven",
-            "notes": "Free public API. No authentication required for standard series. Updated daily or weekly depending on series.",
-        },
-        {
-            "name": "SEC EDGAR — Form 4 Insider Filings",
-            "org":  "U.S. Securities and Exchange Commission",
-            "url":  "https://www.sec.gov/cgi-bin/browse-edgar",
-            "signals": "Insider buy/sell ratios, insider cluster detection, congressional stock trades",
-            "notes": "Form 4 filings are required within 2 business days of a transaction. XML feed is fully public.",
-        },
-        {
-            "name": "FINRA — Short Interest Data",
-            "org":  "Financial Industry Regulatory Authority",
-            "url":  "https://www.finra.org/investors/tools-calculators/short-interest",
-            "signals": "Short interest as % of float, short interest trend",
-            "notes": "Published twice monthly. Data reflects settlement-date positions, not real-time.",
-        },
-        {
-            "name": "EIA — Energy Information Administration",
-            "org":  "U.S. Department of Energy",
-            "url":  "https://www.eia.gov",
-            "signals": "Weekly crude oil inventory change, natural gas in storage, Baker Hughes rig count",
-            "notes": "Weekly releases every Wednesday (crude/gas) and Friday (rig count). Free public API.",
-        },
-        {
-            "name": "CBOE — Volatility & Options Data",
-            "org":  "Chicago Board Options Exchange",
-            "url":  "https://www.cboe.com",
-            "signals": "VIX spot, VIX9D (9-day VIX), VIX term structure, CBOE equity put/call ratio",
-            "notes": "Accessed via Yahoo Finance API for historical VIX data. CPCE series also available on FRED.",
-        },
-        {
-            "name": "Yahoo Finance (yfinance)",
-            "org":  "Informal market data aggregator",
-            "url":  "https://finance.yahoo.com",
-            "signals": "Price data for VIX, Treasury yields (^TNX), copper (HG=F), gold (GLD), stock prices",
-            "notes": "Used for price-derived signals and ticker Confluence Scores. Best-effort availability — not suitable for mission-critical trading infrastructure.",
-        },
-    ]
-
-    for _src in _sources_detail:
+    _provider_roles = {
+        "fred": "Economic, rates, credit, labor, inflation, freight, and market series.",
+        "yahoo": "Market-price and ratio inputs used by price-derived macro signals.",
+        "eia": "Weekly U.S. crude-oil inventory and natural-gas storage series.",
+        "ny_fed": "The Global Supply Chain Pressure Index.",
+        "arxiv": "Published research metadata used for research-velocity measures.",
+        "openfda": "Public regulatory-event data used for approval-velocity measures.",
+        "google_trends": "Aggregated search interest used by the retail fear measure.",
+        "federal_reserve": "Federal Reserve communications used by the policy-language measure.",
+    }
+    _provider_counts = Counter(
+        canonical_provider(_cfg.get("source")) for _cfg in SIGNALS.values()
+    )
+    for _provider, _count in _provider_counts.most_common():
+        _names = [
+            str(_cfg.get("name", _signal_id))
+            for _signal_id, _cfg in SIGNALS.items()
+            if canonical_provider(_cfg.get("source")) == _provider
+        ]
+        _preview = ", ".join(_names[:4])
+        if len(_names) > 4:
+            _preview += f", +{len(_names) - 4} more"
         st.markdown(f"""
 <div style="background:rgba(var(--ua-card-rgb),0.65);border:1px solid rgba(var(--ua-onbg-rgb),0.07);
      border-radius:13px;padding:18px 22px;margin-bottom:12px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-    <div>
-      <div style="font-size:0.90rem;font-weight:700;color:var(--ua-ink);margin-bottom:2px;">{_src["name"]}</div>
-      <div style="font-size:0.70rem;color:var(--ua-ink-label);">{_src["org"]}</div>
+    <div style="font-size:0.90rem;font-weight:700;color:var(--ua-ink);">
+      {provider_label(_provider)}
+    </div>
+    <div style="font-size:0.64rem;color:var(--ua-ink-label);font-weight:700;
+         letter-spacing:0.08em;text-transform:uppercase;">
+      {_count} registered signal{"s" if _count != 1 else ""}
     </div>
   </div>
   <div style="margin-top:10px;font-size:0.78rem;color:var(--ua-ink-mut);line-height:1.65;">
-    <strong style="color:var(--ua-ink-soft);">Signals:</strong> {_src["signals"]}
+    {_provider_roles.get(_provider, "Publicly attributable inputs used by the macro signal library.")}
   </div>
   <div style="margin-top:6px;font-size:0.75rem;color:var(--ua-ink-label);line-height:1.6;">
-    <strong>Notes:</strong> {_src["notes"]}
+    <strong>Registered series:</strong> {_preview}
   </div>
 </div>""", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+<div style="background:rgba(var(--ua-royal-rgb),0.05);border:1px solid rgba(var(--ua-royal-rgb),0.20);
+     border-radius:13px;padding:18px 22px;margin-top:18px;">
+  <div style="font-size:0.89rem;font-weight:700;color:var(--ua-royal-2);margin-bottom:7px;">
+    Separate per-ticker providers
+  </div>
+  <div style="font-size:0.78rem;color:var(--ua-ink-mut);line-height:1.7;">
+    SEC EDGAR and FINRA support ticker-specific filings, institutional-positioning, and
+    short-interest features. Those are real product capabilities, but they do not feed the
+    {ACTIVE_SIGNAL_COUNT}-signal macro registry and are not counted above.
+  </div>
+</div>
+</div>""", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -479,7 +480,7 @@ if _method_section == "Limitations":
         ("Not price predictions", "Signal scores describe the macro <em>environment</em>. A score of 80 does not mean the market will go up. It means the macro backdrop is historically supportive. Markets can decline sharply even in favorable macro environments, and they can rally hard in hostile ones."),
         ("Signals can stay extreme", "A signal in the bearish zone can stay bearish for many months. 'Oversold' in macro terms is not the same as a short-term mean reversion in price. Do not use these scores as short-term trading triggers."),
         ("Coverage is organic", "Score history is only built for tickers that users have searched. We do not run a nightly batch across every stock in the market. The universe covered by historical data grows with user activity."),
-        ("Data source delays", "FINRA short interest is updated twice monthly, not daily. Congressional trade disclosures lag by up to 45 days. Form 4 insider filings are required within 2 days but often arrive late. Signal freshness is shown on every card."),
+        ("Data source delays", "Macro releases arrive on different schedules, from market days to monthly. Separate per-ticker sources also have their own delays: FINRA short interest is reported twice monthly, and SEC filing data is event-driven. The product shows freshness and unavailable states rather than treating every source as real-time."),
         ("Not investment advice", "This platform is educational and informational only. Nothing here is personalized financial advice. We are not registered investment advisers. Always consult a licensed professional before making investment decisions."),
         ("Model validation is ongoing", "We publish our validation results publicly on the Model Validation page. Some signals have stronger lead-time evidence than others. We label validation status honestly — including when a signal lacks sufficient out-of-sample data."),
         ("Yahoo Finance data quality", "Price data accessed via the yfinance library is best-effort and may have gaps, stale values, or API errors. Pages that rely on this source show error states when data is unavailable rather than silently serving stale data."),
@@ -527,7 +528,7 @@ if _method_section == "FAQ":
          "Some signals require a minimum number of data points to calculate a reliable percentile. If a series has been recently added or if the data source returned too few observations, the signal defaults to 'insufficient data' rather than showing a potentially misleading score."),
 
         ("How often does data refresh?",
-         "Most signals refresh approximately every 6 hours via Streamlit's cache layer. FRED economic series refresh daily or weekly depending on release frequency. Short interest (FINRA) is biweekly. The timestamp on each signal card shows the last confirmed data point."),
+         f"The platform cache is {SCORE_REFRESH_DESCRIPTION}, while each underlying provider retains its own publication schedule. A monthly economic release does not become newer merely because the app refreshed. Signal cards show the last confirmed observation."),
 
         ("What is the rolling window?",
          "252 trading days — approximately one calendar year. This captures a full economic cycle of seasonal variation without overweighting distant historical regimes. A shorter window (e.g., 90 days) would be too sensitive to recent extremes. A longer window would dilute the signal's responsiveness."),
@@ -539,10 +540,10 @@ if _method_section == "FAQ":
          "The backtest uses a strict no-lookahead rule (yesterday's score drives today's position), includes 0.1% round-trip transaction costs, and compares performance to a buy-and-hold SPY benchmark. However, backtest performance is inherently optimistic — it does not capture liquidity, slippage, behavioral friction, or regime changes that break historical patterns. Treat it as exploratory context, not a proof of future returns."),
 
         ("Why isn't [specific signal X] included?",
-         "We only add signals that clear two bars: (1) the data must be consistently available from a public source, and (2) the signal must show statistically meaningful lead time in our lag-scan analysis. Many popular indicators fail one or both of these requirements. We prefer 47 well-validated signals over 200 noisy ones."),
+         f"The live registry currently contains {ACTIVE_SIGNAL_COUNT} signals. Candidates need an attributable, maintainable data path and a defensible economic mechanism. Validation strength is then reported explicitly; inclusion is not presented as proof that every signal is equally predictive."),
 
-        ("What's the difference between this and a Bloomberg Terminal?",
-         "Bloomberg Terminal costs approximately $27,000/year and is designed for professional institutional desks. It provides real-time pricing, news, messaging, and a full universe of financial data tools. Unstructured Alpha focuses specifically on the macro signal layer — the 'should I be risk-on or risk-off right now' question — at $20/month for active individual investors. Different scope, different audience, very different price."),
+        ("Who is this designed for?",
+         f"Unstructured Alpha is built for individual investors who want a structured macro and ticker-research workflow without pretending it is institutional execution infrastructure. Pro is currently ${PRO_PRICE_MONTHLY}/month and adds deeper research workflows; it does not replace a broker, licensed adviser, or professional market-data terminal."),
     ]
 
     for _q, _a in _faqs:
@@ -555,7 +556,7 @@ if _method_section == "FAQ":
 
 # ── Bottom CTA ─────────────────────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
-st.markdown("""
+st.markdown(f"""
 <div style="background:rgba(var(--ua-green-rgb),0.04);border:1px solid rgba(var(--ua-green-rgb),0.15);
      border-radius:16px;padding:28px;text-align:center;max-width:620px;margin:0 auto 40px;
      font-family:Inter,sans-serif;">
@@ -563,7 +564,7 @@ st.markdown("""
     See the signals live
   </div>
   <div style="font-size:0.82rem;color:var(--ua-ink-mut);margin-bottom:20px;line-height:1.7;">
-    The Signal Dashboard shows all 47 signals with live scores, trend direction,
+    The Signal Dashboard shows all {ACTIVE_SIGNAL_COUNT} signals with live scores, trend direction,
     and the regime read. No account required to browse.
   </div>
 """, unsafe_allow_html=True)
