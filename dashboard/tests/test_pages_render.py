@@ -117,8 +117,12 @@ def test_anonymous_visitor_sees_real_home_page_content():
     )
     # Not just "didn't crash" -- confirm REAL page content rendered, not a
     # blank page or a login form silently swallowing everything below it.
-    all_text = " ".join(md.value for md in at.markdown) + " ".join(t.value for t in at.title)
-    assert "UNSTRUCTURED" in all_text or "Hedge Fund Signals" in all_text, (
+    all_text = (
+        " ".join(md.value for md in at.markdown)
+        + " ".join(t.value for t in at.title)
+        + " ".join(button.label for button in at.button)
+    )
+    assert "Continue your research" in all_text and "Signal Dashboard" in all_text, (
         "Expected real Home page content for an anonymous visitor, got: " + all_text[:500]
     )
 

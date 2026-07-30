@@ -28,6 +28,20 @@ def test_all_five_cta_buttons_present(app_test):
         assert key in present_keys, f"Expected CTA button key {key!r} not found on Home page"
 
 
+def test_home_defaults_to_compact_dashboard_and_keeps_discover_available(app_test):
+    at = app_test("pages/home_page.py")
+
+    assert at.session_state["home_section_rail"] == "Dashboard"
+    page_sections = next(
+        radio for radio in at.radio if radio.key == "home_section_rail"
+    )
+    assert list(page_sections.options) == ["Dashboard", "Discover"]
+    assert any(button.key == "dashboard_brief" for button in at.button)
+    # The long product-tour CTA is rendered only after a visitor explicitly
+    # chooses Discover, so it cannot inflate the default Home payload.
+    assert not any(button.key == "cta_pro_mid" for button in at.button)
+
+
 @pytest.mark.parametrize("key,target_page", _CTA_TARGETS.items())
 def test_cta_button_navigates_to_expected_page(app_test, key, target_page):
     at = app_test("pages/home_page.py")

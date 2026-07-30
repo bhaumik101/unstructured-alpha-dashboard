@@ -47,7 +47,12 @@ render_header(
 _home_perf.checkpoint("header")
 inject_all_css()
 _home_perf.checkpoint("theme_css")
-render_sidebar_base()
+_home_section = render_sidebar_base(
+    page_title="Home",
+    sections=("Dashboard", "Discover"),
+    section_key="home_section_rail",
+    default_section="Dashboard",
+)
 _home_perf.checkpoint("sidebar_base")
 
 # Data-integrity disclosure is rendered AFTER the canonical regime is computed
@@ -639,6 +644,49 @@ if not _anon_user:
         pass
 
 _home_perf.checkpoint("command_center")
+
+if _home_section == "Dashboard":
+    st.markdown(
+        """
+<div style="margin:12px 0 14px;">
+  <div style="font-size:.64rem;font-weight:800;letter-spacing:.14em;
+              text-transform:uppercase;color:var(--ua-ink-label);">Continue your research</div>
+  <div style="font-size:.82rem;color:var(--ua-ink-mut);margin-top:5px;">
+    Open a focused workspace instead of loading the full product tour.
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+    _dash_row_1 = st.columns(3)
+    with _dash_row_1[0]:
+        if st.button("Today's Brief", type="primary", width="stretch", key="dashboard_brief"):
+            st.switch_page("pages/2_Today_Digest.py")
+    with _dash_row_1[1]:
+        if st.button("Signal Dashboard", width="stretch", key="cta_signals"):
+            st.switch_page("pages/1_Signal_Dashboard.py")
+    with _dash_row_1[2]:
+        if st.button("Ticker Deep Dive", width="stretch", key="cta_dive"):
+            st.switch_page("pages/3_Ticker_Deep_Dive.py")
+
+    _dash_row_2 = st.columns(3)
+    with _dash_row_2[0]:
+        if st.button("Market Overview", width="stretch", key="cta_market"):
+            st.switch_page("pages/5_Market_Overview.py")
+    with _dash_row_2[1]:
+        if st.button("My Watchlist", width="stretch", key="cta_watchlist"):
+            st.switch_page("pages/10_Watchlist.py")
+    with _dash_row_2[2]:
+        if st.button("Signal Research", width="stretch", key="cta_validation"):
+            st.switch_page("pages/51_Signal_Research.py")
+
+    st.caption(
+        "Choose Discover in the page rail for the full product tour, historical examples, "
+        "methodology explainers, automation details, and membership overview."
+    )
+    render_footer()
+    st.session_state["_ua_home_perf_last"] = _home_perf.finish("dashboard_actions_and_footer")
+    st.stop()
 
 if _anon_user:
     # st.html (not st.markdown): multi-line indented HTML would be parsed as a
