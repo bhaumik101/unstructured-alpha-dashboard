@@ -650,15 +650,23 @@ try:
 except Exception:
     pass
 
-# The timing summary is deliberately session-local: no visitor identifier,
-# request metadata, or additional database record is created. An admin can open
-# Home, return here, and see exactly which sequential render phase dominated.
-with st.expander("Home render diagnostics (this session)", expanded=False):
-    _home_perf = st.session_state.get("_ua_home_perf_last")
+# The latest timing summary is deliberately anonymous and process-local: no
+# visitor identifier, request metadata, or database record is created. The
+# process fallback is necessary because top-nav page changes start a fresh
+# Streamlit session and therefore cannot rely on session state alone.
+with st.expander("Home render diagnostics", expanded=False):
+    from utils.performance import get_latest_page_profile
+
+    _session_home_perf = st.session_state.get("_ua_home_perf_last")
+    _home_perf = (
+        _session_home_perf
+        if isinstance(_session_home_perf, dict)
+        else get_latest_page_profile("home")
+    )
     if not isinstance(_home_perf, dict) or not _home_perf.get("phases"):
         st.info(
-            "Open Home once in this browser session, then return to Operations. "
-            "The latest render will appear here."
+            "No Home render has completed since this app process started. "
+            "Open Home once, then return to Operations."
         )
     else:
         _home_phases = _home_perf["phases"]
@@ -672,7 +680,8 @@ with st.expander("Home render diagnostics (this session)", expanded=False):
         _hp3.metric("Slowest duration", f"{float(_slowest.get('duration_ms', 0)) / 1000:.2f}s")
         st.caption(
             f"Captured {_home_perf.get('captured_at', 'during the latest Home render')}. "
-            "Sequential timings are also emitted to application logs."
+            "This is the latest anonymous Home render in the current app process; "
+            "sequential timings are also emitted to application logs."
         )
         st.dataframe(
             [
