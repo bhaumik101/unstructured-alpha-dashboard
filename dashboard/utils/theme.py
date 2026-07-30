@@ -1,28 +1,10 @@
 """Unstructured Alpha's restrained dark product and chart system."""
 import functools as _functools
 import math as _math
-import os as _os
 import re as _re
 
 import plotly.graph_objects as _go
 import plotly.io as _pio
-
-
-_STATIC_GLOBAL_CSS_PATH = _os.path.join(
-    _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
-    "static",
-    "ua-global.css",
-)
-
-
-def static_global_css_available() -> bool:
-    """Whether the build generated the cacheable global stylesheet.
-
-    Production creates this asset before Streamlit starts. Local development
-    and tests retain the runtime injection fallback when the build step has not
-    run, so a missing optional asset can never leave the app unstyled.
-    """
-    return _os.path.isfile(_STATIC_GLOBAL_CSS_PATH)
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 
@@ -1674,14 +1656,11 @@ section[data-testid="stSidebar"] {
 
 def inject_skeleton_css() -> None:
     """
-    Local-development fallback for skeleton + modern UI CSS.
-
-    Production serves the same rules from one cacheable global stylesheet, so
-    reruns do not serialize them into Streamlit's websocket deltas.
+    Inject the skeleton/shimmer CSS + modern UI overrides into the page.
+    Safe to call multiple times — Streamlit deduplicates identical markdown.
     """
     import streamlit as st
-    if not static_global_css_available():
-        st.markdown(_SKELETON_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
+    st.markdown(_SKELETON_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
 
 
 def skeleton_cards(n: int = 3, height: int = 110, cols: int = 1) -> str:
@@ -2200,16 +2179,14 @@ _COUNTER_CSS = """
 
 def inject_premium_css() -> None:
     """
-    Local-development fallback for premium + modern UI CSS.
-
-    Production serves the same rules from one cacheable global stylesheet.
+    Inject premium animation + component CSS + modern UI overrides.
+    Safe to call multiple times (Streamlit deduplicates identical markdown).
     Covers: animated KPI counters, gradient border cards, testimonial cards,
     spotlight feature cards, step cards, Pro banner, guarantee badge,
     pulse dot, avatar initials, plus pill tabs, modern buttons, metrics, etc.
     """
     import streamlit as st
-    if not static_global_css_available():
-        st.markdown(_COUNTER_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
+    st.markdown(_COUNTER_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
 
 
 def inject_all_css() -> None:
@@ -2217,9 +2194,8 @@ def inject_all_css() -> None:
     Convenience function — inject ALL CSS in a single call:
     skeleton/shimmer + premium animations + modern UI overrides.
 
-    In production the build-generated global stylesheet already contains these
-    rules. The runtime injection remains only as a fail-safe for local
-    development or a failed optional build step.
+    Safe to call multiple times (Streamlit deduplicates identical markdown
+    injections within a session).
 
     Usage::
 
@@ -2227,8 +2203,7 @@ def inject_all_css() -> None:
         inject_all_css()  # once near the top of any page
     """
     import streamlit as st
-    if not static_global_css_available():
-        st.markdown(_SKELETON_CSS + _COUNTER_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
+    st.markdown(_SKELETON_CSS + _COUNTER_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
 
 
 # ── Polish helpers ────────────────────────────────────────────────────────────
