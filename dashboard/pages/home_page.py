@@ -25,11 +25,10 @@ st.set_page_config(
 import html as _h
 import pandas as pd
 from utils.header import render_header, render_sidebar_base, render_footer
-from utils.signals_cache import get_all_signal_scores
 from utils.config import SIGNALS, CATEGORIES
 from utils.narrative import generate_narrative
 from utils.product_metrics import SUPPORTED_TICKER_COUNT
-from utils.top_tickers import get_top_tickers
+from utils.top_tickers import rank_top_tickers
 from utils.convergence import get_convergence_events, render_convergence_events
 from utils.theme import inject_all_css, render_platform_note
 
@@ -53,9 +52,9 @@ render_sidebar_base()
 # same fact with different numbers — the exact trust-destroying bug fought in
 # [[macro_regime_ssot_bug]]. The canonical source is the persisted daily snapshot
 # (score_history.get_latest_signal_states) because the header must stay cheap on
-# every route. The live cache (get_all_signal_scores) is still used below for
-# TICKER SCORING only (portfolio check, top movers) — those surface names/scores,
-# never a regime count, so they can't contradict the headline.
+# every route. Ticker rankings and the instant portfolio check reuse this same
+# real persisted snapshot. Home must not start a 47-provider sweep before its
+# primary content can paint.
 def _build_home_data(_all: dict) -> dict:
     bull, bear, neut, buckets = [], [], [], {}
     for sid, sv in _all.items():
@@ -105,10 +104,9 @@ try:
         _hd = _build_home_data(_snap_rich)
         _narrative  = generate_narrative(_snap_rich)
 
-        # Live cache is used ONLY for ticker scoring (names/scores, never a
-        # regime count), so it can't contradict the headline.
-        _raw_scores = get_all_signal_scores()
-        _top_tkrs   = get_top_tickers(len(_raw_scores))
+        # Pure ticker ranking over the SAME real snapshot. This performs no
+        # provider calls and cannot contradict the headline regime.
+        _top_tkrs = rank_top_tickers(_snap_rich)
 
     _nb, _nr, _nn = _reg.bullish, _reg.bearish, _reg.neutral
     _total = _reg.scored
@@ -116,7 +114,6 @@ try:
     _data_loaded = True
 except Exception:
     _hd = {"bull": [], "bear": [], "neut": [], "sectors": {}}
-    _raw_scores = {}
     _narrative  = {"regime": "LOADING…", "regime_color": "#8892AA", "summary": "",
                    "top_bull": [], "top_bear": [], "watch_note": "", "sector_bias": {},
                    "bull_count": 0, "bear_count": 0, "neut_count": 0, "total": 0}
@@ -176,7 +173,7 @@ def _get_recent_signal_flip() -> dict | None:
 
 # ── PORTFOLIO CHECK HELPER ────────────────────────────────────────────────────
 def _score_tickers_from_cache(tickers_input: str, raw_scores: dict) -> list:
-    """Score tickers from the already-cached signal data — zero extra API calls."""
+    """Score tickers from an already-loaded real snapshot — zero provider calls."""
     from utils.config import TICKERS as _TK
     _results = []
     _syms = [t.strip().upper() for t in tickers_input.replace(",", " ").split() if t.strip()][:5]
@@ -968,7 +965,7 @@ if _data_loaded:
             _pf_submitted = st.form_submit_button("→ Check", type="primary", width="stretch")
 
     if _pf_submitted and _pf_input.strip():
-        _pf_results = _score_tickers_from_cache(_pf_input, _raw_scores)
+        _pf_results = _score_tickers_from_cache(_pf_input, _snap_rich)
         if _pf_results:
             _pf_cols = st.columns(min(len(_pf_results), 5))
             for _pf_res, _pf_col in zip(_pf_results, _pf_cols):
