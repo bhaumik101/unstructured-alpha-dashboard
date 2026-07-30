@@ -1792,16 +1792,17 @@ _home_perf.checkpoint("feature_and_pro_sections")
 
 # ── REFERRAL BANNER ───────────────────────────────────────────────────────────
 # Non-blocking: anonymous visitors skip entirely; errors never surface to user.
+# Identity is already established by the shared header before this late-page
+# section. Re-initializing the cookie component and re-verifying the remember
+# token here added a second auth round-trip to every signed-in Home render.
 try:
-    from utils.auth_ui import get_cookies, try_restore_session
-    from utils.billing import get_user_tier
+    from utils.billing import effective_is_pro
     from utils.referral import get_referral_stats
 
-    _ref_cookies = get_cookies()
-    _ref_user    = try_restore_session(_ref_cookies)
+    _ref_user = st.session_state.get("user")
 
     if _ref_user:
-        _ref_tier  = get_user_tier(_ref_user["id"])
+        _ref_tier  = "pro" if effective_is_pro(_ref_user) else "free"
         _ref_stats = get_referral_stats(_ref_user["id"])
         _ref_link  = _ref_stats["link"]
 
