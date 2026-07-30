@@ -44,9 +44,11 @@ render_header(
     hero_title="Know the macro backdrop before you trade.",
     hero_sub="47 macro signals scored daily on first-print data — no hindsight, no synthetic values.",
 )
+_home_perf.checkpoint("header")
 inject_all_css()
+_home_perf.checkpoint("theme_css")
 render_sidebar_base()
-_home_perf.checkpoint("page_shell")
+_home_perf.checkpoint("sidebar_base")
 
 # Data-integrity disclosure is rendered AFTER the canonical regime is computed
 # (see below), so the "N of 47 excluded" count matches the header bar and hero
