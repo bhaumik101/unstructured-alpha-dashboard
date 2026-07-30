@@ -22,6 +22,10 @@ st.set_page_config(
     menu_items={"About": "Unstructured Alpha — institutional-grade macro signals for every investor."},
 )
 
+from utils.performance import PageProfiler
+
+_home_perf = PageProfiler("home")
+
 import html as _h
 import pandas as pd
 from utils.header import render_header, render_sidebar_base, render_footer
@@ -33,6 +37,8 @@ from utils.top_tickers import get_top_tickers
 from utils.convergence import get_convergence_events, render_convergence_events
 from utils.theme import inject_all_css, render_platform_note
 
+_home_perf.checkpoint("module_imports")
+
 render_header(
     "Home",
     hero_title="Know the macro backdrop before you trade.",
@@ -40,6 +46,7 @@ render_header(
 )
 inject_all_css()
 render_sidebar_base()
+_home_perf.checkpoint("page_shell")
 
 # Data-integrity disclosure is rendered AFTER the canonical regime is computed
 # (see below), so the "N of 47 excluded" count matches the header bar and hero
@@ -89,6 +96,7 @@ try:
         # table only persists id/score/status). EVERY regime count on the page —
         # header, hero, narrative, banner — is derived from this one dict.
         _snap = _glss_home()
+        _home_perf.checkpoint("persisted_snapshot")
         _snap_rich = {
             sid: {
                 **row,
@@ -104,17 +112,21 @@ try:
         # guaranteed to match the header bar and hero split.
         _hd = _build_home_data(_snap_rich)
         _narrative  = generate_narrative(_snap_rich)
+        _home_perf.checkpoint("snapshot_derivation")
 
         # Live cache is used ONLY for ticker scoring (names/scores, never a
         # regime count), so it can't contradict the headline.
         _raw_scores = get_all_signal_scores()
+        _home_perf.checkpoint("live_signal_scores")
         _top_tkrs   = get_top_tickers(len(_raw_scores))
+        _home_perf.checkpoint("top_ticker_ranking")
 
     _nb, _nr, _nn = _reg.bullish, _reg.bearish, _reg.neutral
     _total = _reg.scored
     _bias_label = _reg.label
     _data_loaded = True
 except Exception:
+    _home_perf.checkpoint("home_data_error", success=False)
     _hd = {"bull": [], "bear": [], "neut": [], "sectors": {}}
     _raw_scores = {}
     _narrative  = {"regime": "LOADING…", "regime_color": "#8892AA", "summary": "",
@@ -132,6 +144,7 @@ if _data_loaded and _reg.excluded > 0:
     from utils.header import render_data_unavailable_banner
     render_data_unavailable_banner(_reg.excluded, _reg.total)
 
+_home_perf.checkpoint("data_integrity")
 
 # ── FLIP ALERT HELPER ─────────────────────────────────────────────────────────
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -520,6 +533,8 @@ try:
 except Exception:
     pass
 
+_home_perf.checkpoint("hero_and_market_summary")
+
 # ── SIGNAL FLIP ALERT BANNER ──────────────────────────────────────────────────
 try:
     _flip = _get_recent_signal_flip()
@@ -545,6 +560,7 @@ except Exception:
     pass
 
 st.markdown("<br>", unsafe_allow_html=True)
+_home_perf.checkpoint("signal_flip")
 
 # ── ANONYMOUS "START HERE" GUIDE ─────────────────────────────────────────────
 # Shown to visitors with no account — gives them an immediate orientation so
@@ -619,6 +635,8 @@ if not _anon_user:
                 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     except Exception:
         pass
+
+_home_perf.checkpoint("command_center")
 
 if _anon_user:
     # st.html (not st.markdown): multi-line indented HTML would be parsed as a
@@ -860,6 +878,7 @@ except Exception:
     pass  # Never let personalization break the home page
 
 st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+_home_perf.checkpoint("personalization")
 
 # ── CREDIBILITY STRIP ─────────────────────────────────────────────────────────
 st.markdown("""
@@ -1157,6 +1176,8 @@ if _data_loaded:
                 unsafe_allow_html=True,
             )
 
+_home_perf.checkpoint("portfolio_and_machine_sections")
+
 # ── SIGNAL CONVERGENCE EVENTS ────────────────────────────────────────────────
 _conv_events = get_convergence_events(days_back=7, min_signals=3)
 if _conv_events:
@@ -1178,6 +1199,8 @@ if _conv_events:
             render_convergence_events([], max_bull=0)
             render_convergence_events(_bear_ev[1:], max_bull=0, max_bear=2)
     st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+
+_home_perf.checkpoint("convergence_events")
 
 # ── LATEST RESEARCH NOTE TEASER ──────────────────────────────────────────────
 try:
@@ -1233,6 +1256,8 @@ try:
             st.switch_page("pages/2_Today_Digest.py")
 except Exception:
     pass
+
+_home_perf.checkpoint("latest_research_note")
 
 # ── 3 CORE FEATURE SPOTLIGHTS ─────────────────────────────────────────────────
 st.markdown("""
@@ -1763,6 +1788,7 @@ with _pro_col2:
         st.switch_page("pages/29_Upgrade.py")
 
 st.divider()
+_home_perf.checkpoint("feature_and_pro_sections")
 
 # ── REFERRAL BANNER ───────────────────────────────────────────────────────────
 # Non-blocking: anonymous visitors skip entirely; errors never surface to user.
@@ -1834,6 +1860,8 @@ except Exception:
     # Any failure (DB offline, missing table, import error) is silently swallowed.
     # The rest of the home page continues rendering normally.
     pass
+
+_home_perf.checkpoint("referral")
 
 # ── ADDITIONAL TOOLS ──────────────────────────────────────────────────────────
 st.markdown("""
@@ -1955,3 +1983,4 @@ except Exception:
 
 # ── FOOTER ───────────────────────────────────────────────────────────────────
 render_footer()
+st.session_state["_ua_home_perf_last"] = _home_perf.finish("tools_faq_chart_and_footer")
