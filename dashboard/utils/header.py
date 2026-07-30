@@ -3160,8 +3160,13 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     # 47-signal engine from global chrome, turning every cold page load into a
     # hidden provider sweep even when the page itself needed no macro data.
     try:
-        from utils.score_history import get_latest_signal_states as _glss
         from utils.regime import compute_macro_regime
+        try:
+            # Cached read (60s). This runs in global chrome on every page and
+            # every rerun, so uncached it is a Postgres round trip per click.
+            from utils.signals_cache import get_cached_signal_states as _glss
+        except Exception:
+            from utils.score_history import get_latest_signal_states as _glss
         _rs = _glss()
         # SSOT: the header bar and the home hero now classify the regime through
         # ONE function fed the SAME source (persisted snapshots). Previously each
