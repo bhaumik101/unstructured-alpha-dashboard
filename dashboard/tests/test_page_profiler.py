@@ -65,7 +65,7 @@ def test_home_profiles_page_shell_components_separately():
     header_checkpoint = home.index('_home_perf.checkpoint("header")')
     theme = home.index('inject_all_css()', header_checkpoint)
     theme_checkpoint = home.index('_home_perf.checkpoint("theme_css")')
-    sidebar = home.index('render_sidebar_base()', theme_checkpoint)
+    sidebar = home.index('render_sidebar_base(', theme_checkpoint)
     sidebar_checkpoint = home.index('_home_perf.checkpoint("sidebar_base")')
 
     assert header < header_checkpoint < theme < theme_checkpoint < sidebar < sidebar_checkpoint
