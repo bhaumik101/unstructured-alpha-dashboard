@@ -56,3 +56,17 @@ def test_home_and_admin_share_anonymous_timing_summary():
     assert 'st.session_state.get("_ua_home_perf_last")' in admin
     assert 'get_latest_page_profile("home")' in admin
     assert 'st.expander("Home render diagnostics"' in admin
+
+
+def test_home_profiles_page_shell_components_separately():
+    home = (_DASH / "pages" / "home_page.py").read_text(encoding="utf-8")
+
+    header = home.index('render_header(')
+    header_checkpoint = home.index('_home_perf.checkpoint("header")')
+    theme = home.index('inject_all_css()', header_checkpoint)
+    theme_checkpoint = home.index('_home_perf.checkpoint("theme_css")')
+    sidebar = home.index('render_sidebar_base()', theme_checkpoint)
+    sidebar_checkpoint = home.index('_home_perf.checkpoint("sidebar_base")')
+
+    assert header < header_checkpoint < theme < theme_checkpoint < sidebar < sidebar_checkpoint
+    assert '_home_perf.checkpoint("page_shell")' not in home
