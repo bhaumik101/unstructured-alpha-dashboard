@@ -40,6 +40,12 @@ def test_home_defaults_to_compact_dashboard_and_keeps_discover_available(app_tes
     # The long product-tour CTA is rendered only after a visitor explicitly
     # chooses Discover, so it cannot inflate the default Home payload.
     assert not any(button.key == "cta_pro_mid" for button in at.button)
+    phases = [
+        row["phase"] for row in at.session_state["_ua_home_perf_last"]["phases"]
+    ]
+    assert "live_signal_scores_skipped" in phases
+    assert "top_ticker_ranking_skipped" in phases
+    assert "command_center" not in phases
 
 
 @pytest.mark.parametrize("key,target_page", _CTA_TARGETS.items())
