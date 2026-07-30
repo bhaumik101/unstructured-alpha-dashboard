@@ -11,6 +11,7 @@ from datetime import datetime
 import streamlit as st
 
 from utils.header import render_header, render_sidebar_base, render_page_header, disclose_unavailable_signals
+from utils.product_metrics import SUPPORTED_TICKER_COUNT
 
 st.set_page_config(page_title="AI Assistant — UA", layout="wide")
 from utils.billing import require_pro
@@ -129,7 +130,7 @@ above are the actual scores computed from live FRED/EIA/yfinance data right now.
 # ─────────────────────────────────────────────────────────────────────────────
 # Static knowledge base — platform context (injected alongside live state)
 # ─────────────────────────────────────────────────────────────────────────────
-APP_CONTEXT = """
+APP_CONTEXT = f"""
 You are the Unstructured Alpha Research Assistant — an expert analyst on the
 Unstructured Alpha alternative data intelligence platform. You help users understand
 the platform's methodology, interpret signals, navigate pages, and think through
@@ -171,7 +172,7 @@ THE PAGES:
 4. Market Overview — Daily macro snapshot: major indices, sector performance, rates, commodities,
    Signal Snapshot (VIX, yield curve, HY credit, 10Y trend, risk appetite).
 
-5. Stock Screener — All 280+ tickers ranked by a Macro + Momentum Rank (70% macro / 30% momentum).
+5. Stock Screener — All {SUPPORTED_TICKER_COUNT} supported tickers ranked by a Macro + Momentum Rank (70% macro / 30% momentum).
    Filters by sector, signal bias, PCS, score range. Quick-analyze any ticker outside the universe.
    (The full Confluence Score, with insider/13F/short-interest overlays, is on the Ticker Deep Dive.)
 
@@ -401,8 +402,8 @@ Five-leg thesis: AI compute → unprecedented electricity demand → largest gri
 **Key signals:** hyperscaler_capex (primary), uranium_proxy, copper, natural_gas, ten_year_yield
 """,
 
-    ("stock screener", "screener", "how do i find stocks", "best tickers"): """
-**Stock Screener** ranks 280+ tickers by a Macro + Momentum Rank (70% macro signal confluence / 30% price momentum).
+    ("stock screener", "screener", "how do i find stocks", "best tickers"): f"""
+**Stock Screener** ranks {SUPPORTED_TICKER_COUNT} supported tickers by a Macro + Momentum Rank (70% macro signal confluence / 30% price momentum).
 
 **How to use:**
 1. Sidebar filters: sector, signal bias (bull/bear/neutral), min PCS, score range

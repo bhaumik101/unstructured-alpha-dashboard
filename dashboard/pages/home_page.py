@@ -28,6 +28,7 @@ from utils.header import render_header, render_sidebar_base, render_footer
 from utils.signals_cache import get_all_signal_scores
 from utils.config import SIGNALS, CATEGORIES
 from utils.narrative import generate_narrative
+from utils.product_metrics import SUPPORTED_TICKER_COUNT
 from utils.top_tickers import get_top_tickers
 from utils.convergence import get_convergence_events, render_convergence_events
 from utils.theme import inject_all_css, render_platform_note
@@ -666,7 +667,7 @@ if _anon_user:
         Enter any ticker in Ticker Deep Dive — see which of the 47 signals
         historically move that stock, and what the confluence score is today.
       </div>
-      <div style="font-size:0.70rem;color:var(--ua-cyan);font-weight:600;">→ Free · AAPL, NVDA, XOM and 280+ tickers</div>
+      <div style="font-size:0.70rem;color:var(--ua-cyan);font-weight:600;">→ Free · AAPL, NVDA, XOM and {SUPPORTED_TICKER_COUNT} supported tickers</div>
     </div>
 
   </div>
@@ -1264,7 +1265,7 @@ with _sp1:
         st.switch_page("pages/2_Today_Digest.py")
 
 with _sp2:
-    st.markdown("""
+    st.markdown(f"""
 <div class="ua-spotlight" style="--ua-spotlight-accent:linear-gradient(90deg,var(--ua-purple),#A78BFA);">
     <span class="ua-spotlight-icon"></span>
     <div class="ua-spotlight-tag" style="color:#A78BFA;">STOCK-SPECIFIC ANALYSIS</div>
@@ -1273,7 +1274,7 @@ with _sp2:
     signal-by-signal breakdown, earnings markers, insider activity, news. Tells you
     <em>why</em> the macro environment is or isn't set up for this stock.</div>
     <div class="ua-spotlight-proof" style="color:#A78BFA;">
-        → Tested on 280+ tickers with statistical validation
+        → {SUPPORTED_TICKER_COUNT} supported tickers · validation results published
     </div>
 </div>
 """, unsafe_allow_html=True)

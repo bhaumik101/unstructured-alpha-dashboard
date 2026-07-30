@@ -22,6 +22,7 @@ import yfinance as yf
 
 from utils.config import SIGNALS, TICKERS
 from utils.fetchers import fetch_live_quote, fetch_signal_series
+from utils.product_metrics import SUPPORTED_TICKER_COUNT
 from utils.analysis import compute_confluence, score_signal
 from utils.header import render_header, render_sidebar_base, render_page_header, render_data_unavailable_banner, render_footer
 from utils.theme import source_badge, inject_premium_css, section_label, PLOTLY_CONFIG
@@ -44,7 +45,7 @@ inject_premium_css()
 
 render_page_header(
     "Stock Screener",
-    f"Filter {len(TICKERS)} tickers by Macro + Momentum Rank, sector, and price momentum.",
+    f"Filter {SUPPORTED_TICKER_COUNT} supported tickers by Macro + Momentum Rank, sector, and price momentum.",
     icon="",
 )
 
@@ -312,7 +313,7 @@ if _screener_section == "Screen Securities":
     <div style="font-size:0.58rem;letter-spacing:0.16em;font-weight:700;color:var(--ua-green);
                 font-family:Inter,sans-serif;margin-bottom:4px;">ALTERNATIVE DATA SCREENER</div>
     <div style="font-size:0.76rem;color:var(--ua-ink-mut);font-family:Inter,sans-serif;margin-bottom:12px;">
-        {len(TICKERS)} tickers ranked by <b>Macro + Momentum Rank</b> = 70% macro signal confluence (PCS-weighted) + 30% price momentum.
+        {SUPPORTED_TICKER_COUNT} supported tickers ranked by <b>Macro + Momentum Rank</b> = 70% macro signal confluence (PCS-weighted) + 30% price momentum.
         This is a fast screen; the full Confluence Score (with insider, 13F &amp; short-interest overlays) lives on each Ticker Deep Dive.
         Click any row to preview. Can't find your ticker? Use the search box above or type it in "Analyze Any Ticker."
     </div>
@@ -643,7 +644,7 @@ if _screener_section == "Rankings":
     from utils.theme import inject_premium_css as _ipc2
 
     st.markdown("### Live Score Rankings")
-    st.caption(f"All {len(TICKERS)} tickers ranked by macro confluence score. Green ≥ 65 · Red ≤ 35 · White = neutral.")
+    st.caption(f"All {SUPPORTED_TICKER_COUNT} supported tickers ranked by macro confluence score. Green ≥ 65 · Red ≤ 35 · White = neutral.")
 
     @st.cache_data(ttl=7200, show_spinner=False, max_entries=1)
     def _rank_all_tickers():

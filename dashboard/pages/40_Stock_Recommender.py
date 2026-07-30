@@ -31,6 +31,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils.header import render_header, render_sidebar_base, render_page_header, render_footer, disclose_unavailable_signals
 from utils.theme import inject_premium_css, source_badge, PLOTLY_CONFIG
 from utils.config import SIGNALS, TICKERS
+from utils.product_metrics import SUPPORTED_TICKER_COUNT
 from utils.billing import require_pro
 from utils.recommender_rankings import HORIZON_WEEKS, macro_rank_all
 
@@ -52,7 +53,7 @@ _recommender_user = st.session_state.get("user")
 
 render_page_header(
     "Stock Recommender",
-    f"Highest-conviction long and short ideas — macro signals ranked across {len(TICKERS)} tickers, "
+    f"Highest-conviction long and short ideas — macro signals ranked across {SUPPORTED_TICKER_COUNT} supported tickers, "
     "with the top picks fully enriched with insider activity, 13F positioning, and short interest.",
     icon="",
 )
