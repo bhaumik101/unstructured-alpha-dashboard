@@ -459,9 +459,17 @@ _CSS_LINK_MARKER = "<!-- ua-global-css -->"
 
 
 def build_global_css() -> str:
-    """Concatenate the always-injected stylesheets, in their runtime order."""
+    """Concatenate the always-injected stylesheets, in their runtime order.
+
+    Covers both global entry points: render_header (_CSS, _MODERN_UI_CSS,
+    CHART_CSS) and theme.inject_all_css (_SKELETON_CSS, _COUNTER_CSS,
+    _MODERN_UI_CSS). _MODERN_UI_CSS is shared by both, which is why it was being
+    delivered twice -- once in this file and again inline on the 8 pages that
+    call inject_all_css. Order matches the runtime order so cascade wins are
+    unchanged; the de-duplication below keeps the shared block appearing once.
+    """
     from utils.header import _CSS
-    from utils.theme import _MODERN_UI_CSS
+    from utils.theme import _MODERN_UI_CSS, _SKELETON_CSS, _COUNTER_CSS
     try:
         from utils.ua_charts import CHART_CSS
     except Exception:
@@ -470,7 +478,18 @@ def build_global_css() -> str:
     def _strip(block: str) -> str:
         return block.replace("<style>", "").replace("</style>", "")
 
-    return "\n".join(_strip(b) for b in (_CSS, _MODERN_UI_CSS, CHART_CSS) if b)
+    seen: set[str] = set()
+    out: list[str] = []
+    for block in (_CSS, _SKELETON_CSS, _COUNTER_CSS, _MODERN_UI_CSS, CHART_CSS):
+        if not block:
+            continue
+        cleaned = _strip(block)
+        key = cleaned.strip()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(cleaned)
+    return "\n".join(out)
 
 
 def write_global_css(static_dir: str) -> str | None:

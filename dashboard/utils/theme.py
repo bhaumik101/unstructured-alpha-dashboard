@@ -2203,6 +2203,22 @@ def inject_all_css() -> None:
         inject_all_css()  # once near the top of any page
     """
     import streamlit as st
+
+    # These blocks now ship in the cached stylesheet that index.html links, so
+    # re-injecting them inline duplicates bytes on every rerun -- and because the
+    # top nav performs full browser navigations, that is every click. Eight pages
+    # call this, and _MODERN_UI_CSS is also delivered by render_header, so the
+    # same CSS was being sent twice per page.
+    #
+    # The fallback stays for local dev or a skipped build step: an unstyled app
+    # is far worse than a slow one.
+    try:
+        from utils.header import global_stylesheet_available
+        if global_stylesheet_available():
+            return
+    except Exception:
+        pass
+
     st.markdown(_SKELETON_CSS + _COUNTER_CSS + _MODERN_UI_CSS, unsafe_allow_html=True)
 
 

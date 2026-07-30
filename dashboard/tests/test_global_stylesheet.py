@@ -49,6 +49,38 @@ def test_stylesheet_contains_everything_the_inline_path_injected():
     assert len(css) > 50_000, "stylesheet suspiciously small"
 
 
+def test_stylesheet_covers_both_global_injection_points():
+    """render_header and theme.inject_all_css both stop injecting inline when
+    this file exists, so it must contain everything BOTH of them used to send.
+    Missing one block means 8 pages silently lose their skeleton/counter styles.
+    """
+    from utils.header import _CSS
+    from utils.theme import _COUNTER_CSS, _MODERN_UI_CSS, _SKELETON_CSS
+
+    css = ibs.build_global_css()
+
+    def head(block: str, n: int = 90) -> str:
+        return block.replace("<style>", "").replace("</style>", "").strip()[:n]
+
+    for name, block in (
+        ("_CSS", _CSS),
+        ("_SKELETON_CSS", _SKELETON_CSS),
+        ("_COUNTER_CSS", _COUNTER_CSS),
+        ("_MODERN_UI_CSS", _MODERN_UI_CSS),
+    ):
+        assert head(block) in css, f"{name} missing from the served stylesheet"
+
+
+def test_shared_block_is_not_duplicated():
+    """_MODERN_UI_CSS is used by BOTH entry points; it was being delivered twice
+    per page. It must appear exactly once in the file."""
+    from utils.theme import _MODERN_UI_CSS
+
+    css = ibs.build_global_css()
+    marker = _MODERN_UI_CSS.replace("<style>", "").replace("</style>", "").strip()[:90]
+    assert css.count(marker) == 1
+
+
 def test_stylesheet_has_no_nested_style_tags():
     """It is served as a .css file; a <style> tag inside would be a parse error."""
     css = ibs.build_global_css()
