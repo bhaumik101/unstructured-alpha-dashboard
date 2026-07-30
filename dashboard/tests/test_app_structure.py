@@ -64,3 +64,18 @@ def test_app_py_navigation_matches_routed_pages():
         f"app.py registers {registered} but tests/conftest.py's ROUTED_PAGES "
         f"has {set(ROUTED_PAGES)} — keep these in sync."
     )
+
+
+def test_schema_initialization_is_process_cached_with_page_fallback():
+    app = (DASHBOARD_ROOT / "app.py").read_text(encoding="utf-8")
+    brief = (DASHBOARD_ROOT / "pages" / "2_Today_Digest.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "@st.cache_resource(show_spinner=False)" in app
+    assert "def _initialize_app_database()" in app
+    assert 'st.session_state["_ua_app_db_ready"] = True' in app
+    assert 'if not st.session_state.get("_ua_app_db_ready"):' in brief
+    assert brief.index('if not st.session_state.get("_ua_app_db_ready"):') < brief.index(
+        "    init_db()"
+    )

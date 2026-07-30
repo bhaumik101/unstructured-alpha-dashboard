@@ -53,7 +53,11 @@ render_page_header(
     icon="",
 )
 
-init_db()
+# app.py initializes and migrates the schema once per web process before
+# pg.run(). Keep this fallback for direct page execution in tests/development,
+# but never repeat the full schema inspection during normal routed navigation.
+if not st.session_state.get("_ua_app_db_ready"):
+    init_db()
 
 if _brief_section == "Decision Cockpit":
     from utils.analytics import Event, track
