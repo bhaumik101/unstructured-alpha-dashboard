@@ -1,8 +1,8 @@
 """Pure assembly and presentation helpers for the personalized daily cockpit.
 
 The cockpit composes persisted portfolio scores, the existing Decision Queue,
-private thesis state, and freshness metadata. It never fetches market data,
-recalculates a score, or substitutes a synthetic value.
+private thesis state, and freshness metadata. It never fetches market data or
+recalculates a score; evidence availability is reported by the freshness fields.
 """
 
 from __future__ import annotations
@@ -236,7 +236,6 @@ def build_decision_cockpit(
         },
         "freshness": freshness,
         "as_of": freshness.get("newest"),
-        "no_synthetic": True,
     }
 
 

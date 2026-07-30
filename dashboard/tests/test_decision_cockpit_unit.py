@@ -92,7 +92,9 @@ def test_cockpit_ranks_queue_exceptions_before_monitoring_priorities():
     assert out["portfolio"]["strongest"]["ticker"] == "AAPL"
     assert out["portfolio"]["challenged"]["ticker"] == "MSFT"
     assert out["freshness"]["state"] == "current"
-    assert out["no_synthetic"] is True
+    # Integrity must come from inspectable freshness/evidence fields, not a
+    # self-asserted boolean that can never fail.
+    assert "no_synthetic" not in out
 
 
 def test_stale_and_missing_evidence_are_disclosed_not_neutralized():
