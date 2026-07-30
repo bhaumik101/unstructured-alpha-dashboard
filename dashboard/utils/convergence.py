@@ -31,6 +31,46 @@ import streamlit as st
 from utils.config import SIGNALS, TICKERS
 
 
+@st.cache_data(ttl=3600, show_spinner=False, max_entries=256)
+def _log_convergence_prediction_once(
+    ticker: str,
+    direction: str,
+    score: float,
+    signal_count: int,
+    signals_triggered: tuple[str, ...],
+) -> bool:
+    """Enrich and log one unchanged event at most once per hour.
+
+    Rendering a convergence card used to run a yfinance lookup and an
+    idempotent database write on every rerun. The card data is already cached
+    hourly, so repeating those side effects only delayed the page and consumed
+    provider capacity. Failures still raise and therefore are not cached.
+    """
+    from utils.prediction_log import log_prediction
+    import yfinance as yf
+
+    try:
+        info = yf.Ticker(ticker).info
+        price = float(
+            info.get("currentPrice")
+            or info.get("regularMarketPrice")
+            or 0
+        ) or None
+    except Exception:
+        price = None
+
+    log_prediction(
+        ticker=ticker,
+        event_type="convergence",
+        direction=direction,
+        score=score,
+        price=price,
+        signal_count=signal_count,
+        signals_triggered=list(signals_triggered),
+    )
+    return True
+
+
 @st.cache_data(ttl=3600, show_spinner=False, max_entries=2)
 def get_convergence_events(
     days_back: int = 7,
@@ -161,30 +201,20 @@ def render_convergence_events(
     bull_events = [e for e in events if e["direction"] == "bullish"][:max_bull]
     bear_events = [e for e in events if e["direction"] == "bearish"][:max_bear]
 
-    # Auto-log convergence events to the prediction log (idempotent — unique
-    # constraint prevents double-logging the same ticker+date+type combo).
-    try:
-        from utils.prediction_log import log_prediction
-        import yfinance as yf
-        for _ev in (bull_events + bear_events):
-            _dir = "bull" if _ev["direction"] == "bullish" else "bear"
-            try:
-                _px = float(yf.Ticker(_ev["ticker"]).info.get(
-                    "currentPrice") or yf.Ticker(_ev["ticker"]).info.get(
-                    "regularMarketPrice") or 0) or None
-            except Exception:
-                _px = None
-            log_prediction(
+    # Auto-log convergence events to the prediction log. The enrichment and
+    # idempotent write are cached by event inputs, so warm page renders stay
+    # presentation-only instead of repeating provider and database work.
+    for _ev in (bull_events + bear_events):
+        try:
+            _log_convergence_prediction_once(
                 ticker=_ev["ticker"],
-                event_type="convergence",
-                direction=_dir,
-                score=_ev.get("score", 50),
-                price=_px,
-                signal_count=_ev.get("count", 0),
-                signals_triggered=_ev.get("signal_ids", []),
+                direction="bull" if _ev["direction"] == "bullish" else "bear",
+                score=float(_ev.get("score", 50)),
+                signal_count=int(_ev.get("count", 0)),
+                signals_triggered=tuple(_ev.get("signal_ids", [])),
             )
-    except Exception:
-        pass
+        except Exception:
+            continue
 
     if not bull_events and not bear_events:
         st.caption("No convergence events detected in the last 7 days.")
