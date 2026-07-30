@@ -148,11 +148,22 @@ from utils.db import init_db, run_periodic_maintenance
 from utils.auth_ui import init_cookies_for_this_run, try_restore_session
 
 # ── DB init + session restore — best-effort, never block the nav ──────────────
-# Wrapped in try/except so a transient DB error or slow cold-start connection
-# can't crash app.py after navigation is already established. Each individual
-# page handles its own DB errors gracefully via its own try/except blocks.
-try:
+# Schema discovery/migration is process-level startup work, not request work.
+# metadata.create_all() plus the migration inspectors touch every table; running
+# that sequence for each new Streamlit page session added seconds before the
+# selected page even began rendering. cache_resource runs it once per web
+# process, while failed attempts remain retryable because Streamlit does not
+# cache exceptions.
+@st.cache_resource(show_spinner=False)
+def _initialize_app_database() -> bool:
     init_db()
+    return True
+
+
+try:
+    if _initialize_app_database():
+        # Routed pages can skip their standalone-test fallback initialization.
+        st.session_state["_ua_app_db_ready"] = True
 except Exception:
     pass  # page-level DB calls will surface their own errors
 
