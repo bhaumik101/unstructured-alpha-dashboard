@@ -27,6 +27,7 @@ import plotly.express as px
 from utils.header import render_header, render_sidebar_base, render_page_header, go_to_ticker
 from utils.config import TICKERS, SIGNALS
 from utils.db import init_db
+from utils.product_metrics import SUPPORTED_TICKER_COUNT
 from utils.theme import source_badge
 
 st.set_page_config(page_title="Portfolio Analyzer — UA", layout="wide")
@@ -146,7 +147,7 @@ with _c1:
 
 with _c2:
     st.markdown("**How it works**")
-    st.markdown("""
+    st.markdown(f"""
 Our 38-signal macro engine assigns a 0–100 score to every ticker in the universe.
 
 **Tailwind** — macro score ≥ 65 (bullish alignment)
@@ -155,7 +156,7 @@ Our 38-signal macro engine assigns a 0–100 score to every ticker in the univer
 
 The portfolio view weights these by your position sizes so a 30% AAPL position getting a headwind signal counts 3× more than a 10% position getting the same signal.
 
-Tickers not in our 193-ticker universe get estimated scores based on their sector's average.
+Tickers outside our {SUPPORTED_TICKER_COUNT}-ticker supported universe get estimated scores based on their sector's average.
 """)
 
     _analyze_clicked = st.button("🔍 Analyze Portfolio", type="primary", use_container_width=True, key="analyze_btn")
@@ -475,7 +476,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 if _df[~_df["in_universe"]].shape[0] > 0:
     _out_count = _df[~_df["in_universe"]].shape[0]
     st.caption(
-        f"⚠️ {_out_count} of your tickers aren't in our 193-ticker universe. "
+        f"⚠️ {_out_count} of your tickers aren't in our {SUPPORTED_TICKER_COUNT}-ticker supported universe. "
         f"Their macro scores are estimated from their sector average. "
         f"Visit Ticker Deep Dive for any of them to start building their signal history."
     )

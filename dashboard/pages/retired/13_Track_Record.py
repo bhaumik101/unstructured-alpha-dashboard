@@ -29,6 +29,7 @@ import streamlit as st
 
 from utils.header import render_header, render_sidebar_base, render_page_header
 from utils.fetchers import fetch_earnings_dates
+from utils.product_metrics import SUPPORTED_TICKER_COUNT
 from utils.score_history import get_score_history
 
 st.set_page_config(page_title="Earnings Track Record — UA", layout="wide")
@@ -37,7 +38,7 @@ render_sidebar_base()
 
 render_page_header(
     "Earnings Track Record",
-    "Historical model accuracy around earnings events across 80+ tickers.",
+    f"Historical model accuracy around earnings events across {SUPPORTED_TICKER_COUNT} supported tickers.",
     icon="📊",
 )
 
