@@ -5,12 +5,16 @@ from __future__ import annotations
 import json
 import logging
 import time
+from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from threading import Lock
 from typing import Callable, Iterator
 
 
 _LOGGER = logging.getLogger("unstructured_alpha.performance")
+_LATEST_PAGE_PROFILES: dict[str, dict] = {}
+_LATEST_PAGE_PROFILES_LOCK = Lock()
 
 
 def record_timing(
@@ -139,10 +143,27 @@ class PageProfiler:
         )
         self._finished = True
         slowest = max(self._phases, key=lambda p: p["duration_ms"], default=None)
-        return {
+        summary = {
             "page": self.page,
             "total_ms": round(total_seconds * 1000, 1),
             "captured_at": total_event["timestamp"],
             "slowest_phase": slowest["phase"] if slowest else None,
             "phases": [dict(p) for p in self._phases],
         }
+        with _LATEST_PAGE_PROFILES_LOCK:
+            _LATEST_PAGE_PROFILES[self.page] = deepcopy(summary)
+        return summary
+
+
+def get_latest_page_profile(page: str) -> dict | None:
+    """Return the latest anonymous in-process profile for an admin diagnostic.
+
+    Streamlit's top navigation starts a fresh session when moving between pages,
+    so session state alone cannot carry Home timing into Admin. This bounded
+    process-local slot stores one summary per page, contains no request or user
+    identity, and disappears whenever the app process restarts.
+    """
+    clean_page = str(page).strip() or "unknown"
+    with _LATEST_PAGE_PROFILES_LOCK:
+        summary = _LATEST_PAGE_PROFILES.get(clean_page)
+        return deepcopy(summary) if summary is not None else None
