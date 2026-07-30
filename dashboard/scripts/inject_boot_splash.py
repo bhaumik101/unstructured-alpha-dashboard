@@ -21,6 +21,7 @@ SAFETY:
 Run from buildCommand AFTER `pip install`:  python scripts/inject_boot_splash.py
 """
 import json
+import hashlib
 import os
 import re
 import sys
@@ -28,6 +29,9 @@ import sys
 MARKER = "ua-boot-splash"
 START_MARKER = "<!-- ua-boot-splash:start -->"
 END_MARKER = "<!-- ua-boot-splash:end -->"
+GLOBAL_CSS_START = "<!-- ua-global-css:start -->"
+GLOBAL_CSS_END = "<!-- ua-global-css:end -->"
+APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _load_facts() -> list:
@@ -45,6 +49,56 @@ def _load_facts() -> list:
             "A manufacturing PMI above 50 signals expansion; below 50, contraction.",
             "The VIX infers expected 30-day S&P 500 volatility from options prices.",
         ]
+
+
+def _build_global_css() -> str:
+    """Build the single production stylesheet from the existing CSS sources.
+
+    The Python constants remain the source of truth. This bundle deliberately
+    includes each large block once even though many pages request overlapping
+    combinations at runtime.
+    """
+    if APP_ROOT not in sys.path:
+        sys.path.insert(0, APP_ROOT)
+    from utils.header import _CSS
+    from utils.theme import _COUNTER_CSS, _MODERN_UI_CSS, _SKELETON_CSS
+    from utils.ua_charts import CHART_CSS
+
+    return "\n".join(
+        (_CSS, _SKELETON_CSS, _COUNTER_CSS, _MODERN_UI_CSS, CHART_CSS)
+    )
+
+
+def _write_global_css_asset(static_dir: str | None = None) -> str:
+    """Atomically write the cacheable CSS asset and return its versioned URL."""
+    css = _build_global_css()
+    target_dir = static_dir or os.path.join(APP_ROOT, "static")
+    os.makedirs(target_dir, exist_ok=True)
+    target = os.path.join(target_dir, "ua-global.css")
+    temporary = target + ".tmp"
+    with open(temporary, "w", encoding="utf-8") as fh:
+        fh.write(css)
+    os.replace(temporary, target)
+    digest = hashlib.sha256(css.encode("utf-8")).hexdigest()[:12]
+    return f"/_stapp/static/ua-global.css?v={digest}"
+
+
+def _inject_global_css_link(html: str, href: str) -> tuple[str, str]:
+    """Inject or replace the one stylesheet link in Streamlit's served head."""
+    block = (
+        f'{GLOBAL_CSS_START}<link id="ua-global-css" rel="stylesheet" '
+        f'href="{href}">{GLOBAL_CSS_END}'
+    )
+    if GLOBAL_CSS_START in html and GLOBAL_CSS_END in html:
+        pattern = re.escape(GLOBAL_CSS_START) + r".*?" + re.escape(GLOBAL_CSS_END)
+        updated, count = re.subn(
+            pattern, lambda _match: block, html, count=1, flags=re.DOTALL
+        )
+        return updated, "css-updated" if count == 1 else "css-skipped"
+    updated, count = re.subn(
+        r"(</head>)", lambda match: block + match.group(1), html, count=1
+    )
+    return updated, "css-injected" if count == 1 else "css-skipped"
 
 
 def _build_splash() -> str:
@@ -455,10 +509,29 @@ def main() -> None:
 
         new_html, meta_action = _inject_meta(new_html)
         new_html = _inject_seo_body(new_html)
+        css_action = "css-runtime-fallback"
+        try:
+            css_href = _write_global_css_asset()
+            new_html, css_action = _inject_global_css_link(new_html, css_href)
+            if css_action == "css-skipped":
+                raise RuntimeError("served index has no </head> injection target")
+        except Exception as css_exc:
+            # Header/theme helpers detect the missing asset and retain their
+            # runtime injection fallback, so this optional optimization can
+            # never produce an unstyled deployment.
+            try:
+                os.remove(os.path.join(APP_ROOT, "static", "ua-global.css"))
+            except FileNotFoundError:
+                pass
+            print(f"[boot-splash] static CSS fallback: {css_exc}", flush=True)
 
         with open(index_path, "w", encoding="utf-8") as fh:
             fh.write(new_html)
-        print(f"[boot-splash] {action} splash + {meta_action} + seo-body in {index_path}", flush=True)
+        print(
+            f"[boot-splash] {action} splash + {meta_action} + seo-body + "
+            f"{css_action} in {index_path}",
+            flush=True,
+        )
     except Exception as exc:  # never fail the build
         print(f"[boot-splash] skipped due to error: {exc}", flush=True)
 
