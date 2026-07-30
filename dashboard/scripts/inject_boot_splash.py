@@ -437,6 +437,71 @@ def _inject_seo_body(html: str) -> str:
     return html
 
 
+# ── Global stylesheet, served as a cacheable file ────────────────────────────
+# WHY THIS EXISTS. Every top-nav click is a FULL browser navigation (the nav is
+# built from real <a href> anchors), not a Streamlit in-app transition —
+# confirmed live: performance navigation type is "navigate" on every page. That
+# means ~161 KB of inline <style> is re-sent and re-parsed on every single page
+# change, and inline CSS can never be browser-cached. Moving it to one external
+# file makes the browser fetch it once and reuse it for the rest of the session.
+#
+# THE PATH MATTERS AND IS THE REASON THE PREVIOUS ATTEMPT WAS REVERTED. Verified
+# against production: only `/app/static/<file>` serves the real file
+# (content-type text/plain for robots.txt). Both `/_stapp/static/<file>` — which
+# the comment in .streamlit/config.toml claims — and `/static/<file>` return
+# Streamlit's HTML shell with content-type text/html. A <link> pointing at those
+# loads HTML as a stylesheet, the browser refuses it, and the whole app renders
+# unstyled. Do not "simplify" this path without re-testing it against the
+# deployed app.
+GLOBAL_CSS_FILENAME = "ua-global.css"
+GLOBAL_CSS_HREF = f"/app/static/{GLOBAL_CSS_FILENAME}"
+_CSS_LINK_MARKER = "<!-- ua-global-css -->"
+
+
+def build_global_css() -> str:
+    """Concatenate the always-injected stylesheets, in their runtime order."""
+    from utils.header import _CSS
+    from utils.theme import _MODERN_UI_CSS
+    try:
+        from utils.ua_charts import CHART_CSS
+    except Exception:
+        CHART_CSS = ""
+
+    def _strip(block: str) -> str:
+        return block.replace("<style>", "").replace("</style>", "")
+
+    return "\n".join(_strip(b) for b in (_CSS, _MODERN_UI_CSS, CHART_CSS) if b)
+
+
+def write_global_css(static_dir: str) -> str | None:
+    """Write the combined stylesheet into Streamlit's served static dir."""
+    try:
+        os.makedirs(static_dir, exist_ok=True)
+        css = build_global_css()
+        if not css.strip():
+            return None
+        path = os.path.join(static_dir, GLOBAL_CSS_FILENAME)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(css)
+        return path
+    except Exception as exc:
+        print(f"[boot-splash] global css not written: {exc}", flush=True)
+        return None
+
+
+def _inject_global_css_link(html: str) -> tuple[str, str]:
+    """Add one <link> to the served index.html <head>, idempotently."""
+    if _CSS_LINK_MARKER in html:
+        return html, "css-link already present"
+    tag = (
+        f'{_CSS_LINK_MARKER}\n'
+        f'<link rel="stylesheet" href="{GLOBAL_CSS_HREF}">\n'
+    )
+    if "</head>" not in html:
+        return html, "css-link skipped (no </head>)"
+    return html.replace("</head>", tag + "</head>", 1), "css-link injected"
+
+
 def main() -> None:
     try:
         import streamlit
@@ -455,10 +520,22 @@ def main() -> None:
 
         new_html, meta_action = _inject_meta(new_html)
         new_html = _inject_seo_body(new_html)
+        # Write the stylesheet into the app's own ./static dir (what Streamlit
+        # serves at /app/static/). Only link it if the write actually succeeded,
+        # so a failed build step can never leave the app pointing at a 404.
+        _repo_static = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
+        if write_global_css(_repo_static):
+            new_html, css_action = _inject_global_css_link(new_html)
+        else:
+            css_action = "css-link skipped (stylesheet not written)"
 
         with open(index_path, "w", encoding="utf-8") as fh:
             fh.write(new_html)
-        print(f"[boot-splash] {action} splash + {meta_action} + seo-body in {index_path}", flush=True)
+        print(
+            f"[boot-splash] {action} splash + {meta_action} + seo-body + {css_action} "
+            f"in {index_path}",
+            flush=True,
+        )
     except Exception as exc:  # never fail the build
         print(f"[boot-splash] skipped due to error: {exc}", flush=True)
 
