@@ -27,13 +27,17 @@ st.set_page_config(
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import select, func, text
 
+from utils import ua_charts
+from utils.conversion_measurement import (
+    build_conversion_measurement,
+    load_conversion_rows,
+)
 from utils.header import render_header, render_page_header, render_sidebar_base
 from utils.db import engine, users, referrals, watchlist
 from utils.theme import inject_premium_css, PLOTLY_CONFIG
 from utils.billing import is_admin
 
 render_header("Admin")
-render_sidebar_base()
 inject_premium_css()
 
 # ── Access gate ───────────────────────────────────────────────────────────────
@@ -44,23 +48,21 @@ if not is_admin(st.session_state.get("user")):
     st.error("Access denied.")
     st.stop()
 
-render_page_header(
-    "Admin Dashboard",
-    "User metrics, acquisition funnel, and engagement — live from the DB.",
-    icon="",
+_admin_section = render_sidebar_base(
+    page_title="Admin",
+    sections=("Conversion Measurement", "Operations"),
+    section_key="admin_section_rail",
 )
 
-# ── System health (rate-limiter backend) ──────────────────────────────────────
-try:
-    from utils.ratelimit import backend as _rl_backend
-    _rlb = _rl_backend()
-    if _rlb == "redis":
-        st.caption(" Rate limiter: **Redis** (distributed, shared across instances)")
-    else:
-        st.caption(" Rate limiter: **in-process fallback** — REDIS_URL unset or Redis "
-                   "unreachable. Limits are per-process only; check the Key Value service.")
-except Exception:
-    pass
+render_page_header(
+    "Admin Dashboard",
+    (
+        "Pre/post redesign conversion evidence — live from stored records."
+        if _admin_section == "Conversion Measurement"
+        else "User metrics, acquisition funnel, and engagement — live from the DB."
+    ),
+    icon="",
+)
 
 # ── Query helpers ─────────────────────────────────────────────────────────────
 
@@ -358,7 +360,295 @@ def load_traffic() -> dict:
     return out
 
 
+@st.cache_data(ttl=60, max_entries=1, show_spinner=False)
+def load_conversion_measurement() -> dict:
+    """Load the five redesign-conversion questions from stored records only."""
+    page_rows, signup_rows = load_conversion_rows()
+    return build_conversion_measurement(page_rows, signup_rows)
+
+
+def _pct(value: float | None) -> str:
+    return "Unavailable" if value is None else f"{value:.1f}%"
+
+
+def _render_conversion_measurement(data: dict) -> None:
+    """Render only the five questions requested by the redesign audit."""
+    import pandas as pd
+
+    st.markdown(ua_charts.CHART_CSS, unsafe_allow_html=True)
+    st.markdown(
+        """
+<style>
+.ua-conversion-boundary {
+    background:linear-gradient(135deg,rgba(var(--ua-purple-rgb),0.12),
+        rgba(var(--ua-cyan-rgb),0.05));
+    border:1px solid rgba(var(--ua-purple-rgb),0.30);
+    border-left:3px solid var(--ua-purple);
+    border-radius:12px;
+    color:var(--ua-ink);
+    margin:4px 0 18px;
+    padding:14px 16px;
+}
+.ua-conversion-boundary strong {
+    color:var(--ua-ink);
+}
+.ua-conversion-boundary span {
+    color:var(--ua-ink-mut);
+}
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+
+    totals = data["totals"]
+    st.markdown("### Redesign conversion measurement")
+    st.caption(
+        f"Real stored records only · {data['window_start']} through "
+        f"{data['window_end']} UTC · refreshes every 60 seconds"
+    )
+    st.markdown(
+        f"""
+<div class="ua-conversion-boundary">
+  <strong>Redesign boundary: {data["redesign_start"]} → {data["redesign_end"]}</strong><br>
+  <span>Weeks touching these dates are labelled “Redesign rollout overlap” rather
+  than being presented as clean pre- or post-redesign evidence.</span>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    summary_cols = st.columns(4)
+    summary_cols[0].metric(
+        "Unique visitors (30d)",
+        (
+            f"{totals['unique_visitors']:,}"
+            if totals["unique_visitors"] is not None
+            else "Unavailable"
+        ),
+        help=(
+            "Exact only when every stored page view carries the privacy-safe "
+            "visitor identifier."
+        ),
+    )
+    summary_cols[1].metric("Signups (30d)", f"{totals['signups']:,}")
+    summary_cols[2].metric(
+        "Visitor → signup (30d)", _pct(totals["conversion_rate"])
+    )
+    summary_cols[3].metric(
+        "Visitor identity coverage", f"{totals['identity_coverage']:.1f}%"
+    )
+
+    if totals["page_views"] and totals["signups"] == 0:
+        st.warning(
+            "The stored traffic window contains real page views and zero signups. "
+            "That points to distribution or the value proposition—not missing "
+            "product features. The next move should be user conversations and "
+            "funnel testing, not feature 21."
+        )
+    elif totals["conversion_rate"] is None:
+        st.info(
+            "An exact 30-day conversion rate is unavailable because "
+            f"{totals['excluded_page_views']:,} page view(s) lack the visitor "
+            "identity required for a defensible denominator. Those views are "
+            "excluded, not treated as new visitors."
+        )
+    else:
+        st.success(
+            f"The exact observed 30-day visitor → signup rate is "
+            f"{totals['conversion_rate']:.1f}% "
+            f"({totals['signups']:,} signup(s) from "
+            f"{totals['unique_visitors']:,} unique visitor(s))."
+        )
+
+    st.markdown("#### 1. Unique visitors per day")
+    daily = data["daily"]
+    visitor_rows = [
+        {
+            "Date (UTC)": row["date"],
+            "Unique visitors": (
+                row["unique_visitors"]
+                if row["unique_visitors"] is not None
+                else "Unavailable"
+            ),
+            "Identity coverage": f"{row['identity_coverage']:.1f}%",
+            "Excluded page views": row["excluded_page_views"],
+        }
+        for row in daily
+    ]
+    st.dataframe(pd.DataFrame(visitor_rows), width="stretch", hide_index=True)
+    if any(row["excluded_page_views"] for row in daily):
+        st.caption(
+            "A day is marked Unavailable if even one stored page view lacks "
+            "visitor identity; the view does not invent a distinct-visitor count."
+        )
+    else:
+        labels = [
+            row["date"][5:] if index % 5 == 0 or index == len(daily) - 1 else ""
+            for index, row in enumerate(daily)
+        ]
+        st.markdown(
+            ua_charts.bar_v(
+                labels,
+                [row["unique_visitors"] or 0 for row in daily],
+                y_title="Unique visitors",
+                H=230,
+            ),
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("#### 2. Signups per day")
+    signup_rows = [
+        {"Date (UTC)": row["date"], "Signups": row["signups"]}
+        for row in daily
+    ]
+    st.dataframe(pd.DataFrame(signup_rows), width="stretch", hide_index=True)
+    signup_labels = [
+        row["date"][5:] if index % 5 == 0 or index == len(daily) - 1 else ""
+        for index, row in enumerate(daily)
+    ]
+    st.markdown(
+        ua_charts.bar_v(
+            signup_labels,
+            [row["signups"] for row in daily],
+            y_title="Signups",
+            H=230,
+        ),
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("#### 3. Weekly visitor → signup conversion")
+    weekly_rows = [
+        {
+            "Week": f"{row['week_start']} → {row['week_end']}",
+            "Design phase": row["phase"],
+            "Unique visitors": (
+                row["unique_visitors"]
+                if row["unique_visitors"] is not None
+                else "Unavailable"
+            ),
+            "Signups": row["signups"],
+            "Conversion": _pct(row["conversion_rate"]),
+            "Identity coverage": f"{row['identity_coverage']:.1f}%",
+            "Excluded page views": row["excluded_page_views"],
+        }
+        for row in data["weekly"]
+    ]
+    st.dataframe(pd.DataFrame(weekly_rows), width="stretch", hide_index=True)
+    exact_weeks = [
+        row for row in data["weekly"] if row["conversion_rate"] is not None
+    ]
+    if exact_weeks:
+        st.markdown(
+            ua_charts.bar_v(
+                [row["week_start"][5:] for row in exact_weeks],
+                [row["conversion_rate"] for row in exact_weeks],
+                max_v=max(
+                    1.0,
+                    max(row["conversion_rate"] for row in exact_weeks) * 1.15,
+                ),
+                y_title="Conversion %",
+                H=230,
+            ),
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info(
+            "No week in this window has both a non-zero visitor denominator and "
+            "complete visitor identity, so a weekly conversion chart would be "
+            "misleading and is not rendered."
+        )
+
+    st.markdown("#### 4. Landing-page bounce proxy")
+    bounce = data["bounce"]
+    bounce_cols = st.columns(3)
+    bounce_cols[0].metric("Tracked landing sessions", bounce["landing_sessions"])
+    bounce_cols[1].metric("Exactly one page", bounce["one_page_sessions"])
+    bounce_cols[2].metric("More than one page", bounce["multi_page_sessions"])
+    if bounce["landing_sessions"]:
+        st.markdown(
+            ua_charts.bar_h(
+                ["Exactly one page", "More than one page"],
+                [bounce["one_page_sessions"], bounce["multi_page_sessions"]],
+                H=180,
+            ),
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            f"One-page rate: {_pct(bounce['one_page_rate'])}. This is a proxy "
+            "for sessions whose first recorded page is Home/Landing; it does "
+            "not claim to measure dwell time."
+        )
+    else:
+        st.info("No stored session in this window starts on Home/Landing.")
+    if bounce["page_views_without_session"]:
+        st.caption(
+            f"{bounce['page_views_without_session']:,} page view(s) without a "
+            "session ID were excluded. Session coverage is "
+            f"{bounce['session_coverage']:.1f}%."
+        )
+
+    st.markdown("#### 5. Last page viewed before signup")
+    attribution = data["attribution"]
+    attr_cols = st.columns(3)
+    attr_cols[0].metric("Signups", totals["signups"])
+    attr_cols[1].metric("Attributable", attribution["attributed_count"])
+    attr_cols[2].metric("Unattributed", attribution["unattributed_count"])
+    if attribution["pages"]:
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {"Last page before signup": row["page"], "Signups": row["signups"]}
+                    for row in attribution["pages"]
+                ]
+            ),
+            width="stretch",
+            hide_index=True,
+        )
+    elif totals["signups"]:
+        st.info("No signup in this window can be linked to a prior page view.")
+    else:
+        st.info("There are no signups in this window to attribute.")
+    st.warning(
+        f"Stored-schema limit: {attribution['schema_gap']} "
+        f"Attribution coverage is {attribution['coverage']:.1f}%. "
+        f"Smallest future addition: {attribution['smallest_addition']}"
+    )
+
+    excluded = data["excluded"]
+    if excluded["invalid_page_timestamps"] or excluded["invalid_signup_timestamps"]:
+        st.caption(
+            "Excluded malformed timestamps: "
+            f"{excluded['invalid_page_timestamps']} page view(s), "
+            f"{excluded['invalid_signup_timestamps']} signup(s)."
+        )
+
+
 # ── Load data ─────────────────────────────────────────────────────────────────
+
+if _admin_section == "Conversion Measurement":
+    try:
+        with st.spinner("Measuring the redesign against stored traffic…"):
+            with st.container(key="admin_conversion_measurement"):
+                _render_conversion_measurement(load_conversion_measurement())
+    except Exception as exc:
+        st.error(
+            "Conversion measurement is unavailable because the stored analytics "
+            f"records could not be read ({type(exc).__name__}). "
+            "No values were substituted."
+        )
+    st.stop()
+
+# ── System health (rate-limiter backend; Operations view only) ────────────────
+try:
+    from utils.ratelimit import backend as _rl_backend
+    _rlb = _rl_backend()
+    if _rlb == "redis":
+        st.caption(" Rate limiter: **Redis** (distributed, shared across instances)")
+    else:
+        st.caption(" Rate limiter: **in-process fallback** — REDIS_URL unset or Redis "
+                   "unreachable. Limits are per-process only; check the Key Value service.")
+except Exception:
+    pass
 
 with st.spinner("Loading metrics..."):
     m = load_metrics()
