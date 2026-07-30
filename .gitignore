@@ -46,3 +46,6 @@ unstructured-alpha-web/out/
 .env
 
 .vercel/
+
+# Generated at build by scripts/inject_boot_splash.py (never commit: would go stale)
+dashboard/static/ua-global.css

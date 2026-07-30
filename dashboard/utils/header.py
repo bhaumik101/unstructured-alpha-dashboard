@@ -3,6 +3,7 @@ Shared header + CSS injected at the top of every page.
 Call render_header() as the very first Streamlit call after st.set_page_config().
 """
 
+from functools import lru_cache as _lru_cache
 from html import escape as html_escape
 import re
 from urllib.parse import urlencode
@@ -2940,6 +2941,21 @@ def _track_page_view(page_label: str) -> None:
         pass
 
 
+@_lru_cache(maxsize=1)
+def global_stylesheet_available() -> bool:
+    """True when the build wrote ./static/ua-global.css for index.html to link.
+
+    Checked once per process (the file cannot appear mid-run) so the hot render
+    path never touches the filesystem. When True, render_header skips ~161 KB of
+    inline <style> because the browser already has a cached copy.
+    """
+    try:
+        from pathlib import Path
+        return (Path(__file__).resolve().parent.parent / "static" / "ua-global.css").is_file()
+    except Exception:
+        return False
+
+
 def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str = "") -> None:
     """
     Inject global CSS and render the Unstructured Alpha masthead.
@@ -2981,18 +2997,28 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     except Exception:
         pass
 
-    st.markdown(_CSS, unsafe_allow_html=True)
-    # Inject modern UI system (pill tabs, glass buttons, metrics, etc.) globally
-    # so every page that calls render_header() gets it automatically.
-    st.markdown(_MODERN_UI_CSS, unsafe_allow_html=True)
+    # These blobs are ~161 KB. Every top-nav click is a FULL browser navigation
+    # (the nav is real <a href> anchors), so inline CSS is re-sent and re-parsed
+    # on every page change and can never be browser-cached. When the build step
+    # has written the stylesheet to ./static, index.html links it once and the
+    # browser caches it — so skip the inline copies.
+    #
+    # The fallback is deliberate and must stay: if the stylesheet is missing for
+    # any reason (local dev, a skipped build step), inject inline exactly as
+    # before. An unstyled app is far worse than a slow one.
+    if not global_stylesheet_available():
+        st.markdown(_CSS, unsafe_allow_html=True)
+        # Inject modern UI system (pill tabs, glass buttons, metrics, etc.)
+        # globally so every page that calls render_header() gets it automatically.
+        st.markdown(_MODERN_UI_CSS, unsafe_allow_html=True)
 
-    # Redesign 2026-07: chart primitives so utils.ua_charts SVGs are styled
-    # everywhere (colors read the --ua-* theme vars, so they follow light/dark).
-    try:
-        from utils.ua_charts import CHART_CSS as _UA_CHART_CSS
-        st.markdown(_UA_CHART_CSS, unsafe_allow_html=True)
-    except Exception:
-        pass
+        # Redesign 2026-07: chart primitives so utils.ua_charts SVGs are styled
+        # everywhere (colors read --ua-* vars, so they follow light/dark).
+        try:
+            from utils.ua_charts import CHART_CSS as _UA_CHART_CSS
+            st.markdown(_UA_CHART_CSS, unsafe_allow_html=True)
+        except Exception:
+            pass
 
     # ── OpenGraph / social meta tags (JS injection) ────────────────────────────
     # Reddit's link scraper is server-side and won't execute this JS, but
