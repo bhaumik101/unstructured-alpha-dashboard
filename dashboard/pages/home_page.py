@@ -29,7 +29,7 @@ _home_perf = PageProfiler("home")
 import html as _h
 import pandas as pd
 from utils.header import render_header, render_sidebar_base, render_footer
-from utils.signals_cache import get_all_signal_scores
+from utils.signals_cache import get_shared_signal_scores
 from utils.config import SIGNALS, CATEGORIES
 from utils.narrative import generate_narrative
 from utils.product_metrics import SUPPORTED_TICKER_COUNT
@@ -116,7 +116,7 @@ try:
 
         # Live cache is used ONLY for ticker scoring (names/scores, never a
         # regime count), so it can't contradict the headline.
-        _raw_scores = get_all_signal_scores()
+        _raw_scores = get_shared_signal_scores()
         _home_perf.checkpoint("live_signal_scores")
         _top_tkrs   = get_top_tickers(len(_raw_scores))
         _home_perf.checkpoint("top_ticker_ranking")

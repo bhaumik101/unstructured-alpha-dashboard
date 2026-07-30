@@ -189,3 +189,25 @@ def get_all_signal_scores(_v: int = 1) -> dict:
 
     gc.collect()
     return results
+
+
+@st.cache_resource(
+    ttl=SCORE_REFRESH_HOURS * 3600,
+    show_spinner=False,
+    max_entries=2,
+)
+def get_shared_signal_scores(cache_version: int = 1) -> dict:
+    """Return the live score bundle without copying it on every cache hit.
+
+    ``get_all_signal_scores`` uses ``st.cache_data`` because most consumers
+    receive an isolated value they may safely transform. Its payload includes
+    every full historical Series, however, so copying/deserializing a warm hit
+    can still dominate latency on read-only surfaces.
+
+    This resource wrapper retains exactly the same six-hour live result and
+    version semantics, but returns one process-local object by reference.
+    Callers must treat the returned mapping and all nested values as read-only.
+    Home is the first deliberately read-only consumer; deeper product pages
+    keep the defensive-copy path until they are audited individually.
+    """
+    return get_all_signal_scores(cache_version)
