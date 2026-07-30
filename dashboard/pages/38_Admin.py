@@ -650,6 +650,47 @@ try:
 except Exception:
     pass
 
+# The timing summary is deliberately session-local: no visitor identifier,
+# request metadata, or additional database record is created. An admin can open
+# Home, return here, and see exactly which sequential render phase dominated.
+with st.expander("Home render diagnostics (this session)", expanded=False):
+    _home_perf = st.session_state.get("_ua_home_perf_last")
+    if not isinstance(_home_perf, dict) or not _home_perf.get("phases"):
+        st.info(
+            "Open Home once in this browser session, then return to Operations. "
+            "The latest render will appear here."
+        )
+    else:
+        _home_phases = _home_perf["phases"]
+        _slowest = max(
+            _home_phases,
+            key=lambda phase: float(phase.get("duration_ms", 0)),
+        )
+        _hp1, _hp2, _hp3 = st.columns(3)
+        _hp1.metric("Total Home render", f"{float(_home_perf.get('total_ms', 0)) / 1000:.2f}s")
+        _hp2.metric("Slowest phase", str(_slowest.get("phase", "Unknown")).replace("_", " ").title())
+        _hp3.metric("Slowest duration", f"{float(_slowest.get('duration_ms', 0)) / 1000:.2f}s")
+        st.caption(
+            f"Captured {_home_perf.get('captured_at', 'during the latest Home render')}. "
+            "Sequential timings are also emitted to application logs."
+        )
+        st.dataframe(
+            [
+                {
+                    "Phase": str(phase.get("phase", "")).replace("_", " ").title(),
+                    "Duration (ms)": float(phase.get("duration_ms", 0)),
+                    "Status": "Complete" if phase.get("success", False) else "Failed",
+                }
+                for phase in sorted(
+                    _home_phases,
+                    key=lambda item: float(item.get("duration_ms", 0)),
+                    reverse=True,
+                )
+            ],
+            width="stretch",
+            hide_index=True,
+        )
+
 with st.spinner("Loading metrics..."):
     m = load_metrics()
     tr = load_traffic()

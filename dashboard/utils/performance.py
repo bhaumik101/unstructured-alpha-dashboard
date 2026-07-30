@@ -83,3 +83,66 @@ def notify_progress(
         callback(stage, message)
     except Exception:
         pass
+
+
+class PageProfiler:
+    """Sequential, privacy-safe page timing checkpoints.
+
+    This utility intentionally knows nothing about users, sessions, request
+    headers, or network identity. Pages may retain the returned summary for an
+    admin-only diagnostic while aggregate checkpoints also reach app logs.
+    """
+
+    def __init__(self, page: str) -> None:
+        self.page = str(page).strip() or "unknown"
+        self._started = time.perf_counter()
+        self._checkpoint_started = self._started
+        self._phases: list[dict] = []
+        self._finished = False
+
+    def checkpoint(self, phase: str, *, success: bool = True) -> dict:
+        """Close the current sequential phase and start the next one."""
+        if self._finished:
+            raise RuntimeError("PageProfiler has already been finished")
+
+        now = time.perf_counter()
+        duration = max(0.0, now - self._checkpoint_started)
+        clean_phase = str(phase).strip() or "unnamed"
+        record_timing(
+            f"page.{self.page}.{clean_phase}",
+            duration_seconds=duration,
+            success=success,
+            metadata={"page": self.page, "phase": clean_phase},
+        )
+        result = {
+            "phase": clean_phase,
+            "duration_ms": round(duration * 1000, 1),
+            "success": bool(success),
+        }
+        self._phases.append(result)
+        self._checkpoint_started = now
+        return result
+
+    def finish(self, final_phase: str | None = None) -> dict:
+        """Finish profiling and return a JSON-serializable admin summary."""
+        if self._finished:
+            raise RuntimeError("PageProfiler has already been finished")
+        if final_phase:
+            self.checkpoint(final_phase)
+
+        total_seconds = max(0.0, time.perf_counter() - self._started)
+        total_event = record_timing(
+            f"page.{self.page}.total",
+            duration_seconds=total_seconds,
+            success=all(p["success"] for p in self._phases),
+            metadata={"page": self.page, "phase_count": len(self._phases)},
+        )
+        self._finished = True
+        slowest = max(self._phases, key=lambda p: p["duration_ms"], default=None)
+        return {
+            "page": self.page,
+            "total_ms": round(total_seconds * 1000, 1),
+            "captured_at": total_event["timestamp"],
+            "slowest_phase": slowest["phase"] if slowest else None,
+            "phases": [dict(p) for p in self._phases],
+        }
