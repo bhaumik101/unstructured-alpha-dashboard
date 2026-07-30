@@ -19,20 +19,17 @@ from utils.score_history import (
     get_latest_signal_states,
     get_score_history,
     record_all_signal_snapshots,
-    record_signal_snapshot,
     record_score_snapshot,
 )
 
 
 @pytest.fixture(autouse=True)
 def _in_memory_db(monkeypatch):
-    get_latest_signal_states.clear()
     test_engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
     monkeypatch.setattr(db, "engine", test_engine)
     monkeypatch.setattr(db, "IS_SQLITE", True)
     db.metadata.create_all(test_engine)
     yield
-    get_latest_signal_states.clear()
 
 
 def test_record_and_retrieve_a_snapshot():
@@ -80,48 +77,6 @@ def test_latest_signal_states_uses_persisted_batch_without_provider_fetch():
     assert states["hy_spread"]["score"] == 28.0
     assert states["hy_spread"]["status"] == "bearish"
     assert states["vix_term"]["status"] == "bullish"
-
-
-def test_latest_signal_states_reuses_cached_database_read():
-    record_all_signal_snapshots({
-        "hy_spread": {"score": 28.0, "status": "bearish", "error": False},
-    })
-    first = get_latest_signal_states()
-
-    # Bypass the public writer so its intentional invalidation does not run.
-    # A second read should still return the cached persisted snapshot.
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    with db.engine.begin() as conn:
-        conn.execute(
-            db.signal_snapshots.update()
-            .where(db.signal_snapshots.c.signal_id == "hy_spread")
-            .where(db.signal_snapshots.c.snapshot_date == today)
-            .values(score=68.0)
-        )
-
-    second = get_latest_signal_states()
-
-    assert first["hy_spread"]["score"] == 28.0
-    assert second["hy_spread"]["score"] == 28.0
-
-
-@pytest.mark.parametrize("writer", ["batch", "single"])
-def test_signal_snapshot_writers_invalidate_latest_states_cache(writer):
-    record_all_signal_snapshots({
-        "hy_spread": {"score": 28.0, "status": "bearish", "error": False},
-    })
-    assert get_latest_signal_states()["hy_spread"]["score"] == 28.0
-
-    if writer == "batch":
-        record_all_signal_snapshots({
-            "hy_spread": {"score": 68.0, "status": "bullish", "error": False},
-        })
-    else:
-        record_signal_snapshot("hy_spread", 68.0, "bullish")
-
-    refreshed = get_latest_signal_states()
-    assert refreshed["hy_spread"]["score"] == 68.0
-    assert refreshed["hy_spread"]["status"] == "bullish"
 
 
 # ── compute_sector_percentile() ──────────────────────────────────────────────
