@@ -22,11 +22,15 @@
 
 from datetime import datetime, timedelta, timezone
 
+import streamlit as st
 from sqlalchemy import or_, select
 
 from utils import db
 from utils.db import score_snapshots, signal_snapshots, score_components, upsert_stmt
 from utils.lead_time_research import get_sector_peers
+
+
+LATEST_SIGNAL_STATES_TTL_SECONDS = 60
 
 
 def record_score_snapshot(ticker: str, score: float, case: str, conviction: str,
@@ -159,12 +163,20 @@ def get_latest_components(ticker: str) -> dict | None:
         return None
 
 
+@st.cache_data(
+    ttl=LATEST_SIGNAL_STATES_TTL_SECONDS,
+    max_entries=1,
+    show_spinner=False,
+)
 def get_latest_signal_states() -> dict[str, dict]:
     """Latest persisted state for every signal in one database read.
 
     Used by global chrome such as the regime bar. It deliberately never calls
     a provider or computes signals: page headers must not turn every route into
-    a hidden 47-source refresh. Returns an empty dict until snapshots accrue.
+    a hidden 47-source refresh. The short shared cache lets every caller in a
+    render consume the same persisted snapshot and bounds staleness to one
+    minute. Snapshot writers invalidate it immediately. Returns an empty dict
+    until snapshots accrue.
     """
     try:
         with db.engine.begin() as conn:
@@ -322,6 +334,7 @@ def record_signal_snapshot(signal_id: str, score: float, status: str) -> None:
     )
     with db.engine.begin() as conn:
         conn.execute(stmt)
+    get_latest_signal_states.clear()
 
 
 def record_all_signal_snapshots(scores: dict) -> None:
@@ -364,6 +377,7 @@ def record_all_signal_snapshots(scores: dict) -> None:
                     },
                 )
                 conn.execute(stmt)
+        get_latest_signal_states.clear()
     except Exception:
         pass
 
