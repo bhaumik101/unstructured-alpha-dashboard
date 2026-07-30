@@ -2950,7 +2950,7 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
                        (e.g. "Signal Dashboard", "Market Overview").
     """
     from datetime import datetime
-    from utils.theme import _MODERN_UI_CSS, static_global_css_available
+    from utils.theme import _MODERN_UI_CSS  # deferred to avoid circular import at module level
 
     # ── Correlation id for this session's log lines ────────────────────────────
     # Seed a stable per-session id once, then bind it to the current rerun's
@@ -2981,18 +2981,18 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     except Exception:
         pass
 
-    # Render/production generates one cacheable stylesheet in
-    # scripts/inject_boot_splash.py. Keep this runtime path as a fail-safe for
-    # local development or a failed optional build step; never leave the app
-    # unstyled merely because the static asset is absent.
-    if not static_global_css_available():
-        st.markdown(_CSS, unsafe_allow_html=True)
-        st.markdown(_MODERN_UI_CSS, unsafe_allow_html=True)
-        try:
-            from utils.ua_charts import CHART_CSS as _UA_CHART_CSS
-            st.markdown(_UA_CHART_CSS, unsafe_allow_html=True)
-        except Exception:
-            pass
+    st.markdown(_CSS, unsafe_allow_html=True)
+    # Inject modern UI system (pill tabs, glass buttons, metrics, etc.) globally
+    # so every page that calls render_header() gets it automatically.
+    st.markdown(_MODERN_UI_CSS, unsafe_allow_html=True)
+
+    # Redesign 2026-07: chart primitives so utils.ua_charts SVGs are styled
+    # everywhere (colors read the --ua-* theme vars, so they follow light/dark).
+    try:
+        from utils.ua_charts import CHART_CSS as _UA_CHART_CSS
+        st.markdown(_UA_CHART_CSS, unsafe_allow_html=True)
+    except Exception:
+        pass
 
     # ── OpenGraph / social meta tags (JS injection) ────────────────────────────
     # Reddit's link scraper is server-side and won't execute this JS, but
