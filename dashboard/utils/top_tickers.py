@@ -3,10 +3,9 @@ utils/top_tickers.py
 ====================
 Fast "what the machine is flagging right now" screener.
 
-The pure ``rank_top_tickers`` path accepts an already-loaded real signal
-snapshot and performs no provider calls. ``get_top_tickers`` preserves the
-shared live-cache behavior used by background jobs and deeper product pages.
-Both paths run pure-Python compute_confluence() across the ticker universe.
+Uses the SAME cached signal scores that home page, Today's Brief, and Signal
+Dashboard already load — zero additional API calls. Runs pure-Python
+compute_confluence() across all 193 tickers in <0.1 seconds.
 
 Deliberately omits the price-momentum blend from the Stock Screener
 (which requires a 1-year yfinance download for all tickers) because:
@@ -24,64 +23,6 @@ import streamlit as st
 
 from utils.config import SIGNALS, TICKERS
 from utils.analysis import compute_confluence
-
-
-def rank_top_tickers(all_scores: dict) -> dict:
-    """Rank the ticker universe from caller-supplied real signal scores.
-
-    This function is deliberately provider-free. It lets latency-sensitive
-    surfaces such as Home reuse their canonical persisted snapshot rather than
-    starting a 47-source refresh before the first useful content can paint.
-    Missing signals remain missing and are excluded; no neutral placeholder
-    rows are invented.
-    """
-    rows: list[dict] = []
-    for ticker, meta in TICKERS.items():
-        sig_ids = meta.get("signals", list(SIGNALS.keys()))
-        weights = {
-            sid: SIGNALS[sid].get("pcs", 5) / 10.0
-            for sid in sig_ids
-            if sid in SIGNALS
-        }
-        ticker_scores = {
-            sid: all_scores[sid]
-            for sid in sig_ids
-            if sid in all_scores
-            and isinstance(all_scores[sid], dict)
-            and not all_scores[sid].get("error")
-            and all_scores[sid].get("status") != "insufficient_data"
-        }
-        if not ticker_scores:
-            continue
-
-        conf = compute_confluence(ticker_scores, weights=weights)
-        rows.append({
-            "ticker":  ticker,
-            "name":    meta.get("name", ticker),
-            "sector":  meta.get("sector", "Other"),
-            "score":   round(conf["overall_score"], 1),
-            "case":    conf["case"],
-            "conv":    conf["conviction"],
-            "bull":    conf["bull_count"],
-            "bear":    conf["bear_count"],
-            "signals": len(ticker_scores),
-        })
-
-    rows.sort(key=lambda r: -r["score"])
-
-    bullish = [r for r in rows if r["case"] == "BULL"][:6]
-    bearish = [r for r in sorted(rows, key=lambda r: r["score"]) if r["case"] == "BEAR"][:4]
-
-    by_sector: dict[str, list[dict]] = {}
-    for row in rows[:30]:
-        by_sector.setdefault(row["sector"], []).append(row)
-
-    return {
-        "bullish": bullish,
-        "bearish": bearish,
-        "by_sector": by_sector,
-        "all": rows,
-    }
 
 
 @st.cache_data(ttl=7200, show_spinner=False, max_entries=2)
@@ -105,4 +46,50 @@ def get_top_tickers(signal_scores_hash: int = 0) -> dict:
     from utils.signals_cache import get_all_signal_scores
 
     all_scores = get_all_signal_scores()
-    return rank_top_tickers(all_scores)
+
+    rows: list[dict] = []
+    for ticker, meta in TICKERS.items():
+        sig_ids = meta.get("signals", list(SIGNALS.keys()))
+        # Weight by PCS (same as screener fast-path)
+        weights = {
+            sid: SIGNALS[sid].get("pcs", 5) / 10.0
+            for sid in sig_ids
+            if sid in SIGNALS
+        }
+        ticker_scores = {
+            sid: all_scores.get(sid, {"score": 50, "status": "neutral"})
+            for sid in sig_ids
+            if sid in all_scores
+        }
+        if not ticker_scores:
+            continue
+
+        conf = compute_confluence(ticker_scores, weights=weights)
+        rows.append({
+            "ticker":  ticker,
+            "name":    meta.get("name", ticker),
+            "sector":  meta.get("sector", "Other"),
+            "score":   round(conf["overall_score"], 1),
+            "case":    conf["case"],
+            "conv":    conf["conviction"],
+            "bull":    conf["bull_count"],
+            "bear":    conf["bear_count"],
+            "signals": len(ticker_scores),
+        })
+
+    rows.sort(key=lambda r: -r["score"])
+
+    bullish = [r for r in rows if r["case"] == "BULL"][:6]
+    bearish = [r for r in sorted(rows, key=lambda r: r["score"]) if r["case"] == "BEAR"][:4]
+
+    # Group top 20 by sector
+    by_sector: dict[str, list[dict]] = {}
+    for r in rows[:30]:
+        by_sector.setdefault(r["sector"], []).append(r)
+
+    return {
+        "bullish":   bullish,
+        "bearish":   bearish,
+        "by_sector": by_sector,
+        "all":       rows,
+    }
