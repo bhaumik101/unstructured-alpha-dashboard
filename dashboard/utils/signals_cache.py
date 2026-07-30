@@ -130,6 +130,37 @@ def _score_one_signal(sig_id: str, cfg: dict, start: str, end: str) -> tuple[str
         return sig_id, _error_result(cfg)
 
 
+# Global chrome (the regime bar) reads the persisted snapshot on EVERY page and
+# every rerun. Uncached, that is a Neon Postgres round trip blocking paint on
+# each navigation -- and since the top nav does full browser navigations, that is
+# every single click.
+#
+# The cache deliberately lives HERE and not in utils/score_history.py. That
+# module is intentionally free of any streamlit import so cron/worker processes
+# can use it; an earlier attempt added @st.cache_data there and was reverted.
+# utils/signals_cache.py is already streamlit-only, so this is the right home.
+#
+# 60s is short enough that a fresh snapshot appears almost immediately and long
+# enough to collapse the repeated reads within a browsing burst.
+LATEST_SIGNAL_STATES_TTL_SECONDS = 60
+
+
+@st.cache_data(ttl=LATEST_SIGNAL_STATES_TTL_SECONDS, show_spinner=False, max_entries=1)
+def get_cached_signal_states() -> dict:
+    """Persisted per-signal snapshot, shared by every caller in a render.
+
+    SSOT NOTE: the header bar, the home hero, the narrative and the data banner
+    must all describe ONE snapshot, or the landing page shows the same fact with
+    two different numbers -- a bug that shipped before. Caching the READ (rather
+    than letting each caller query the database separately) makes them agree by
+    construction within the TTL: every caller gets an equal copy of the same
+    cached result. Streamlit hands back a copy rather than a shared reference,
+    which is what stops one caller mutating another's view.
+    """
+    from utils.score_history import get_latest_signal_states
+    return get_latest_signal_states()
+
+
 @st.cache_data(ttl=SCORE_REFRESH_HOURS * 3600, show_spinner=False, max_entries=1)
 def get_all_signal_scores(_v: int = 1) -> dict:
     """
