@@ -3290,9 +3290,10 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
                             st.error("Could not clear notifications. Try again.")
 
 
-@st.cache_data(ttl=60, max_entries=1, show_spinner=False)
+@st.cache_data(ttl=900, max_entries=1, show_spinner=False)
 def _fetch_ticker_strip():
-    """Fetch live prices for the header ticker strip. 60s TTL, one set of symbols."""
+    """Fetch the header market snapshot in one batched provider request."""
+    import pandas as pd
     import yfinance as yf
     # Well-known large-cap stocks everyone recognizes — a market anchor (SPY)
     # plus the mega-cap names, rather than commodity/crypto futures symbols.
@@ -3309,15 +3310,33 @@ def _fetch_ticker_strip():
     ]
     results = []
     try:
-        tickers = yf.Tickers(" ".join(s for s, _ in _SYMBOLS))
+        raw = yf.download(
+            [symbol for symbol, _label in _SYMBOLS],
+            period="5d",
+            interval="1d",
+            auto_adjust=True,
+            progress=False,
+            group_by="ticker",
+            threads=True,
+        )
+        if raw is None or raw.empty:
+            return []
         for sym, label in _SYMBOLS:
             try:
-                info = tickers.tickers[sym].fast_info
-                price = getattr(info, "last_price", None)
-                prev  = getattr(info, "previous_close", None)
-                if price and prev and prev > 0:
-                    chg_pct = (price - prev) / prev * 100
-                    results.append((sym, label, price, chg_pct))
+                if isinstance(raw.columns, pd.MultiIndex):
+                    close = (
+                        raw[sym]["Close"].dropna()
+                        if sym in raw.columns.get_level_values(0)
+                        else pd.Series(dtype=float)
+                    )
+                else:
+                    close = raw.get("Close", pd.Series(dtype=float)).dropna()
+                if len(close) < 2:
+                    continue
+                price = float(close.iloc[-1])
+                prev = float(close.iloc[-2])
+                if pd.notna(price) and pd.notna(prev) and prev > 0:
+                    results.append((sym, label, price, (price - prev) / prev * 100))
             except Exception:
                 pass
     except Exception:
