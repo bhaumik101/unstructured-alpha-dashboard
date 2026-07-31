@@ -597,11 +597,17 @@ macro_narratives = Table(
 
 # Dynamic ticker universe (added 2026-07-13). The static config.TICKERS list is
 # code and cannot grow at runtime; this table lets the tracked universe expand.
-# Every ticker a user adds to their watchlist is recorded here, and a daily cron
-# (cron/grow_universe.py) seeds big-cap names across the covered industries so
-# their data is pre-warmed and loads instantly. Merged with the static universe
-# by utils/universe.get_full_universe(). Brand-new table — plain create_all()
-# creates it, no ALTER TABLE migration needed.
+# Every ticker a user adds to their watchlist is recorded here, via
+# utils/universe.py. Merged with the static universe by
+# utils/universe.get_full_universe().
+#
+# A weekly cron (cron/grow_universe.py) also used to seed big-cap names across
+# the covered industries. It was removed on 2026-07-31: the table had reached
+# 5,273 tickers against 7 users, and enlarging it actively hurt, because
+# score_universe must cover that universe within a fixed deadline and memory
+# ceiling and was already only completing ~34 tickers per run. Growth now comes
+# solely from real watchlist adds, which is demand-driven rather than
+# speculative. Restore from git history if the user base ever justifies it.
 dynamic_universe = Table(
     "dynamic_universe", metadata,
     Column("id", Integer, primary_key=True),
