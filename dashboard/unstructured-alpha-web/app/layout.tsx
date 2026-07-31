@@ -74,6 +74,52 @@ export default function RootLayout({
               'document.documentElement.setAttribute("data-theme",t)}catch(e){}})()',
           }}
         />
+        {/*
+          Analytics beacon. Until this existed the marketing site recorded
+          nothing at all, so visitor -> signup conversion had no denominator and
+          could not be computed. Posted to /api/track, which next.config.ts
+          rewrites to the SEO service so it is same-origin and shares the app's
+          visitor_id derivation (one person = one visitor across both sites).
+
+          Inline and dependency-free, matching the theme script above: no
+          third-party analytics, nothing added to the bundle, and no cookie, so
+          there is no consent banner to show. Identity is a salted server-side
+          hash of coarse request attributes; the browser stores nothing.
+
+          Next does client-side route transitions, which do not re-run a <head>
+          script, so history methods are wrapped to catch them. Consecutive
+          duplicates of the same path are dropped -- the defect just removed
+          from the bounce metric came from counting one reader many times.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              '(function(){try{' +
+              // Guard on window, not a closure variable. This script is
+              // evaluated more than once (server-rendered head, then again on
+              // hydration), and a per-closure guard let one page load record
+              // two page views -- which would inflate traffic and, worse, make
+              // a one-page visit look like an engaged two-page one.
+              'if(window.__uaTrackInit)return; window.__uaTrackInit=1;' +
+              'var names={"/":"Landing","/uranium":"Uranium"};' +
+              'function send(){try{' +
+              'var p=location.pathname.replace(/\\/+$/,"")||"/";' +
+              'if(p===window.__uaLastPath)return; window.__uaLastPath=p;' +
+              'var b=JSON.stringify({event:"page_view",page:names[p]||"Other"});' +
+              'if(navigator.sendBeacon){' +
+              'navigator.sendBeacon("/api/track",new Blob([b],{type:"application/json"}));' +
+              '}else{fetch("/api/track",{method:"POST",body:b,keepalive:true,' +
+              'headers:{"Content-Type":"application/json"}}).catch(function(){});}' +
+              '}catch(e){}}' +
+              'var ps=history.pushState,rs=history.replaceState;' +
+              'history.pushState=function(){ps.apply(this,arguments);send();};' +
+              'history.replaceState=function(){rs.apply(this,arguments);send();};' +
+              'addEventListener("popstate",send);' +
+              'if(document.readyState==="loading"){' +
+              'addEventListener("DOMContentLoaded",send);}else{send();}' +
+              '}catch(e){}})()',
+          }}
+        />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/logo.svg" />
         <meta name="theme-color" content="#090b11" />
