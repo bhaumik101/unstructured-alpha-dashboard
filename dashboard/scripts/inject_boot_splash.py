@@ -94,7 +94,13 @@ def _build_splash() -> str:
      href, i.e. today's behaviour. */
   document.addEventListener('click', function(ev){
     try{
-      var a = ev.target && ev.target.closest && ev.target.closest('a.ua-tnav-item, .ua-tnav-drop a');
+      /* Any internal link, not just the nav. Measured on production: 23 of 27
+         internal anchors sat inside the nav and were already client-side, but
+         the logo and footer links still forced a full reload. Matching on
+         href is safe because a link only gets proxied when a page_link with
+         that exact slug exists -- SEO-service paths like /ticker/AAPL are not
+         Streamlit pages, find no proxy, and fall through untouched. */
+      var a = ev.target && ev.target.closest && ev.target.closest('a[href^="/"]');
       if(!a) return;
       if(ev.defaultPrevented || ev.button !== 0) return;
       if(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;  /* open-in-new-tab */

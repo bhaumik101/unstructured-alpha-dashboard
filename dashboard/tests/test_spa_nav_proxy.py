@@ -113,6 +113,23 @@ def test_injector_click_proxy_uses_a_real_click():
     )
 
 
+def test_proxy_intercepts_any_internal_link_not_only_the_nav():
+    """Logo and footer links were still forcing a full reload.
+
+    Measured on production: 23 of 27 internal anchors were inside the nav and
+    already client-side; "/" (logo), /about-methodology and /privacy-terms were
+    not. Widening to any internal href is safe precisely because interception
+    still requires a matching page_link, so SEO-service paths such as
+    /ticker/AAPL -- which are NOT Streamlit pages -- find no proxy and fall
+    through to a real navigation.
+    """
+    idx = _INJECTOR_SRC.find("Client-side navigation proxy")
+    block = _INJECTOR_SRC[idx : idx + 2500]
+    assert "closest('a[href^=\"/\"]')" in block, (
+        "the click proxy must match any internal link, not only .ua-tnav-item"
+    )
+
+
 def test_injector_falls_back_to_the_real_href():
     """Degradation must be safe: a miss keeps today's (slow) behaviour.
 
