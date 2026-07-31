@@ -154,11 +154,21 @@ services:
   # webhook cron could consume a crossing before the email cron saw it. Running
   # every two hours keeps Pro alerts timely with 75% fewer invocations than two
   # separate hourly jobs.
+  #
+  # 2026-07-31: cut from every 2h (12 runs/day) to every 8h (3 runs/day). The
+  # sibling signal-flip cron already carries the reasoning — "macro source series
+  # are daily/weekly/monthly, so two-hour polling paid for repeated identical
+  # data" — and it applies identically here. Underlying data cannot change 12
+  # times a day, so 9 of those 12 runs re-read the same values.
+  #
+  # Not cut further: 346 alerts are configured and this is a paid feature, so
+  # worst-case alert latency stays ~8h rather than ~12h. Frequency is the only
+  # thing reduced; nothing about how a crossing is detected changed.
   - type: cron
     name: unstructured-alpha-threshold-alerts
     runtime: python
     rootDir: dashboard
-    schedule: "0 */2 * * *"
+    schedule: "0 */8 * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.send_threshold_alerts
     envVars:
@@ -246,23 +256,27 @@ services:
       - key: OPENBLAS_NUM_THREADS
         value: "1"
 
-  # Weekly universe growth — seeds big-cap names across covered industries into
-  # the dynamic_universe table and pre-warms each one's Confluence Score snapshot
-  # so common tickers load instantly. Runs at 03:00 UTC (after resolve-predictions,
-  # still off-peak). Watchlist adds also grow the universe live (utils/universe.py).
+  # Data-freshness monitor — 06:00 UTC daily, after score-core (04:10) and
+  # score-rest (05:40) have had time to finish.
+  #
+  # Exists because score_snapshots silently stopped updating on 2026-07-21 and
+  # nobody noticed for ten days. The Screener and every ticker Confluence Score
+  # served stale data that whole time while the site looked perfectly healthy.
+  # For a product whose differentiator is data integrity, quietly serving
+  # ten-day-old scores is worse than being down, because down is obvious.
+  #
+  # Exits non-zero when a tracked table is stale, so Render marks the cron
+  # FAILED and it surfaces instead of decaying quietly. Reads only
+  # max(snapshot_date); writes nothing.
   - type: cron
-    name: unstructured-alpha-grow-universe
+    name: unstructured-alpha-data-freshness
     runtime: python
     rootDir: dashboard
-    schedule: "0 3 * * 0"
+    schedule: "0 6 * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.grow_universe
+    startCommand: python -m cron.check_data_freshness
     envVars:
       - key: DATABASE_URL
-        sync: false
-      - key: FRED_API_KEY
-        sync: false
-      - key: EIA_API_KEY
         sync: false
 
   # Daily watchlist insights — score movement and velocity share the same users,
@@ -280,38 +294,6 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL
-        sync: false
-      - key: FRED_API_KEY
-        sync: false
-      - key: EIA_API_KEY
-        sync: false
-
-  # Machine's Best Ideas — three high-signal posts per week instead of daily.
-  # Finds tickers with score ≥ 65 + positive velocity, posts top 5 to Twitter.
-  # Separate from signal-flip tweet (13:00 UTC) to avoid resource contention.
-  #
-  # DISABLED 2026-07-31, same reason as the signal-flip cron below: posting to X
-  # needs a paid API tier and returns 402 on the free one. Drafted for manual
-  # review instead. Flip to "true" to re-enable if the account is upgraded.
-  - type: cron
-    name: unstructured-alpha-tweet-best-ideas
-    runtime: python
-    rootDir: dashboard
-    schedule: "0 14 * * 1,3,5"
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.tweet_best_ideas
-    envVars:
-      - key: TWITTER_POSTING_ENABLED
-        value: "false"
-      - key: DATABASE_URL
-        sync: false
-      - key: TWITTER_API_KEY
-        sync: false
-      - key: TWITTER_API_SECRET
-        sync: false
-      - key: TWITTER_ACCESS_TOKEN
-        sync: false
-      - key: TWITTER_ACCESS_TOKEN_SECRET
         sync: false
       - key: FRED_API_KEY
         sync: false
@@ -372,44 +354,6 @@ services:
         value: "https://stocks.unstructuredalpha.com"
       - key: APP_BASE_URL
         value: "https://unstructuredalpha.com"
-
-  # Twitter/X signal-flip tweet cron — weekdays at 13:00 UTC.
-  # Computes the current macro signal state, detects flips since yesterday, and
-  # tweets a briefing via @UnstructuredAlpha. Requires Twitter API v2 credentials
-  # (OAuth 1.0a user context) set as Render env vars — never commit key values.
-  #
-  # DISABLED 2026-07-31. Posting to X now requires a paid API tier; on the free
-  # tier the write call returns 402 Payment Required, so this cron could only
-  # ever fail. It was scheduled 5x/week and nobody was reading its logs, so the
-  # channel looked active while publishing nothing. Tweets are now DRAFTED for
-  # manual review instead (see the weekly distribution tasks).
-  #
-  # Kept rather than deleted so it can be switched back on in one line if the
-  # account is upgraded. Flip to "true" to re-enable.
-  - type: cron
-    name: unstructured-alpha-tweet-flips
-    runtime: python
-    rootDir: dashboard
-    schedule: "0 13 * * 1-5"
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.tweet_signal_flips
-    envVars:
-      - key: TWITTER_POSTING_ENABLED
-        value: "false"
-      - key: DATABASE_URL
-        sync: false
-      - key: FRED_API_KEY
-        sync: false
-      - key: EIA_API_KEY
-        sync: false
-      - key: TWITTER_API_KEY
-        sync: false
-      - key: TWITTER_API_SECRET
-        sync: false
-      - key: TWITTER_ACCESS_TOKEN
-        sync: false
-      - key: TWITTER_ACCESS_TOKEN_SECRET
-        sync: false
 
   # Signal flip email alert cron — four checks daily. Macro source series are
   # daily/weekly/monthly, so two-hour polling paid for repeated identical data.
