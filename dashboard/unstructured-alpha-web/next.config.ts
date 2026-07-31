@@ -41,6 +41,11 @@ const nextConfig: NextConfig = {
       // FastAPI service. Authorization headers pass through the rewrite; the
       // public Next.js deployment never stores or validates raw API keys.
       { source: "/api/v1/:path*", destination: `${SEO_ORIGIN}/api/v1/:path*` },
+      // NOTE: /api/track is deliberately NOT rewritten. It is a real route at
+      // app/api/track/route.ts, because the visitor's IP has to be forwarded
+      // explicitly. A plain rewrite would present this server's address to the
+      // upstream, every landing visitor would hash to the same visitor_id, and
+      // the dashboard would confidently report one unique visitor forever.
     ];
   },
 };

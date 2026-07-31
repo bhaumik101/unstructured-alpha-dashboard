@@ -79,6 +79,13 @@ from seo.pro_api import router as pro_api_router  # noqa: E402
 
 app.include_router(pro_api_router)
 
+# Public analytics beacon for the marketing site. Kept out of the /api/v1
+# namespace on purpose: that prefix is the authenticated Pro API, and this is an
+# unauthenticated endpoint anyone may call.
+from seo.track_api import router as track_router  # noqa: E402
+
+app.include_router(track_router)
+
 
 # ── Structured logging + per-request correlation id ───────────────────────────
 # Installs the JSON stdout handler (idempotent) and tags every request with a

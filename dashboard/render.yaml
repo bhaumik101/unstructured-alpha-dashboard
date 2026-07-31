@@ -444,6 +444,19 @@ services:
         sync: false
       - key: EIA_API_KEY
         sync: false
+      # Shared secret for the marketing-site analytics beacon (POST /api/track).
+      #
+      # That endpoint trusts the x-forwarded-for it is handed, because only the
+      # Next.js relay knows the visitor's real address. Without this secret,
+      # anyone could POST forged IPs in a loop and manufacture unlimited fake
+      # unique visitors -- corrupting the exact number the endpoint exists to
+      # make trustworthy.
+      #
+      # It FAILS CLOSED: if this is unset, no landing page view is recorded at
+      # all. The SAME value must also be set as TRACK_INGEST_TOKEN on the
+      # Next.js deployment, or the top of the funnel silently stays invisible.
+      - key: TRACK_INGEST_TOKEN
+        sync: false
       # Single-core box: pin BLAS/numeric threads to 1 (see the web service block).
       - key: OMP_NUM_THREADS
         value: "1"
