@@ -560,11 +560,20 @@ def _render_conversion_measurement(data: dict) -> None:
 
     st.markdown("#### 4. Landing-page bounce proxy")
     bounce = data["bounce"]
-    bounce_cols = st.columns(3)
-    bounce_cols[0].metric("Tracked landing sessions", bounce["landing_sessions"])
-    bounce_cols[1].metric("Exactly one page", bounce["one_page_sessions"])
-    bounce_cols[2].metric("More than one page", bounce["multi_page_sessions"])
-    if bounce["landing_sessions"]:
+    if bounce.get("unavailable_reason"):
+        # Withheld rather than estimated. Showing a rate derived only from the
+        # identified minority would describe a different population than the
+        # visitor counts above, without saying so.
+        st.warning(
+            f"**Not measurable yet.** {bounce['unavailable_reason']}",
+            icon=":material/query_stats:",
+        )
+        st.caption(bounce["method"])
+    elif bounce["landing_sessions"]:
+        bounce_cols = st.columns(3)
+        bounce_cols[0].metric("Landing visits", bounce["landing_sessions"])
+        bounce_cols[1].metric("Exactly one page", bounce["one_page_sessions"])
+        bounce_cols[2].metric("More than one page", bounce["multi_page_sessions"])
         st.markdown(
             ua_charts.bar_h(
                 ["Exactly one page", "More than one page"],
@@ -574,18 +583,12 @@ def _render_conversion_measurement(data: dict) -> None:
             unsafe_allow_html=True,
         )
         st.caption(
-            f"One-page rate: {_pct(bounce['one_page_rate'])}. This is a proxy "
-            "for sessions whose first recorded page is Home/Landing; it does "
-            "not claim to measure dwell time."
+            f"One-page rate: {_pct(bounce['one_page_rate'])}. Counts visits whose "
+            "first recorded page is Home/Landing; it does not measure dwell time. "
+            f"{bounce['method']}"
         )
     else:
-        st.info("No stored session in this window starts on Home/Landing.")
-    if bounce["page_views_without_session"]:
-        st.caption(
-            f"{bounce['page_views_without_session']:,} page view(s) without a "
-            "session ID were excluded. Session coverage is "
-            f"{bounce['session_coverage']:.1f}%."
-        )
+        st.info("No reconstructed visit in this window starts on Home/Landing.")
 
     st.markdown("#### 5. Last page viewed before signup")
     attribution = data["attribution"]
@@ -610,7 +613,7 @@ def _render_conversion_measurement(data: dict) -> None:
         st.info("There are no signups in this window to attribute.")
     st.warning(
         f"Stored-schema limit: {attribution['schema_gap']} "
-        f"Attribution coverage is {attribution['coverage']:.1f}%. "
+        f"Attribution coverage is {_pct(attribution['coverage'])}. "
         f"Smallest future addition: {attribution['smallest_addition']}"
     )
 
