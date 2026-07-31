@@ -21,6 +21,16 @@ from utils.db import analytics_events, engine, users
 REDESIGN_START = date(2026, 7, 25)
 REDESIGN_END = date(2026, 7, 28)
 
+# Visits are reconstructed per visitor from this inactivity gap rather than read
+# from Streamlit's session_id. 30 minutes is the long-standing web-analytics
+# convention, chosen here so the number is comparable to any external tool the
+# owner comes to rely on.
+VISIT_INACTIVITY_GAP = timedelta(minutes=30)
+
+# Visitor identity began recording on this date. Before it, no per-person metric
+# is reconstructable from stored evidence, so those metrics are withheld.
+VISITOR_TRACKING_START = date(2026, 7, 27)
+
 
 def _as_utc(value: object) -> datetime | None:
     if isinstance(value, datetime):
@@ -150,7 +160,13 @@ def build_conversion_measurement(
     for day in days:
         rows = pages_by_day[day]
         identified = [row for row in rows if row["visitor_id"]]
-        exact = len(identified) == len(rows)
+        # An empty period is only a measured zero if identity was recording then.
+        # Before VISITOR_TRACKING_START nothing was captured, so "0 visitors" would
+        # assert an absence of traffic that was never observed -- the week of
+        # 2026-07-06 otherwise rendered as 0 visitors alongside 2 real signups.
+        exact = len(identified) == len(rows) and (
+            bool(rows) or day >= VISITOR_TRACKING_START
+        )
         daily.append(
             {
                 "date": day.isoformat(),
@@ -184,7 +200,11 @@ def build_conversion_measurement(
         identified = [row for row in week_pages if row["visitor_id"]]
         visitors = {row["visitor_id"] for row in identified}
         signup_count = sum(signups_by_day[day] for day in week_days)
-        exact_identity = len(identified) == len(week_pages)
+        # Same rule as the daily rows: an empty week only counts as a measured
+        # zero once visitor identity was actually being recorded.
+        exact_identity = len(identified) == len(week_pages) and (
+            bool(week_pages) or max(week_days) >= VISITOR_TRACKING_START
+        )
         conversion = (
             signup_count / len(visitors) * 100
             if exact_identity and visitors
@@ -210,21 +230,63 @@ def build_conversion_measurement(
             }
         )
 
-    sessions: dict[str, list[dict]] = defaultdict(list)
-    page_views_without_session = 0
-    for row in pages:
-        if row["session_id"]:
-            sessions[row["session_id"]].append(row)
-        else:
-            page_views_without_session += 1
-    landing_sessions = []
-    for rows in sessions.values():
+    # Sessionise by VISITOR with an inactivity gap, never by session_id.
+    #
+    # session_id is a Streamlit connection id, not a user session. It is reset by
+    # every full browser navigation, and until PR #103 the top nav was raw <a href>
+    # markup, so every nav click started a new one. Measured on real stored data:
+    # one visitor produced 86 distinct session_ids across 89 page views, and 96%
+    # of all sessions contained exactly one page view. Grouping by session_id
+    # therefore reports an engaged reader as ~86 separate bounces.
+    #
+    # PR #103 made navigation client-side, so session_id now survives a nav click.
+    # A bounce rate built on it would appear to improve dramatically on that date
+    # while user behaviour was unchanged -- a performance fix masquerading as an
+    # engagement win. That is precisely the kind of number this product must not
+    # publish, internally or otherwise.
+    bounce_unavailable_reason: str | None = None
+    identified_pages = [row for row in pages if row["visitor_id"]]
+    page_views_without_visitor = len(pages) - len(identified_pages)
+
+    visits: dict[str, list[dict]] = defaultdict(list)
+    for row in identified_pages:
+        visits[row["visitor_id"]].append(row)
+
+    landing_sessions: list[list[dict]] = []
+    for rows in visits.values():
         ordered = sorted(rows, key=lambda row: row["created_at"])
-        if ordered and ordered[0]["page"].strip().lower() in {"home", "landing"}:
-            landing_sessions.append(ordered)
+        current_visit: list[dict] = []
+        for row in ordered:
+            if (
+                current_visit
+                and row["created_at"] - current_visit[-1]["created_at"]
+                > VISIT_INACTIVITY_GAP
+            ):
+                landing_sessions.append(current_visit)
+                current_visit = []
+            current_visit.append(row)
+        if current_visit:
+            landing_sessions.append(current_visit)
+
+    landing_sessions = [
+        visit
+        for visit in landing_sessions
+        if visit[0]["page"].strip().lower() in {"home", "landing"}
+    ]
     one_page_sessions = sum(len(rows) == 1 for rows in landing_sessions)
     multi_page_sessions = sum(len(rows) > 1 for rows in landing_sessions)
     landing_total = len(landing_sessions)
+
+    if page_views_without_visitor:
+        # Visitor identity only began recording on 2026-07-27. Reconstructing
+        # visits for earlier traffic is not possible, and estimating it would be
+        # inventing evidence, so the metric is withheld rather than approximated.
+        bounce_unavailable_reason = (
+            f"{page_views_without_visitor:,} of {len(pages):,} stored page views "
+            "carry no visitor identifier (identity recording began "
+            "2026-07-27), so visits cannot be reconstructed for that traffic. "
+            "Reported as unavailable rather than estimated."
+        )
 
     user_identity: dict[object, dict[str, set[str]]] = defaultdict(
         lambda: {"sessions": set(), "visitors": set()}
@@ -293,16 +355,33 @@ def build_conversion_measurement(
             "landing_sessions": landing_total,
             "one_page_sessions": one_page_sessions,
             "multi_page_sessions": multi_page_sessions,
+            # Withheld whenever any page view lacks visitor identity: a rate
+            # computed over the identified minority would silently describe a
+            # different population than the header count suggests.
             "one_page_rate": (
-                one_page_sessions / landing_total * 100 if landing_total else None
+                one_page_sessions / landing_total * 100
+                if landing_total and not bounce_unavailable_reason
+                else None
             ),
-            "page_views_without_session": page_views_without_session,
-            "session_coverage": (
-                (total_page_views - page_views_without_session)
+            "unavailable_reason": bounce_unavailable_reason,
+            "page_views_without_visitor": page_views_without_visitor,
+            "visit_gap_minutes": int(
+                VISIT_INACTIVITY_GAP.total_seconds() // 60
+            ),
+            "identity_coverage": (
+                (total_page_views - page_views_without_visitor)
                 / total_page_views
                 * 100
                 if total_page_views
                 else 100.0
+            ),
+            "method": (
+                "Visits are reconstructed per visitor using a "
+                f"{int(VISIT_INACTIVITY_GAP.total_seconds() // 60)}-minute "
+                "inactivity gap. Streamlit's session_id is deliberately NOT used: "
+                "it is a connection id that reset on every full page navigation "
+                "before PR #103, which would count one engaged reader as dozens "
+                "of bounces."
             ),
         },
         "attribution": {
@@ -313,8 +392,10 @@ def build_conversion_measurement(
             "attributed_signups": attributed_signups,
             "attributed_count": len(attributed_signups),
             "unattributed_count": len(signups) - len(attributed_signups),
+            # None, not 100%, when there are no signups. "100% coverage" of an
+            # empty set reads as a healthy metric when nothing was measured.
             "coverage": (
-                len(attributed_signups) / len(signups) * 100 if signups else 100.0
+                len(attributed_signups) / len(signups) * 100 if signups else None
             ),
             "schema_gap": (
                 "Signup rows do not store visitor_id, session_id, or last_page, "
