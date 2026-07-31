@@ -289,6 +289,10 @@ services:
   # Machine's Best Ideas — three high-signal posts per week instead of daily.
   # Finds tickers with score ≥ 65 + positive velocity, posts top 5 to Twitter.
   # Separate from signal-flip tweet (13:00 UTC) to avoid resource contention.
+  #
+  # DISABLED 2026-07-31, same reason as the signal-flip cron below: posting to X
+  # needs a paid API tier and returns 402 on the free one. Drafted for manual
+  # review instead. Flip to "true" to re-enable if the account is upgraded.
   - type: cron
     name: unstructured-alpha-tweet-best-ideas
     runtime: python
@@ -297,6 +301,8 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.tweet_best_ideas
     envVars:
+      - key: TWITTER_POSTING_ENABLED
+        value: "false"
       - key: DATABASE_URL
         sync: false
       - key: TWITTER_API_KEY
@@ -371,6 +377,15 @@ services:
   # Computes the current macro signal state, detects flips since yesterday, and
   # tweets a briefing via @UnstructuredAlpha. Requires Twitter API v2 credentials
   # (OAuth 1.0a user context) set as Render env vars — never commit key values.
+  #
+  # DISABLED 2026-07-31. Posting to X now requires a paid API tier; on the free
+  # tier the write call returns 402 Payment Required, so this cron could only
+  # ever fail. It was scheduled 5x/week and nobody was reading its logs, so the
+  # channel looked active while publishing nothing. Tweets are now DRAFTED for
+  # manual review instead (see the weekly distribution tasks).
+  #
+  # Kept rather than deleted so it can be switched back on in one line if the
+  # account is upgraded. Flip to "true" to re-enable.
   - type: cron
     name: unstructured-alpha-tweet-flips
     runtime: python
@@ -379,6 +394,8 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python -m cron.tweet_signal_flips
     envVars:
+      - key: TWITTER_POSTING_ENABLED
+        value: "false"
       - key: DATABASE_URL
         sync: false
       - key: FRED_API_KEY
