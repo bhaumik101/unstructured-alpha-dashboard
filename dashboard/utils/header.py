@@ -495,6 +495,27 @@ html[data-ua-theme="light"] [style^="color:#7bde6b"] {
     color: #3E8E2F !important;
 }
 
+/* ── SPA proxy links ──────────────────────────────────────────────────────
+   Hidden st.page_link elements the nav forwards clicks to, so navigation stays
+   client-side instead of doing a full browser reload. Deliberately NOT
+   display:none and NOT visibility:hidden -- an element hidden either way cannot
+   be reliably clicked, which would defeat the whole mechanism. The clip-rect
+   technique keeps it in the layout and clickable while invisible. */
+[data-testid="stPageLink-NavLink"],
+.ua-spa-proxy {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    pointer-events: auto !important;
+}
+
 /* ── Theme toggle ─────────────────────────────────────────────────────────
    Deliberately a real <a href>, not a JS button: it works with keyboard and
    screen readers for free, survives Streamlit reruns, and needs no script
@@ -2911,6 +2932,48 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
       .replace("__ADMIN_NAV_SLOT__", _admin_nav_slot)
       .replace("__LIGHT_THEME_HREF__", _light_theme_href)
       .replace("__DARK_THEME_HREF__", _dark_theme_href))
+
+    _render_spa_proxy_links()
+
+
+def _render_spa_proxy_links() -> None:
+    """Render one hidden st.page_link per nav destination.
+
+    The visible nav is raw <a href> markup, so a click is a FULL browser
+    navigation and the entire frontend re-bootstraps. st.page_link instead
+    renders an anchor carrying a React onClick handler that navigates
+    client-side (verified against a live Streamlit instance: the anchor exposes
+    an onClick in its React props).
+
+    These links are clipped out of view but stay in the layout so a script can
+    forward a nav click to the matching one. They are NOT display:none -- a
+    display:none element cannot reliably be clicked.
+
+    They ARE focusable as rendered, which would put ~33 invisible links in the
+    keyboard tab order. There is no wrapper element to fix that with: st.markdown
+    of a bare '<div>' and a later '</div>' land in two separate Streamlit
+    containers, so the browser closes the first div immediately and it wraps
+    nothing. The tabindex/aria-hidden marking is therefore applied per-element by
+    the nav proxy script in scripts/inject_boot_splash.py, which runs against the
+    real DOM.
+
+    Degradation is deliberate: the visible anchors keep their real href, so if
+    anything here fails the click still navigates, just the old slow way.
+    """
+    try:
+        from utils.nav_links import page_targets
+        targets = page_targets()
+        if not targets:
+            return
+        for url_path, script in targets:
+            try:
+                st.page_link(script, label=url_path or "home")
+            except Exception:
+                # A page can be registered but unavailable to this user/tier.
+                # Skipping it just means that link keeps the full-reload path.
+                continue
+    except Exception:
+        pass
 
 
 def _track_page_view(page_label: str) -> None:

@@ -49,7 +49,11 @@ def _load_facts() -> list:
 
 def _build_splash() -> str:
     facts_json = json.dumps(_load_facts())
-    return """
+    # Raw string: the JS below contains regex literals such as /^\/+|\/+$/ and
+    # Python reads "\/" as an invalid escape sequence. Today that is only a
+    # SyntaxWarning, but it is scheduled to become a SyntaxError. There are no
+    # intentional Python escapes in this blob, so r"" is a safe, exact no-op.
+    return r"""
 <!-- ua-boot-splash:start -->
 <script>
 /* Theme init — runs before first paint so there is no dark-to-light flash.
@@ -71,6 +75,77 @@ def _build_splash() -> str:
     if(t==='light'){ document.documentElement.setAttribute('data-ua-theme','light'); }
     else { document.documentElement.removeAttribute('data-ua-theme'); }
   }catch(e){}
+  /* ── Client-side navigation proxy ──────────────────────────────────────
+     The visible top nav is raw <a href> markup, so a click is a FULL browser
+     navigation: 135 JS files re-parsed, new websocket, fresh Python session.
+     st.page_link instead renders an anchor with a React onClick handler that
+     navigates client-side. render_header emits one hidden page-link per
+     destination, so forwarding the click to the matching one keeps the design
+     and skips the reload.
+
+     Two things learned the hard way and encoded here:
+       - A synthetic MouseEvent does NOT work; React ignores it. Only a real
+         .click() on the element triggers the handler.
+       - history.pushState + popstate does NOT work either; Streamlit's frontend
+         ignores it, changing the URL without re-rendering. There is no
+         URL-based shortcut -- it must go through the element.
+
+     Everything degrades safely: any miss falls through to the anchor's real
+     href, i.e. today's behaviour. */
+  document.addEventListener('click', function(ev){
+    try{
+      var a = ev.target && ev.target.closest && ev.target.closest('a.ua-tnav-item, .ua-tnav-drop a');
+      if(!a) return;
+      if(ev.defaultPrevented || ev.button !== 0) return;
+      if(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;  /* open-in-new-tab */
+      if(a.target && a.target !== '_self') return;
+      var href = a.getAttribute('href') || '';
+      if(!href || href.charAt(0) !== '/') return;                        /* external */
+      var slug = href.replace(/^\/+|\/+$/g, '');
+
+      var links = document.querySelectorAll('[data-testid="stPageLink-NavLink"]');
+      for(var i=0;i<links.length;i++){
+        var lh = (links[i].getAttribute('href')||'').replace(/^\/+|\/+$/g, '');
+        if(lh === slug){
+          ev.preventDefault();
+          links[i].click();      /* real click -> React handler -> SPA nav */
+          return;
+        }
+      }
+      /* No proxy found: do nothing and let the browser follow the href. */
+    }catch(e){ /* never block navigation */ }
+  }, true);
+
+  /* The proxy links are clipped out of view but still focusable, which would
+     drop ~33 invisible stops into the keyboard tab order on every page. There
+     is no server-side wrapper to fix this with (two st.markdown calls cannot
+     span a container), so mark them here in the real DOM. Streamlit re-renders
+     them on every navigation, hence the observer. Cheap by construction: the
+     callback is debounced to an animation frame and only touches elements not
+     already marked. */
+  function uaMarkProxyLinks(){
+    try{
+      var links = document.querySelectorAll(
+        '[data-testid="stPageLink-NavLink"]:not([data-ua-proxy])');
+      for(var i=0;i<links.length;i++){
+        links[i].setAttribute('data-ua-proxy','1');
+        links[i].setAttribute('tabindex','-1');
+        links[i].setAttribute('aria-hidden','true');
+      }
+    }catch(e){}
+  }
+  var uaMarkQueued=false;
+  function uaQueueMark(){
+    if(uaMarkQueued) return;
+    uaMarkQueued=true;
+    requestAnimationFrame(function(){ uaMarkQueued=false; uaMarkProxyLinks(); });
+  }
+  try{
+    uaQueueMark();
+    new MutationObserver(uaQueueMark)
+      .observe(document.documentElement, {childList:true, subtree:true});
+  }catch(e){}
+
   /* Handle for the real toggle button once every page is migrated. */
   window.uaSetTheme=function(t){
     try{ localStorage.setItem('ua-theme',t); }catch(e){}
