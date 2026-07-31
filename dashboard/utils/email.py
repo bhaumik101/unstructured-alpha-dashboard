@@ -1276,7 +1276,7 @@ def send_welcome_email(to_email: str) -> None:
 def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
     """
     Send a watchlist threshold-crossing alert email to a single user.
-    Called by cron/send_watchlist_alerts.py for every user who has new alerts
+    Called by cron/send_threshold_alerts.py for every user who has new alerts
     since the last evaluation.
 
     new_alerts: list of alert dicts from evaluate_watchlist(), each with at

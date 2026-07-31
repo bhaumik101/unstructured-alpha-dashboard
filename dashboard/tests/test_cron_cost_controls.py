@@ -27,7 +27,13 @@ def test_duplicate_threshold_sweeps_are_replaced_by_one_dispatcher():
     assert "unstructured-alpha-webhooks" not in crons
     assert "unstructured-alpha-watchlist-alerts" not in crons
     combined = crons["unstructured-alpha-threshold-alerts"]
-    assert combined["schedule"] == "0 */2 * * *"
+    # Cut from every 2h to every 8h on 2026-07-31. Macro source series are
+    # daily/weekly/monthly, so 9 of the 12 daily runs re-read identical data --
+    # the same reasoning already applied to the sibling signal-flip cron. Still
+    # a single dispatcher, which is what this test actually guards; only the
+    # cadence changed. Worst-case alert latency ~8h, deliberately not lower
+    # because 346 alerts are configured and this is a paid feature.
+    assert combined["schedule"] == "0 */8 * * *"
     assert combined["startCommand"] == "python -m cron.send_threshold_alerts"
 
 
@@ -39,7 +45,33 @@ def test_low_frequency_jobs_are_grouped():
     assert crons["unstructured-alpha-watchlist-insights"]["startCommand"].endswith(
         "run_group watchlist-insights"
     )
-    assert len(crons) == 13
+    # 13 -> 11 on 2026-07-31. Removed both X crons (posting to X needs a paid
+    # API tier; on the free tier they returned 402 and published nothing for
+    # weeks while appearing active) and grow-universe (the universe already held
+    # 5,273 tickers against 7 users, and enlarging it made the scorer even less
+    # able to finish inside its deadline). Added the data-freshness monitor.
+    #
+    # Exact equality is deliberate: adding a cron should be a conscious decision
+    # that updates this number, not something that drifts in unnoticed.
+    assert len(crons) == 11
+    assert "unstructured-alpha-tweet-flips" not in crons
+    assert "unstructured-alpha-tweet-best-ideas" not in crons
+    assert "unstructured-alpha-grow-universe" not in crons
+
+
+def test_data_freshness_monitor_exists_and_runs_after_the_scorers():
+    """Nothing noticed score_snapshots going stale for ten days.
+
+    The Screener and every ticker Confluence Score served 2026-07-21 data until
+    2026-07-31 while the site looked healthy. For a product whose claim is data
+    integrity, silently serving stale scores is worse than being down.
+    """
+    crons = _cron_services()
+    monitor = crons["unstructured-alpha-data-freshness"]
+    assert monitor["startCommand"].endswith("cron.check_data_freshness")
+    # Must run after score-core (04:10) and score-rest (05:40), or it would
+    # report staleness that the day's own run was about to clear.
+    assert monitor["schedule"] == "0 6 * * *"
 
 
 def test_rest_scorer_has_safe_memory_headroom_and_reduced_cadence():

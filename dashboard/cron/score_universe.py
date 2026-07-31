@@ -195,6 +195,32 @@ def _rest_slice(scoreable: dict, core: set[str], rotate_days: int) -> list[str]:
     return [s for i, s in enumerate(rest) if i % rotate_days == day]
 
 
+def _db_target() -> str:
+    """Return host/dbname of the database being written to. Never credentials.
+
+    This exists because of a genuinely confusing failure: on 2026-07-31 this
+    cron logged `written=34` while the application database received zero rows
+    from that run. The writes were real -- they were simply going somewhere
+    else. Every service sets DATABASE_URL independently (sync: false in
+    render.yaml), so one service silently pointing at a different database is
+    invisible: the cron reports success, the logs look healthy, and the app
+    quietly serves stale data.
+
+    Logging the target makes a mismatch obvious in one glance at the run log
+    instead of requiring a database-side investigation to discover.
+    """
+    import re
+
+    raw = os.getenv("DATABASE_URL", "")
+    if not raw:
+        return "UNSET"
+    # Strip any credentials before they can reach a log line.
+    match = re.search(r"@([^/?\s]+)/([^?\s]+)", raw)
+    if match:
+        return f"{match.group(1)}/{match.group(2)}"
+    return "unparsed"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tier", choices=["core", "rest", "all"], default="core")
@@ -261,7 +287,8 @@ def main() -> None:
     score_kind = score_kind_for_tier(args.tier)
 
     _log("run_start", tier=args.tier, universe=len(scoreable), core=len(core),
-         targets=len(targets), score_kind=score_kind, dry_run=args.dry_run)
+         targets=len(targets), score_kind=score_kind, dry_run=args.dry_run,
+         db=_db_target())
 
     start_px, end_px = price_window()
     stats = {"scored": 0, "written": 0, "gated": 0, "failed": 0, "chunks": 0}
