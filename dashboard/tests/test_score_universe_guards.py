@@ -234,3 +234,71 @@ def test_write_kind_and_staleness_kind_come_from_one_helper():
     """If they drifted, a tier would treat the wrong scores as coverage."""
     src = (DASHBOARD / "cron" / "score_universe.py").read_text()
     assert src.count("score_kind_for_tier(args.tier)") >= 2
+
+
+# ── Coverage honesty ──────────────────────────────────────────────────────────
+#
+# The guard above works: it stops cleanly instead of being OOM-killed. What it
+# did NOT do was say so in a way anyone would notice. On 2026-08-02 the live
+# core run logged scored=34 remaining=215 and Render reported "finished
+# successfully" — a 14%-coverage night indistinguishable from a full one. These
+# tests pin the difference between "stopped cleanly" and "stopped cleanly and
+# admitted it".
+
+import importlib
+
+
+def _cli_with(monkeypatch, main_impl):
+    """Run the real _cli() against a stubbed main()."""
+    mod = importlib.import_module("cron.score_universe")
+    monkeypatch.setattr(mod, "main", main_impl)
+    return mod._cli()
+
+
+def test_crash_exits_non_zero(monkeypatch):
+    """A fatal exception must page, not report success.
+
+    The old handler printed the traceback and fell through to sys.exit(0), so
+    Render's failure notification — which this service is configured to send —
+    could never fire.
+    """
+    def boom():
+        raise RuntimeError("db unreachable")
+    assert _cli_with(monkeypatch, boom) == 1
+
+
+def test_clean_run_exits_zero(monkeypatch):
+    assert _cli_with(monkeypatch, lambda: None) == 0
+
+
+def test_shortfall_exit_code_is_opt_in(monkeypatch):
+    """--fail-on-shortfall propagates; without it a partial run still exits 0.
+
+    Guarding the default matters: the rest tier is designed to cover its
+    universe across --rotate-days, so failing on every partial run would page
+    nightly for intended behaviour.
+    """
+    def shortfall():
+        raise SystemExit(1)
+    assert _cli_with(monkeypatch, shortfall) == 1
+    assert _cli_with(monkeypatch, lambda: (_ for _ in ()).throw(SystemExit(0))) == 0
+
+
+@slow
+def test_truncated_run_reports_its_own_coverage():
+    """A memory-stopped run must self-report as incomplete."""
+    out = _run({"SCORE_MAX_RSS_MB": "50"}, "--tier", "core", "--budget", "50")
+    assert "memory_guard_reached" in out
+    assert "coverage_shortfall" in out
+    assert "stopped_early=True" in out
+    assert "stop_reason=memory" in out
+
+
+@slow
+def test_complete_run_reports_full_coverage():
+    """The counterpart: a run that finishes must not cry shortfall."""
+    out = _run({}, "--tier", "core", "--budget", "3")
+    assert "run_complete" in out
+    assert "stopped_early=False" in out
+    assert "coverage_pct=100.0" in out
+    assert "coverage_shortfall" not in out
