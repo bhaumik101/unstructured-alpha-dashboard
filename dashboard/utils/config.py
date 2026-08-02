@@ -703,12 +703,18 @@ SIGNALS = {
         "name": "Hyperscaler CapEx (MSFT+AMZN+GOOGL+META)",
         "tier": 2,
         "pcs": 8,
-        "source": "yfinance_multi",
+        # WAS: source "yfinance_multi" over the same four tickers, which routed
+        # to fetch_basket() — an equal-weight NORMALISED SHARE PRICE index. The
+        # signal was named CapEx, described as capital expenditure and cited to
+        # sec.gov while actually measuring share prices. It now reads the capex
+        # line those four companies actually file.
+        "source": "sec_xbrl_sum",
         "series_ids": ["MSFT", "AMZN", "GOOGL", "META"],
+        "xbrl_tag": "PaymentsToAcquirePropertyPlantAndEquipment",
         "frequency": "quarterly",
         "lag_weeks": 26,
         "inverse": False,
-        "unit": "Composite Index",
+        "unit": "USD (Quarterly CapEx, summed)",
         "description": "Composite index of trailing capital expenditure from the four major hyperscalers. Data center electricity consumption surged 50% in 2025. AI-focused data centers consuming power at 2.94x overall data center growth rate.",
         "causal_mechanism": "Hyperscaler capex is the cleanest demand signal for power infrastructure. Filing-to-delivery lag is 2–5 years — today's announcements forecast 2027–2030 power demand.",
         "documented_cases": [
@@ -718,7 +724,7 @@ SIGNALS = {
         "relevant_tickers": ["NVDA", "AMD", "SMCI", "DELL", "VRT", "ETN", "PWR", "EQIX", "DLR"],
         "category": "ai_infrastructure",
         "color": "#7C3AED",
-        "source_url": "https://www.sec.gov/cgi-bin/browse-edgar",
+        "source_url": "https://data.sec.gov/api/xbrl/companyconcept/",
     },
 
     "semiconductor_etf": {
