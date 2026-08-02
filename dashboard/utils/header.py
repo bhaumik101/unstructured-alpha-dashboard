@@ -3384,8 +3384,33 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
                             st.error("Could not clear notifications. Try again.")
 
 
-@st.cache_data(ttl=900, max_entries=1, show_spinner=False)
 def _fetch_ticker_strip():
+    """Header market snapshot, shared across processes.
+
+    The strip is identical for every visitor, so it has no business being
+    recomputed per process. Production PERF logs put page.home.header at 72-77%
+    of total render (max 2607ms) and the blocking `yf.download()` below is why:
+    @st.cache_data alone is per-process, so each fresh container and each
+    15-minute expiry made a real visitor wait out a Yahoo round-trip.
+
+    shared_cache serves a stale strip instantly while a single locked caller
+    refreshes, so at most one visitor per interval globally can ever wait. The
+    L1 st.cache_data below still absorbs repeat hits inside one process without
+    touching Redis at all.
+    """
+    from utils.shared_cache import get_or_refresh
+    return get_or_refresh("header_ticker_strip", _fetch_ticker_strip_uncached,
+                          fresh_seconds=900)
+
+
+@st.cache_data(ttl=60, max_entries=1, show_spinner=False)
+def _fetch_ticker_strip_cached():
+    """Per-process L1 in front of the shared cache (Redis round-trip is ~1ms,
+    but this keeps repeated reruns inside one session free)."""
+    return _fetch_ticker_strip()
+
+
+def _fetch_ticker_strip_uncached():
     """Fetch the header market snapshot in one batched provider request."""
     import pandas as pd
     import yfinance as yf
@@ -3444,7 +3469,7 @@ def _render_live_ticker_strip() -> None:
     Bloomberg/CNBC-style: symbol · price · ▲/▼ ±x.xx%, green=up red=down.
     Updates every 60 seconds via TTL cache.
     """
-    items = _fetch_ticker_strip()
+    items = _fetch_ticker_strip_cached()
     if not items:
         return
 
