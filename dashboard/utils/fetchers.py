@@ -525,7 +525,8 @@ def fetch_signal_series(cfg: dict, start: str, end: str,
     `point_in_time=True` returns the REAL-TIME (first-print) history for
     revisable sources instead of today's latest-revised values — the honest
     input for backtests/validation, which must only see data as it was known at
-    the time. Today only FRED supports this (via fetch_fred_first_print); prices
+    the time. FRED supports this via fetch_fred_first_print, and SEC XBRL via
+    each fact's filed date (see utils/sec_xbrl.py); prices
     are not revised, and the other providers have no clean vintage API, so those
     sources are returned unchanged and the flag makes NO false point-in-time
     claim about them. Live scoring must keep point_in_time=False: the current
@@ -566,6 +567,17 @@ def fetch_signal_series(cfg: dict, start: str, end: str,
                 else:
                     result = (combined.iloc[:, 0] / combined.iloc[:, 1])
                     result.name = "ratio"
+        elif src == "sec_xbrl_sum":
+            # Real reported fundamentals summed across filers. Unlike every
+            # other source here this one is natively point-in-time: each XBRL
+            # fact carries the date it was filed, so first_print is honest
+            # rather than best-effort.
+            from utils.sec_xbrl import fetch_sec_concept_sum
+            result = fetch_sec_concept_sum(
+                cfg.get("series_ids", []),
+                cfg.get("xbrl_tag", "PaymentsToAcquirePropertyPlantAndEquipment"),
+                first_print=point_in_time,
+            )
         elif src == "arxiv":
             result = fetch_arxiv_velocity(query=cfg.get("series_id", "quantum computing"))
         elif src == "fda":

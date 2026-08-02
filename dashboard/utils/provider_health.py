@@ -28,6 +28,7 @@ _PROVIDER_ALIASES = {
     "fed_fomc": "federal_reserve",
     "google": "google_trends",
     "sec": "sec_edgar",
+    "sec_xbrl_sum": "sec_edgar",
 }
 
 _EXPECTED_CADENCE = {
