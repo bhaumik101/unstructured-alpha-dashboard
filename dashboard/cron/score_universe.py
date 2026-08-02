@@ -205,6 +205,11 @@ def main() -> None:
                     help="stop cleanly before the host OOM-kills the process")
     ap.add_argument("--dry-run", action="store_true",
                     help="select + gate tickers but write nothing")
+    ap.add_argument("--fail-on-shortfall", action="store_true",
+                    help="exit non-zero when the run stops before covering its "
+                         "targets (off by default: the rest tier is DESIGNED to "
+                         "cover its universe over --rotate-days, so a partial "
+                         "run there is normal and would page every night)")
     args = ap.parse_args()
 
     t0 = time.monotonic()
@@ -268,6 +273,12 @@ def main() -> None:
     gate_reasons: dict[str, int] = {}
 
     stop_for_memory = False
+    # What a truncated run has to be able to say for itself. Without these the
+    # only trace of an early stop is a memory_guard_reached line further up the
+    # log, so run_complete reads identically whether the run covered 34 targets
+    # or all 249 — which is how a 14%-coverage night looked like a success.
+    stop_reason = ""
+    remaining_at_stop = 0
     for i in range(0, len(targets), CHUNK_SIZE):
         # Checked per chunk, in the same place as the deadline, because both are
         # "stop cleanly and keep what we have" conditions. Ordered before the
@@ -275,10 +286,12 @@ def main() -> None:
         # masked by a coincident timeout.
         if _memory_limit_reached(args.max_rss_mb, stats["scored"],
                                  len(targets) - i):
+            stop_reason, remaining_at_stop = "memory", len(targets) - i
             break
 
         if time.monotonic() > deadline:
             _log("deadline_reached", scored=stats["scored"])
+            stop_reason, remaining_at_stop = "deadline", len(targets) - i
             break
         chunk = tuple(targets[i:i + CHUNK_SIZE])
         stats["chunks"] += 1
@@ -298,6 +311,7 @@ def main() -> None:
                 remaining = len(targets) - (i + chunk_pos)
                 if _memory_limit_reached(args.max_rss_mb, stats["scored"], remaining):
                     stop_for_memory = True
+                    stop_reason, remaining_at_stop = "memory", remaining
                     break
             try:
                 series = prices.get(tkr)
@@ -337,13 +351,46 @@ def main() -> None:
         if stop_for_memory:
             break
 
+    covered = len(targets) - remaining_at_stop
+    coverage_pct = round(100.0 * covered / len(targets), 1) if targets else 100.0
     _log("run_complete", tier=args.tier, duration_s=round(time.monotonic() - t0, 1),
-         **stats, **{f"gate_{k}": v for k, v in gate_reasons.items()})
+         **stats,
+         stopped_early=bool(stop_reason), stop_reason=stop_reason or "none",
+         remaining=remaining_at_stop, coverage_pct=coverage_pct,
+         **{f"gate_{k}": v for k, v in gate_reasons.items()})
+
+    if stop_reason:
+        # A separate, greppable event so "did last night actually finish?" is one
+        # query rather than an eyeball over the whole log. The core tier is the
+        # one to watch: it is meant to be refreshed DAILY, so unlike rest it has
+        # no rotation window to make a partial run acceptable.
+        _log("coverage_shortfall", tier=args.tier, stop_reason=stop_reason,
+             covered=covered, targets=len(targets),
+             remaining=remaining_at_stop, coverage_pct=coverage_pct)
+        if args.fail_on_shortfall:
+            sys.exit(1)
+
+
+def _cli() -> int:
+    """Run main() and translate the outcome into an exit code.
+
+    Split out from the __main__ block so the exit-code contract is testable
+    without spawning a subprocess: the behaviour being protected here is
+    precisely the one that hid failures for weeks.
+    """
+    try:
+        main()
+    except SystemExit as exc:                     # --fail-on-shortfall, not a crash
+        return int(exc.code or 0)
+    except Exception as exc:
+        # This used to swallow the exception and exit 0, so a run that died on
+        # its first ticker still showed "finished successfully" in Render and
+        # never triggered the failure notification the service is configured to
+        # send. A crash is exactly the case that should page.
+        print(f"[score_universe] fatal: {exc}", file=sys.stderr, flush=True)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as exc:                      # never fail the cron loudly
-        print(f"[score_universe] fatal: {exc}", file=sys.stderr, flush=True)
-    sys.exit(0)
+    sys.exit(_cli())
