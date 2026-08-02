@@ -23,7 +23,7 @@ REQUIRED_SIGNAL_KEYS = {
 
 VALID_SOURCES = {"fred", "eia", "yfinance", "yfinance_basket", "yfinance_multi",
                  "yfinance_ratio", "arxiv", "fda", "google_trends", "fedspeaks",
-                 "ny_fed_gscpi"}
+                 "ny_fed_gscpi", "sec_xbrl_sum"}
 
 
 def test_every_signal_has_required_keys():
