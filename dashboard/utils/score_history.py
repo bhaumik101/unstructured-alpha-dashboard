@@ -22,7 +22,7 @@
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
 from utils import db
 from utils.db import score_snapshots, signal_snapshots, score_components, upsert_stmt
@@ -165,6 +165,63 @@ def get_latest_signal_states() -> dict[str, dict]:
     Used by global chrome such as the regime bar. It deliberately never calls
     a provider or computes signals: page headers must not turn every route into
     a hidden 47-source refresh. Returns an empty dict until snapshots accrue.
+
+    PERFORMANCE (fixed 2026-08-02). This used to `SELECT *` the whole
+    signal_snapshots table, sort it in the database, ship every row to Python,
+    and then discard all but the first occurrence of each signal_id. Production
+    PERF logs had page.home.persisted_snapshot at ~472ms average — and because
+    the table gains 47 rows every day, the read got slower forever: ~17k rows
+    after a year to return 47.
+
+    A window function keeps the work in the database and returns exactly one
+    row per signal. ROW_NUMBER's PARTITION/ORDER reproduces the previous
+    semantics precisely — same ordering keys, same "first wins" tie-break — so
+    the returned dict is unchanged. Window functions are supported by
+    PostgreSQL (production/Neon) and SQLite >= 3.25 (tests, local dev).
+
+    Any failure falls back to the original full-scan implementation rather than
+    returning nothing: a slow regime bar is recoverable, a blank one is a
+    visible product defect.
+    """
+    try:
+        # Built inside the try on purpose: if constructing the window
+        # expression fails at all, that must reach the fallback below rather
+        # than escaping to the caller.
+        ranked = (
+            select(
+                signal_snapshots,
+                func.row_number().over(
+                    partition_by=signal_snapshots.c.signal_id,
+                    # snapshot_date alone is decisive — (signal_id,
+                    # snapshot_date) is UNIQUE, so there is at most one row per
+                    # signal per day. created_at is kept purely to mirror the
+                    # previous query's ordering exactly, and would only matter
+                    # if that constraint were ever relaxed.
+                    order_by=(
+                        signal_snapshots.c.snapshot_date.desc(),
+                        signal_snapshots.c.created_at.desc(),
+                    ),
+                ).label("_rn"),
+            )
+            .subquery()
+        )
+        with db.engine.begin() as conn:
+            rows = conn.execute(
+                select(ranked).where(ranked.c._rn == 1)
+            ).mappings().all()
+        return {
+            str(row["signal_id"]): {k: v for k, v in row.items() if k != "_rn"}
+            for row in rows
+        }
+    except Exception:
+        return _get_latest_signal_states_fullscan()
+
+
+def _get_latest_signal_states_fullscan() -> dict[str, dict]:
+    """Pre-2026-08 full-table implementation, kept only as a fallback.
+
+    Correct but O(all rows). Reached only if the window-function query fails —
+    e.g. a SQLite older than 3.25. Never the normal path.
     """
     try:
         with db.engine.begin() as conn:
