@@ -21,6 +21,7 @@ SAFETY:
 Run from buildCommand AFTER `pip install`:  python scripts/inject_boot_splash.py
 """
 import json
+import hashlib
 import os
 import re
 import sys
@@ -574,7 +575,11 @@ def build_global_css() -> str:
 
 
 def write_global_css(static_dir: str) -> str | None:
-    """Write the combined stylesheet into Streamlit's served static dir."""
+    """Write the combined stylesheet into Streamlit's served static dir.
+
+    Returns a short content digest (not the path) so the <link> can be
+    cache-busted. See _inject_global_css_link for why that matters.
+    """
     try:
         os.makedirs(static_dir, exist_ok=True)
         css = build_global_css()
@@ -583,19 +588,35 @@ def write_global_css(static_dir: str) -> str | None:
         path = os.path.join(static_dir, GLOBAL_CSS_FILENAME)
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(css)
-        return path
+        return hashlib.sha256(css.encode("utf-8")).hexdigest()[:12]
     except Exception as exc:
         print(f"[boot-splash] global css not written: {exc}", flush=True)
         return None
 
 
-def _inject_global_css_link(html: str) -> tuple[str, str]:
-    """Add one <link> to the served index.html <head>, idempotently."""
+def _inject_global_css_link(html: str, digest: str = "") -> tuple[str, str]:
+    """Add one <link> to the served index.html <head>, idempotently.
+
+    CACHE BUSTING (added 2026-08-03). This file is served by Streamlit's static
+    handler, which sets NO cache-control header, and the filename is fixed. With
+    no explicit header a browser applies heuristic caching, so a returning
+    visitor can render a PREVIOUS deploy's stylesheet. That is not theoretical:
+    verifying the Inter typography change (#112), the origin was serving the new
+    CSS while a browser that had visited before still painted the old Fraunces
+    hero — it looked exactly like a failed deploy.
+
+    The filename and path are deliberately left byte-identical; only a query
+    string is appended. The comment above GLOBAL_CSS_HREF explains that only
+    `/app/static/<file>` serves the real file and warns against "simplifying"
+    that path — this keeps that resolution untouched while still changing the
+    URL whenever, and only whenever, the CSS actually changes.
+    """
     if _CSS_LINK_MARKER in html:
         return html, "css-link already present"
+    href = f"{GLOBAL_CSS_HREF}?v={digest}" if digest else GLOBAL_CSS_HREF
     tag = (
         f'{_CSS_LINK_MARKER}\n'
-        f'<link rel="stylesheet" href="{GLOBAL_CSS_HREF}">\n'
+        f'<link rel="stylesheet" href="{href}">\n'
     )
     if "</head>" not in html:
         return html, "css-link skipped (no </head>)"
@@ -624,8 +645,9 @@ def main() -> None:
         # serves at /app/static/). Only link it if the write actually succeeded,
         # so a failed build step can never leave the app pointing at a 404.
         _repo_static = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
-        if write_global_css(_repo_static):
-            new_html, css_action = _inject_global_css_link(new_html)
+        _css_digest = write_global_css(_repo_static)
+        if _css_digest:
+            new_html, css_action = _inject_global_css_link(new_html, _css_digest)
         else:
             css_action = "css-link skipped (stylesheet not written)"
 
