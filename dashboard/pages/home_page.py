@@ -534,7 +534,7 @@ try:
         _svg2 = _uac2.bar_h(_cats2, _vals2, max_v=100, colors=_cols2, W=620, H=max(150, 34 * len(_cats2) + 60))
         st.markdown(
             '<div style="max-width:900px;margin:26px auto 0;">'
-            '<div style="font-family:var(--ua-serif);font-size:1.35rem;font-weight:600;'
+            '<div style="font-family:var(--ua-display);font-size:1.35rem;font-weight:600;'
             'color:var(--ua-text,#ECEEF9);letter-spacing:-0.4px;">Where the macro is leaning, by domain.</div>'
             '<div style="font-family:Inter,sans-serif;font-size:0.84rem;color:var(--ua-muted,#9AA0BE);'
             'margin:4px 0 14px;line-height:1.6;">Average signal score in each domain — 50 is neutral, '
@@ -2023,7 +2023,7 @@ try:
                           x_title="Lead time (weeks ahead of price)")
         st.markdown(
             '<div style="max-width:840px;margin:40px auto 4px;">'
-            '<div style="font-family:var(--ua-serif);font-size:1.55rem;font-weight:600;'
+            '<div style="font-family:var(--ua-display);font-size:1.55rem;font-weight:600;'
             'color:var(--ua-text,#ECEEF9);letter-spacing:-.4px;line-height:1.1;">'
             f'{len(SIGNALS)} windows into the same market.</div>'
             '<div style="color:var(--ua-muted,#9AA0BE);font-size:.95rem;margin:8px 0 16px;'

@@ -54,7 +54,7 @@ def _sync_section_query(
 _CSS = """
 <style>
 /* preconnect hints injected via JS below for max speed */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700;800&display=swap&font-display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap&font-display=swap');
 
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root {
@@ -85,7 +85,13 @@ _CSS = """
     /* ── Redesign 2026-07: royal palette + editorial serif + chart tokens.
        Additive — existing surfaces keep their tokens; new/migrated surfaces
        use these. See memory redesign_2026_07. */
-    --ua-serif:      'Fraunces', Georgia, 'Times New Roman', serif;
+    /* Display face. Was Fraunces (see redesign_2026_07): an editorial serif
+       against Inter chrome. Unified on Inter 2026-08-02 — the app reads as one
+       system, and it now matches the marketing site, which never used Fraunces
+       at all. --ua-serif is kept as a deprecated alias so any surface missed by
+       grep resolves to Inter rather than a browser default serif. */
+    --ua-display:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --ua-serif:      var(--ua-display);
     --ua-royal:      #6470F5;
     --ua-royal-2:    #8B7BF7;
     --ua-royal-deep: #3B45C9;
@@ -909,8 +915,10 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
     display: flex; align-items: center; gap: 6px;
 }
 .ua-hero-title {
-    font-size: 2.05rem; font-weight: 600; color: var(--ua-text, #F3F6FC);
-    font-family: var(--ua-serif); letter-spacing: -0.4px; line-height: 1.08;
+    /* Inter at display size wants ~700 and tighter tracking; Fraunces' 600 /
+       -0.4px read as thin and loose once the serif was removed. */
+    font-size: 2.05rem; font-weight: 700; color: var(--ua-text, #F3F6FC);
+    font-family: var(--ua-display); letter-spacing: -0.9px; line-height: 1.06;
     max-width: 620px;
 }
 .ua-hero-sub {
