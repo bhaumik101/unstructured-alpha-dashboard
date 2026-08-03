@@ -125,3 +125,62 @@ def test_runtime_falls_back_to_inline_when_the_file_is_absent():
         pytest.skip("stylesheet present in this checkout; fallback path not exercised")
 
     assert header.global_stylesheet_available() is False
+
+
+# ── Cache busting ────────────────────────────────────────────────────────────
+#
+# Streamlit's static handler sets NO cache-control on ua-global.css and the
+# filename is fixed, so browsers cache it heuristically and a returning visitor
+# can paint a previous deploy's stylesheet. Observed live on 2026-08-03: the
+# origin was serving the new Inter typography from #112 while a browser that
+# had visited before still rendered the old Fraunces hero.
+
+
+def test_write_global_css_returns_a_content_digest():
+    """The digest is what makes the URL change. Without it the link falls back
+    to the bare href and the staleness returns silently."""
+    import tempfile
+    digest = ibs.write_global_css(tempfile.mkdtemp())
+    assert digest, "no digest — cache busting is inert"
+    assert len(digest) == 12 and all(c in "0123456789abcdef" for c in digest)
+
+
+def test_the_same_css_yields_the_same_url():
+    """Must NOT bust on every build, or the stylesheet is uncacheable and every
+    visitor re-downloads ~129KB on every visit — the opposite failure."""
+    import tempfile
+    a = ibs.write_global_css(tempfile.mkdtemp())
+    b = ibs.write_global_css(tempfile.mkdtemp())
+    assert a == b
+
+
+def test_changed_css_yields_a_different_url(monkeypatch):
+    """The property under test: edit the CSS, get a new URL."""
+    import tempfile
+    before = ibs.write_global_css(tempfile.mkdtemp())
+    real = ibs.build_global_css
+    monkeypatch.setattr(ibs, "build_global_css", lambda: real() + "\n.ua-x{color:red}")
+    after = ibs.write_global_css(tempfile.mkdtemp())
+    assert before != after, "CSS changed but the URL did not — visitors keep the stale file"
+
+
+def test_injected_link_carries_the_digest_and_keeps_the_served_path():
+    """Path resolution must stay byte-identical.
+
+    Only /app/static/<file> returns the real file; the query string is appended
+    so the URL changes without touching the prefix the module warns about.
+    """
+    out, action = ibs._inject_global_css_link("<html><head></head></html>", "abc123def456")
+    assert "css-link injected" == action
+    assert 'href="/app/static/ua-global.css?v=abc123def456"' in out
+
+
+def test_link_still_emitted_when_no_digest_is_available():
+    """Degrade to today's behaviour rather than dropping the stylesheet.
+
+    A missing digest must never mean a missing <link> — an unstyled app is far
+    worse than a stale one.
+    """
+    out, _ = ibs._inject_global_css_link("<html><head></head></html>", "")
+    assert 'href="/app/static/ua-global.css"' in out
+    assert "?v=" not in out
