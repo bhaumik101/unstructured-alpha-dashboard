@@ -205,12 +205,23 @@ def main() -> None:
                     help="stop cleanly before the host OOM-kills the process")
     ap.add_argument("--dry-run", action="store_true",
                     help="select + gate tickers but write nothing")
+    ap.add_argument("--passes", type=int, default=1,
+                    help="run the scorer this many times in FRESH subprocesses. "
+                         "The memory guard is what limits a run, and the biggest "
+                         "consumer is the import baseline, which a new process "
+                         "resets for free. Default 1 = previous behaviour.")
+    ap.add_argument("--status-file", default="",
+                    help="internal: child writes its result here for the supervisor")
     ap.add_argument("--fail-on-shortfall", action="store_true",
                     help="exit non-zero when the run stops before covering its "
                          "targets (off by default: the rest tier is DESIGNED to "
                          "cover its universe over --rotate-days, so a partial "
                          "run there is normal and would page every night)")
     args = ap.parse_args()
+
+    if args.passes > 1:
+        _supervise(args)
+        return
 
     t0 = time.monotonic()
     deadline = t0 + args.deadline_min * 60
@@ -359,6 +370,19 @@ def main() -> None:
          remaining=remaining_at_stop, coverage_pct=coverage_pct,
          **{f"gate_{k}": v for k, v in gate_reasons.items()})
 
+    if args.status_file:
+        # The supervisor needs to know whether progress was made and whether
+        # anything is left; parsing our own log line would be brittle.
+        try:
+            import json
+            with open(args.status_file, "w", encoding="utf-8") as fh:
+                json.dump({"scored": stats["scored"], "written": stats["written"],
+                           "remaining": remaining_at_stop,
+                           "stop_reason": stop_reason or "none",
+                           "targets": len(targets)}, fh)
+        except Exception as exc:
+            _log("status_write_failed", error=str(exc)[:120])
+
     if stop_reason:
         # A separate, greppable event so "did last night actually finish?" is one
         # query rather than an eyeball over the whole log. The core tier is the
@@ -369,6 +393,82 @@ def main() -> None:
              remaining=remaining_at_stop, coverage_pct=coverage_pct)
         if args.fail_on_shortfall:
             sys.exit(1)
+
+
+def _supervise(args) -> None:
+    """Run the scorer repeatedly in fresh processes until coverage or deadline.
+
+    WHY SUBPROCESSES. Stalest-first ordering already made runs resume across
+    NIGHTS — that is not the gap. The gap is throughput WITHIN one night:
+    production logs show score-core reaching 404.8MB and stopping after 34 of
+    249 targets, because the import baseline (streamlit, pandas, scipy,
+    yfinance) consumes most of the 390MB budget before any ticker is scored.
+    Nothing inside the process can give that baseline back — gc and cache
+    clearing only reclaim what the run itself allocated.
+
+    Exiting does give it back. Each pass starts at baseline, scores until the
+    guard, and dies; the OS reclaims everything. Stalest-first then makes the
+    next pass begin exactly where the last one stopped, so N passes cover
+    roughly N times as many tickers for the price of N process starts.
+
+    Stops early on: nothing left, no progress (guard trips before a single
+    ticker — more passes cannot help), or the shared wall-clock deadline.
+    """
+    import json
+    import subprocess
+    import tempfile
+
+    started = time.monotonic()
+    deadline = started + args.deadline_min * 60
+    base = [sys.executable, "-m", "cron.score_universe",
+            "--tier", args.tier,
+            "--rotate-days", str(args.rotate_days),
+            "--budget", str(args.budget),
+            "--max-rss-mb", str(args.max_rss_mb)]
+    if args.dry_run:
+        base.append("--dry-run")
+
+    totals = {"scored": 0, "written": 0, "passes": 0}
+    for n in range(1, args.passes + 1):
+        left_min = (deadline - time.monotonic()) / 60
+        if left_min <= 1:
+            _log("supervisor_deadline", completed_passes=n - 1)
+            break
+
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as fh:
+            status_path = fh.name
+        cmd = base + ["--deadline-min", str(max(1, int(left_min))),
+                      "--status-file", status_path]
+        try:
+            subprocess.run(cmd, check=False, timeout=max(60, left_min * 60))
+            with open(status_path, "r", encoding="utf-8") as fh:
+                st = json.load(fh)
+        except Exception as exc:
+            _log("pass_failed", pass_n=n, error=str(exc)[:120])
+            break
+        finally:
+            try:
+                os.unlink(status_path)
+            except Exception:
+                pass
+
+        totals["scored"] += int(st.get("scored", 0))
+        totals["written"] += int(st.get("written", 0))
+        totals["passes"] = n
+        _log("pass_complete", pass_n=n, scored=st.get("scored"),
+             remaining=st.get("remaining"), stop_reason=st.get("stop_reason"))
+
+        if int(st.get("remaining", 0)) <= 0:
+            _log("supervisor_complete", reason="nothing_remaining")
+            break
+        if int(st.get("scored", 0)) == 0:
+            # The guard tripped before a single ticker was scored. A further
+            # pass would start from the same baseline and do the same thing.
+            _log("supervisor_stopped", reason="no_progress_in_pass")
+            break
+
+    _log("supervisor_summary", tier=args.tier, **totals,
+         duration_s=round(time.monotonic() - started, 1))
 
 
 def _cli() -> int:
