@@ -842,7 +842,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <a href={`${APP_URL}/pages/29_Upgrade`}
+                <a href={`${APP_URL}/upgrade-to-pro`}
                    style={{ display: "block", textAlign: "center", padding: "13px", borderRadius: 10,
                             background: T.purple, color: "#fff", fontSize: 14, fontWeight: 700,
                             transition: "all 0.2s ease", boxShadow: "0 4px 20px rgba(124,58,237,0.35)" }}>
@@ -1033,9 +1033,9 @@ export default function Home() {
                   Legal
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <a href={`${APP_URL}/pages/36_Privacy_Policy`}   style={{ color: T.dimmer, fontSize: 13 }}>Privacy Policy</a>
-                  <a href={`${APP_URL}/pages/37_Terms_of_Service`} style={{ color: T.dimmer, fontSize: 13 }}>Terms of Service</a>
-                  <a href={`${APP_URL}/pages/8_About`}             style={{ color: T.dimmer, fontSize: 13 }}>About</a>
+                  <a href={`${APP_URL}/privacy-terms`}   style={{ color: T.dimmer, fontSize: 13 }}>Privacy Policy</a>
+                  <a href={`${APP_URL}/privacy-terms`} style={{ color: T.dimmer, fontSize: 13 }}>Terms of Service</a>
+                  <a href={`${APP_URL}/about-methodology`}             style={{ color: T.dimmer, fontSize: 13 }}>About</a>
                   <a href="#faq"                                    style={{ color: T.dimmer, fontSize: 13 }}>FAQ</a>
                 </div>
               </div>
@@ -1058,8 +1058,8 @@ export default function Home() {
                 © {new Date().getFullYear()} Unstructured Alpha. All rights reserved.
               </p>
               <div style={{ display: "flex", gap: 20 }}>
-                <a href={`${APP_URL}/pages/36_Privacy_Policy`}   style={{ color: T.dimmer, fontSize: 12 }}>Privacy</a>
-                <a href={`${APP_URL}/pages/37_Terms_of_Service`} style={{ color: T.dimmer, fontSize: 12 }}>Terms</a>
+                <a href={`${APP_URL}/privacy-terms`}   style={{ color: T.dimmer, fontSize: 12 }}>Privacy</a>
+                <a href={`${APP_URL}/privacy-terms`} style={{ color: T.dimmer, fontSize: 12 }}>Terms</a>
               </div>
             </div>
           </div>
