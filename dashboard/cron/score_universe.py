@@ -94,6 +94,21 @@ def _rss_mb() -> float:
         return 0.0
 
 
+def _headroom(ready_mb: float, limit_mb: int):
+    """Working room left above fixed startup cost — or "unknown" if RSS is unreadable.
+
+    _rss_mb() returns 0.0 when it cannot read the process, so a naive
+    `limit - ready` would report the FULL budget as available for a process we
+    know nothing about. That is the same shape of lie as the exit-0 that hid
+    truncated runs for weeks: a missing measurement rendered as a healthy one.
+    Unknown has to look unknown, because this number is what decides whether to
+    buy a bigger instance.
+    """
+    if not ready_mb or ready_mb <= 0:
+        return "unknown"
+    return round(limit_mb - ready_mb, 1)
+
+
 def score_kind_for_tier(tier: str) -> str:
     """Which score_kind a tier writes. Single definition, used for both the
     write and the staleness lookup so the two can never disagree."""
@@ -226,6 +241,14 @@ def main() -> None:
     t0 = time.monotonic()
     deadline = t0 + args.deadline_min * 60
 
+    # Memory budget accounting. The guard says WHEN a run stopped but never WHERE
+    # the budget went, and that distinction decides the fix: if the import baseline
+    # already sits near --max-rss-mb there is almost no working room, so more
+    # --passes buys little and the instance has to grow; if the baseline is low,
+    # passes are free and sufficient. scripts/measure_cron_memory.py recorded 208MB
+    # of imports, but that predates a lot of code — measure in the process that
+    # actually runs rather than trusting a stale note.
+    rss_interpreter = round(_rss_mb(), 1)
     from utils.db import init_db
     from utils.scoring_universe import (
         build_scoring_universe, qualifies_on_price, OK,
@@ -239,6 +262,7 @@ def main() -> None:
         release_memory = lambda: None            # noqa: E731
 
     init_db()
+    rss_imports = round(_rss_mb(), 1)
 
     universe = build_scoring_universe()
     scoreable = universe["scoreable"]
@@ -276,14 +300,22 @@ def main() -> None:
     # never drift from the kind it treats as already-covered.
     score_kind = score_kind_for_tier(args.tier)
 
+    rss_ready = round(_rss_mb(), 1)
     _log("run_start", tier=args.tier, universe=len(scoreable), core=len(core),
-         targets=len(targets), score_kind=score_kind, dry_run=args.dry_run)
+         targets=len(targets), score_kind=score_kind, dry_run=args.dry_run,
+         rss_interpreter_mb=rss_interpreter, rss_imports_mb=rss_imports,
+         rss_ready_mb=rss_ready, rss_limit_mb=args.max_rss_mb,
+         # What is actually available for scoring work. This is the number that
+         # decides passes-vs-instance; everything above it is fixed cost that a
+         # fresh subprocess re-pays on every pass.
+         rss_headroom_mb=_headroom(rss_ready, args.max_rss_mb))
 
     start_px, end_px = price_window()
     stats = {"scored": 0, "written": 0, "gated": 0, "failed": 0, "chunks": 0}
     gate_reasons: dict[str, int] = {}
 
     stop_for_memory = False
+    rss_peak = rss_ready
     # What a truncated run has to be able to say for itself. Without these the
     # only trace of an early stop is a memory_guard_reached line further up the
     # log, so run_complete reads identically whether the run covered 34 targets
@@ -306,6 +338,7 @@ def main() -> None:
             break
         chunk = tuple(targets[i:i + CHUNK_SIZE])
         stats["chunks"] += 1
+        rss_peak = max(rss_peak, round(_rss_mb(), 1))
         try:
             prices = fetch_prices_batch(chunk, start_px, end_px)
         except Exception as exc:
@@ -319,6 +352,7 @@ def main() -> None:
             # chunk and trim periodically so completed snapshots survive.
             if chunk_pos and chunk_pos % MEMORY_CHECK_EVERY == 0:
                 release_memory()
+                rss_peak = max(rss_peak, round(_rss_mb(), 1))
                 remaining = len(targets) - (i + chunk_pos)
                 if _memory_limit_reached(args.max_rss_mb, stats["scored"], remaining):
                     stop_for_memory = True
@@ -368,6 +402,9 @@ def main() -> None:
          **stats,
          stopped_early=bool(stop_reason), stop_reason=stop_reason or "none",
          remaining=remaining_at_stop, coverage_pct=coverage_pct,
+         rss_ready_mb=rss_ready, rss_peak_mb=rss_peak,
+         # Growth attributable to scoring work, as opposed to fixed startup cost.
+         rss_work_mb=round(rss_peak - rss_ready, 1),
          **{f"gate_{k}": v for k, v in gate_reasons.items()})
 
     if args.status_file:
