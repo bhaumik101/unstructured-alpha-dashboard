@@ -231,7 +231,7 @@ services:
     rootDir: dashboard
     schedule: "40 5 * * 1,3,5"
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m cron.score_universe --tier rest --rotate-days 1 --budget 600 --deadline-min 25 --passes 4
+    startCommand: python -m cron.score_universe --tier rest --rotate-days 1 --budget 250 --deadline-min 40 --passes 10
     envVars:
       - key: DATABASE_URL
         sync: false

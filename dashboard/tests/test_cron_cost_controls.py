@@ -46,9 +46,48 @@ def test_rest_scorer_has_safe_memory_headroom_and_reduced_cadence():
     rest = _cron_services()["unstructured-alpha-score-rest"]
     env = {row["key"]: row.get("value") for row in rest["envVars"]}
     assert rest["schedule"] == "40 5 * * 1,3,5"
-    assert "--budget 600" in rest["startCommand"]
-    assert "--deadline-min 25" in rest["startCommand"]
     assert int(env["SCORE_MAX_RSS_MB"]) <= 390
+
+
+def _flag(command: str, name: str) -> int:
+    parts = command.split()
+    return int(parts[parts.index(name) + 1])
+
+
+def test_rest_budget_does_not_exceed_measured_per_pass_capacity():
+    """--budget must stay near what ONE pass can actually finish.
+
+    Measured on Render 2026-08-05 from the run_start/run_complete breakdown
+    that PR #117 added:
+
+        rss_ready_mb=275.2  rss_limit_mb=390  rss_headroom_mb=114.8
+        run_complete ... scored=185 gated=30  rss_peak_mb=391.6  rss_work_mb=116.4
+
+    A pass starts having already spent 70.6% of the guard on imports, and the
+    114.8MB left carried 215 targets before it tripped. Capacity per pass is
+    therefore ~215, NOT the budget.
+
+    Targets are re-selected stalest-first at the START of every pass, so with
+    --budget 600 the pass-2 list is 600 long while only ~215 are reachable and
+    the rest of the slots go to tickers this same run already scored. That is
+    how the 2026-08-04 run wrote 516 rows and still ended with remaining=525.
+    score-core converges because its budget (250) sits near per-pass capacity;
+    keep rest the same shape rather than leaving it a coincidence.
+    """
+    rest = _cron_services()["unstructured-alpha-score-rest"]
+    cmd = rest["startCommand"]
+    budget = _flag(cmd, "--budget")
+    passes = _flag(cmd, "--passes")
+    deadline = _flag(cmd, "--deadline-min")
+
+    assert budget <= 300, (
+        f"--budget {budget} exceeds the ~215 targets one pass can finish; "
+        "later passes will refill their slots with already-scored tickers"
+    )
+    assert passes >= 8, "coverage now comes from passes, not from a big budget"
+    assert deadline * 60 >= passes * 229 * 0.9, (
+        f"--deadline-min {deadline} cannot fit {passes} passes at ~229s each"
+    )
 
 
 def test_threshold_dispatcher_evaluates_each_user_once(monkeypatch):
