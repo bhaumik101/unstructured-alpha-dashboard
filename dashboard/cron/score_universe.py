@@ -115,7 +115,8 @@ def score_kind_for_tier(tier: str) -> str:
     return "full" if tier == "core" else "macro_momentum"
 
 
-def _stalest_first(targets: list[str], score_kind: str) -> list[str]:
+def _stalest_first(targets: list[str], score_kind: str,
+                   last_seen: dict | None = None) -> list[str]:
     """Order by least-recently-scored, never-scored first.
 
     A run that stops early — on budget, deadline or the memory guard — must not
@@ -130,6 +131,21 @@ def _stalest_first(targets: list[str], score_kind: str) -> list[str]:
     Any failure returns the input order unchanged — a lookup problem should
     degrade to the old behaviour, not stop the run.
     """
+    last_seen = _last_seen_map(score_kind) if last_seen is None else last_seen
+    if last_seen is None:
+        return targets
+
+    # "" sorts before any real date, so never-scored tickers come first.
+    return sorted(targets, key=lambda t: (last_seen.get(t, ""), t))
+
+
+def _last_seen_map(score_kind: str) -> dict | None:
+    """ticker -> most recent snapshot_date for this kind, or None if unavailable.
+
+    None means "we could not find out", which callers must treat differently
+    from "nothing is fresh" — guessing the latter would stop a run that still
+    had work to do.
+    """
     try:
         from sqlalchemy import text
         from utils.db import engine
@@ -141,13 +157,24 @@ def _stalest_first(targets: list[str], score_kind: str) -> list[str]:
                 WHERE score_kind = :kind OR (:kind = 'full' AND score_kind IS NULL)
                 GROUP BY ticker
             """), {"kind": score_kind}).fetchall()
-        last_seen = {r[0]: (r[1] or "") for r in rows}
+        return {r[0]: (r[1] or "") for r in rows}
     except Exception as exc:
         _log("staleness_lookup_failed", error=str(exc)[:120])
-        return targets
+        return None
 
-    # "" sorts before any real date, so never-scored tickers come first.
-    return sorted(targets, key=lambda t: (last_seen.get(t, ""), t))
+
+def _count_fresh(targets: list[str], last_seen: dict | None, today: str) -> int:
+    """How many of THIS pass's targets already carry today's snapshot.
+
+    This is what tells the supervisor the universe is covered. A pass whose
+    entire stalest-first slice is already fresh means there is nothing older
+    left to reach, so further passes would only rescore today's work.
+
+    Unknown staleness returns 0 — never stop early on missing information.
+    """
+    if not last_seen:
+        return 0
+    return sum(1 for t in targets if last_seen.get(t, "") >= today)
 
 
 def _log(event: str, **fields):
@@ -284,8 +311,14 @@ def main() -> None:
     # reached no matter how many nights the cron ran. Ordering by least-recently
     # scored means each run resumes where the last one gave up, and coverage
     # fills in over successive days.
-    targets = _stalest_first(targets, score_kind_for_tier(args.tier))
+    _last_seen = _last_seen_map(score_kind_for_tier(args.tier))
+    targets = _stalest_first(targets, score_kind_for_tier(args.tier), _last_seen)
     targets = targets[: args.budget]
+    # Computed on the SLICE this pass will actually attempt, before scoring.
+    # If every one of them is already fresh, the universe has no staler work
+    # left and the supervisor should stop rather than rescore today's rows.
+    _today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    already_fresh = _count_fresh(targets, _last_seen, _today)
 
     # WHICH score this run produces — these are DIFFERENT metrics, not two
     # precisions of the same one (measured on AAPL: 45.6 full vs 56.3 macro-only),
@@ -308,7 +341,8 @@ def main() -> None:
          # What is actually available for scoring work. This is the number that
          # decides passes-vs-instance; everything above it is fixed cost that a
          # fresh subprocess re-pays on every pass.
-         rss_headroom_mb=_headroom(rss_ready, args.max_rss_mb))
+         rss_headroom_mb=_headroom(rss_ready, args.max_rss_mb),
+         already_fresh=already_fresh)
 
     start_px, end_px = price_window()
     stats = {"scored": 0, "written": 0, "gated": 0, "failed": 0, "chunks": 0}
@@ -416,6 +450,7 @@ def main() -> None:
                 json.dump({"scored": stats["scored"], "written": stats["written"],
                            "remaining": remaining_at_stop,
                            "stop_reason": stop_reason or "none",
+                           "already_fresh": already_fresh,
                            "targets": len(targets)}, fh)
         except Exception as exc:
             _log("status_write_failed", error=str(exc)[:120])
@@ -448,8 +483,13 @@ def _supervise(args) -> None:
     next pass begin exactly where the last one stopped, so N passes cover
     roughly N times as many tickers for the price of N process starts.
 
-    Stops early on: nothing left, no progress (guard trips before a single
-    ticker — more passes cannot help), or the shared wall-clock deadline.
+    Stops early on: a stalest-first slice that is ALREADY entirely fresh (the
+    universe has no staler work left), no progress (the guard tripped before a
+    single ticker, so another pass would repeat it), or the shared deadline.
+
+    Deliberately NOT on "this pass finished its list". That slice is only
+    --budget long, and once budget was tuned to per-pass capacity every healthy
+    pass finished it, which stopped the supervisor after one pass.
     """
     import json
     import subprocess
@@ -495,8 +535,16 @@ def _supervise(args) -> None:
         _log("pass_complete", pass_n=n, scored=st.get("scored"),
              remaining=st.get("remaining"), stop_reason=st.get("stop_reason"))
 
-        if int(st.get("remaining", 0)) <= 0:
-            _log("supervisor_complete", reason="nothing_remaining")
+        # NOT `remaining <= 0`. `remaining` counts what is left of THIS pass's
+        # budgeted slice, so once --budget was tuned down to per-pass capacity
+        # every healthy pass ended at 0 and the supervisor stopped after pass 1
+        # — burning one pass of ten and 184s of a 2400s deadline. Coverage comes
+        # from launching another pass against a freshly re-selected stalest
+        # slice; the run is only genuinely done when that slice is all fresh.
+        fresh, attempted = int(st.get("already_fresh", 0)), int(st.get("targets", 0))
+        if attempted > 0 and fresh >= attempted:
+            _log("supervisor_complete", reason="universe_fresh",
+                 already_fresh=fresh, targets=attempted)
             break
         if int(st.get("scored", 0)) == 0:
             # The guard tripped before a single ticker was scored. A further

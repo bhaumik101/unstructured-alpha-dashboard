@@ -64,12 +64,72 @@ def test_runs_each_pass_in_a_separate_process(monkeypatch):
         assert "--passes" not in cmd
 
 
-def test_stops_as_soon_as_nothing_remains(monkeypatch):
-    """Don't pay for process starts after coverage is complete."""
-    rec = _run(monkeypatch, [{"scored": 34, "remaining": 100},
-                             {"scored": 100, "remaining": 0},
-                             {"scored": 9, "remaining": 9}], passes=4)
+def test_finishing_a_budget_slice_does_not_stop_the_run(monkeypatch):
+    """`remaining == 0` means "this pass finished ITS 250", not "universe done".
+
+    This was a real production regression. Once --budget was tuned down to the
+    ~215 targets one pass can physically finish, every healthy pass ended with
+    remaining=0, the supervisor read that as completion, and score-rest stopped
+    after ONE pass of ten — using 184s of a 2400s deadline. Coverage comes from
+    launching another pass against a freshly re-selected stalest slice.
+    """
+    rec = _run(monkeypatch, [{"scored": 218, "remaining": 0, "already_fresh": 0, "targets": 250},
+                             {"scored": 214, "remaining": 0, "already_fresh": 0, "targets": 250},
+                             {"scored": 209, "remaining": 0, "already_fresh": 0, "targets": 250}],
+               passes=3)
+    assert len(rec.calls) == 3, (
+        "a completed budget slice must not end the run while time and passes remain")
+
+
+def test_stops_when_the_stalest_slice_is_already_fresh(monkeypatch):
+    """The honest completion signal: nothing staler left to reach.
+
+    Targets are re-selected stalest-first each pass, so if even the STALEST
+    slice already carries today's date, every remaining pass would only rescore
+    today's work.
+    """
+    rec = _run(monkeypatch, [{"scored": 218, "remaining": 0, "already_fresh": 0, "targets": 250},
+                             {"scored": 0, "remaining": 0, "already_fresh": 250, "targets": 250},
+                             {"scored": 99, "remaining": 0, "already_fresh": 0, "targets": 250}],
+               passes=4)
     assert len(rec.calls) == 2
+
+
+def test_a_partly_fresh_slice_keeps_going(monkeypatch):
+    """Only a FULLY fresh slice means done — 249 of 250 still leaves work."""
+    rec = _run(monkeypatch, [{"scored": 10, "remaining": 0, "already_fresh": 249, "targets": 250},
+                             {"scored": 10, "remaining": 0, "already_fresh": 250, "targets": 250},
+                             {"scored": 10, "remaining": 0, "already_fresh": 0, "targets": 250}],
+               passes=4)
+    assert len(rec.calls) == 2
+
+
+def test_missing_freshness_information_never_stops_the_run(monkeypatch):
+    """An old child, or a failed staleness lookup, reports no already_fresh.
+
+    Absent information must not read as "everything is fresh" — that would
+    silently reinstate the one-pass-and-quit bug. _count_fresh returns 0 when
+    the lookup fails, and the supervisor treats targets=0 as unknown.
+    """
+    rec = _run(monkeypatch, [{"scored": 50, "remaining": 0},
+                             {"scored": 50, "remaining": 0},
+                             {"scored": 50, "remaining": 0}], passes=3)
+    assert len(rec.calls) == 3
+
+
+class TestCountFresh:
+    def test_counts_only_targets_carrying_todays_date(self):
+        seen = {"A": "2026-08-06", "B": "2026-08-01", "C": ""}
+        assert su._count_fresh(["A", "B", "C"], seen, "2026-08-06") == 1
+
+    def test_unknown_staleness_counts_as_not_fresh(self):
+        # None = "could not find out". Returning len(targets) here would stop
+        # the supervisor on ignorance.
+        assert su._count_fresh(["A", "B"], None, "2026-08-06") == 0
+        assert su._count_fresh(["A", "B"], {}, "2026-08-06") == 0
+
+    def test_a_future_dated_snapshot_still_counts_as_fresh(self):
+        assert su._count_fresh(["A"], {"A": "2026-08-07"}, "2026-08-06") == 1
 
 
 def test_stops_when_a_pass_makes_no_progress(monkeypatch):
