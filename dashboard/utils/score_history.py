@@ -25,7 +25,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, or_, select
 
 from utils import db
-from utils.db import score_snapshots, signal_snapshots, score_components, upsert_stmt
+from utils.db import (score_snapshots, signal_snapshots, score_components,
+                      scoring_gate_log, upsert_stmt)
 from utils.lead_time_research import get_sector_peers
 
 
@@ -67,6 +68,35 @@ def record_score_snapshot(ticker: str, score: float, case: str, conviction: str,
         )
     with db.engine.begin() as conn:
         conn.execute(stmt)
+
+
+def record_gate_outcome(ticker: str, reason: str) -> None:
+    """Record that `ticker` was examined today and rejected before scoring.
+
+    This is what stops the scorer re-attempting the same ungateable tickers on
+    every pass. A gated ticker never earns a score_snapshots row, so without
+    this its "last seen" date stays empty, and empty sorts ahead of every real
+    date in the stalest-first ordering — pinning it to the head of the queue
+    permanently. Recording the check lets it rotate to the back instead.
+
+    Upserted on (ticker, checked_date), so re-checking the same day overwrites
+    rather than accumulating. Failures are swallowed: a bookkeeping write must
+    never abort a scoring run.
+    """
+    ticker = ticker.upper().strip()
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    try:
+        stmt = upsert_stmt(scoring_gate_log, ["ticker", "checked_date"]).values(
+            ticker=ticker, checked_date=today, reason=reason, created_at=now_iso,
+        ).on_conflict_do_update(
+            index_elements=["ticker", "checked_date"],
+            set_={"reason": reason, "created_at": now_iso},
+        )
+        with db.engine.begin() as conn:
+            conn.execute(stmt)
+    except Exception:
+        pass
 
 
 def record_score_components(ticker: str, components: dict) -> None:
