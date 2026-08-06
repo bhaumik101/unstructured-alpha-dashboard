@@ -157,7 +157,25 @@ def _last_seen_map(score_kind: str) -> dict | None:
                 WHERE score_kind = :kind OR (:kind = 'full' AND score_kind IS NULL)
                 GROUP BY ticker
             """), {"kind": score_kind}).fetchall()
-        return {r[0]: (r[1] or "") for r in rows}
+            seen = {r[0]: (r[1] or "") for r in rows}
+
+            # A gated ticker produces no score row, so on scores alone its date
+            # stays "" and sorts ahead of everything forever. Fold in the day it
+            # was last EXAMINED so rejects rotate like any other ticker. Kept in
+            # its own try: a missing gate table (older database) must degrade to
+            # score-only ordering, not wipe out the staleness map entirely.
+            try:
+                gate = conn.execute(text("""
+                    SELECT ticker, MAX(checked_date) AS last_checked
+                    FROM scoring_gate_log
+                    GROUP BY ticker
+                """)).fetchall()
+                for tkr, checked in gate:
+                    if checked and checked > seen.get(tkr, ""):
+                        seen[tkr] = checked
+            except Exception as exc:
+                _log("gate_log_lookup_failed", error=str(exc)[:120])
+        return seen
     except Exception as exc:
         _log("staleness_lookup_failed", error=str(exc)[:120])
         return None
@@ -282,7 +300,7 @@ def main() -> None:
     )
     from utils.ticker_score import compute_full_ticker_score, price_window
     from utils.fetchers import fetch_prices_batch
-    from utils.score_history import record_score_snapshot
+    from utils.score_history import record_score_snapshot, record_gate_outcome
     try:
         from utils.memory import release_memory
     except Exception:
@@ -398,6 +416,12 @@ def main() -> None:
                 if reason != OK:
                     stats["gated"] += 1
                     gate_reasons[reason] = gate_reasons.get(reason, 0) + 1
+                    # Without this the ticker never earns a dated row, so
+                    # stalest-first pins it at the head of the queue forever and
+                    # every later pass re-downloads its prices to reject it
+                    # again. Recording the check rotates it to the back.
+                    if not args.dry_run:
+                        record_gate_outcome(tkr, reason)
                     continue
                 full = compute_full_ticker_score(tkr, price_series=series,
                                                  include_optional=want_optional)
