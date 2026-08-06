@@ -470,6 +470,36 @@ score_snapshots = Table(
 )
 
 
+# Gate outcomes for the scoring universe (added 2026-08-06). Records that a
+# ticker WAS examined on a given day and rejected before scoring, and why.
+#
+# WHY THIS EXISTS. cron/score_universe.py orders its targets stalest-first,
+# using the newest score_snapshots row per ticker. A gated ticker never gets a
+# snapshot row, so its "last seen" stayed empty forever — and an empty date
+# sorts before every real one. The permanently-ungateable tickers were therefore
+# pinned to the head of the queue and re-fetched on EVERY pass: a live run on
+# 2026-08-06 spent three of its eight passes scoring one ticker apiece while
+# re-downloading prices for the same rejects.
+#
+# Writing "checked today, rejected" here lets the scorer treat those tickers as
+# seen, so they rotate to the back like everything else. Deliberately a separate
+# table rather than a sentinel row in score_snapshots: that table feeds the
+# product's scores and must not carry entries that are not scores.
+#
+# Rotation, not exclusion — a ticker that later climbs back above the price
+# floor or accumulates enough history simply comes round again on its next turn.
+# Brand-new table, so plain create_all() is sufficient.
+scoring_gate_log = Table(
+    "scoring_gate_log", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("ticker", String(16), nullable=False),
+    Column("checked_date", String(10), nullable=False),   # YYYY-MM-DD, UTC
+    Column("reason", String(40), nullable=False),         # sub_dollar_price / insufficient_history / no_price_data
+    Column("created_at", String(64), nullable=False),
+    UniqueConstraint("ticker", "checked_date", name="uq_scoring_gate_ticker_date"),
+)
+
+
 # Daily signal status snapshots (added 2026-06-23). Parallel to
 # score_snapshots but for individual signals rather than per-ticker
 # confluence scores. Keyed by (signal_id, snapshot_date). Upserted by
