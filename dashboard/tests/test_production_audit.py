@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from utils.production_audit import _check_network_timeouts, run_production_audit
+from utils.production_audit import (MAX_CRON_SERVICES, _check_network_timeouts,
+                                    run_production_audit)
 
 
 DASHBOARD = Path(__file__).resolve().parent.parent
@@ -16,7 +17,11 @@ def test_current_repository_passes_production_audit():
     report = run_production_audit(DASHBOARD)
     assert report.ok, report.to_json()
     assert report.checks["routes"]["active_routes"] >= 25
-    assert report.checks["blueprint"]["cron_services"] <= 13
+    # Reference the constant rather than repeating the number. This literal was
+    # a third copy of the budget — the audit module, test_cron_cost_controls and
+    # here — so adding one cron meant three separate edits and two red tests
+    # before anyone noticed the duplication.
+    assert report.checks["blueprint"]["cron_services"] <= MAX_CRON_SERVICES
     assert report.checks["network_bounds"]["external_calls_checked"] > 0
     assert report.checks["network_bounds"]["max_timeout_seconds"] <= 30
     assert report.checks["cache_bounds"]["provider_caches_checked"] > 0

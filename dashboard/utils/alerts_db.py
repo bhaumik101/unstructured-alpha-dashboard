@@ -175,7 +175,7 @@ def clear_all_alerts(user_id: int) -> None:
 def get_all_watchlist_users() -> list[dict]:
     """
     Return [{id, email}] for every verified user who has at least one watchlist
-    entry. Used by cron/send_watchlist_alerts.py to fan out email alerts without
+    entry. Used by cron/send_threshold_alerts.py to fan out email alerts without
     coupling the email cron to the webhook-user query in utils/webhook.py.
 
     Excludes unverified accounts: if email_verified is False, the address has

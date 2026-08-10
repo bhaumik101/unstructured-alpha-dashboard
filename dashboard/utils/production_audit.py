@@ -22,7 +22,13 @@ import yaml
 
 
 MIN_ACTIVE_ROUTES = 25
-MAX_CRON_SERVICES = 13
+# Each cron is a separate Render service with its own build and monthly cost, so
+# the ceiling is deliberate and raising it should be a conscious decision.
+# 13 -> 14 on 2026-08-09 for unstructured-alpha-check-freshness, which earns the
+# slot: score_snapshots once stopped advancing for ten days while the site looked
+# healthy. It reads max(date) only, writes nothing, and exits non-zero so a
+# stalled pipeline surfaces as a failed cron instead of decaying unnoticed.
+MAX_CRON_SERVICES = 14
 MAX_SCORE_RSS_MB = 512
 MAX_EXTERNAL_TIMEOUT_SECONDS = 30
 

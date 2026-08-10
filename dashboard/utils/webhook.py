@@ -14,7 +14,7 @@
 #      daemon thread — immediate fire on page-load alert evaluation, without
 #      blocking the page. If the webhook times out, the cron catches it next
 #      run anyway.
-#   2. cron/fire_webhooks.py — hourly proactive sweep for ALL webhook users,
+#   2. cron/send_threshold_alerts.py — the hourly sweep for ALL webhook users,
 #      so alerts reach people even when they're offline (not waiting for a
 #      page load to trigger the evaluation).
 #   3. Manual test button in the Watchlist settings UI (Pro-gated). Sends a
@@ -67,7 +67,7 @@ def set_webhook_url(user_id: int, url: str | None) -> None:
 def get_all_webhook_users() -> list[dict]:
     """
     Return [{id, email, webhook_url}] for every user who has a webhook URL
-    configured. Used by cron/fire_webhooks.py to proactively push alerts.
+    configured. Used by cron/send_threshold_alerts.py to proactively push alerts.
     """
     with db.engine.begin() as conn:
         rows = conn.execute(
