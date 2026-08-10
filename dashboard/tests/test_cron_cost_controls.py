@@ -39,7 +39,13 @@ def test_low_frequency_jobs_are_grouped():
     assert crons["unstructured-alpha-watchlist-insights"]["startCommand"].endswith(
         "run_group watchlist-insights"
     )
-    assert len(crons) == 13
+    # Pinned so cron sprawl has to be a deliberate decision — each one is a
+    # separate Render service with its own build and monthly cost.
+    # 13 -> 14 on 2026-08-09: unstructured-alpha-check-freshness. It earns the
+    # slot because score_snapshots once stopped advancing for ten days while
+    # the site looked healthy; it reads only max(date), writes nothing, and
+    # exits non-zero so a stalled pipeline surfaces as a failed cron.
+    assert len(crons) == 14
 
 
 def test_rest_scorer_has_safe_memory_headroom_and_reduced_cadence():

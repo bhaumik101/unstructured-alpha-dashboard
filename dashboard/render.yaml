@@ -193,6 +193,25 @@ services:
       - key: EIA_API_KEY
         sync: false
 
+  # Data-freshness watchdog. On 2026-07-31 score_snapshots had not been written
+  # for ten days while the site looked perfectly healthy — the Screener and every
+  # Confluence Score served stale numbers and nothing said so. For a product whose
+  # claim is data integrity, quietly serving old data is worse than being down.
+  # Exits non-zero when a tracked table stops advancing, so Render marks the cron
+  # failed instead of the problem decaying unnoticed. Reads only max(date); writes
+  # nothing. Runs at 07:00 UTC, after score-core (04:10) and score-rest (05:40 +
+  # its 40-minute window) have both finished, so it checks settled data.
+  - type: cron
+    name: unstructured-alpha-check-freshness
+    runtime: python
+    rootDir: dashboard
+    schedule: "0 7 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m cron.check_data_freshness
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+
   # ── Batch scoring: CORE tier ────────────────────────────────────────────────
   # The curated tickers + everything users actually watch, scored with the FULL
   # Confluence Score (include_optional=True) so these snapshots match Ticker Deep

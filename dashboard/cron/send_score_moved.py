@@ -10,7 +10,7 @@
 # gets a single batched email summarising all moved tickers.
 #
 # WHY a separate field (last_score_emailed) instead of reusing last_score:
-#   The hourly threshold-crossing cron (send_watchlist_alerts.py) updates
+#   The hourly threshold-crossing cron (send_threshold_alerts.py) updates
 #   last_score on every run -- so if we used that as the baseline here, the
 #   delta we'd see is only the movement since the *last hour*, not since the
 #   last time we alerted the user about a meaningful trend shift. A 10-point
