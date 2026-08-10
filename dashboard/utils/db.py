@@ -101,6 +101,41 @@ else:
     }
 engine = create_engine(DATABASE_URL, **_engine_kwargs)
 
+
+def db_target(target_engine=None) -> str:
+    """host:port/dbname of the database in use. Never credentials.
+
+    Every service sets DATABASE_URL independently (`sync: false` in render.yaml),
+    so a service pointed at a different database is invisible from its own logs:
+    the cron exits 0, the log says rows were written, and the app quietly serves
+    stale data. It has now happened twice.
+
+    On 2026-07-31 score-core logged `written=34` while the application database
+    received zero rows. It was diagnosed the same day and the fix -- log the
+    target -- was written onto the branch that became PR #108. That PR was closed
+    because it would have deleted three live crons, and this diagnostic went with
+    it. Ten days later score-core was logging `written=538` against a
+    score_snapshots table that had not moved since 2026-07-31, and the second
+    occurrence was exactly as invisible as the first.
+
+    Both the writer (cron/score_universe.py) and the reader
+    (cron/check_data_freshness.py) print this, so a mismatch is two log lines
+    apart instead of a database-side investigation.
+    """
+    try:
+        url = (target_engine or engine).url
+        name = url.database or "?"
+        if not url.host:
+            # No host means a local file (the SQLite fallback taken when
+            # DATABASE_URL is unset). Say so plainly -- "?/path" reads like a
+            # parse failure when it is actually the finding.
+            return f"{url.get_backend_name()}:{name}"
+        port = f":{url.port}" if url.port else ""
+        return f"{url.host}{port}/{name}"
+    except Exception:  # diagnostics must never break the caller
+        return "unknown"
+
+
 metadata = MetaData()
 
 users = Table(

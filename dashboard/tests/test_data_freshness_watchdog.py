@@ -45,18 +45,29 @@ class _FakeConn:
 
 
 class _FakeEngine:
-    def __init__(self, dialect: str, result=None):
+    def __init__(self, dialect: str, result=None, url: str | None = None):
+        from sqlalchemy.engine import make_url
+
         self.dialect = types.SimpleNamespace(name=dialect)
         self._result = result
+        self.url = make_url(url or f"{dialect}://u:p@test-host:5432/testdb")
 
     def connect(self):
         return _FakeConn(self._result)
 
 
 def _install_engine(monkeypatch, engine):
-    """main() does `from utils.db import engine`, so patch that module."""
+    """main() does `from utils.db import engine`, so patch that module.
+
+    db_target delegates to the real implementation rather than a stub, so these
+    tests exercise the shared helper the writer also uses -- the two must format
+    identically or comparing their log lines is useless.
+    """
+    from utils.db import db_target as real_db_target
+
     fake_db = types.ModuleType("utils.db")
     fake_db.engine = engine
+    fake_db.db_target = real_db_target
     monkeypatch.setitem(sys.modules, "utils.db", fake_db)
 
 
@@ -123,13 +134,19 @@ def test_thresholds_are_not_silently_loosened():
 
 
 def test_db_target_never_leaks_credentials():
-    """The whole point is that this string is safe to print in a build log."""
+    """The whole point is that this string is safe to print in a build log.
+
+    Tests the shared helper directly, since both the scorer and the watchdog
+    print it and a leak in either would put credentials in Render's logs.
+    """
     from sqlalchemy.engine import make_url
+
+    from utils.db import db_target
 
     class _E:
         url = make_url("postgresql://user:sup3rsecret@db.example.com:5432/appdb")
 
-    target = watchdog._db_target(_E())
+    target = db_target(_E())
     assert target == "db.example.com:5432/appdb"
     assert "sup3rsecret" not in target
     assert "user" not in target
@@ -147,3 +164,36 @@ def test_db_target_is_printed_next_to_the_verdict(monkeypatch, capsys):
     watchdog.main()
     out = capsys.readouterr().out
     assert "db=prod-host:5432/unstructured" in out
+
+
+def test_db_target_never_raises_into_its_caller():
+    """A diagnostic must not be able to take down the check it annotates.
+
+    The first version read engine.url outside the try block, so an engine
+    without a url attribute raised straight through -- turning a freshness
+    check into a crash for the sake of a log line.
+    """
+    from utils.db import db_target
+
+    class _Broken:
+        @property
+        def url(self):
+            raise RuntimeError("no url here")
+
+    assert db_target(_Broken()) == "unknown"
+    assert db_target(object()) == "unknown"
+
+
+def test_db_target_makes_the_sqlite_fallback_obvious():
+    """The SQLite fallback IS the misconfiguration, so name it, don't render it
+    as '?/path' which reads like the parser gave up."""
+    from sqlalchemy.engine import make_url
+
+    from utils.db import db_target
+
+    class _E:
+        url = make_url("sqlite:////Users/someone/.unstructured_alpha/app.db")
+
+    target = db_target(_E())
+    assert target.startswith("sqlite:")
+    assert "?" not in target
