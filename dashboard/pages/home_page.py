@@ -32,7 +32,11 @@ from utils.header import render_header, render_sidebar_base, render_footer
 from utils.signals_cache import get_shared_signal_scores
 from utils.config import SIGNALS, CATEGORIES
 from utils.narrative import generate_narrative
-from utils.product_metrics import SUPPORTED_TICKER_COUNT
+from utils.product_metrics import (
+    SCORE_COMPUTE_DESCRIPTION,
+    SCORE_COMPUTE_SHORT,
+    SUPPORTED_TICKER_COUNT,
+)
 from utils.top_tickers import get_top_tickers
 from utils.convergence import get_convergence_events, render_convergence_events
 from utils.theme import inject_all_css, render_platform_note
@@ -409,7 +413,7 @@ with _hcta1:
         st.switch_page("pages/2_Today_Digest.py")
 with _hcta2:
     st.caption(
-        "No account required · Scores update on the same schedule as their source data."
+        f"Free to browse · Signals are {SCORE_COMPUTE_DESCRIPTION}."
     )
 
 # ── LIVE SIGNAL PULSE ─────────────────────────────────────────────────────────
@@ -486,7 +490,7 @@ st.markdown(
     f'</div>'
     f'<div style="display:flex;justify-content:space-between;margin-top:7px;">'
     f'<div style="font-size:0.60rem;color:var(--ua-green);font-weight:600;">▲ Bullish {_bar_bull}</div>'
-    f'<div style="font-size:0.60rem;color:var(--ua-ink-label);">Updated every 6 hours</div>'
+    f'<div style="font-size:0.60rem;color:var(--ua-ink-label);">{SCORE_COMPUTE_SHORT.capitalize()}</div>'
     f'<div style="font-size:0.60rem;color:var(--ua-red);font-weight:600;">Bearish {_bar_bear} ▼</div>'
     f'</div>'
     f'</div>',
@@ -729,7 +733,7 @@ if _anon_user:
         See all 47 macro signals sorted by strength. Filter by category.
         Each card explains what the signal means in plain English.
       </div>
-      <div style="font-size:0.70rem;color:#A78BFA;font-weight:600;">→ Free · Signals update every 6 hours</div>
+      <div style="font-size:0.70rem;color:#A78BFA;font-weight:600;">→ Free · Signals scored daily</div>
     </div>
 
     <div style="flex:1;min-width:200px;background:rgba(var(--ua-cyan-rgb),0.06);
@@ -1482,7 +1486,7 @@ st.markdown("""
 <div style="font-size:1.1rem;font-weight:800;color:var(--ua-ink);font-family:Inter,sans-serif;
             margin-bottom:4px;letter-spacing:-0.3px;">Sector Rotation Signal Map — live preview</div>
 <div style="font-size:0.80rem;color:var(--ua-ink-mut);margin-bottom:16px;font-family:Inter,sans-serif;">
-    Which sectors do the signals currently favor? Updated every 6 hours.
+    Which sectors do the signals currently favor? Scored daily.
 </div>
 """, unsafe_allow_html=True)
 

@@ -3693,7 +3693,7 @@ def render_footer(page: str = "") -> None:
                     <span style="color:var(--ua-ink-mut);font-weight:600;">yfinance</span> (price data)
                 </div>
                 <div style="font-size:0.63rem;color:var(--ua-ink-dim-2);margin-top:3px;">
-                    Signal data cached every ~6 hours. Scores are not real-time.
+                    Scores are computed daily and are not real-time; signal data is cached up to 6 hours.
                     © {_year} Unstructured Alpha. All rights reserved.
                 </div>
             </div>

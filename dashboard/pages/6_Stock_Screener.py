@@ -622,7 +622,7 @@ if _screener_section == "Screen Securities":
 
     st.markdown(
         '<div style="font-size:0.68rem;color:var(--ua-ink-label);font-family:Inter,sans-serif;margin-top:8px;">'
-        'Click any row to preview. Scores recalculate every 6 hours. '
+        'Click any row to preview. Scores recalculate daily. '
         'Ticker not listed? Use "Analyze Any Ticker" above or type it in the sidebar search — '
         'it will automatically fall through to a custom analysis.</div>',
         unsafe_allow_html=True,

@@ -61,6 +61,41 @@ def _newest(conn, table: str, column: str):
     return row
 
 
+def _db_target(engine) -> str:
+    """host/dbname of the database being read. Never credentials.
+
+    Thin wrapper over utils.db.db_target so the writer (score_universe) and the
+    reader (this module) report the target in an identical format -- comparing
+    two log lines only works if they are the same shape.
+    """
+    from utils.db import db_target
+
+    return db_target(engine)
+
+
+def _wrong_database(engine) -> str | None:
+    """Return a reason string when the engine is not the production Postgres.
+
+    The first scheduled run failed with three "unreadable" tables and reported
+    that a pipeline had stopped writing. It had not. DATABASE_URL was never set
+    on the new Render service (render.yaml declares it `sync: false`, which means
+    "set this by hand"), so utils.db fell back to a local SQLite file where the
+    Postgres-only ::timestamptz cast is a syntax error.
+
+    A monitor that misdiagnoses is worse than no monitor -- it teaches you to
+    ignore its alerts. Checking the dialect first keeps "we cannot reach the
+    database" separate from "the pipeline stopped writing". Both still fail; only
+    the message differs.
+    """
+    dialect = engine.dialect.name
+    if dialect != "postgresql":
+        return (
+            f"connected to '{dialect}', not the production Postgres. "
+            "DATABASE_URL is unset or unreachable for this service"
+        )
+    return None
+
+
 def main() -> int:
     from utils.db import engine
 
@@ -68,6 +103,18 @@ def main() -> int:
     stale: list[str] = []
     missing: list[str] = []
     ok: list[str] = []
+
+    misconfigured = _wrong_database(engine)
+    if misconfigured:
+        print("[freshness] checked at " + datetime.now(timezone.utc).isoformat(), flush=True)
+        print(f"[freshness] CONFIG  {misconfigured}", flush=True)
+        print(
+            "[freshness] FAILED — configuration error, not a data problem. "
+            "Freshness was NOT verified; set DATABASE_URL on this service and "
+            "re-run before drawing any conclusion about the pipelines.",
+            flush=True,
+        )
+        return 1
 
     with engine.connect() as conn:
         for table, (column, max_age_days, reason) in CHECKS.items():
@@ -92,6 +139,7 @@ def main() -> int:
                 ok.append(line)
 
     print("[freshness] checked at " + datetime.now(timezone.utc).isoformat(), flush=True)
+    print(f"[freshness] reading  db={_db_target(engine)}", flush=True)
     for line in ok:
         print(f"[freshness] OK      {line}", flush=True)
     for line in stale:
@@ -100,11 +148,20 @@ def main() -> int:
         print(f"[freshness] MISSING {line}", flush=True)
 
     if stale or missing:
-        print(
-            f"[freshness] FAILED — {len(stale)} stale, {len(missing)} missing. "
-            "A pipeline has stopped writing; the app is serving old data.",
-            flush=True,
-        )
+        # Say only what was actually observed. Stale means a writer has fallen
+        # behind its threshold; unreadable/empty means the check could not reach
+        # the data at all, which has other causes (a renamed table, a permission
+        # change) and should not be reported as a stalled pipeline.
+        parts = []
+        if stale:
+            parts.append(
+                f"{len(stale)} table(s) stopped advancing — a writer is behind"
+            )
+        if missing:
+            parts.append(
+                f"{len(missing)} table(s) unreadable or empty — cause not established"
+            )
+        print(f"[freshness] FAILED — {'; '.join(parts)}.", flush=True)
         return 1
 
     print(f"[freshness] PASS — all {len(ok)} tracked tables current.", flush=True)

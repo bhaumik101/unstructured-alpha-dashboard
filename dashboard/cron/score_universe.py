@@ -294,7 +294,7 @@ def main() -> None:
     # of imports, but that predates a lot of code — measure in the process that
     # actually runs rather than trusting a stale note.
     rss_interpreter = round(_rss_mb(), 1)
-    from utils.db import init_db
+    from utils.db import db_target, init_db
     from utils.scoring_universe import (
         build_scoring_universe, qualifies_on_price, OK,
     )
@@ -354,6 +354,9 @@ def main() -> None:
     rss_ready = round(_rss_mb(), 1)
     _log("run_start", tier=args.tier, universe=len(scoreable), core=len(core),
          targets=len(targets), score_kind=score_kind, dry_run=args.dry_run,
+         # Which database these writes actually land in. `written=N` alone is
+         # not evidence the app received anything -- see utils.db.db_target.
+         db=db_target(),
          rss_interpreter_mb=rss_interpreter, rss_imports_mb=rss_imports,
          rss_ready_mb=rss_ready, rss_limit_mb=args.max_rss_mb,
          # What is actually available for scoring work. This is the number that

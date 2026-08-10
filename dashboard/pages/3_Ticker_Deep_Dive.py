@@ -128,7 +128,7 @@ st.markdown("""
             <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.6;">
                 Type any ticker → get a <b style="color:var(--ua-ink);">Confluence Score (0–100)</b> from
                 43 live macro signals, a bull/bear case in plain English, insider activity, earnings
-                catalysts, and signal-by-signal breakdown. Updated every 6 hours from primary sources.
+                catalysts, and signal-by-signal breakdown. Scored daily from primary sources.
             </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
