@@ -120,3 +120,30 @@ def test_thresholds_are_not_silently_loosened():
     assert watchdog.CHECKS["signal_snapshots"][1] == 2
     assert watchdog.CHECKS["score_snapshots"][1] == 4
     assert watchdog.CHECKS["analytics_events"][1] == 3
+
+
+def test_db_target_never_leaks_credentials():
+    """The whole point is that this string is safe to print in a build log."""
+    from sqlalchemy.engine import make_url
+
+    class _E:
+        url = make_url("postgresql://user:sup3rsecret@db.example.com:5432/appdb")
+
+    target = watchdog._db_target(_E())
+    assert target == "db.example.com:5432/appdb"
+    assert "sup3rsecret" not in target
+    assert "user" not in target
+
+
+def test_db_target_is_printed_next_to_the_verdict(monkeypatch, capsys):
+    """score-core reported written=538 while the app's table sat ten days stale.
+    Two services, two databases, no way to see it. Print what we read."""
+    from sqlalchemy.engine import make_url
+
+    engine = _FakeEngine("postgresql", result=datetime.now(timezone.utc))
+    engine.url = make_url("postgresql://u:p@prod-host:5432/unstructured")
+    _install_engine(monkeypatch, engine)
+
+    watchdog.main()
+    out = capsys.readouterr().out
+    assert "db=prod-host:5432/unstructured" in out

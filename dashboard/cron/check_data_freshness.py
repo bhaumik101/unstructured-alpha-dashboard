@@ -61,6 +61,27 @@ def _newest(conn, table: str, column: str):
     return row
 
 
+def _db_target(engine) -> str:
+    """host/dbname of the database being read. Never credentials.
+
+    Every service sets DATABASE_URL independently (`sync: false` in render.yaml),
+    so one service pointing at a different database is invisible: the cron exits
+    0, the log says rows were written, and the app quietly serves stale data.
+    That is exactly what happened here -- score-core reported written=538 while
+    score_snapshots in the app's database had not moved in ten days.
+
+    Printing the target next to the freshness verdict means the mismatch can be
+    read off two log lines instead of requiring a database-side investigation.
+    """
+    try:
+        url = engine.url
+        host = url.host or "?"
+        port = f":{url.port}" if url.port else ""
+        return f"{host}{port}/{url.database or '?'}"
+    except Exception:  # never let diagnostics break the check
+        return "unknown"
+
+
 def _wrong_database(engine) -> str | None:
     """Return a reason string when the engine is not the production Postgres.
 
@@ -127,6 +148,7 @@ def main() -> int:
                 ok.append(line)
 
     print("[freshness] checked at " + datetime.now(timezone.utc).isoformat(), flush=True)
+    print(f"[freshness] reading  db={_db_target(engine)}", flush=True)
     for line in ok:
         print(f"[freshness] OK      {line}", flush=True)
     for line in stale:
