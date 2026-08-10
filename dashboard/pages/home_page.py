@@ -1183,7 +1183,7 @@ if _data_loaded:
             f'border-radius:12px;padding:20px 22px;font-family:Inter,sans-serif;">'
             f'<div style="font-size:0.58rem;font-weight:700;letter-spacing:0.14em;color:{_bias_color};'
             f'text-transform:uppercase;margin-bottom:6px;">MACHINE READS THE MARKET</div>'
-            f'<div style="font-size:1.25rem;font-weight:800;color:var(--ua-ink);margin-bottom:10px;letter-spacing:-0.3px;">'
+            f'<div style="font-size:var(--ua-text-lg);font-weight:800;color:var(--ua-ink);margin-bottom:10px;letter-spacing:-0.3px;">'
             f'{_nar.get("headline","")}</div>'
             f'<div style="font-size:0.83rem;color:var(--ua-ink-soft);line-height:1.7;margin-bottom:12px;">'
             f'{_nar["summary"]}</div>'
@@ -1463,7 +1463,7 @@ for _pi, (_col, _p) in enumerate(zip([_proof_c1, _proof_c2, _proof_c3], _PROOFS)
             f'<div style="font-size:0.57rem;letter-spacing:0.12em;color:var(--ua-ink-label);font-weight:700;">{_p["date"]}</div>'
             f'<div style="font-size:0.84rem;font-weight:700;color:var(--ua-ink);">{_p["signal"]}</div>'
             f'</div></div>'
-            f'<div style="font-size:0.75rem;color:var(--ua-ink-soft);line-height:1.55;margin-bottom:10px;">{_p["what"]}</div>'
+            f'<div style="font-size:var(--ua-text-sm);color:var(--ua-ink-soft);line-height:1.55;margin-bottom:10px;">{_p["what"]}</div>'
             f'<div style="font-size:0.78rem;font-weight:700;color:{_p["color"]};line-height:1.4;margin-bottom:8px;">{_p["outcome"]}</div>'
             f'<span style="font-size:0.60rem;padding:3px 8px;border-radius:5px;'
             f'background:{_p["color"]}18;color:{_p["color"]};font-weight:700;'
@@ -1515,8 +1515,8 @@ try:
                 st.markdown(f"""
 <div style="background:{_bg};border:1px solid rgba(var(--ua-onbg-rgb),0.06);border-left:3px solid {_sc};
             border-radius:8px;padding:12px 14px;margin-bottom:8px;font-family:Inter,sans-serif;">
-    <div style="font-size:0.75rem;font-weight:600;color:#C8D0E4;margin-bottom:4px;">{_name}</div>
-    <div style="font-size:1.5rem;font-weight:800;color:{_sc};letter-spacing:-0.5px;">{_arrow} {_avg:.0f}</div>
+    <div style="font-size:var(--ua-text-sm);font-weight:600;color:#C8D0E4;margin-bottom:4px;">{_name}</div>
+    <div style="font-size:var(--ua-text-xl);font-weight:800;color:{_sc};letter-spacing:-0.5px;">{_arrow} {_avg:.0f}</div>
 </div>
 """, unsafe_allow_html=True)
     else:
@@ -1626,7 +1626,7 @@ for _col, (_n, _ac, _icon, _title, _body, _page, _btn, _key) in zip(_st_cols, _s
 <div class="ua-step" style="--ua-step-accent:{_ac};margin-bottom:8px;min-height:185px;">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
         <div class="ua-step-num" style="color:{_ac};">{_n}</div>
-        <div style="font-size:1.5rem;">{_icon}</div>
+        <div style="font-size:var(--ua-text-xl);">{_icon}</div>
     </div>
     <div class="ua-step-title">{_title}</div>
     <div class="ua-step-body">{_body}</div>
@@ -1729,7 +1729,7 @@ for _col, (_ac, _icon, _title, _body) in zip([_al1, _al2, _al3, _al4], _alert_ca
             font-family:Inter,sans-serif;min-height:180px;">
     <div style="font-size:1.6rem;margin-bottom:8px;">{_icon}</div>
     <div style="font-size:0.82rem;font-weight:700;color:var(--ua-ink);margin-bottom:6px;">{_title}</div>
-    <div style="font-size:0.75rem;color:var(--ua-ink-mut);line-height:1.6;">{_body}</div>
+    <div style="font-size:var(--ua-text-sm);color:var(--ua-ink-mut);line-height:1.6;">{_body}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1833,7 +1833,7 @@ st.markdown("""
             <div style="font-size:2.6rem;font-weight:900;letter-spacing:-1.5px;line-height:1.0;
                         background:linear-gradient(135deg,var(--ua-ink),#A78BFA);
                         -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                        background-clip:text;">$20<span style="font-size:1rem;font-weight:400;
+                        background-clip:text;">$20<span style="font-size:var(--ua-text-md);font-weight:400;
                         -webkit-text-fill-color:var(--ua-ink-mut);">/mo</span></div>
             <div style="font-size:0.72rem;color:#34D399;font-weight:700;margin-top:4px;">
                 ✓ 7-day free trial · Cancel anytime</div>

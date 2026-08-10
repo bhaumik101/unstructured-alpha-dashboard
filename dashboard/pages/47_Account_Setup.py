@@ -40,7 +40,7 @@ st.markdown(
     .ua-setup-brand span {color:#D7DEE9;}
     .ua-setup-kicker {font-size:.68rem;font-weight:750;letter-spacing:.12em;color:#9AA6B8;
         text-transform:uppercase;margin-bottom:8px;}
-    .ua-setup-title {font-size:2rem;font-weight:760;line-height:1.15;color:#EDF1F7;
+    .ua-setup-title {font-size:var(--ua-text-2xl);font-weight:760;line-height:1.15;color:#EDF1F7;
         letter-spacing:-.035em;margin-bottom:10px;}
     .ua-setup-copy {font-size:.92rem;line-height:1.65;color:#A7B0BF;max-width:620px;}
     .ua-progress {height:3px;background:#262D38;border-radius:8px;margin:26px 0 28px;overflow:hidden;}
@@ -50,7 +50,7 @@ st.markdown(
         font-size:.8rem;line-height:1.55;}
     .ua-complete {text-align:center;background:#11161E;border:1px solid rgba(var(--ua-onbg-rgb),.09);
         border-radius:12px;padding:34px 28px;margin-top:22px;}
-    .ua-complete h2 {color:#EDF1F7;font-size:1.5rem;margin:0 0 8px;}
+    .ua-complete h2 {color:#EDF1F7;font-size:var(--ua-text-xl);margin:0 0 8px;}
     .ua-complete p {color:#A7B0BF;font-size:.88rem;margin:0;}
     </style>
     """,

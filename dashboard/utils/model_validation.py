@@ -155,7 +155,7 @@ def render_summary_html(summary: dict) -> str:
     def chip(label, val, color):
         return (f'<div style="background:#161A2B;border:1px solid #262C42;border-radius:8px;'
                 f'padding:10px 14px;min-width:96px;">'
-                f'<div style="font-size:1.5rem;font-weight:800;color:{color};line-height:1;">{val}</div>'
+                f'<div style="font-size:var(--ua-text-xl);font-weight:800;color:{color};line-height:1;">{val}</div>'
                 f'<div style="font-size:0.62rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.05em;margin-top:3px;">{label}</div>'
                 f'</div>')
     return (

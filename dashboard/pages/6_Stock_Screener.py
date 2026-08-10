@@ -153,7 +153,7 @@ if _screener_section == "Screen Securities":
                 <div style="font-size:1.1rem;font-weight:700;color:var(--ua-ink);letter-spacing:-0.2px;">
                     {r['company']} {badge}
                 </div>
-                <div style="font-size:0.75rem;color:var(--ua-ink-mut);margin-top:3px;letter-spacing:0.04em;">
+                <div style="font-size:var(--ua-text-sm);color:var(--ua-ink-mut);margin-top:3px;letter-spacing:0.04em;">
                     {r['symbol']} &nbsp;·&nbsp; {r['sector']}
                 </div>
                 <div style="margin-top:12px;font-size:0.80rem;color:var(--ua-ink-mut);">

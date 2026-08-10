@@ -84,7 +84,7 @@ st.markdown(
     .ua-profile-avatar {
         width:52px;height:52px;border-radius:10px;background:#202632;
         border:1px solid rgba(var(--ua-onbg-rgb),.12);display:flex;align-items:center;
-        justify-content:center;color:#E7EAF0;font-size:1rem;font-weight:750;
+        justify-content:center;color:#E7EAF0;font-size:var(--ua-text-md);font-weight:750;
         letter-spacing:.04em;flex:0 0 52px;
     }
     .ua-profile-name {color:#E7EAF0;font-size:1.02rem;font-weight:700;line-height:1.3;}

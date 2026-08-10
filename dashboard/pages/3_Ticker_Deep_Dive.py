@@ -697,15 +697,15 @@ if section == "Overview":
         <div style="width:1px;height:72px;background:rgba(var(--ua-onbg-rgb),0.08);flex-shrink:0;"></div>
         <div style="display:flex;gap:20px;align-items:center;flex-shrink:0;">
           <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:var(--ua-green);text-align:center;padding:14px 20px;">
-            <div style="font-size:2rem;font-weight:900;color:var(--ua-green);text-shadow:0 0 24px var(--ua-green)45;">{confluence['bull_count']}</div>
+            <div style="font-size:var(--ua-text-2xl);font-weight:900;color:var(--ua-green);text-shadow:0 0 24px var(--ua-green)45;">{confluence['bull_count']}</div>
             <div style="font-size:0.66rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">▲ Bullish</div>
           </div>
           <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:var(--ua-red);text-align:center;padding:14px 20px;">
-            <div style="font-size:2rem;font-weight:900;color:var(--ua-red);text-shadow:0 0 24px var(--ua-red)45;">{confluence['bear_count']}</div>
+            <div style="font-size:var(--ua-text-2xl);font-weight:900;color:var(--ua-red);text-shadow:0 0 24px var(--ua-red)45;">{confluence['bear_count']}</div>
             <div style="font-size:0.66rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">▼ Bearish</div>
           </div>
           <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:var(--ua-ink-label);text-align:center;padding:14px 20px;">
-            <div style="font-size:2rem;font-weight:900;color:var(--ua-ink-label);">{confluence['neutral_count']}</div>
+            <div style="font-size:var(--ua-text-2xl);font-weight:900;color:var(--ua-ink-label);">{confluence['neutral_count']}</div>
             <div style="font-size:0.66rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">● Neutral</div>
           </div>
         </div>
@@ -851,7 +851,7 @@ if section == "Overview":
               <div style="flex-shrink:0;text-align:center;min-width:104px;">
                 <div style="font-size:0.56rem;font-weight:700;color:{_pc};
                             letter-spacing:0.10em;text-transform:uppercase;">YOUR SCORE</div>
-                <div style="font-size:2rem;font-weight:900;color:{_pc};line-height:1.15;">{_pv:.0f}</div>
+                <div style="font-size:var(--ua-text-2xl);font-weight:900;color:{_pc};line-height:1.15;">{_pv:.0f}</div>
                 <div style="font-size:0.62rem;color:{_dcol};">{_dtxt} vs standard</div>
               </div>
               <div style="width:1px;height:54px;background:rgba(var(--ua-onbg-rgb),0.08);flex-shrink:0;"></div>
@@ -1016,7 +1016,7 @@ if section == "Overview":
                         display:flex;align-items:center;gap:14px;">
               <span style="width:3px;height:30px;background:#8187F7;border-radius:2px;flex-shrink:0;"></span>
               <div>
-                <span style="font-size:0.75rem;font-weight:700;color:var(--ua-amber);
+                <span style="font-size:var(--ua-text-sm);font-weight:700;color:var(--ua-amber);
                              letter-spacing:0.08em;text-transform:uppercase;">Score Velocity Alert</span>
                 <span style="font-size:0.82rem;color:var(--ua-ink-mut);margin-left:10px;">
                   <span style="color:{_vc};font-weight:700;">{_va} {_vsign}{_vel:.1f} pts/day</span>
@@ -1525,7 +1525,7 @@ if section == "Overview":
                     f'<div style="font-size:1.05rem;font-weight:800;color:var(--ua-ink);font-family:Inter,sans-serif;">{_pt}</div>'
                     f'<div style="font-size:0.72rem;color:var(--ua-ink-mut);margin-bottom:5px;white-space:nowrap;'
                     f'overflow:hidden;text-overflow:ellipsis;" title="{_pn}">{_pn}</div>'
-                    f'<div style="font-size:1.5rem;font-weight:900;color:{_pc};line-height:1.1;">{_ps:.0f}</div>'
+                    f'<div style="font-size:var(--ua-text-xl);font-weight:900;color:{_pc};line-height:1.1;">{_ps:.0f}</div>'
                     f'<div style="font-size:0.68rem;color:#6B7A95;margin-top:2px;">score · {_pa}</div>'
                     f'</div>',
                     unsafe_allow_html=True,
@@ -2280,21 +2280,21 @@ if section == "Overview":
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
                         <div style="background:rgba(var(--ua-card-rgb),0.6);border-radius:8px;padding:10px 14px;
                                     border:1px solid rgba(var(--ua-onbg-rgb),0.06);">
-                            <div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink);margin-bottom:4px;">7 AM Digest</div>
+                            <div style="font-size:var(--ua-text-sm);font-weight:700;color:var(--ua-ink);margin-bottom:4px;">7 AM Digest</div>
                             <div style="font-size:0.70rem;color:var(--ua-ink-mut);line-height:1.5;">
                                 Today's top setups from all 47 signals, in your inbox before market open.
                             </div>
                         </div>
                         <div style="background:rgba(var(--ua-card-rgb),0.6);border-radius:8px;padding:10px 14px;
                                     border:1px solid rgba(var(--ua-onbg-rgb),0.06);">
-                            <div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink);margin-bottom:4px;">Price and Signal Alerts</div>
+                            <div style="font-size:var(--ua-text-sm);font-weight:700;color:var(--ua-ink);margin-bottom:4px;">Price and Signal Alerts</div>
                             <div style="font-size:0.70rem;color:var(--ua-ink-mut);line-height:1.5;">
                                 Get notified the moment a signal flips for a ticker in your watchlist.
                             </div>
                         </div>
                         <div style="background:rgba(var(--ua-card-rgb),0.6);border-radius:8px;padding:10px 14px;
                                     border:1px solid rgba(var(--ua-onbg-rgb),0.06);">
-                            <div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink);margin-bottom:4px;">Signal Backtester</div>
+                            <div style="font-size:var(--ua-text-sm);font-weight:700;color:var(--ua-ink);margin-bottom:4px;">Signal Backtester</div>
                             <div style="font-size:0.70rem;color:var(--ua-ink-mut);line-height:1.5;">
                                 Build custom signal rules and backtest them against historical prices.
                             </div>
@@ -2325,7 +2325,7 @@ if section == "Overview":
                     <div style="font-size:0.85rem;color:var(--ua-ink);font-weight:600;margin-bottom:6px;">
                         Save {ticker_input} to your watchlist and get alerts when signals flip.
                     </div>
-                    <div style="font-size:0.75rem;color:var(--ua-ink-mut);">
+                    <div style="font-size:var(--ua-text-sm);color:var(--ua-ink-mut);">
                         Free accounts include watchlist tracking + signal flip alerts.
                         Pro ($20/mo) adds the 7 AM digest, email alerts, and Signal Backtester.
                     </div>
@@ -2975,8 +2975,8 @@ if section == "Overview":
                 <div style="font-size:0.70rem;color:var(--ua-ink-label);text-transform:uppercase;letter-spacing:0.05em;
                             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{dr['Signal'][:30]}</div>
                 <div style="font-size:1.4rem;font-weight:700;color:{r_color};margin:4px 0;">{r_fmt}</div>
-                <div style="font-size:0.75rem;color:var(--ua-ink-mut);">r with {ticker_input} price</div>
-                <div style="font-size:0.75rem;color:var(--ua-ink);margin-top:4px;">Score: <b>{dr['Score']:.0f}</b> &nbsp; {dr['Status']}</div>
+                <div style="font-size:var(--ua-text-sm);color:var(--ua-ink-mut);">r with {ticker_input} price</div>
+                <div style="font-size:var(--ua-text-sm);color:var(--ua-ink);margin-top:4px;">Score: <b>{dr['Score']:.0f}</b> &nbsp; {dr['Status']}</div>
             </div>"""
 
         st.markdown(f"""
@@ -3060,8 +3060,8 @@ if section == "Overview":
                         font-family:Inter,sans-serif;">
                 <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;">
                     <span style="color:{card_color};font-weight:700;font-size:0.88rem;">{sym} {sig_name}</span>
-                    <span style="font-size:0.75rem;color:{card_color};font-weight:600;">{sig_status}</span>
-                    <span style="font-size:0.75rem;color:var(--ua-ink-label);">Score: {sig_score:.0f}/100{corr_note}</span>
+                    <span style="font-size:var(--ua-text-sm);color:{card_color};font-weight:600;">{sig_status}</span>
+                    <span style="font-size:var(--ua-text-sm);color:var(--ua-ink-label);">Score: {sig_score:.0f}/100{corr_note}</span>
                 </div>
                 <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.55;">{reason_txt}</div>
             </div>

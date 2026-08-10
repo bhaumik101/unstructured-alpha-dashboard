@@ -1055,7 +1055,7 @@ elif _brief_section == "Market Intelligence":
                 f'<b>{sig_name}</b> &nbsp;'
                 f'<span style="color:{fc_from};">{flip["from_status"]}</span> → '
                 f'<span style="color:{fc};font-weight:700;">{fa} {flip["to_status"]}</span>'
-                f'<span style="color:var(--ua-ink-mut);font-size:0.75rem;float:right;">'
+                f'<span style="color:var(--ua-ink-mut);font-size:var(--ua-text-sm);float:right;">'
                 f'{flip["from_date"]} → {flip["to_date"]}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
@@ -1356,7 +1356,7 @@ if _brief_section == "Weekly Research":
 
         if _wb_headline:
             st.markdown(
-                f'<div style="font-size:1.25rem;font-weight:800;color:var(--ua-ink);'
+                f'<div style="font-size:var(--ua-text-lg);font-weight:800;color:var(--ua-ink);'
                 f'margin:16px 0 12px;line-height:1.35;">{_wb_headline}</div>',
                 unsafe_allow_html=True,
             )

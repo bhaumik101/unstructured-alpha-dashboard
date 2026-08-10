@@ -108,13 +108,13 @@ st.markdown(f"""
     font-size: 3rem; font-weight: 900; color: {TEXT_PRIMARY};
     line-height: 1; display: flex; align-items: flex-end; gap: 4px;
 }}
-.card-price-big .per {{ font-size: 1rem; font-weight: 400; color: #8892B0; margin-bottom: 5px; }}
+.card-price-big .per {{ font-size: var(--ua-text-md); font-weight: 400; color: #8892B0; margin-bottom: 5px; }}
 .card-price-sub  {{ font-size: 0.78rem; color: #4A5063; margin: 6px 0 20px; }}
 .card-price-sub.billed-annual {{ color: #34D399; font-weight: 600; }}
 .card-divider {{ border: none; border-top: 1px solid rgba(var(--ua-onbg-rgb),0.06); margin: 20px 0; }}
 .feat-item {{
     display: flex; align-items: flex-start; gap: 10px;
-    font-size: 0.875rem; color: var(--ua-ink-soft); margin-bottom: 11px; line-height: 1.4;
+    font-size: var(--ua-text-base); color: var(--ua-ink-soft); margin-bottom: 11px; line-height: 1.4;
 }}
 .feat-icon-yes {{ color: {GREEN}; font-size: 0.95rem; flex-shrink: 0; margin-top: 1px; }}
 .feat-icon-no  {{ color: #2D3348; font-size: 0.95rem; flex-shrink: 0; margin-top: 1px; }}
@@ -130,7 +130,7 @@ st.markdown(f"""
 }}
 .value-item {{ text-align: center; flex: 1; min-width: 120px; }}
 .value-num  {{ font-size: 1.6rem; font-weight: 800; color: {CYAN}; }}
-.value-label {{ font-size: 0.75rem; color: #8892B0; margin-top: 2px; }}
+.value-label {{ font-size: var(--ua-text-sm); color: #8892B0; margin-top: 2px; }}
 
 /* ── Trial banner ── */
 .trial-bar {{
@@ -150,11 +150,11 @@ st.markdown(f"""
     border-radius: 12px; padding: 20px;
 }}
 .testi-text {{
-    font-size: 0.875rem; color: var(--ua-ink-soft); line-height: 1.6;
+    font-size: var(--ua-text-base); color: var(--ua-ink-soft); line-height: 1.6;
     font-style: italic; margin-bottom: 14px;
 }}
 .testi-author {{
-    font-size: 0.75rem; font-weight: 700; color: {TEXT_PRIMARY};
+    font-size: var(--ua-text-sm); font-weight: 700; color: {TEXT_PRIMARY};
 }}
 .testi-role {{ font-size: 0.72rem; color: #4A5063; }}
 .stars {{ color: var(--ua-amber); letter-spacing: 1px; font-size: 0.85rem; margin-bottom: 10px; }}
@@ -168,7 +168,7 @@ st.markdown(f"""
     border-bottom: 1px solid rgba(var(--ua-onbg-rgb),0.06);
 }}
 .comp-table td {{
-    padding: 10px 16px; font-size: 0.875rem; color: var(--ua-ink-soft);
+    padding: 10px 16px; font-size: var(--ua-text-base); color: var(--ua-ink-soft);
     border-bottom: 1px solid rgba(var(--ua-onbg-rgb),0.04);
     vertical-align: middle;
 }}
@@ -191,7 +191,7 @@ st.markdown(f"""
     font-size: 0.92rem; font-weight: 600; color: {TEXT_PRIMARY};
     margin-bottom: 4px;
 }}
-.faq-a {{ font-size: 0.875rem; color: #8892B0; line-height: 1.65; }}
+.faq-a {{ font-size: var(--ua-text-base); color: #8892B0; line-height: 1.65; }}
 
 /* ── Success / Pro status ── */
 .success-box {{
@@ -300,7 +300,7 @@ if stripe_session_id:
             <div style="background:{BG_CARD};border:1px solid rgba(var(--ua-onbg-rgb),0.08);
                         border-radius:10px;padding:16px;text-align:center;height:110px;
                         display:flex;flex-direction:column;justify-content:center;">
-                <div style="font-size:1.5rem;margin-bottom:6px;"></div>
+                <div style="font-size:var(--ua-text-xl);margin-bottom:6px;"></div>
                 <div style="font-size:0.8rem;font-weight:700;color:var(--ua-ink);">Today's Brief</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
                     See what signals flipped overnight
@@ -314,7 +314,7 @@ if stripe_session_id:
             <div style="background:{BG_CARD};border:1px solid rgba(var(--ua-purple-rgb),0.3);
                         border-radius:10px;padding:16px;text-align:center;height:110px;
                         display:flex;flex-direction:column;justify-content:center;">
-                <div style="font-size:1.5rem;margin-bottom:6px;"></div>
+                <div style="font-size:var(--ua-text-xl);margin-bottom:6px;"></div>
                 <div style="font-size:0.8rem;font-weight:700;color:var(--ua-ink);">Ticker Deep Dive</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
                     Run any ticker through all 47 signals
@@ -328,7 +328,7 @@ if stripe_session_id:
             <div style="background:{BG_CARD};border:1px solid rgba(var(--ua-cyan-rgb),0.2);
                         border-radius:10px;padding:16px;text-align:center;height:110px;
                         display:flex;flex-direction:column;justify-content:center;">
-                <div style="font-size:1.5rem;margin-bottom:6px;"></div>
+                <div style="font-size:var(--ua-text-xl);margin-bottom:6px;"></div>
                 <div style="font-size:0.8rem;font-weight:700;color:var(--ua-ink);">Factor Exposure</div>
                 <div style="font-size:0.72rem;color:#4A5063;margin-top:4px;">
                     Pro-only Fama-French regression
@@ -652,7 +652,7 @@ with col_free:
         <div class="card-tier free">Free</div>
         <div style="display:flex;align-items:flex-end;gap:4px;margin-bottom:4px;">
             <div style="font-size:3rem;font-weight:900;color:{TEXT_PRIMARY};line-height:1;">$0</div>
-            <div style="font-size:1rem;color:#8892B0;margin-bottom:6px;">/month</div>
+            <div style="font-size:var(--ua-text-md);color:#8892B0;margin-bottom:6px;">/month</div>
         </div>
         <div class="card-price-sub">Forever free. No card needed.</div>
         <hr class="card-divider">
@@ -672,7 +672,7 @@ with col_pro:
         <div class="card-tier pro">Pro</div>
         <div style="display:flex;align-items:flex-end;gap:4px;margin-bottom:4px;">
             <div style="font-size:3rem;font-weight:900;color:{TEXT_PRIMARY};line-height:1;">{monthly_price}</div>
-            <div style="font-size:1rem;color:#8892B0;margin-bottom:6px;">/month</div>
+            <div style="font-size:var(--ua-text-md);color:#8892B0;margin-bottom:6px;">/month</div>
         </div>
         <div class="card-price-sub {billed_class}">{billing_note}</div>
         <hr class="card-divider" style="border-color:rgba(var(--ua-purple-rgb),0.2);">

@@ -823,7 +823,7 @@ if _portfolio_section == "Stress Tester":
                 f'<div style="background:rgba(var(--ua-onbg-rgb),0.03);border:1px solid {color}44;'
                 f'border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;">'
                 f'<div style="font-size:0.70rem;color:var(--ua-ink-mut);">{scenario} — estimated portfolio impact</div>'
-                f'<div style="font-size:2rem;font-weight:800;color:{color};">{total_pnl:+.1f}%</div>'
+                f'<div style="font-size:var(--ua-text-2xl);font-weight:800;color:{color};">{total_pnl:+.1f}%</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
