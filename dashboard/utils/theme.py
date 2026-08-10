@@ -2044,7 +2044,7 @@ _COUNTER_CSS = """
   transform: translateY(-3px);
 }
 .ua-spotlight-icon {
-  font-size: 2rem;
+  font-size: var(--ua-text-2xl);
   margin-bottom: 12px;
   display: block;
 }
@@ -2153,7 +2153,7 @@ _COUNTER_CSS = """
   border: 1px solid rgba(var(--ua-green-rgb),0.22);
   border-radius: 8px;
   padding: 8px 14px;
-  font-size: 0.75rem;
+  font-size: var(--ua-text-sm);
   color: var(--ua-green);
   font-family: Inter, sans-serif;
   font-weight: 600;
@@ -2356,7 +2356,7 @@ def render_platform_note() -> str:
     """
     return (
         '<div style="text-align:center;padding:8px 16px;'
-        'font-family:Inter,sans-serif;font-size:0.75rem;color:#4A5280;">'
+        'font-family:Inter,sans-serif;font-size:var(--ua-text-sm);color:#4A5280;">'
         'Unstructured Alpha aggregates publicly available macro data for informational '
         'purposes only. Nothing here constitutes investment advice. '
         'All signals reflect statistical patterns in historical data, not predictions.'

@@ -613,7 +613,7 @@ st.markdown(f"""
       <div style="font-size:0.78rem;color:{score_color};font-weight:600;">{score_label}</div>
     </div>
   </div>
-  <div style="margin-top:14px;font-size:0.75rem;color:var(--ua-ink-label);">
+  <div style="margin-top:14px;font-size:var(--ua-text-sm);color:var(--ua-ink-label);">
     {sum(1 for sv in all_signals.values() if sv.get('status')=='bullish')} bullish ·
     {sum(1 for sv in all_signals.values() if sv.get('status')=='bearish')} bearish ·
     {sum(1 for sv in all_signals.values() if sv.get('status')=='neutral')} neutral ·

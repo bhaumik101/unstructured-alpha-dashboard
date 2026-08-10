@@ -405,7 +405,7 @@ elif section == "Ticker Performance":
     for basket_name, basket_tickers in POWER_SUPERCYCLE_TICKERS.items():
         bc1, bc2 = st.columns([1, 5])
         bc1.markdown(
-            f'<div style="font-size:0.75rem;color:var(--ua-ink-label);font-family:Inter,sans-serif;'
+            f'<div style="font-size:var(--ua-text-sm);color:var(--ua-ink-label);font-family:Inter,sans-serif;'
             f'padding-top:6px;font-weight:600;">{basket_name}</div>',
             unsafe_allow_html=True,
         )

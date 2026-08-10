@@ -388,7 +388,7 @@ if _watchlist_section == "Securities":
                         <div style="display:flex;align-items:baseline;gap:6px;">
                           <span style="font-size:2.4rem;font-weight:900;color:{_comp_color};
                                        line-height:1;">{_latest_composite:.0f}</span>
-                          <span style="font-size:1rem;color:#4A5280;">/100</span>
+                          <span style="font-size:var(--ua-text-md);color:#4A5280;">/100</span>
                           {_delta_str}
                         </div>
                         <div style="font-size:0.78rem;color:{_comp_color};margin-top:2px;font-weight:600;">{_comp_label} · {len(_wl_tickers)} ticker avg</div>
@@ -510,7 +510,7 @@ if _watchlist_section == "Securities":
                             f'<span style="font-size:1.15rem;font-weight:900;color:{_bc};">{_best["ticker"]}</span>'
                             f'<span style="font-size:0.85rem;color:{_bc};font-weight:700;margin-left:8px;">'
                             f'▲ +{_best["delta"]:.1f} pts</span>'
-                            f'<div style="font-size:0.75rem;color:var(--ua-ink-mut);margin-top:2px;">'
+                            f'<div style="font-size:var(--ua-text-sm);color:var(--ua-ink-mut);margin-top:2px;">'
                             f'Score now: {_best["cur"]:.0f}/100 &nbsp;·&nbsp; Grade: '
                             f'<span style="color:{_best["grade_color"]};font-weight:700;">{_best["grade"]}</span></div>'
                             f'</div>',
@@ -526,7 +526,7 @@ if _watchlist_section == "Securities":
                             f'<span style="font-size:1.15rem;font-weight:900;color:{_wc};">{_worst["ticker"]}</span>'
                             f'<span style="font-size:0.85rem;color:{_wc};font-weight:700;margin-left:8px;">'
                             f'▼ {_worst["delta"]:.1f} pts</span>'
-                            f'<div style="font-size:0.75rem;color:var(--ua-ink-mut);margin-top:2px;">'
+                            f'<div style="font-size:var(--ua-text-sm);color:var(--ua-ink-mut);margin-top:2px;">'
                             f'Score now: {_worst["cur"]:.0f}/100 &nbsp;·&nbsp; Grade: '
                             f'<span style="color:{_worst["grade_color"]};font-weight:700;">{_worst["grade"]}</span></div>'
                             f'</div>',

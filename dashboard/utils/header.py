@@ -76,6 +76,43 @@ _CSS = """
     --ua-radius:     12px;
     --ua-radius-sm:  8px;
     --ua-radius-lg:  16px;
+    --ua-radius-xs:  4px;
+    --ua-radius-pill: 999px;
+
+    /* ── Type scale ──────────────────────────────────────────────────────
+       There was no type scale. Surfaces picked their own value every time,
+       which produced 107 distinct font-size literals across 1,526 uses --
+       including 0.58 / 0.60 / 0.62 / 0.64 / 0.65 / 0.66 / 0.68 / 0.70 /
+       0.72 / 0.74 / 0.75 / 0.76 / 0.78 / 0.80 / 0.82 / 0.83 / 0.85 / 0.88rem.
+       Those steps are 0.02rem apart, roughly a third of a pixel: nobody chose
+       between them, and nobody can see the difference. Many near-identical
+       values that no one picked is precisely what makes a UI read as
+       generated rather than designed.
+
+       Nine steps, each a visible jump. Prefer these over a raw value; a
+       ratchet test in tests/test_design_tokens.py stops the literal count
+       from climbing again. */
+    --ua-text-2xs:   0.625rem;   /* 10px — micro labels, table meta */
+    --ua-text-xs:    0.6875rem;  /* 11px — captions, source badges */
+    --ua-text-sm:    0.75rem;    /* 12px — secondary body, dense tables */
+    --ua-text-base:  0.875rem;   /* 14px — default body */
+    --ua-text-md:    1rem;       /* 16px — emphasised body */
+    --ua-text-lg:    1.25rem;    /* 20px — card titles */
+    --ua-text-xl:    1.5rem;     /* 24px — section headings */
+    --ua-text-2xl:   2rem;       /* 32px — page titles */
+    --ua-text-3xl:   2.5rem;     /* 40px — the one display size */
+
+    /* ── Spacing scale (4px base) ────────────────────────────────────────
+       38 distinct padding literals for the same reason. Alignment reads as
+       deliberate only when the gaps repeat. */
+    --ua-space-1:    4px;
+    --ua-space-2:    8px;
+    --ua-space-3:    12px;
+    --ua-space-4:    16px;
+    --ua-space-5:    24px;
+    --ua-space-6:    32px;
+    --ua-space-7:    48px;
+    --ua-space-8:    64px;
     --ua-shadow:     0 8px 32px rgba(0,0,0,0.55);
     --ua-shadow-lg:  0 16px 64px rgba(0,0,0,0.65);
     --ua-glow-green: 0 0 28px rgba(0,213,102,0.18);
@@ -1783,7 +1820,7 @@ code, pre {
     font-family: 'Inter', sans-serif;
     margin: 12px 0;
 }
-.ua-error-icon  { font-size: 2rem; margin-bottom: 10px; opacity: 0.6; }
+.ua-error-icon  { font-size: var(--ua-text-2xl); margin-bottom: 10px; opacity: 0.6; }
 .ua-error-title { font-size: 0.88rem; font-weight: 600; color: #FF8888; margin-bottom: 4px; }
 .ua-error-body  { font-size: 0.76rem; color: var(--ua-ink-mut); line-height: 1.5; }
 
@@ -3254,7 +3291,7 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
             f'border-radius:8px;padding:6px 14px;margin-bottom:12px;'
             f'display:flex;align-items:center;gap:16px;font-family:Inter,sans-serif;">'
             f'<span style="font-size:0.60rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.11em;font-weight:700;">MACRO REGIME</span>'
-            f'<span style="font-size:0.75rem;font-weight:700;color:{_regime_col};">● {_regime_lbl}</span>'
+            f'<span style="font-size:var(--ua-text-sm);font-weight:700;color:{_regime_col};">● {_regime_lbl}</span>'
             f'<span style="font-size:0.68rem;color:var(--ua-ink-mut);">'
             f'<span style="color:var(--ua-green);">▲ {_rb}</span>'
             f' · <span style="color:var(--ua-red);">▼ {_rr}</span>'

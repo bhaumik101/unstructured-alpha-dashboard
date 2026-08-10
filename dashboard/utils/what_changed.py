@@ -367,7 +367,7 @@ def render_what_changed_html(payload: dict) -> str:
             f'<div style="font-size:0.95rem;font-weight:700;color:var(--ua-ink);">{e["headline"]}{badge}</div>'
             f'<div style="font-size:0.82rem;margin-top:3px;">{move}</div>'
             f'<div style="font-size:0.78rem;margin-top:5px;">{impact}</div>'
-            + (f'<div style="font-size:0.75rem;color:#6B7280;margin-top:5px;line-height:1.5;">{e["why"]}</div>'
+            + (f'<div style="font-size:var(--ua-text-sm);color:#6B7280;margin-top:5px;line-height:1.5;">{e["why"]}</div>'
                if e.get("why") else "")
             + '</div>'
         )

@@ -413,17 +413,17 @@ if _track_section == "Signal Track Record":
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
       <div class="ua-spotlight" style="--ua-spotlight-accent:{CYAN};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
         <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Instances</div>
-        <div style="font-size:1.5rem;font-weight:900;color:{CYAN};">{len(_hist_calls)}</div>
+        <div style="font-size:var(--ua-text-xl);font-weight:900;color:{CYAN};">{len(_hist_calls)}</div>
         <div style="font-size:0.64rem;color:var(--ua-ink-mut);">{len(_h_bull)} bull · {len(_h_bear)} bear</div>
       </div>
       <div class="ua-spotlight" style="--ua-spotlight-accent:{BULL_COLOR};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
         <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">30d Hit Rate</div>
-        <div style="font-size:1.5rem;font-weight:900;color:{BULL_COLOR};">{"—" if _h_acc is None else f"{_h_acc:.0f}%"}</div>
+        <div style="font-size:var(--ua-text-xl);font-weight:900;color:{BULL_COLOR};">{"—" if _h_acc is None else f"{_h_acc:.0f}%"}</div>
         <div style="font-size:0.64rem;color:var(--ua-ink-mut);">direction correct</div>
       </div>
       <div class="ua-spotlight" style="--ua-spotlight-accent:{AMBER};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
         <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Median 30d Return</div>
-        <div style="font-size:1.5rem;font-weight:900;
+        <div style="font-size:var(--ua-text-xl);font-weight:900;
                     color:{"var(--ua-green)" if (_h_med or 0) >= 0 else "var(--ua-red)"};">
           {"—" if _h_med is None else f"{_h_med:+.1f}%"}
         </div>
@@ -431,7 +431,7 @@ if _track_section == "Signal Track Record":
       </div>
       <div class="ua-spotlight" style="--ua-spotlight-accent:{PURPLE};padding:12px 18px;flex:1;min-width:120px;text-align:center;">
         <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.10em;margin-bottom:4px;">Avg 30d Return</div>
-        <div style="font-size:1.5rem;font-weight:900;
+        <div style="font-size:var(--ua-text-xl);font-weight:900;
                     color:{"var(--ua-green)" if (_h_avg or 0) >= 0 else "var(--ua-red)"};">
           {"—" if _h_avg is None else f"{_h_avg:+.1f}%"}
         </div>
@@ -513,7 +513,7 @@ if _track_section == "Signal Track Record":
         def _acc_bar(val: float | None, width_px: int = 80) -> str:
             """Tiny horizontal accuracy bar."""
             if val is None:
-                return '<span style="color:var(--ua-ink-mut);font-size:0.75rem;">—</span>'
+                return '<span style="color:var(--ua-ink-mut);font-size:var(--ua-text-sm);">—</span>'
             color  = BULL_COLOR if val >= 55 else (AMBER if val >= 45 else BEAR_COLOR)
             filled = int(width_px * val / 100)
             return (

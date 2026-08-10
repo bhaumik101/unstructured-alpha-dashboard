@@ -388,7 +388,7 @@ def render_attribution_html(attr: dict, show_signals: bool = True) -> str:
         mp = attr.get("model_points", 0.0)
         banner = (
             f'<div style="background:rgba(var(--ua-purple-rgb),0.10);border:1px solid rgba(var(--ua-purple-rgb),0.30);'
-            f'border-radius:8px;padding:9px 12px;margin:8px 0;font-size:0.75rem;color:#B79CFF;">'
+            f'border-radius:8px;padding:9px 12px;margin:8px 0;font-size:var(--ua-text-sm);color:#B79CFF;">'
             f'Model methodology changed during this period — about {abs(mp):.0f} of the '
             f'{abs(chg):.0f} points reflect a scoring update, not the market.</div>'
         )

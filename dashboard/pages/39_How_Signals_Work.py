@@ -67,7 +67,7 @@ if _method_section == "What Are Signals":
     st.markdown(f"""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
 
-  <h2 style="font-size:1.25rem;font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
+  <h2 style="font-size:var(--ua-text-lg);font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
     What is a macro signal?
   </h2>
   <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:20px;">
@@ -97,7 +97,7 @@ if _method_section == "What Are Signals":
      border-radius:12px;padding:18px;">
   <div style="font-size:1.4rem;margin-bottom:8px;">{_card[0]}</div>
   <div style="font-size:0.85rem;font-weight:700;color:var(--ua-ink);margin-bottom:6px;">{_card[1]}</div>
-  <div style="font-size:0.75rem;color:var(--ua-ink-mut);line-height:1.6;">{_card[2]}</div>
+  <div style="font-size:var(--ua-text-sm);color:var(--ua-ink-mut);line-height:1.6;">{_card[2]}</div>
 </div>""", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -105,7 +105,7 @@ if _method_section == "What Are Signals":
     st.markdown("""
   <div style="background:rgba(var(--ua-label-rgb),0.07);border:1px solid rgba(var(--ua-label-rgb),0.15);
        border-radius:12px;padding:18px 22px;margin-bottom:28px;">
-    <div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink-label);letter-spacing:0.1em;
+    <div style="font-size:var(--ua-text-sm);font-weight:700;color:var(--ua-ink-label);letter-spacing:0.1em;
                 text-transform:uppercase;margin-bottom:6px;">Important distinction</div>
     <div style="font-size:0.85rem;color:var(--ua-ink-soft);line-height:1.7;">
       Macro signals describe the <strong style="color:var(--ua-ink);">economic environment</strong>,
@@ -125,7 +125,7 @@ if _method_section == "How Scores Work":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
 
-  <h2 style="font-size:1.25rem;font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
+  <h2 style="font-size:var(--ua-text-lg);font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
     How the 0–100 score is calculated
   </h2>
   <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
@@ -175,7 +175,7 @@ if _method_section == "How Scores Work":
 
   <div style="background:rgba(var(--ua-green-rgb),0.05);border:1px solid rgba(var(--ua-green-rgb),0.18);
        border-radius:12px;padding:18px 22px;margin-bottom:28px;">
-    <div style="font-size:0.75rem;font-weight:700;color:var(--ua-green);letter-spacing:0.1em;
+    <div style="font-size:var(--ua-text-sm);font-weight:700;color:var(--ua-green);letter-spacing:0.1em;
                 text-transform:uppercase;margin-bottom:6px;">No lookahead bias</div>
     <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.7;">
       Every score is calculated using only data available at the time of calculation.
@@ -194,7 +194,7 @@ if _method_section == "How Scores Work":
 if _method_section == "Why It Works":
     st.markdown("""
 <div style="max-width:780px;margin:28px auto 0;font-family:Inter,sans-serif;">
-  <h2 style="font-size:1.25rem;font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
+  <h2 style="font-size:var(--ua-text-lg);font-weight:700;color:var(--ua-ink);margin-bottom:10px;">
     Why a signal can lead price — and what that's honestly worth
   </h2>
   <p style="color:var(--ua-ink-mut);line-height:1.8;margin-bottom:24px;">
@@ -442,7 +442,7 @@ if _method_section == "Data Sources":
   <div style="margin-top:10px;font-size:0.78rem;color:var(--ua-ink-mut);line-height:1.65;">
     {_provider_roles.get(_provider, "Publicly attributable inputs used by the macro signal library.")}
   </div>
-  <div style="margin-top:6px;font-size:0.75rem;color:var(--ua-ink-label);line-height:1.6;">
+  <div style="margin-top:6px;font-size:var(--ua-text-sm);color:var(--ua-ink-label);line-height:1.6;">
     <strong>Registered series:</strong> {_preview}
   </div>
 </div>""", unsafe_allow_html=True)
@@ -499,7 +499,7 @@ if _method_section == "Limitations":
     st.markdown("""
   <div style="background:rgba(var(--ua-red-rgb),0.05);border:1px solid rgba(var(--ua-red-rgb),0.2);
        border-radius:12px;padding:18px 22px;margin-top:20px;margin-bottom:28px;">
-    <div style="font-size:0.75rem;font-weight:700;color:#FF6B6B;letter-spacing:0.1em;
+    <div style="font-size:var(--ua-text-sm);font-weight:700;color:#FF6B6B;letter-spacing:0.1em;
                 text-transform:uppercase;margin-bottom:6px;">Full disclaimer</div>
     <div style="font-size:0.78rem;color:var(--ua-ink-soft);line-height:1.75;">
       Unstructured Alpha is an educational and informational platform only.

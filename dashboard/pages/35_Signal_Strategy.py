@@ -114,13 +114,13 @@ if _strategy_section == "Performance Summary":
     <div style='background:var(--card-bg); border:1px solid var(--border); border-radius:12px;
                 padding:1.25rem 1.5rem; margin-bottom:1.5rem; display:flex; align-items:center; gap:2rem;'>
       <div>
-        <div style='font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;'>Current Signal Position</div>
+        <div style='font-size:var(--ua-text-sm); color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;'>Current Signal Position</div>
         <div style='font-size:1.8rem; font-weight:700; color:{pos_color};'>{live["position"]} ({int(live["position_pct"])}%)</div>
         <div style='font-size:0.8rem; color:var(--text-muted);'>As of {live["as_of"]}</div>
       </div>
       <div>
-        <div style='font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;'>Composite Score</div>
-        <div style='font-size:1.8rem; font-weight:700;'>{live["composite_score"]:.0f}<span style='font-size:1rem;color:var(--text-muted);'>/100</span></div>
+        <div style='font-size:var(--ua-text-sm); color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;'>Composite Score</div>
+        <div style='font-size:1.8rem; font-weight:700;'>{live["composite_score"]:.0f}<span style='font-size:var(--ua-text-md);color:var(--text-muted);'>/100</span></div>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -142,8 +142,8 @@ if _strategy_section == "Performance Summary":
     <div style='background:var(--card-bg); border:1px solid var(--border); border-radius:10px;
                 padding:1rem 1.25rem;'>
       <div style='font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.4rem;'>{label}</div>
-      <div style='font-size:1.5rem; font-weight:700;'>{s_str}</div>
-      <div style='font-size:0.75rem; color:var(--text-muted);'>SPY: {b_str}
+      <div style='font-size:var(--ua-text-xl); font-weight:700;'>{s_str}</div>
+      <div style='font-size:var(--ua-text-sm); color:var(--text-muted);'>SPY: {b_str}
         <span style='color:{col}; margin-left:.5rem;'>{arrow} {diff_str}</span>
       </div>
     </div>"""
@@ -232,7 +232,7 @@ if _strategy_section == "Equity Curve":
 if _strategy_section == "Signal Scores":
     # ── Individual signal scores ──────────────────────────────────────────────────
     st.markdown("### Individual Signal Scores")
-    st.markdown("<p style='color:var(--text-muted); font-size:0.875rem;'>Each signal scored 0–100 (rolling 252-day percentile). Higher = more bullish. Weighted composite drives the position.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:var(--text-muted); font-size:var(--ua-text-base);'>Each signal scored 0–100 (rolling 252-day percentile). Higher = more bullish. Weighted composite drives the position.</p>", unsafe_allow_html=True)
 
     sig_scores = result["signal_scores"]
     if sig_scores and live.get("signal_scores"):

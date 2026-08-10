@@ -274,7 +274,7 @@ if _signal_section == "Signal Library":
                             letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">
                     <span class="ua-pulse-dot"></span>MARKET TEMPERATURE — {scope_lbl}
                 </div>
-                <div style="font-size:1.5rem;font-weight:800;color:{temp_color};margin-top:2px;
+                <div style="font-size:var(--ua-text-xl);font-weight:800;color:{temp_color};margin-top:2px;
                             letter-spacing:-0.3px;">{temp_label}</div>
             </div>
             <div style="display:flex;gap:24px;text-align:center;">
@@ -340,7 +340,7 @@ if _signal_section == "Signal Library":
                         f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:3px solid {_to_c};'
                         f'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);'
                         f'margin-bottom:8px;font-family:Inter,sans-serif;">'
-                        f'<div style="font-size:0.75rem;font-weight:700;color:var(--ua-ink);'
+                        f'<div style="font-size:var(--ua-text-sm);font-weight:700;color:var(--ua-ink);'
                         f'line-height:1.3;margin-bottom:4px;">{_fname[:36]}</div>'
                         f'<div style="font-size:0.80rem;">'
                         f'<span style="color:{_from_c};">{_from_s} {_flip["from_status"].title()}</span>'
@@ -410,7 +410,7 @@ if _signal_section == "Signal Library":
     st.markdown("""
     <div style="background:rgba(var(--ua-cyan-rgb),0.05);border-radius:8px;padding:14px 20px;
                 border-left:5px solid var(--ua-ink);margin-bottom:14px;font-family:Inter,sans-serif;">
-        <div style="font-size:0.75rem;color:var(--ua-cyan);font-weight:700;letter-spacing:0.08em;
+        <div style="font-size:var(--ua-text-sm);color:var(--ua-cyan);font-weight:700;letter-spacing:0.08em;
                     text-transform:uppercase;margin-bottom:4px;">
             What This Dashboard Tracks
         </div>
@@ -709,7 +709,7 @@ if _signal_section == "Signal Library":
                             f'<div><div style="display:flex;align-items:center;gap:8px;">'
                             f'<div style="font-size:1.6rem;font-weight:700;color:{border};">{sym} {score:.0f}</div>'
                             f'<div style="display:flex;flex-direction:column;gap:3px;">'
-                            f'<span style="font-size:0.75rem;">{_trend_badge}</span>'
+                            f'<span style="font-size:var(--ua-text-sm);">{_trend_badge}</span>'
                             f'{_pro_conf_badge}'
                             f'</div>'
                             f'</div>'
@@ -875,7 +875,7 @@ if _signal_section == "Signal Library":
             <div style="font-size:0.82rem;color:var(--ua-ink-soft);line-height:1.65;">
                 {_insight_body}
             </div>
-            <div style="margin-top:14px;font-size:0.75rem;color:var(--ua-ink-label);
+            <div style="margin-top:14px;font-size:var(--ua-text-sm);color:var(--ua-ink-label);
                         border-top:1px solid rgba(var(--ua-onbg-rgb),0.06);padding-top:10px;">
                  <b style="color:var(--ua-ink-mut);">Next step:</b>
                 Pick a ticker → run
@@ -955,7 +955,7 @@ if _signal_section == "Signal Library":
                 <div style="font-size:1.3rem;color:{border};font-weight:700;min-width:36px;">{sym}</div>
                 <div style="flex:1;">
                     <div style="font-weight:700;font-size:0.85rem;color:var(--ua-ink);">{cfg['name']}</div>
-                    <div style="font-size:0.75rem;color:var(--ua-ink-soft);margin-top:2px;">
+                    <div style="font-size:var(--ua-text-sm);color:var(--ua-ink-soft);margin-top:2px;">
                         {abs(dev):.0f}% {direction} average · Score {score:.0f}/100
                         {f" · leads stocks ~{cfg['lag_weeks']}w" if cfg.get('lag_weeks') else ""}
                     </div>
@@ -1095,7 +1095,7 @@ if _signal_section == "Signal Library":
                 )
                 st.markdown(
                     f'<div style="background:rgba(245,158,11,0.07);border-left:3px solid var(--ua-amber);padding:8px 12px;'
-                    f'border-radius:8px;font-family:Inter,sans-serif;font-size:0.75rem;color:var(--ua-ink-soft);">'
+                    f'border-radius:8px;font-family:Inter,sans-serif;font-size:var(--ua-text-sm);color:var(--ua-ink-soft);">'
                     f'<b>High-correlation pairs (r ≥ 0.70)</b> — these signal pairs are reading similar '
                     f'phenomena and should not be double-counted as independent confirmation:<br>'
                     f'{_pair_html}</div>',

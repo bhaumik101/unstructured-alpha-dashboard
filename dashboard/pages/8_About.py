@@ -123,17 +123,17 @@ if _about_section == "Overview":
   <div style="display:flex;gap:9px;flex-wrap:wrap;">
     <a href="/how-signals-work" style="display:inline-block;text-decoration:none;color:var(--ua-ink);
        background:rgba(var(--ua-purple-rgb),0.13);border:1px solid rgba(var(--ua-purple-rgb),0.30);
-       border-radius:8px;padding:8px 12px;font-size:0.75rem;font-weight:700;">
+       border-radius:8px;padding:8px 12px;font-size:var(--ua-text-sm);font-weight:700;">
       Read How Signals Work →
     </a>
     <a href="/signal-research?section=validation" style="display:inline-block;text-decoration:none;
        color:var(--ua-ink-soft);background:rgba(var(--ua-onbg-rgb),0.04);
        border:1px solid rgba(var(--ua-onbg-rgb),0.10);border-radius:8px;padding:8px 12px;
-       font-size:0.75rem;font-weight:650;">Open validation evidence</a>
+       font-size:var(--ua-text-sm);font-weight:650;">Open validation evidence</a>
     <a href="/signal-research?section=data-quality" style="display:inline-block;text-decoration:none;
        color:var(--ua-ink-soft);background:rgba(var(--ua-onbg-rgb),0.04);
        border:1px solid rgba(var(--ua-onbg-rgb),0.10);border-radius:8px;padding:8px 12px;
-       font-size:0.75rem;font-weight:650;">Inspect data quality</a>
+       font-size:var(--ua-text-sm);font-weight:650;">Inspect data quality</a>
   </div>
 </div>
 """,
@@ -273,7 +273,7 @@ if _about_section == "Validation Evidence":
     else:
         _static = get_static_validation_summary()
         st.markdown(
-            f"<pre style='font-size:0.75rem;color:var(--ua-ink-mut);'>{_static}</pre>",
+            f"<pre style='font-size:var(--ua-text-sm);color:var(--ua-ink-mut);'>{_static}</pre>",
             unsafe_allow_html=True,
         )
         st.caption(
