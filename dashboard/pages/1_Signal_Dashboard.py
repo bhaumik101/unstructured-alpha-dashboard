@@ -83,7 +83,7 @@ if _signal_section == "Signal Library":
                 # sits directly under the signal table, so it must name the
                 # providers that actually feed the signals.
                 source=_signal_sources_phrase(),
-                cadence=f"Cached up to 6 hours · computed ~{_load_ts}",
+                cadence=f"Scored daily · cached up to 6 hours · computed ~{_load_ts}",
             ),
             unsafe_allow_html=True,
         )

@@ -37,8 +37,26 @@ PRIMARY_SOURCES: dict[str, str] = {
 ACTIVE_SOURCE_COUNT: int = len(PRIMARY_SOURCES)
 
 # ── Refresh / recency copy ────────────────────────────────────────────────────
+# Two different things were being conflated, and every public surface picked a
+# different one. They are not the same number and never were:
+#
+#   SCORE_REFRESH_*  how long the app caches provider data. A real TTL, consumed
+#                    by utils/signals_cache.py. Says nothing about scoring.
+#   SCORE_COMPUTE_*  how often the Confluence Scores are actually recomputed, by
+#                    the scoring crons in render.yaml.
+#
+# The landing page claimed scores were "updated every ~2 hours" in six places.
+# Nothing scores every two hours -- `0 */2 * * *` is threshold-alert evaluation.
+# Scores are recomputed daily for the core tier (score-core, "10 4 * * *") and
+# Mon/Wed/Fri for the rest of the universe (score-rest, "40 5 * * 1,3,5").
+# Keep these phrased in plain English; the exact cron expressions live in
+# render.yaml and on the methodology page, not in customer-facing copy.
 SCORE_REFRESH_HOURS: int = 6
-SCORE_REFRESH_DESCRIPTION: str = "updated every ~6 hours"
+SCORE_REFRESH_DESCRIPTION: str = "refreshed at most every 6 hours"
+SCORE_COMPUTE_DESCRIPTION: str = (
+    "scored daily, with the full universe refreshed three times a week"
+)
+SCORE_COMPUTE_SHORT: str = "scored daily"
 LAST_MODEL_UPDATE: str = "2026-07-13"
 
 # ── Pricing (kept here so copy never disagrees with billing) ─────────────────

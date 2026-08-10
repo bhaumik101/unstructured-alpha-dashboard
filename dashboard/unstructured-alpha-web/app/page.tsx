@@ -10,20 +10,42 @@ const APP_URL = "https://app.unstructuredalpha.com";
 // Stats: specific, honest, and differentiated
 const STATS = [
   { value: "47",     label: "Macro signals tracked" },
-  { value: "7+",     label: "Trusted data sources" },
+  { value: "9",      label: "Primary data sources" },
   { value: "4–16w",  label: "Typical signal lead time" },
   { value: "$0",     label: "To start — no card" },
 ];
 
-// Trusted data sources — these are the actual ones used
+// The providers that actually feed the signal library, mirroring
+// utils/product_metrics.signal_source_labels() in the app.
+//
+// This list previously read FRED / SEC EDGAR / FINRA / EIA / CBOE / Yahoo /
+// Congressional Disclosures and was labelled "the actual ones used". It was
+// describing the signal library, and for that it was wrong in three ways:
+//
+//   FINRA        a real provider, but it powers per-ticker short interest in
+//                Ticker Deep Dive and sources ZERO of the 47 macro signals.
+//                Listing it as a signal source is the claim that was false.
+//   Congressional
+//   Disclosures  likewise sources zero signals (production_audit reports both
+//                under advertised_not_sourcing_signals).
+//   CBOE         not a provider at all -- zero references in the codebase. The
+//                VIX signals are CBOE-originated data fetched through Yahoo
+//                Finance (source=yfinance), so naming CBOE implied a direct
+//                feed that does not exist.
+//
+// Four providers that DO source signals (arXiv, openFDA, Google Trends, NY Fed)
+// were missing entirely. The marketing site cannot import the Python registry,
+// so a test asserts this list still matches signal_source_labels().
 const SOURCES = [
   "FRED (Federal Reserve)",
-  "SEC EDGAR",
-  "FINRA",
-  "EIA",
-  "CBOE",
   "Yahoo Finance",
-  "Congressional Disclosures",
+  "EIA",
+  "SEC EDGAR",
+  "arXiv",
+  "openFDA",
+  "Google Trends",
+  "Federal Reserve communications",
+  "New York Fed",
 ];
 
 // Example signal preview — explicitly labeled as example, not live
@@ -42,7 +64,7 @@ const FEATURES = [
   {
     icon: "SD", title: "Signal Dashboard", accent: "#8b7cff", pro: false,
     body: "All 47 macro signals in one view — categorized by macro, credit, energy, sentiment, inflation, and growth. Spot regime shifts before they hit price.",
-    detail: "Updated every ~2h from FRED, SEC, FINRA, EIA, CBOE.",
+    detail: "Scored daily from FRED, SEC EDGAR, EIA and Yahoo Finance.",
   },
   {
     icon: "TD", title: "Ticker Deep Dive", accent: "#5fc4e8", pro: false,
@@ -90,11 +112,11 @@ const FOR_WHO = [
 const FAQ_ITEMS = [
   {
     q: "Is this real data or simulated/backtested?",
-    a: "Real, live data. Every signal pulls from active public APIs — FRED for macroeconomic series, SEC EDGAR for Form 4 insider filings, FINRA for short interest, EIA for weekly energy inventories, CBOE for volatility data. Scores update approximately every 2 hours. The signal dashboard clearly marks each source.",
+    a: "Real, live data. Every signal pulls from active public APIs — FRED for macroeconomic series, SEC EDGAR for XBRL company fundamentals, EIA for weekly energy inventories, the New York Fed for supply-chain pressure, plus Yahoo Finance, arXiv, openFDA and Google Trends. Scores are recomputed daily, with the full universe refreshed three times a week. The Signal Dashboard marks the source on every card, and any signal whose provider is unavailable is excluded rather than estimated.",
   },
   {
     q: "How is this different from a Bloomberg Terminal?",
-    a: "Different problem entirely. A terminal is built for professional desks that need real-time prices, news, and execution. Unstructured Alpha isn't competing with that — the real alternative is tracking the macro backdrop yourself across FRED, SEC EDGAR, FINRA, EIA and CBOE in a dozen tabs and a spreadsheet. We aggregate those public sources, score them against their own history, and explain what they mean for the stocks you hold. It's the interpretation layer, at $20/month.",
+    a: "Different problem entirely. A terminal is built for professional desks that need real-time prices, news, and execution. Unstructured Alpha isn't competing with that — the real alternative is tracking the macro backdrop yourself across FRED, SEC EDGAR, EIA, Yahoo Finance and four more public sources in a dozen tabs and a spreadsheet. We aggregate those public sources, score them against their own history, and explain what they mean for the stocks you hold. It's the interpretation layer, at $20/month.",
   },
   {
     q: "What is the Confluence Score and is it predictive?",
@@ -335,7 +357,7 @@ export default function Home() {
           <span className="sigbars" aria-hidden>
             <i /><i /><i /><i /><i /><i />
           </span>
-          Live from FRED · SEC EDGAR · FINRA · EIA · CBOE
+          Live from FRED · SEC EDGAR · EIA · NY Fed · Yahoo Finance
         </div>
 
         <h1 data-reveal data-delay="1"
@@ -497,7 +519,7 @@ export default function Home() {
             </p>
             <span style={{ fontSize: 11, color: T.dimmer, background: "rgba(255,255,255,0.04)",
                            border: "1px solid rgba(255,255,255,0.07)", borderRadius: 6, padding: "3px 10px" }}>
-              Example scores · Not your portfolio · Live scores update every ~2h
+              Example scores · Not your portfolio · Live scores are updated daily
             </span>
           </div>
 
@@ -509,7 +531,7 @@ export default function Home() {
               <span style={{ fontSize: 13, fontWeight: 600, color: T.bright }}>Macro Signal Scores</span>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span className="live-dot" />
-                <span style={{ fontSize: 11, color: T.dimmer }}>Updates every ~2h from FRED, SEC, EIA, CBOE</span>
+                <span style={{ fontSize: 11, color: T.dimmer }}>Scored daily from FRED, SEC EDGAR and EIA</span>
               </div>
             </div>
 
@@ -586,14 +608,14 @@ export default function Home() {
             {[
               {
                 n: "01", title: "47 signals scored daily",
-                body: "We pull from FRED, SEC EDGAR, FINRA, EIA, and CBOE. Each signal gets a 0–100 percentile score against its trailing 1-year history. A score of 72 means the current reading is more bullish than 72% of the past year's readings — no arbitrary thresholds.",
-                src: "Source: FRED, SEC EDGAR, FINRA, EIA, CBOE",
+                body: "We pull from FRED, SEC EDGAR, EIA, Yahoo Finance, and four more public sources. Each signal gets a 0–100 percentile score against its trailing 1-year history. A score of 72 means the current reading is more bullish than 72% of the past year's readings — no arbitrary thresholds.",
+                src: "Source: FRED, SEC EDGAR, EIA, Yahoo Finance +4 more",
                 delay: "3",
               },
               {
                 n: "02", title: "Confluence Score per ticker",
                 body: "For each stock in your watchlist, we weight the signals most relevant to its sector into a single Confluence Score. Energy stocks weight crude inventory and rig count differently than a semiconductor company weights hyperscaler capex. Sector-aware, not one-size-fits-all.",
-                src: "Updated every ~2 hours",
+                src: "Scored daily",
                 delay: "4",
               },
               {
@@ -858,7 +880,7 @@ export default function Home() {
 
           {/* Real-competitor anchor: fragmented research, not a terminal */}
           <p data-reveal style={{ textAlign: "center", fontSize: 13, color: T.dimmer, marginTop: 28, maxWidth: 640, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
-            You could track all of this yourself — across FRED, SEC EDGAR, FINRA, EIA and CBOE,
+            You could track all of this yourself — across FRED, SEC EDGAR, EIA, Yahoo Finance and four more public sources,
             in a dozen browser tabs and a spreadsheet. We built the interpretation layer, for $20/month.
           </p>
         </div>
@@ -920,7 +942,7 @@ export default function Home() {
           <p data-reveal data-delay="1"
              style={{ fontSize: 17, color: T.muted, marginBottom: 40, lineHeight: 1.7,
                       maxWidth: 460, margin: "0 auto 40px" }}>
-            Free to start. No credit card. 47 live signals, updated every ~2 hours,
+            Free to start. No credit card. 47 live signals, scored daily,
             from the same public data sources institutional desks use.
           </p>
           <div data-reveal data-delay="2">
@@ -930,7 +952,7 @@ export default function Home() {
               Open the Dashboard — Free →
             </a>
             <div style={{ marginTop: 16, fontSize: 13, color: T.dimmer }}>
-              Free · No card · 47 signals · Updated every ~2h · Cancel Pro anytime
+              Free · No card · 47 signals · Scored daily · Cancel Pro anytime
             </div>
           </div>
 
@@ -1006,7 +1028,7 @@ export default function Home() {
               </div>
               <div style={{ fontSize: 13, color: T.dimmer, lineHeight: 1.65, marginBottom: 14 }}>
                 Macro signal intelligence for active investors. 47 signals scored daily
-                from FRED, SEC EDGAR, FINRA, EIA, and CBOE.
+                from FRED, SEC EDGAR, EIA, Yahoo Finance, and four more public sources.
               </div>
               <div style={{ fontSize: 11, color: T.dimmer }}>
                 For educational and informational purposes only.

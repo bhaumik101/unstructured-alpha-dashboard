@@ -12,6 +12,7 @@ from utils.config import SIGNALS
 from utils.product_metrics import (
     ACTIVE_SIGNAL_COUNT,
     PRO_PRICE_MONTHLY,
+    SCORE_COMPUTE_DESCRIPTION,
     SCORE_REFRESH_DESCRIPTION,
     signal_sources_phrase,
 )
@@ -528,7 +529,7 @@ if _method_section == "FAQ":
          "Some signals require a minimum number of data points to calculate a reliable percentile. If a series has been recently added or if the data source returned too few observations, the signal defaults to 'insufficient data' rather than showing a potentially misleading score."),
 
         ("How often does data refresh?",
-         f"The platform cache is {SCORE_REFRESH_DESCRIPTION}, while each underlying provider retains its own publication schedule. A monthly economic release does not become newer merely because the app refreshed. Signal cards show the last confirmed observation."),
+         f"Three separate clocks, and it is worth keeping them apart. Confluence Scores are {SCORE_COMPUTE_DESCRIPTION}. The platform cache is {SCORE_REFRESH_DESCRIPTION}. And each underlying provider keeps its own publication schedule — a monthly economic release does not become newer merely because the app refreshed. Signal cards show the last confirmed observation."),
 
         ("What is the rolling window?",
          "252 trading days — approximately one calendar year. This captures a full economic cycle of seasonal variation without overweighting distant historical regimes. A shorter window (e.g., 90 days) would be too sensitive to recent extremes. A longer window would dilute the signal's responsiveness."),
