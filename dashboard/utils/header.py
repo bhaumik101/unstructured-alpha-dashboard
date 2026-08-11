@@ -538,6 +538,27 @@ html[data-ua-theme="light"] [style^="color:#7bde6b"] {
     color: #3E8E2F !important;
 }
 
+/* ── Element containers that cannot paint ─────────────────────────────────
+   The page's vertical block is display:flex with row-gap:16px, so EVERY child
+   collects 16px whether or not it renders anything. A st.markdown that emits
+   only a <style> or a <script> is a 0px-tall flex child that still costs a
+   full gap. Measured live on 2026-08-11: 8 such children on Signal Dashboard
+   (112px) and 2 on Home (32px, moving the hero up 16px).
+
+   The :not() is the whole safety argument -- it matches only containers whose
+   markdown holds nothing that can produce a box. A broader version of this
+   rule that also took st.html wrappers out of flow was measured first and
+   rejected: it pulled 2,682px of real content off Home, because Home renders
+   actual content through st.html. Do not widen this without measuring again.
+
+   Not extended to the top nav, the two rails or the scroll-to-top button.
+   Those are 0px too, but they are fixed/absolute/sticky elements that must
+   stay in the DOM and in their current stacking context. */
+[data-testid="stMain"] [data-testid="stVerticalBlock"] > .stElementContainer:has([data-testid="stMarkdownContainer"]):not(:has([data-testid="stMarkdownContainer"] > *:not(style):not(script))),
+[data-testid="stMain"] [data-testid="stVerticalBlock"] > .stElementContainer:has(> [data-testid="stEmpty"]) {
+    display: none;
+}
+
 /* ── SPA proxy links ──────────────────────────────────────────────────────
    Hidden st.page_link elements the nav forwards clicks to, so navigation stays
    client-side instead of doing a full browser reload. Deliberately NOT
@@ -557,8 +578,12 @@ html[data-ua-theme="light"] [style^="color:#7bde6b"] {
     overflow: hidden !important;
     pointer-events: auto !important;
 }
-[data-testid="stPageLink-NavLink"],
-.ua-spa-proxy {
+/* Scoped to the rail. Unscoped, this hid EVERY st.page_link in the app --
+   including the genuinely visible ones on Signal Research, which rendered at
+   height 0. The rail class is the only thing separating a proxy from a real
+   link; there is no other marker on the element at render time. */
+.st-key-ua_spa_proxy_rail [data-testid="stPageLink-NavLink"],
+.st-key-ua_spa_proxy_rail .ua-spa-proxy {
     position: absolute !important;
     width: 1px !important;
     height: 1px !important;

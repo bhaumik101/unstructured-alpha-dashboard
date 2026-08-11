@@ -562,14 +562,19 @@ if _signal_section == "Signal Library":
             _streak = _streak_lookup.get(sig_id, {})
             _streak_label = _streak.get("label", "")
             _streak_days  = _streak.get("days", 0)
-            # Only show fatigue for Extended/Exhausted — Fresh/Established add noise
+            # Only show fatigue for Extended/Exhausted — Fresh/Established add noise.
+            #
+            # Matched on the WORDS, not on the emoji that prefix the label. This
+            # test used to be `startswith(("", ""))`: the emoji were stripped out
+            # of these literals at some point and `"".startswith("")` is True for
+            # every string, so the badge rendered on every card — including the
+            # two this comment says to hide, and including the unreachable green
+            # branch below it. "Established" was live on cards on 2026-08-11.
+            _show_fatigue = ("Extended" in _streak_label) or ("Exhausted" in _streak_label)
             _fatigue_html = (
                 f'<span style="font-size:0.64rem;color:var(--ua-ink-label);margin-left:6px;" '
                 f'title="{_streak_days} days in current status">{_streak_label}</span>'
-                if _streak_label.startswith(("", "")) else
-                f'<span style="font-size:0.64rem;color:var(--ua-green);margin-left:6px;" '
-                f'title="{_streak_days} days in current status">{_streak_label}</span>'
-                if _streak_label.startswith("") else ""
+                if _show_fatigue else ""
             )
 
             # Live pulse indicator — shown for signals that flipped today or yesterday

@@ -34,6 +34,8 @@
 # better tradeoff than the old behavior of st.stop()-ing every single page
 # load until the cookie component responds, now that pages aren't gated.
 
+from html import escape
+
 import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
@@ -370,16 +372,41 @@ def render_auth_forms(cookies: CookieManager, key_prefix: str = "") -> None:
     )
 
 
-def require_login() -> dict:
+def _render_gate_brand(prompt: str) -> None:
+    """The gate's masthead. Its own function because the not-ready branch has
+    to render it too -- see require_login()."""
+    st.markdown(f"""
+    <div style="text-align:center; margin-top:40px; margin-bottom:20px;">
+        <div style="font-size:2.2rem;font-weight:700;color:var(--ua-ink);font-family:Inter,sans-serif;">
+            UNSTRUCTURED <span style="background:linear-gradient(135deg,var(--ua-green),var(--ua-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ALPHA</span>
+        </div>
+        <div style="font-size:0.9rem;color:var(--ua-ink-mut);font-family:Inter,sans-serif;">
+            {escape(prompt)}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def require_login(prompt: str = "Sign in to continue") -> dict:
     """
     Returns the logged-in user identity ({"id", "email", "display_name"}) if already
     authenticated. Otherwise renders a full-page login/signup gate (or the
     email-verification step, if mid-signup) and calls st.stop() -- this
     function never returns None; it either returns a real, verified user
-    or halts the script. Used ONLY by pages that inherently require an
-    account (currently just Watchlist) -- every other page uses the
-    non-blocking try_restore_session() instead, since this app no longer
-    forces a login wall on first visit.
+    or halts the script.
+
+    `prompt` is the one line under the wordmark. It was hard-coded to "Sign in
+    to use your watchlist" back when Watchlist was the only caller; Thesis
+    Journal and Account Setup have since been added and both showed watchlist
+    copy. Observed live on /thesis-journal.
+
+    The not-ready branch renders the brand rather than stopping on a blank
+    screen. That is not only cosmetic: CookieManager is a Streamlit component
+    and reports readiness only once it has rendered, so a page that calls this
+    before emitting anything -- Account Setup does, at module line 30 -- could
+    stop with nothing flushed, leaving /welcome permanently blank for a
+    signed-out visitor. Verified blank live on 2026-08-11; emitting markup
+    first gives the component something to render with.
     """
     cookies = get_cookies()
     user = try_restore_session(cookies)
@@ -387,18 +414,11 @@ def require_login() -> dict:
         return user
 
     if not cookies.ready():
+        _render_gate_brand(prompt)
+        st.caption("Checking your session…")
         st.stop()
 
-    st.markdown("""
-    <div style="text-align:center; margin-top:40px; margin-bottom:20px;">
-        <div style="font-size:2.2rem;font-weight:700;color:var(--ua-ink);font-family:Inter,sans-serif;">
-            UNSTRUCTURED <span style="background:linear-gradient(135deg,var(--ua-green),var(--ua-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ALPHA</span>
-        </div>
-        <div style="font-size:0.9rem;color:var(--ua-ink-mut);font-family:Inter,sans-serif;">
-            Sign in to use your watchlist
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    _render_gate_brand(prompt)
 
     _, center, _ = st.columns([1, 2, 1])
     with center:

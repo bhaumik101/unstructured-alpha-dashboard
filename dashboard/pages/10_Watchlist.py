@@ -134,7 +134,7 @@ alerts_db.init_db()
 # blocking gate. require_login() renders its own sign-in form and stops
 # the script here if nobody's logged in; everything below this line can
 # safely assume a real, verified user.
-current_user = require_login()
+current_user = require_login("Sign in to use your watchlist")
 user_id = current_user["id"]
 
 if _watchlist_section == "Securities":

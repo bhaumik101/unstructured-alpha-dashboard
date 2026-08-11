@@ -28,6 +28,20 @@ _HEADER_SRC = _HEADER.read_text(encoding="utf-8")
 _INJECTOR_SRC = _INJECTOR.read_text(encoding="utf-8")
 
 PROXY_TESTID = 'data-testid="stPageLink-NavLink"'
+RAIL_SCOPE = ".st-key-ua_spa_proxy_rail"
+
+
+def _click_proxy_block() -> str:
+    """The injector's click-proxy section, comments included.
+
+    Sliced by heading rather than a fixed character count: a fixed window
+    silently starts failing when someone adds a comment, which says nothing
+    about the code being wrong.
+    """
+    start = _INJECTOR_SRC.find("Client-side navigation proxy")
+    assert start != -1, "nav proxy block not found in the injector"
+    end = _INJECTOR_SRC.find("uaMarkProxyLinks", start)
+    return _INJECTOR_SRC[start : end if end != -1 else start + 4000]
 
 
 def _page_targets():
@@ -72,6 +86,63 @@ def test_hidden_proxy_css_targets_the_element_not_a_wrapper():
         "the proxy-hiding CSS must target [data-testid=stPageLink-NavLink] "
         "directly; a wrapper class alone silently wraps nothing (see docstring)"
     )
+
+
+def _selector_lines(src: str) -> list[str]:
+    """Every CSS selector line mentioning the page-link testid."""
+    return [ln.strip() for ln in src.splitlines() if PROXY_TESTID in ln and "/*" not in ln]
+
+
+def test_hidden_proxy_css_is_scoped_to_the_rail():
+    """The hiding rule must not reach page_links outside the proxy rail.
+
+    This shipped broken and stayed that way: the rule was written unscoped, so
+    it hid EVERY st.page_link in the app. Signal Research's three real links
+    (e.g. "Open advanced earnings and signal attribution") rendered at height 0
+    -- present in the DOM, invisible to users, and passing every test, because
+    nothing here asserted the scope.
+    """
+    unscoped = [
+        ln
+        for ln in _selector_lines(_HEADER_SRC)
+        if ln.startswith("[") or (RAIL_SCOPE not in ln and ln.endswith(("{", ",")))
+    ]
+    assert not unscoped, (
+        f"these rules hide every page_link in the app, not just the rail's "
+        f"proxies -- prefix each with '{RAIL_SCOPE} ': {unscoped}"
+    )
+
+
+def test_a11y_marking_is_scoped_to_the_rail():
+    """tabindex=-1 / aria-hidden must not land on real, visible page_links.
+
+    The CSS scope alone is not enough: the injector stamps both attributes in
+    the live DOM, so an unscoped query pulls genuinely visible links out of the
+    keyboard tab order and hides them from screen readers -- with the link
+    still perfectly visible on screen. Same class of bug, different mechanism.
+    """
+    idx = _INJECTOR_SRC.find("uaMarkProxyLinks")
+    block = _INJECTOR_SRC[idx : idx + 900]
+    query_lines = [ln for ln in block.splitlines() if PROXY_TESTID in ln]
+    assert query_lines, "the a11y marking query is missing"
+    assert all(RAIL_SCOPE in ln for ln in query_lines), (
+        f"the a11y marking query must be scoped to '{RAIL_SCOPE}' so it only "
+        f"marks the rail's proxies: {query_lines}"
+    )
+
+
+def test_click_proxy_leaves_real_page_links_alone():
+    """A page_link already navigates client-side -- proxying one is a no-op at
+    best and forwards the click to a different element at worst.
+
+    Only reachable once the visible page_links stopped being hidden, so there
+    is nothing in the click-proxy history to catch it.
+    """
+    block = _click_proxy_block()
+    guard = block.find(f"a.closest('[{PROXY_TESTID}]')")
+    match = block.find("if(lh === slug)")
+    assert guard != -1, "the click proxy must skip anchors that are page_links"
+    assert guard < match, "the skip must come before the forwarding logic"
 
 
 def test_proxy_links_are_clipped_not_display_none():
@@ -123,8 +194,7 @@ def test_proxy_intercepts_any_internal_link_not_only_the_nav():
     /ticker/AAPL -- which are NOT Streamlit pages -- find no proxy and fall
     through to a real navigation.
     """
-    idx = _INJECTOR_SRC.find("Client-side navigation proxy")
-    block = _INJECTOR_SRC[idx : idx + 2500]
+    block = _click_proxy_block()
     assert "closest('a[href^=\"/\"]')" in block, (
         "the click proxy must match any internal link, not only .ua-tnav-item"
     )
@@ -137,9 +207,7 @@ def test_injector_falls_back_to_the_real_href():
     Hoisting it above the match would swallow clicks that have no proxy --
     turning "slow" into "the nav does nothing", a far worse failure.
     """
-    idx = _INJECTOR_SRC.find("Client-side navigation proxy")
-    assert idx != -1, "nav proxy block not found in the injector"
-    block = _INJECTOR_SRC[idx : idx + 2500]
+    block = _click_proxy_block()
     pd = block.find("ev.preventDefault()")
     match = block.find("if(lh === slug)")
     assert match != -1, "proxy match condition not found"

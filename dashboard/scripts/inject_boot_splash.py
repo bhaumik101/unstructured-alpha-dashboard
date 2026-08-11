@@ -103,6 +103,11 @@ def _build_splash() -> str:
          Streamlit pages, find no proxy, and fall through untouched. */
       var a = ev.target && ev.target.closest && ev.target.closest('a[href^="/"]');
       if(!a) return;
+      /* A page_link is ALREADY client-side -- it carries React's onClick. Let
+         it handle its own click instead of forwarding to a different element
+         that does the same thing. (Only reachable now that the visible
+         page_links on Signal Research are no longer hidden by the CSS.) */
+      if(a.closest('[data-testid="stPageLink-NavLink"]')) return;
       if(ev.defaultPrevented || ev.button !== 0) return;
       if(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;  /* open-in-new-tab */
       if(a.target && a.target !== '_self') return;
@@ -123,7 +128,10 @@ def _build_splash() -> str:
     }catch(e){ /* never block navigation */ }
   }, true);
 
-  /* The proxy links are clipped out of view but still focusable, which would
+  /* Only the rail's proxies. Unscoped, this also stamped tabindex=-1 and
+     aria-hidden=true onto the real, visible page_links on Signal Research --
+     pulling them out of the tab order and hiding them from screen readers.
+     The proxy links are clipped out of view but still focusable, which would
      drop ~33 invisible stops into the keyboard tab order on every page. There
      is no server-side wrapper to fix this with (two st.markdown calls cannot
      span a container), so mark them here in the real DOM. Streamlit re-renders
@@ -133,7 +141,7 @@ def _build_splash() -> str:
   function uaMarkProxyLinks(){
     try{
       var links = document.querySelectorAll(
-        '[data-testid="stPageLink-NavLink"]:not([data-ua-proxy])');
+        '.st-key-ua_spa_proxy_rail [data-testid="stPageLink-NavLink"]:not([data-ua-proxy])');
       for(var i=0;i<links.length;i++){
         links[i].setAttribute('data-ua-proxy','1');
         links[i].setAttribute('tabindex','-1');
