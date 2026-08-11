@@ -544,6 +544,19 @@ html[data-ua-theme="light"] [style^="color:#7bde6b"] {
    display:none and NOT visibility:hidden -- an element hidden either way cannot
    be reliably clicked, which would defeat the whole mechanism. The clip-rect
    technique keeps it in the layout and clickable while invisible. */
+/* The proxy ANCHORS were already pulled out of flow -- but their Streamlit
+   .stElementContainer wrappers were not. Each stayed a flex child of the page's
+   vertical block, measuring 0px tall and still collecting the container's 16px
+   row-gap. With ~33 registered routes that is ~130px of empty space above every
+   page's content, on every page, for links nobody can see.
+   Scoped to the keyed rail so genuinely visible st.page_link calls elsewhere
+   keep their layout. */
+.st-key-ua_spa_proxy_rail {
+    position: absolute !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+}
 [data-testid="stPageLink-NavLink"],
 .ua-spa-proxy {
     position: absolute !important;
@@ -3038,13 +3051,19 @@ def _render_spa_proxy_links() -> None:
         targets = page_targets()
         if not targets:
             return
-        for url_path, script in targets:
-            try:
-                st.page_link(script, label=url_path or "home")
-            except Exception:
-                # A page can be registered but unavailable to this user/tier.
-                # Skipping it just means that link keeps the full-reload path.
-                continue
+        # Keyed container so the CSS can take ONLY these proxies out of the
+        # layout flow. Scoping matters: st.page_link is also used for real,
+        # visible links (Signal Research links to Track Record this way), and a
+        # blanket rule on [data-testid="stPageLink"] would collapse those too.
+        with st.container(key="ua_spa_proxy_rail"):
+            for url_path, script in targets:
+                try:
+                    st.page_link(script, label=url_path or "home")
+                except Exception:
+                    # A page can be registered but unavailable to this
+                    # user/tier. Skipping it just means that link keeps the
+                    # full-reload path.
+                    continue
     except Exception:
         pass
 
