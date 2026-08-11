@@ -248,7 +248,24 @@ if _signal_section == "Signal Library":
     bull_n    = sum(1 for v in _vals if v.get("status") == "bullish")
     bear_n    = sum(1 for v in _vals if v.get("status") == "bearish")
     neut_n    = sum(1 for v in _vals if v.get("status") == "neutral")
-    total_n   = len(_vals)
+    # A signal is only counted once it has an actual verdict. status can also be
+    # "insufficient_data" or "no_data", and those must stay OUT of both the
+    # tally and the denominator.
+    #
+    # They used to be in the denominator, which broke two things at once. The
+    # panel showed 14 / 7 / 17 beside a TOTAL of 47 -- three numbers that sum to
+    # 38, which is the kind of arithmetic a reader of a data-integrity product
+    # checks. And bull_pct divided by that same inflated 47, so nine unscored
+    # signals silently counted as "not bullish": 14/38 = 37% (Mixed) rendered as
+    # 14/47 = 30% (Risk-Off), directly contradicting the "MIXED SIGNALS" regime
+    # bar 400px above it on the same screen.
+    #
+    # Treating an unavailable signal as evidence of anything is exactly the
+    # synthesis this product promises never to do -- a failed signal is
+    # excluded, not quietly scored as a negative.
+    scored_n     = bull_n + bear_n + neut_n
+    unscored_n   = len(_vals) - scored_n
+    total_n      = scored_n
 
     scope_lbl = (cat_sel_idx if selected_cat else "All Categories")
     if search_term:
@@ -299,7 +316,8 @@ if _signal_section == "Signal Library":
                 <div>
                     <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:var(--ua-ink);
                                  letter-spacing:-1px;line-height:1.0;">{total_n}</div>
-                    <div style="font-size:0.60rem;color:var(--ua-ink-mut);letter-spacing:0.10em;font-weight:700;margin-top:3px;">TOTAL</div>
+                    <div style="font-size:0.60rem;color:var(--ua-ink-mut);letter-spacing:0.10em;font-weight:700;margin-top:3px;">SCORED</div>
+                    {f'<div style="font-size:var(--ua-text-2xs);color:var(--ua-ink-label);margin-top:2px;font-weight:600;">+{unscored_n} unavailable</div>' if unscored_n else ''}
                 </div>
             </div>
         </div>
