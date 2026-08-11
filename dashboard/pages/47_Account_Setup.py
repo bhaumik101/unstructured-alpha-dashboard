@@ -27,7 +27,7 @@ from utils.theme import inject_premium_css  # noqa: E402
 
 
 inject_premium_css()
-user = require_login()
+user = require_login("Sign in to finish setting up your account")
 user_id = user["id"]
 
 st.markdown(

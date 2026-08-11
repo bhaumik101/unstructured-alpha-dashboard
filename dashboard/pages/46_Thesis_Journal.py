@@ -26,7 +26,7 @@ render_page_header(
     icon="",
 )
 
-user = require_login()
+user = require_login("Sign in to open your thesis journal")
 require_pro(
     "Thesis Journal",
     benefit="Build a durable decision record tied to live scores, prices, risks, and review outcomes.",
