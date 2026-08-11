@@ -3258,20 +3258,26 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
         + (f"<br><div style='margin-top:5px;'>{_user_pill}</div>" if _user_pill else "")
     )
 
-    # The left side is the brand wordmark on every page EXCEPT where a caller
-    # passes a hero_title. The top nav already carries the wordmark, so on the
-    # landing page repeating it here is pure duplication; leading with the value
-    # proposition instead is both less redundant and a stronger first read.
+    # The left side carries a hero headline where a caller passes one (the
+    # landing page), and nothing otherwise.
+    #
+    # It used to repeat the brand wordmark at 1.8rem on every other page. The
+    # reasoning that removed it from the landing page -- "the top nav already
+    # carries the wordmark, so repeating it here is pure duplication" -- was
+    # never extended to the other 31 pages, where the effect was worse: on the
+    # Signal Dashboard the single largest element was the company name, and the
+    # page's own title sat 320px below it. Roughly 640px of identical furniture
+    # ran before any page's content began, on a 900px viewport.
+    #
+    # A research tool should open on the research. The nav still states who we
+    # are on every page; a signed-in user does not need telling twice.
     if hero_title:
         _left_html = (
             f'<div class="ua-hero-title">{hero_title}</div>'
             + (f'<div class="ua-hero-sub">{hero_sub}</div>' if hero_sub else "")
         )
     else:
-        _left_html = (
-            '<div class="ua-wordmark">UNSTRUCTURED <span>ALPHA</span></div>'
-            '<div class="ua-tagline">Alternative Data Intelligence &mdash; what&rsquo;s coming, not what happened</div>'
-        )
+        _left_html = ""
 
     st.markdown(f"""
     <div class="ua-header">
@@ -3843,7 +3849,15 @@ def render_sidebar_base(
     max-height: calc(100vh - 92px);
     overflow-y: auto;
     z-index: 910;
-    padding: 13px 12px 11px;
+    /* Bottom padding was 11px, which left the rail's own scrollHeight (143px)
+       4px taller than its clientHeight (139px): the last line of the note --
+       "…visible while you scroll." -- was sliced off by the rounded edge on
+       every page that renders a section rail.
+       Measured in the browser rather than guessed: 12px still clips, 16px lands
+       exactly on the boundary with zero slack (one font-metric change and it
+       clips again), 24px clears it with room. Using the spacing token keeps it
+       on the 4px grid instead of adding a 20px one-off. */
+    padding: var(--ua-space-3) var(--ua-space-3) var(--ua-space-5);
     background: rgba(var(--ua-shell-rgb),0.97);
     border: 1px solid rgba(var(--ua-label-rgb),0.20);
     border-radius: 12px;
