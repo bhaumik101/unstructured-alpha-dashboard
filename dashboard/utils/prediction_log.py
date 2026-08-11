@@ -489,7 +489,12 @@ def get_predictions_feed(
 ) -> list[dict]:
     """
     Return prediction log rows for the public feed, newest-first.
-    Used by pages/30_Track_Record_Live.py.
+
+    Used by BOTH public track-record surfaces -- the card view in
+    pages/30_Track_Record_Live.py and the table in the Signal Research Center
+    (pages/51_Signal_Research.py). They render the same rows differently, and
+    they have already drifted once: the table shipped without the entry price
+    the card view showed. Change one, check the other.
     """
     try:
         q = (
