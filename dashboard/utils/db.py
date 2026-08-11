@@ -608,6 +608,17 @@ prediction_log = Table(
     Column("score_at_event", Float),
     Column("signal_count", Integer),
     Column("price_at_event", Float),
+    # How price_at_event was obtained. "observed" = fetched live at the moment
+    # the call was made. "backfilled" = reconstructed later from the historical
+    # close on event_date, because the live fetch had failed and left it NULL.
+    #
+    # Both are real prices; they are not equally strong evidence. A reconstructed
+    # entry uses the official close, while an observed one is the intraday price
+    # the call was actually made at, so a backfilled row's return is measured
+    # from a slightly different starting point. Recording which is which is the
+    # difference between a complete record and a record that quietly overstates
+    # what was known at the time -- the same distinction the product sells.
+    Column("price_source", String(16)),                 # observed | backfilled | NULL (legacy)
     Column("event_date", String(10), nullable=False),   # YYYY-MM-DD
     Column("status", String(16), nullable=False, server_default="'pending'"),  # pending | resolved
     Column("price_4w",   Float),

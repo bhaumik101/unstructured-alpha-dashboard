@@ -270,6 +270,36 @@ if _track_section == "Signal Track Record":
                 entry_str = f"${entry_px:,.2f}" if entry_px else "—"
                 sig_str   = f" · {sig_ct} signals" if sig_ct else ""
 
+                # Show what the call was worth, not just what it was entered at.
+                # Use the furthest horizon that has actually resolved, and say
+                # which one it is -- an unlabelled "exit" price invites the
+                # reader to assume the longest horizon completed when it may not
+                # have.
+                _exit_px, _exit_horizon, _exit_ret = None, "", None
+                for _h in ("12w", "8w", "4w"):
+                    _p = row.get(f"price_{_h}")
+                    if _p:
+                        _exit_px, _exit_horizon = _p, _h
+                        _exit_ret = row.get(f"return_{_h}")
+                        break
+                exit_str = f"${_exit_px:,.2f}" if _exit_px else "—"
+                exit_lbl = f"At {_exit_horizon}" if _exit_horizon else "Not yet resolved"
+                _exit_col = "var(--ua-ink-soft)"
+                if _exit_ret is not None:
+                    _exit_col = "var(--ua-green)" if _exit_ret >= 0 else "var(--ua-red)"
+                    exit_str += f" ({_exit_ret:+.1f}%)"
+
+                # A reconstructed entry is a real price but weaker evidence than
+                # one observed live, so it is disclosed rather than blended in.
+                _entry_note = ""
+                if row.get("price_source") == "backfilled":
+                    _entry_note = (
+                        '<span title="Reconstructed from the official close on the '
+                        'event date, because the live price fetch failed when this '
+                        'call was logged." style="font-size:var(--ua-text-2xs);'
+                        'color:var(--ua-ink-mut);font-weight:600;"> ·&nbsp;est.</span>'
+                    )
+
                 with col:
                     st.markdown(f"""
     <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{dc};
@@ -293,8 +323,13 @@ if _track_section == "Signal Track Record":
         </div>
         <div>
           <div style="font-size:0.58rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">
-            Entry</div>
+            Entry{_entry_note}</div>
           <div style="font-size:0.88rem;font-weight:700;color:var(--ua-ink-soft);">{entry_str}</div>
+        </div>
+        <div>
+          <div style="font-size:var(--ua-text-2xs);color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.08em;">
+            {exit_lbl}</div>
+          <div style="font-size:var(--ua-text-base);font-weight:700;color:{_exit_col};">{exit_str}</div>
         </div>
         <div style="margin-left:auto;">
           <span style="font-size:0.66rem;font-weight:700;
