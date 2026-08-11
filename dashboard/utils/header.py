@@ -557,8 +557,12 @@ html[data-ua-theme="light"] [style^="color:#7bde6b"] {
     overflow: hidden !important;
     pointer-events: auto !important;
 }
-[data-testid="stPageLink-NavLink"],
-.ua-spa-proxy {
+/* Scoped to the rail. Unscoped, this hid EVERY st.page_link in the app --
+   including the genuinely visible ones on Signal Research, which rendered at
+   height 0. The rail class is the only thing separating a proxy from a real
+   link; there is no other marker on the element at render time. */
+.st-key-ua_spa_proxy_rail [data-testid="stPageLink-NavLink"],
+.st-key-ua_spa_proxy_rail .ua-spa-proxy {
     position: absolute !important;
     width: 1px !important;
     height: 1px !important;
