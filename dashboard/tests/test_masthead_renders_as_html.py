@@ -49,12 +49,31 @@ def test_masthead_is_not_an_indented_multiline_markdown_template() -> None:
 
 
 def test_masthead_omits_its_left_slot_rather_than_leaving_it_blank() -> None:
-    """An empty <div> is not merely untidy here — the blank line inside it is
-    what created the code block."""
+    """Drop the empty container — but note this was NOT what broke rendering.
+
+    The first version of this test claimed the empty <div> caused the code
+    block. It did not: the cause was the blank LINE the indented template put
+    inside it. Omitting the container is still right (an empty flex child is
+    dead weight), but the guard that actually prevents the bug is the
+    single-unindented-line test above, and mis-attributing it here would send
+    the next reader after the wrong thing.
+    """
     body = _render_header_body()
     assert '_left_block = f\'<div class="ua-header-left">{_left_html}</div>\' if _left_html else ""' in body, (
         "the left slot must be dropped entirely when empty, not rendered as an "
         "empty container"
+    )
+
+
+def test_right_block_right_aligns_without_a_left_sibling() -> None:
+    """.ua-header is flex/space-between, which only pushes this block right
+    while something sits to its left. With the masthead's left slot empty it
+    became the sole child and drifted to the middle of the page."""
+    css = HEADER.read_text(encoding="utf-8")
+    block = css.split(".ua-header-right {", 1)[1].split("}", 1)[0]
+    assert "margin-left: auto" in block, (
+        "the header's right block must right-align on its own, not by relying "
+        "on a sibling that may not exist"
     )
 
 

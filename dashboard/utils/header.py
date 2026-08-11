@@ -964,6 +964,13 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
 }
 .ua-header-right {
     text-align: right; font-size: 0.73rem; color: var(--ua-ink-mut); font-family: 'Inter', sans-serif;
+    /* .ua-header is flex/space-between, which only right-aligns this block while
+       a left sibling exists to push against. Emptying the masthead's left slot
+       left this as the sole child, so space-between placed it at flex-start and
+       the date, market status and account chip drifted to the middle of the
+       page. margin-left:auto right-aligns it on its own merits, with or without
+       a sibling. */
+    margin-left: auto;
 }
 .ua-header-right b { color: var(--ua-text-mid); font-weight: 600; }
 .gold-rule {
