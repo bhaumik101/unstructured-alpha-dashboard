@@ -3279,15 +3279,26 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     else:
         _left_html = ""
 
-    st.markdown(f"""
-    <div class="ua-header">
-        <div class="ua-header-left">
-            {_left_html}
-        </div>
-        <div class="ua-header-right">{right_html}</div>
-    </div>
-    <div class="gold-rule"></div>
-    """, unsafe_allow_html=True)
+    # Emitted as ONE unindented line, deliberately.
+    #
+    # This was previously a multi-line indented f-string, which worked only
+    # because _left_html was always non-empty. The moment it could be empty, the
+    # template produced a blank line followed by an 8-space-indented "</div>",
+    # and Streamlit's markdown parser reads blank-line-then-4-space-indent as an
+    # INDENTED CODE BLOCK -- so the masthead markup rendered on every page as
+    # visible source text instead of HTML.
+    #
+    # _render_topnav's docstring documents this exact trap for the nav markup and
+    # solves it with st.html(). The same hazard applies here; collapsing to a
+    # single line with no leading whitespace removes the condition entirely, and
+    # a test pins it.
+    _left_block = f'<div class="ua-header-left">{_left_html}</div>' if _left_html else ""
+    st.markdown(
+        f'<div class="ua-header">{_left_block}'
+        f'<div class="ua-header-right">{right_html}</div></div>'
+        f'<div class="gold-rule"></div>',
+        unsafe_allow_html=True,
+    )
 
     # ── Sticky Macro Regime Bar ────────────────────────────────────────────────
     # One slim line visible on every page so users never lose macro context.
