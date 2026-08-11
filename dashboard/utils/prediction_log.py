@@ -62,6 +62,7 @@ def log_prediction(
             score_at_event=round(score, 1),
             signal_count=signal_count,
             price_at_event=price,
+            price_source=("observed" if price is not None else None),
             event_date=today,
             status="pending",
             signals_triggered=signals_str,
@@ -77,6 +78,7 @@ def log_prediction(
                 score_at_event=round(score, 1),
                 signal_count=signal_count,
                 price_at_event=price,
+                price_source=("observed" if price is not None else None),
                 event_date=today,
                 status="pending",
                 signals_triggered=signals_str,
@@ -93,6 +95,7 @@ def log_prediction(
                 score_at_event=round(score, 1),
                 signal_count=signal_count,
                 price_at_event=price,
+                price_source=("observed" if price is not None else None),
                 event_date=today,
                 status="pending",
                 signals_triggered=signals_str,
@@ -146,6 +149,100 @@ def _post_notification(
 
 # ── Resolution ────────────────────────────────────────────────────────────────
 
+def backfill_missing_entry_prices(limit: int = 50) -> int:
+    """Fill price_at_event for calls whose live price fetch failed. Returns count.
+
+    A call is logged the moment a score crosses its threshold, and the entry
+    price is fetched live at that instant. That fetch has a bare except, so a
+    yfinance blip leaves price_at_event NULL -- and resolve_pending requires it,
+    so the row can never resolve. It stays "pending" indefinitely, looking
+    exactly like a call that is still maturing. Some rows sat that way for over
+    a month.
+
+    The recovered price is the official close on event_date, which is NOT the
+    same evidence as the intraday price the call was actually made at: the close
+    is a different point in the same day, so the measured return starts from a
+    slightly different place. The row is therefore marked
+    price_source="backfilled" so Track Record can disclose it rather than
+    presenting a reconstructed entry as an observed one.
+
+    That distinction is the whole product. Completing the record is worth doing;
+    completing it in a way that cannot be told apart from live data is not.
+    """
+    import pandas as pd
+    import yfinance as yf
+
+    try:
+        with db.engine.begin() as conn:
+            rows = conn.execute(
+                select(prediction_log)
+                .where(prediction_log.c.status == "pending")
+                .where(prediction_log.c.price_at_event.is_(None))
+                .order_by(prediction_log.c.event_date)
+                .limit(limit)
+            ).mappings().all()
+    except Exception as exc:
+        print(f"[backfill] could not read rows needing an entry price: {exc}", flush=True)
+        return 0
+
+    if not rows:
+        return 0
+
+    tickers = sorted({r["ticker"] for r in rows})
+    try:
+        px = yf.download(
+            tickers, period="2y", auto_adjust=True, progress=False, group_by="ticker"
+        )
+    except Exception as exc:
+        print(f"[backfill] price download failed for {tickers}: {exc}", flush=True)
+        return 0
+
+    filled = 0
+    for row in rows:
+        ticker = row["ticker"]
+        try:
+            closes = (px["Close"] if len(tickers) == 1 else px["Close"][ticker]).squeeze()
+            closes = closes.dropna()
+            if closes.empty:
+                continue
+
+            # The close ON event_date, or the last close before it. Never after:
+            # using a later price would let the entry drift toward a known
+            # outcome, which would flatter the track record.
+            event_dt = pd.Timestamp(row["event_date"])
+            eligible = closes[closes.index <= event_dt]
+            if eligible.empty:
+                print(
+                    f"[backfill] {ticker} has no close on or before "
+                    f"{row['event_date']} — leaving unresolved",
+                    flush=True,
+                )
+                continue
+
+            entry = float(eligible.iloc[-1])
+            if entry <= 0:
+                continue
+
+            with db.engine.begin() as conn:
+                conn.execute(
+                    prediction_log.update()
+                    .where(prediction_log.c.id == row["id"])
+                    .values(price_at_event=entry, price_source="backfilled")
+                )
+            filled += 1
+        except Exception as exc:
+            print(f"[backfill] {ticker} {row['event_date']}: {exc}", flush=True)
+            continue
+
+    if filled:
+        print(
+            f"[backfill] reconstructed entry price for {filled} call(s) from the "
+            "close on their event date; marked price_source=backfilled",
+            flush=True,
+        )
+    return filled
+
+
 def resolve_pending(max_resolve: int = 20) -> int:
     """
     Check all pending predictions whose event_date is ≥4 weeks ago and
@@ -160,6 +257,13 @@ def resolve_pending(max_resolve: int = 20) -> int:
 
     four_weeks_ago = (datetime.now(timezone.utc) - timedelta(weeks=4)).strftime("%Y-%m-%d")
 
+    # Recover rows the live price fetch had failed on, before selecting work.
+    # Without this they can never resolve: the query below requires
+    # price_at_event, so a NULL row sits in "pending" forever, indistinguishable
+    # from a call that is still legitimately maturing. That is what "past 30 days
+    # and still unresolved" was.
+    backfill_missing_entry_prices(limit=max_resolve)
+
     try:
         with db.engine.begin() as conn:
             pending = conn.execute(
@@ -170,7 +274,10 @@ def resolve_pending(max_resolve: int = 20) -> int:
                 .order_by(prediction_log.c.event_date)
                 .limit(max_resolve)
             ).mappings().all()
-    except Exception:
+    except Exception as exc:
+        # A resolver that returns 0 on failure is indistinguishable from one
+        # that had nothing to do. Say which.
+        print(f"[resolve] could not read pending predictions: {exc}", flush=True)
         return 0
 
     if not pending:
