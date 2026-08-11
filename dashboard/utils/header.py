@@ -2908,9 +2908,11 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
       <div class="ua-tnav-drop">
         <a href="/ticker-deep-dive">Ticker Deep Dive</a>
         <a href="/stock-screener">Stock Screener</a>
+        <a href="/stock-chart">Stock Chart</a>
         <a href="/power-supercycle">Power Supercycle</a>
         <a class="pro-link" href="/stock-recommender">Stock Recommender</a>
         <a class="pro-link" href="/options-flow">Options Flow</a>
+        <a class="pro-link" href="/factor-exposure">Factor Exposure</a>
       </div>
     </div>
 
@@ -2921,6 +2923,24 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
         <a href="/market-overview">Market Overview</a>
         <a href="/sector-view">Sector View</a>
         <a href="/signal-research">Signal Research Center</a>
+      </div>
+    </div>
+
+    <!-- Evidence & Methodology. Split out rather than appended to Signals:
+         adding the ten unreachable pages to their existing groups pushed
+         Signals to nine items and Research to eight, which trades one
+         navigation problem for another -- a dropdown long enough to scan is a
+         dropdown nobody reads to the bottom of. These four answer "why should
+         I believe this?", which is a different question from "what is the
+         macro doing?", so they earn their own group. -->
+    <div class="ua-tnav-group">
+      <span class="ua-tnav-trigger">Evidence <span class="ua-tnav-caret">&#9660;</span></span>
+      <div class="ua-tnav-drop">
+        <a href="/track-record">Track Record</a>
+        <a href="/model-validation">Model Validation</a>
+        <a href="/how-signals-work">How Signals Work</a>
+        <a href="/data-trust">Data Trust Center</a>
+        <a href="/alternative-data">Alternative Data</a>
       </div>
     </div>
 
@@ -2936,6 +2956,7 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
       <span class="ua-tnav-trigger">More <span class="ua-tnav-caret">&#9660;</span></span>
       <div class="ua-tnav-drop">
         <a href="/ai-research-assistant">AI Assistant</a>
+        <a href="/export-report">Export Report</a>
         <a href="/my-profile">My Profile</a>
         <a href="/about-methodology">About &amp; Methodology</a>
         <div class="ua-tnav-drop-rule"></div>

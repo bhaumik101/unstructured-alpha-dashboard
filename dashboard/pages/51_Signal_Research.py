@@ -228,6 +228,28 @@ elif _section == "Track Record":
     if not _feed:
         st.info("No calls match this view yet. The public log builds automatically.")
     else:
+        def _entry(row: dict) -> str:
+            """Entry price, marked when it was reconstructed rather than observed.
+
+            This table is the auditable public log, and it was the one column it
+            did not show -- a reader could see that a call was made and how it
+            resolved, but not the price it was measured from, which is the
+            number the whole claim rests on.
+            """
+            px = row.get("price_at_event")
+            if px is None:
+                return "—"
+            suffix = " est." if row.get("price_source") == "backfilled" else ""
+            return f"${px:,.2f}{suffix}"
+
+        def _ret(value) -> str:
+            """A pending return is unknown, not the string "None".
+
+            st.dataframe renders a Python None in an object column as the literal
+            text None, which read as a value rather than an absence.
+            """
+            return "—" if value is None else f"{value:+.1f}%"
+
         _track_frame = pd.DataFrame(
             [
                 {
@@ -236,15 +258,22 @@ elif _section == "Track Record":
                     "Direction": str(row.get("direction") or "").title(),
                     "Trigger": str(row.get("event_type") or "").replace("_", " ").title(),
                     "Score": row.get("score_at_event"),
+                    "Entry": _entry(row),
                     "Status": str(row.get("status") or "").title(),
-                    "4w return": row.get("return_4w"),
-                    "8w return": row.get("return_8w"),
-                    "12w return": row.get("return_12w"),
+                    "4w return": _ret(row.get("return_4w")),
+                    "8w return": _ret(row.get("return_8w")),
+                    "12w return": _ret(row.get("return_12w")),
                 }
                 for row in _feed
             ]
         )
         st.dataframe(_track_frame, width="stretch", hide_index=True)
+        if any(r.get("price_source") == "backfilled" for r in _feed):
+            st.caption(
+                "“est.” marks an entry price reconstructed from the official close "
+                "on the call date, because the live price fetch failed when the "
+                "call was logged."
+            )
 
     st.caption(
         "Correct means a bullish call was followed by a positive return or a bearish "
