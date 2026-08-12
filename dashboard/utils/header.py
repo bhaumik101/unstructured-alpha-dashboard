@@ -1005,6 +1005,25 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
     letter-spacing: -0.9px !important; line-height: 1.06 !important;
     margin: 0 !important; padding: 0 !important;
 }
+/* Interior page titles (render_page_header). Deliberately a CLASS and not an
+   inline style: st.markdown(unsafe_allow_html=True) runs the HTML through
+   Streamlit's sanitiser, which re-parses <h1> as a markdown heading and STRIPS
+   every !important declaration out of the style attribute -- the plain
+   declarations beside them survive, so the failure is silent and partial.
+   Verified on the deployed page: the title rendered 28px / 700 / -0.3px from
+   the global `h1,h2,h3 { ...!important }` rule instead of 28.8px / 720 /
+   -0.55px. A stylesheet class keeps its !important and outranks that rule on
+   specificity. .ua-hero-title above already worked for exactly this reason. */
+.ua-page-title {
+    font-size: 1.8rem !important; font-weight: 720 !important;
+    letter-spacing: -0.55px !important; line-height: 1.15 !important;
+    font-family: 'Inter', sans-serif !important;
+    color: var(--ua-ink) !important;
+    margin: 0 !important; padding: 0 !important;
+}
+/* Streamlit attaches its hover permalink widget to any heading it parses.
+   These titles are not anchor targets, and the icon shifts the title on hover. */
+.ua-page-title [data-testid="stHeaderActionElements"] { display: none !important; }
 .ua-hero-sub {
     font-size: 0.82rem; color: var(--ua-ink-mut); font-family: 'Inter', sans-serif;
     margin-top: 6px; line-height: 1.55; max-width: 520px; font-weight: 400;
@@ -3689,9 +3708,8 @@ def render_page_header(title: str, subtitle: str = "",
             border-bottom:1px solid var(--ua-hair-3);"
      class="ua-slide-up">
     <div>
-        <h1 style="font-size:1.8rem !important;font-weight:720 !important;letter-spacing:-0.55px !important;
-                    line-height:1.15 !important;font-family:Inter,sans-serif !important;
-                    display:flex;align-items:center;flex-wrap:wrap;margin:0 !important;padding:0 !important;">
+        <h1 class="ua-page-title"
+            style="display:flex;align-items:center;flex-wrap:wrap;">
             {icon_html}<span style="color:var(--ua-ink);">{title}</span>
         </h1>
         {sub_html}

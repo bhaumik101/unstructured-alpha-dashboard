@@ -61,36 +61,59 @@ def test_both_h1s_outrank_the_global_heading_rule():
     """This is a semantics change, not a design change.
 
     The stylesheet carries a broad `h1, h2, h3 { ... !important }` plus
-    `h1 { font-size: 1.75rem !important }`. An !important rule beats a plain
-    class AND a plain inline style, so simply swapping div -> h1 restyles the
-    title on all 30 pages. Measured in the browser before it shipped:
+    `h1 { font-size: 1.75rem !important }`, which beats a plain class and a
+    plain inline style alike. Measured before the first attempt shipped:
 
         home hero      32.8px / 700 / -0.9px  ->  28px / 700 / -0.3px + 18.76px margin
         page title     28.8px / 720 / -0.55px ->  28px / 700 / -0.3px
 
-    Every declaration that the global rule sets must therefore be !important
-    here too. None of the existing type-scale or ratchet tests can see this.
+    The first fix answered that with inline `!important` on render_page_header's
+    h1 -- and it SHIPPED BROKEN, because st.markdown(unsafe_allow_html=True)
+    runs the HTML through Streamlit's sanitiser, which re-parses <h1> as a
+    markdown heading and strips every !important declaration out of the style
+    attribute. The plain declarations beside them survive, so the deployed h1
+    kept `display:flex;align-items:center;flex-wrap:wrap` and lost all five
+    typographic ones. Confirmed on the deployed page at 28px / 700 / -0.3px.
+
+    So both titles must take their type from a stylesheet CLASS, which keeps
+    its !important and outranks the global rule on specificity. This asserts
+    the mechanism, not just the values: no inline !important on the h1 (it is
+    silently dropped), and a real class rule behind each.
     """
     contested = ["font-size", "font-weight", "letter-spacing", "font-family", "margin"]
 
-    # Strip comments first: the explanatory comment inside the rule quotes a
-    # CSS snippet containing a closing brace, which truncated this slice.
+    # Strip comments first: the explanatory comments quote CSS containing
+    # closing braces, which truncated these slices.
     src = re.sub(r"/\*.*?\*/", "", _HEADER_SRC, flags=re.S)
 
-    hero = src[src.find(".ua-hero-title {") :]
-    hero = hero[: hero.find("}") + 1]
-    idx = src.find("def render_page_header")
-    body = src[idx : idx + 2600]
-    page = body[body.find("<h1") : body.find("{title}")]
+    def _rule(selector: str) -> str:
+        i = src.find(selector + " {")
+        assert i != -1, f"the {selector} rule is missing"
+        return src[i : src.find("}", i) + 1]
 
-    for name, css in ((".ua-hero-title", hero), ("render_page_header's h1", page)):
+    for name, css in ((".ua-hero-title", _rule(".ua-hero-title")),
+                      (".ua-page-title", _rule(".ua-page-title"))):
         for prop in contested:
-            m = re.search(rf"{prop}\s*:[^;]*;", css)
+            m = re.search(rf"(?<![-\w]){prop}\s*:[^;]*;", css)
             assert m, f"{name}: no {prop} declaration to protect"
             assert "!important" in m.group(0), (
                 f"{name}: `{m.group(0).strip()}` loses to the global "
                 f"`h1,h2,h3 {{ ... !important }}` rule and will restyle the title"
             )
+
+    # The interior h1 must WEAR that class, and must not try to carry its type
+    # inline -- inline !important does not survive the sanitiser.
+    idx = src.find("def render_page_header")
+    body = src[idx : idx + 2600]
+    tag = body[body.find("<h1") : body.find("{title}")]
+    assert 'class="ua-page-title"' in tag, (
+        "render_page_header's h1 must take its type from the .ua-page-title "
+        "class; inline styles are sanitised"
+    )
+    assert "!important" not in tag, (
+        "inline !important is stripped by Streamlit's HTML sanitiser -- it "
+        "reads as protection but provides none. Put it in the class rule."
+    )
 
 
 def test_no_page_emits_two_page_titles():
