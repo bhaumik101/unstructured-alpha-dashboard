@@ -992,9 +992,18 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
 .ua-hero-title {
     /* Inter at display size wants ~700 and tighter tracking; Fraunces' 600 /
        -0.4px read as thin and loose once the serif was removed. */
-    font-size: 2.05rem; font-weight: 700; color: var(--ua-text, #F3F6FC);
-    font-family: var(--ua-display); letter-spacing: -0.9px; line-height: 1.06;
     max-width: 620px;
+    /* It is an <h1> now, and the global `h1,h2,h3 {...!important}` rule below
+       beats a plain class -- and beats inline styles too. Measured in the
+       browser before this shipped: as an unqualified h1 this title rendered
+       28px / 700 / -0.3px with an 18.76px top margin, instead of
+       32.8px / 700 / -0.9px with none. The change is semantic; every one of
+       these has to render pixel-identical to the div it replaced. */
+    font-size: 2.05rem !important; font-weight: 700 !important;
+    color: var(--ua-text, #F3F6FC) !important;
+    font-family: var(--ua-display) !important;
+    letter-spacing: -0.9px !important; line-height: 1.06 !important;
+    margin: 0 !important; padding: 0 !important;
 }
 .ua-hero-sub {
     font-size: 0.82rem; color: var(--ua-ink-mut); font-family: 'Inter', sans-serif;
@@ -3324,7 +3333,7 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     # are on every page; a signed-in user does not need telling twice.
     if hero_title:
         _left_html = (
-            f'<div class="ua-hero-title">{hero_title}</div>'
+            f'<h1 class="ua-hero-title">{hero_title}</h1>'
             + (f'<div class="ua-hero-sub">{hero_sub}</div>' if hero_sub else "")
         )
     else:
@@ -3680,10 +3689,11 @@ def render_page_header(title: str, subtitle: str = "",
             border-bottom:1px solid var(--ua-hair-3);"
      class="ua-slide-up">
     <div>
-        <div style="font-size:1.8rem;font-weight:720;letter-spacing:-0.55px;line-height:1.15;
-                    font-family:Inter,sans-serif;display:flex;align-items:center;flex-wrap:wrap;">
+        <h1 style="font-size:1.8rem !important;font-weight:720 !important;letter-spacing:-0.55px !important;
+                    line-height:1.15 !important;font-family:Inter,sans-serif !important;
+                    display:flex;align-items:center;flex-wrap:wrap;margin:0 !important;padding:0 !important;">
             {icon_html}<span style="color:var(--ua-ink);">{title}</span>
-        </div>
+        </h1>
         {sub_html}
     </div>
     <div style="padding-top:4px;flex-shrink:0;">{stat_html}</div>
