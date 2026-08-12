@@ -1024,6 +1024,40 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
 /* Streamlit attaches its hover permalink widget to any heading it parses.
    These titles are not anchor targets, and the icon shifts the title on hover. */
 .ua-page-title [data-testid="stHeaderActionElements"] { display: none !important; }
+/* ── Signal card grid: one bottom edge per row ────────────────────────────
+   Streamlit stretches the columns in a row to match the tallest, then leaves
+   the surplus BELOW each shorter column's content -- so the cards themselves
+   end at different heights and the row reads as ragged. Measured on the
+   deployed Signal Dashboard: 47 cards spanning 175px to 306px, a 131px spread,
+   across 11 distinct heights.
+   Absorbing that surplus into the card is what squares the row. Scoped to the
+   keyed grid because "stretch the element container to fill its column" is
+   wrong anywhere a column holds ordinary stacked content -- and each column
+   here also holds the "Details & chart" expander below the card, which must
+   keep its natural height rather than being stretched too. */
+.st-key-ua_signal_grid [data-testid="stColumn"] > div,
+.st-key-ua_signal_grid [data-testid="stColumn"] > div > [data-testid="stVerticalBlock"] {
+    height: 100%;
+}
+.st-key-ua_signal_grid [data-testid="stVerticalBlock"]:has(> .stElementContainer .ua-signal-card) {
+    display: flex;
+    flex-direction: column;
+}
+.st-key-ua_signal_grid .stElementContainer:has(.ua-signal-card) {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+.st-key-ua_signal_grid [data-testid="stMarkdown"]:has(.ua-signal-card),
+.st-key-ua_signal_grid [data-testid="stMarkdownContainer"]:has(.ua-signal-card) {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+.ua-signal-card {
+    flex: 1 1 auto;
+    box-sizing: border-box;
+}
 .ua-hero-sub {
     font-size: 0.82rem; color: var(--ua-ink-mut); font-family: 'Inter', sans-serif;
     margin-top: 6px; line-height: 1.55; max-width: 520px; font-weight: 400;
