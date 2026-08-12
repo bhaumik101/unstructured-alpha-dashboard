@@ -80,6 +80,36 @@ def test_the_stretch_rules_are_scoped_to_the_grid():
     )
 
 
+def test_the_markdown_wrapper_link_is_not_selected_by_emotion_hash():
+    """The chain has one link with no stable handle.
+
+    Streamlit puts an unnamed wrapper inside stMarkdown --
+    `display:flex; flex-direction:row; align-items:center; flex-grow:0` -- which
+    neither grows nor stretches. Left alone it held the row gap at 48px after
+    the rest of the chain had taken it from 131px. It carries only
+    st-emotion-cache-* hashes, and those change between Streamlit releases, so
+    it must be reached structurally (stMarkdown's direct child) instead.
+
+    Measured in the browser: with it stretched the max within-row gap is 0
+    across all 15 rows; without it, 48px.
+    """
+    src = re.sub(r"/\*.*?\*/", "", _HEADER_SRC, flags=re.S)
+    grid_css = [ln for ln in src.splitlines() if f".st-key-{GRID_KEY}" in ln]
+    assert grid_css, "no scoped grid CSS found"
+
+    hashed = [ln.strip() for ln in grid_css if "st-emotion-cache" in ln]
+    assert not hashed, (
+        f"these selectors pin a Streamlit emotion hash and will silently stop "
+        f"matching on upgrade: {hashed}"
+    )
+    assert any(
+        re.search(r'\[data-testid="stMarkdown"\][^,{]*>\s*div', ln) for ln in grid_css
+    ), (
+        "the stMarkdown wrapper must be stretched via a structural selector; "
+        "without it the row gap stalls at 48px"
+    )
+
+
 def test_the_expander_is_not_stretched_with_the_card():
     """Only the card absorbs the surplus.
 

@@ -1054,6 +1054,26 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
     display: flex;
     flex-direction: column;
 }
+/* The chain above got the row gap from 131px to 48px and no further, because
+   one link in it is an unnamed wrapper Streamlit puts inside stMarkdown:
+   `display:flex; flex-direction:row; align-items:center; flex-grow:0`. It
+   neither grows nor stretches, so the card stops 48px short of its column.
+   It carries only emotion hashes, so it is reached as stMarkdown's direct
+   child rather than by class -- st-emotion-cache-* names change between
+   Streamlit releases. Verified in the browser before being written: with
+   these two rules the max within-row gap goes 48px -> 0 across all 15 rows,
+   and removing them puts it straight back to 48px. */
+.st-key-ua_signal_grid [data-testid="stMarkdown"]:has(.ua-signal-card) > div {
+    flex: 1 1 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+}
+.st-key-ua_signal_grid [data-testid="stMarkdownContainer"]:has(.ua-signal-card) {
+    flex: 1 1 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
 .ua-signal-card {
     flex: 1 1 auto;
     box-sizing: border-box;
