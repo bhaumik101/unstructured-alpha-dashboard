@@ -559,6 +559,29 @@ html[data-ua-theme="light"] [style^="color:#7bde6b"] {
     display: none;
 }
 
+/* ── The two rails' wrappers ──────────────────────────────────────────────
+   The rule above deliberately skips the rails: they are 0px tall but must
+   stay in the DOM and keep their stacking context, so display:none is not
+   available. What it missed is that the gap is not charged to the rail -- it
+   is charged to the stLayoutWrapper Streamlit puts AROUND it, which is an
+   ordinary in-flow flex child. #131 took the proxy rail out of flow and #132
+   hid the empty containers; both left these two wrappers paying 16px each.
+
+   Cancelling the gap instead of removing the element keeps position, stacking
+   and clickability exactly as they are. Measured live before it was written:
+   32px off every page, h1 rises by 32px, top nav does not move (it is fixed),
+   section rail keeps its 152px height and stays unclipped, all 33 proxy links
+   still present.
+
+   Only these two. The remaining 0px children on a page are the top nav's
+   container -- st.html holding <style> AND <nav>, which is fixed and must
+   stay -- and a markdown whose rendered text is a single whitespace, which no
+   selector can identify without reading text content. */
+[data-testid="stMain"] [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:has(> .st-key-ua_spa_proxy_rail),
+[data-testid="stMain"] [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"]:has(> .st-key-ua_page_section_rail) {
+    margin-bottom: -16px;
+}
+
 /* ── SPA proxy links ──────────────────────────────────────────────────────
    Hidden st.page_link elements the nav forwards clicks to, so navigation stays
    client-side instead of doing a full browser reload. Deliberately NOT
