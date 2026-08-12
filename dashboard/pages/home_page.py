@@ -49,6 +49,11 @@ render_header(
     hero_sub="47 macro signals scored daily on first-print data — no hindsight, no synthetic values.",
 )
 _home_perf.checkpoint("header")
+# render_header() restores the session, so the user is known from here on.
+# Defined this high because the acquisition copy below needs it -- it used to
+# be computed at the "START HERE" guide, several hundred lines after the first
+# line of copy that should have been reading it.
+_anon_user = not st.session_state.get("user")
 inject_all_css()
 _home_perf.checkpoint("theme_css")
 _home_section = render_sidebar_base(
@@ -503,11 +508,14 @@ _hcol1, _hcol2, _hcol3 = st.columns([2, 1.4, 2])
 with _hcol2:
     if st.button("→ See Today's Full Signal Brief", type="primary", width="stretch", key="hero_cta"):
         st.switch_page("pages/2_Today_Digest.py")
-st.markdown(
-    "<div style='text-align:center;font-size:0.72rem;color:var(--ua-ink-mut);margin-top:6px;"
-    "font-family:Inter,sans-serif;'>No account needed to browse signals</div>",
-    unsafe_allow_html=True,
-)
+if _anon_user:
+    # Acquisition copy only. A signed-in user has an account, so telling them
+    # none is needed is at best noise and at worst reads as a broken page.
+    st.markdown(
+        "<div style='text-align:center;font-size:0.72rem;color:var(--ua-ink-mut);margin-top:6px;"
+        "font-family:Inter,sans-serif;'>No account needed to browse signals</div>",
+        unsafe_allow_html=True,
+    )
 st.html(render_platform_note())
 
 # ── MACRO LEAN BY DOMAIN (real category-average scores → SVG bar) ─────────────
@@ -584,7 +592,7 @@ _home_perf.checkpoint("signal_flip")
 # Shown to visitors with no account — gives them an immediate orientation so
 # they don't bounce because they don't know where to click first.
 # Logged-in users get the full personalized onboarding checklist below instead.
-_anon_user = not st.session_state.get("user")
+# (_anon_user is computed right after render_header, above.)
 
 if _home_section == "Dashboard":
     st.markdown(
@@ -1024,13 +1032,13 @@ if _data_loaded:
             backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);
             box-shadow:0 0 30px rgba(var(--ua-cyan-rgb),0.07),0 8px 32px rgba(var(--ua-shadow-rgb),calc(0.45*var(--ua-shadow-k))),inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04);">
     <div style="font-size:0.58rem;letter-spacing:0.18em;font-weight:700;color:var(--ua-cyan);
-                margin-bottom:8px;"> INSTANT MACRO CHECK — NO ACCOUNT NEEDED</div>
+                margin-bottom:8px;"> INSTANT MACRO CHECK""" + ("" if not _anon_user else " — NO ACCOUNT NEEDED") + """</div>
     <div style="font-size:1.0rem;font-weight:800;color:var(--ua-ink);margin-bottom:4px;
                 letter-spacing:-0.2px;">What does the macro say about your stocks right now?</div>
     <div style="font-size:0.77rem;color:var(--ua-ink-mut);line-height:1.55;">
         Enter 3–5 tickers you actually hold — we score each against 47 live signals, then map
         them as a portfolio: shared macro risks, your most-exposed holding, and hidden
-        correlations. No account needed.
+        correlations.""" + ("" if not _anon_user else " No account needed.") + """
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1982,6 +1990,10 @@ with _q1:
 
 with _q2:
     with st.expander("What does it cost?"):
+        # anon-copy-ok: this describes the pricing tiers, it is not a pitch
+        # aimed at the reader. "Free to browse X — no account needed. A free
+        # account unlocks Y. Pro adds Z." is the same true sentence whether or
+        # not you are signed in, and a signed-in free user needs it most.
         st.markdown(
             "**Free** to browse signals, Today's Brief, Portfolio Checkup, Sector Map, Signal Dashboard, and Deep Dive — "
             "no account needed. A free account (email only, no card) unlocks the Watchlist and in-app alerts. "
