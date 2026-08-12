@@ -30,6 +30,14 @@ MARKER = "ua-boot-splash"
 START_MARKER = "<!-- ua-boot-splash:start -->"
 END_MARKER = "<!-- ua-boot-splash:end -->"
 
+# The always-on runtime, under its own markers. It used to live inside the
+# splash markers, which made "remove the splash" and "remove the theme
+# bootstrap, client-side navigation and the proxy links' a11y marking" the same
+# edit. This file now injects five independent blocks, each separately
+# removable: ua-runtime, ua-boot-splash, ua-meta, ua-seo, ua-global-css.
+RUNTIME_START = "<!-- ua-runtime:start -->"
+RUNTIME_END = "<!-- ua-runtime:end -->"
+
 
 def _load_facts() -> list:
     """True macro facts from the shared module, so the splash and the in-app
@@ -48,15 +56,19 @@ def _load_facts() -> list:
         ]
 
 
-def _build_splash() -> str:
-    facts_json = json.dumps(_load_facts())
-    # Raw string: the JS below contains regex literals such as /^\/+|\/+$/ and
-    # Python reads "\/" as an invalid escape sequence. Today that is only a
-    # SyntaxWarning, but it is scheduled to become a SyntaxError. There are no
-    # intentional Python escapes in this blob, so r"" is a safe, exact no-op.
-    return r"""
-<!-- ua-boot-splash:start -->
-<script>
+def _build_runtime() -> str:
+    """Scripts that must run on every page, splash or no splash.
+
+    Theme bootstrap, the client-side navigation proxy and the proxy links'
+    accessibility marking. None of it is about the splash; it lived inside
+    the splash markers only because that is where the first injected
+    <script> happened to go. Deleting the splash would have taken the theme
+    (dark-to-light flash on every load), client-side navigation (full
+    reload per click) and the proxy links' aria-hidden/tabindex with it.
+
+    Injected under its own markers so the splash can be removed on its own.
+    """
+    return RUNTIME_START + "\n" + r"""<script>
 /* Theme init — runs before first paint so there is no dark-to-light flash.
    This has to live here rather than in utils/header.py: st.markdown does NOT
    execute script tags, and a Streamlit component would run inside a sandboxed
@@ -169,6 +181,17 @@ def _build_splash() -> str:
   };
 })();
 </script>
+""".rstrip() + "\n" + RUNTIME_END + "\n"
+
+
+def _build_splash() -> str:
+    facts_json = json.dumps(_load_facts())
+    # Raw string: the JS below contains regex literals such as /^\/+|\/+$/ and
+    # Python reads "\/" as an invalid escape sequence. Today that is only a
+    # SyntaxWarning, but it is scheduled to become a SyntaxError. There are no
+    # intentional Python escapes in this blob, so r"" is a safe, exact no-op.
+    return r"""
+<!-- ua-boot-splash:start -->
 <div id="ua-boot-splash" role="status" aria-label="Loading">
   <div class="ua-boot-frame">
     <!-- Hexagon frame echoing the logo mark, so the content sits inside the
@@ -345,6 +368,34 @@ html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hex polygon[stroke]{stroke:
 </script>
 <!-- ua-boot-splash:end -->
 """.replace("__UA_FACTS_JSON__", facts_json)
+
+
+def _inject_runtime(html: str) -> tuple[str, str]:
+    """Put the runtime block immediately after <body>, replacing any prior one.
+
+    Must land BEFORE the splash in document order: the theme bootstrap has to
+    run before first paint, otherwise every load flashes the wrong palette.
+    main() therefore injects the splash first and this second, since both
+    insert directly after <body>.
+
+    On a deployment built before the split, the old runtime is still inside the
+    splash markers -- and _inject_or_replace has already rewritten those with
+    splash-only content by the time this runs, so there is nothing to strip.
+    """
+    runtime = _build_runtime()
+
+    if RUNTIME_START in html and RUNTIME_END in html:
+        pattern = re.escape(RUNTIME_START) + r".*?" + re.escape(RUNTIME_END)
+        updated, count = re.subn(
+            pattern, lambda _m: runtime.strip(), html, count=1, flags=re.DOTALL
+        )
+        if count == 1:
+            return updated, "runtime-updated"
+
+    updated, count = re.subn(
+        r"(<body[^>]*>)", lambda m: m.group(1) + "\n" + runtime, html, count=1
+    )
+    return (updated, "runtime-injected") if count == 1 else (html, "runtime-SKIPPED")
 
 
 def _inject_or_replace(html: str, splash: str) -> tuple[str, int, str]:
@@ -647,6 +698,10 @@ def main() -> None:
             print("[boot-splash] injection target not found — skipping (left untouched)", flush=True)
             return
 
+        # After the splash, so the runtime lands ahead of it (both insert
+        # directly after <body>) and the theme still runs before first paint.
+        new_html, runtime_action = _inject_runtime(new_html)
+
         new_html, meta_action = _inject_meta(new_html)
         new_html = _inject_seo_body(new_html)
         # Write the stylesheet into the app's own ./static dir (what Streamlit
@@ -662,8 +717,8 @@ def main() -> None:
         with open(index_path, "w", encoding="utf-8") as fh:
             fh.write(new_html)
         print(
-            f"[boot-splash] {action} splash + {meta_action} + seo-body + {css_action} "
-            f"in {index_path}",
+            f"[boot-splash] {action} splash + {runtime_action} + {meta_action} "
+            f"+ seo-body + {css_action} in {index_path}",
             flush=True,
         )
     except Exception as exc:  # never fail the build
