@@ -503,9 +503,13 @@ if _signal_section == "Signal Library":
 
     # ── Signal Cards ──────────────────────────────────────────────────────────────
     COLS = 3
+    # Keyed so the equal-height CSS can reach ONLY this grid. Scope matters:
+    # the rule stretches an element container to fill its column, which is
+    # wrong anywhere the column holds ordinary stacked content.
+    _grid = st.container(key="ua_signal_grid")
     for row_start in range(0, len(visible_signals), COLS):
         row_items = visible_signals[row_start : row_start + COLS]
-        cols = st.columns(COLS)
+        cols = _grid.columns(COLS)
 
         for col, (sig_id, sv) in zip(cols, row_items):
             cfg    = sv["config"]
@@ -642,7 +646,7 @@ if _signal_section == "Signal Library":
                         _cat_color = cat.get("color", "#6B7FBF")
                         _cat_cr, _cat_cg, _cat_cb = int(_cat_color[1:3], 16), int(_cat_color[3:5], 16), int(_cat_color[5:7], 16)
                         st.markdown(
-                            f'<div style="background:linear-gradient(180deg,'
+                            f'<div class="ua-signal-card" style="background:linear-gradient(180deg,'
                             f'rgba({_bc_r},{_bc_g},{_bc_b},0.10) 0%,rgba(var(--ua-card-rgb),0.82) 44%);'
                             f'border-radius:12px;padding:14px 16px;'
                             f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:2px solid {border};'
@@ -710,7 +714,7 @@ if _signal_section == "Signal Library":
                             if _flip_note else ""
                         )
                         st.markdown(
-                            f'<div style="background:linear-gradient(180deg,'
+                            f'<div class="ua-signal-card" style="background:linear-gradient(180deg,'
                             f'rgba({_bc_r},{_bc_g},{_bc_b},0.10) 0%,rgba(var(--ua-card-rgb),0.82) 44%);'
                             f'border-radius:12px;padding:14px 16px;'
                             f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:2px solid {border};'
