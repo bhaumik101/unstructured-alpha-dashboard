@@ -305,6 +305,21 @@ html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hex polygon[stroke]{stroke:
   var lastMutation=started;
   var MIN_VISIBLE_MS=900;
   var SETTLE_MS=450;
+  /* Past this point the splash stops waiting on the script run and lifts as
+     soon as the page STRUCTURE exists, leaving Streamlit's own in-place
+     spinners and skeletons to cover whatever is still loading.
+
+     Why: isStreamlitBusy() is true for the whole first script run, and that
+     run includes the provider calls -- so the full-screen cover stayed up
+     through data fetching, not just through Streamlit's boot. A labelled
+     "Building your command center..." spinner inside the real page is better
+     progress information than a logo, and the app has 98 st.spinner sites to
+     provide it.
+
+     Fast loads are unaffected: under this budget the original
+     not-busy-and-settled condition still applies, so a page that is genuinely
+     ready still waits to be genuinely ready. */
+  var LAYOUT_READY_MS=2200;
   var HARD_TIMEOUT_MS=45000;
 
   function appRoot(){
@@ -334,10 +349,12 @@ html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hex polygon[stroke]{stroke:
   }
   function ready(){
     var now=Date.now();
-    return now-started>=MIN_VISIBLE_MS
-      && hasRenderedContent()
-      && !isStreamlitBusy()
-      && now-lastMutation>=SETTLE_MS;
+    if(now-started<MIN_VISIBLE_MS) return false;
+    /* Never lift over an empty page: real rendered content is required on
+       every path, including the layout-budget one below. */
+    if(!hasRenderedContent()) return false;
+    if(now-started>=LAYOUT_READY_MS) return true;
+    return !isStreamlitBusy() && now-lastMutation>=SETTLE_MS;
   }
 
   var observer=new MutationObserver(function(mutations){
