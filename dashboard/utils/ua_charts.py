@@ -32,9 +32,33 @@ CHART_CSS = """
 .ua-chart .tick.cat{fill:var(--ua-text,#EAEEF7);font-weight:600}
 .ua-chart .atitle{fill:var(--ua-faint,#646A88);font-size:11px;font-weight:600}
 .ua-chart .refline{stroke:var(--ua-faint,#646A88);stroke-width:1;stroke-dasharray:5 5}
+/* `color` carries the series hue so the gradient stops can use currentColor
+   and inherit it -- an SVG gradient cannot read a var() defined on an ancestor
+   through fill, but currentColor resolves normally. */
+.ua-chart{color:var(--ua-royal-2,#8B7BF7)}
+/* The inline fill="url(#…)" gradient supplies the area now; this rule stays as
+   the fallback for renderers that drop the gradient (and for the bar charts,
+   which share the class). No opacity here -- the gradient carries its own. */
 .ua-chart .area{fill:var(--ua-royal-2,#8B7BF7);opacity:.16}
+.ua-chart path.area[fill^="url"]{opacity:1}
 .ua-chart .cline{fill:none;stroke:var(--ua-royal-2,#8B7BF7);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ua-chart .ua-chart-glow{stroke-width:3.2}
 .ua-chart .dot{fill:var(--ua-royal-2,#8B7BF7)}
+/* Halo behind the latest point. Animating `r` would trigger geometry work on
+   every frame, so the pulse scales the whole node instead -- transform only,
+   with the origin pinned to the circle's own centre. */
+.ua-chart .ua-chart-halo{
+  fill:var(--ua-royal-2,#8B7BF7);opacity:.22;
+  transform-box:fill-box;transform-origin:center;
+  animation:ua_chart_pulse 2.4s cubic-bezier(0.16,1,0.3,1) infinite;
+}
+@keyframes ua_chart_pulse{
+  0%,100%{transform:scale(0.72);opacity:.30}
+  50%{transform:scale(1.15);opacity:.10}
+}
+@media (prefers-reduced-motion: reduce){
+  .ua-chart .ua-chart-halo{animation:none;transform:scale(0.85)}
+}
 .ua-chart .vlabel{fill:var(--ua-text,#EAEEF7);font-size:11px;font-weight:600}
 </style>
 """
@@ -97,8 +121,45 @@ def line_chart(values, x_labels, y_min=0.0, y_max=100.0, y_ticks=None,
 
     d = "M" + " L".join(f"{sx(i):.1f},{sy(values[i]):.1f}" for i in range(n))
     area = d + f" L{sx(n-1):.1f},{y0} L{sx(0):.1f},{y0} Z"
-    parts.append(f'<path class="area" d="{area}"/>')
-    parts.append(f'<path class="cline" d="{d}"/>')
+
+    # Gradient area fill and a soft glow under the line. Both are defined per
+    # chart with a unique id: several charts can share a page, and SVG ids are
+    # document-global, so a fixed id would make every chart adopt the first
+    # one's gradient. The id is derived from the series, not from a counter or
+    # a random value, so the same data renders byte-identical markup -- which
+    # keeps this diffable and keeps Streamlit's caching honest.
+    gid = f"uag{abs(hash((round(values[0], 4), round(values[-1], 4), n, W, H))) % 10**8}"
+    parts.append(
+        f'<defs>'
+        f'<linearGradient id="{gid}" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="currentColor" stop-opacity="0.28"/>'
+        f'<stop offset="70%" stop-color="currentColor" stop-opacity="0.05"/>'
+        f'<stop offset="100%" stop-color="currentColor" stop-opacity="0"/>'
+        f'</linearGradient>'
+        f'<filter id="{gid}g" x="-20%" y="-20%" width="140%" height="140%">'
+        f'<feGaussianBlur stdDeviation="2.5" result="b"/>'
+        f'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
+        f'</filter>'
+        f'</defs>'
+    )
+    parts.append(f'<path class="area" d="{area}" fill="url(#{gid})"/>')
+    # The line is drawn twice: a blurred copy for the glow, then the crisp one
+    # on top. Rounded joins stop the polyline reading as a sawtooth at the
+    # sharp reversals macro series are full of.
+    parts.append(
+        f'<path class="cline ua-chart-glow" d="{d}" filter="url(#{gid}g)" '
+        f'stroke-linejoin="round" stroke-linecap="round" opacity="0.55"/>'
+    )
+    parts.append(
+        f'<path class="cline ua-chart-line" d="{d}" '
+        f'stroke-linejoin="round" stroke-linecap="round"/>'
+    )
+    # Latest point: a haloed dot, plus a slow pulse so the eye lands on "now".
+    # Pure SVG/CSS -- no script, and the reduced-motion guard in the global
+    # stylesheet stops the pulse for users who ask for that.
+    parts.append(
+        f'<circle class="ua-chart-halo" cx="{sx(n-1):.1f}" cy="{sy(values[-1]):.1f}" r="7"/>'
+    )
     parts.append(f'<circle class="dot" cx="{sx(n-1):.1f}" cy="{sy(values[-1]):.1f}" r="4"/>')
     parts.append("</svg>")
     return "".join(parts)

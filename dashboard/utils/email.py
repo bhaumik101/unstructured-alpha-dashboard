@@ -162,6 +162,74 @@ def send_verification_email(to_email: str, code: str) -> None:
         raise EmailSendError(f"Failed to send verification email: {e}") from e
 
 
+def email_button(
+    href: str,
+    label: str,
+    *,
+    bg: str = "#5B4BE8",
+    fg: str = "#FFFFFF",
+    full_width: bool = False,
+) -> str:
+    """A real button for email, not a styled <a>.
+
+    Every call site in this file currently ends in a text link ("Review the
+    full research →"). A button is the single highest-leverage upgrade an email
+    template gets, and it is also the one most often done wrong, because email
+    clients are not browsers:
+
+    - NO CSS custom properties anywhere in this file. Mail clients do not
+      support them and var(--ua-royal) silently falls back to the client's
+      default, which is why utils/email.py is excluded from the token
+      migration. Every colour here is a literal, by design.
+    - Outlook on Windows renders through Word, which ignores padding on <a>
+      and border-radius entirely. The VML block gives it a real rounded button;
+      every other client skips it inside the mso conditional.
+    - No :hover. A hover style in email is either ignored or, in a few clients,
+      applied permanently. Contrast has to work in the resting state.
+    - Table-based layout, because Word's box model is not CSS's.
+
+    Returns bulletproof HTML safe to interpolate into any of the shells below.
+    """
+    from html import escape as _e
+
+    href_s, label_s = _e(href, quote=True), _e(label)
+    width_attr = ' width="100%"' if full_width else ""
+    align = "center" if full_width else "left"
+
+    return f"""
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"{width_attr}
+       style="border-collapse:separate;line-height:100%;margin:14px 0;">
+  <tr>
+    <td align="{align}" style="border-radius:8px;background:{bg};" bgcolor="{bg}">
+      <!--[if mso]>
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml"
+                   xmlns:w="urn:schemas-microsoft-com:office:word"
+                   href="{href_s}" style="height:44px;v-text-anchor:middle;width:260px;"
+                   arcsize="18%" stroke="f" fillcolor="{bg}">
+        <w:anchorlock/>
+        <!-- 18px, not a new value: Word needs px here (it ignores rem), and
+             the ratchet in test_design_tokens.py counts every distinct raw
+             font size across the UI. 18px is already in the scale; adding a
+             15px would have grown it by one for an Outlook-only string. -->
+        <center style="color:{fg};font-family:Arial,sans-serif;font-size:18px;font-weight:bold;">
+          {label_s}
+        </center>
+      </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-- -->
+      <a href="{href_s}"
+         style="display:inline-block;padding:13px 26px;border-radius:8px;
+                background:{bg};color:{fg};font-size:0.92rem;font-weight:700;
+                text-decoration:none;letter-spacing:0.01em;
+                font-family:-apple-system,BlinkMacSystemFont,'Inter',Arial,sans-serif;">
+        {label_s}
+      </a>
+      <!--<![endif]-->
+    </td>
+  </tr>
+</table>"""
+
+
 def _build_article_html(
     signal_scores: dict,
     signal_flips: list[dict],
