@@ -1,22 +1,43 @@
-streamlit>=1.38.0
-fastapi>=0.110.0
-uvicorn[standard]>=0.27.0
-yfinance>=0.2.40
-pandas>=2.0.0
-numpy>=1.26.0
-plotly>=5.20.0
-scipy>=1.12.0
-requests>=2.31.0
-sqlalchemy>=2.0.0
-psycopg2-binary>=2.9.0
-bcrypt>=4.0.0
-streamlit-cookies-manager-v2>=0.3.1
-anthropic>=0.25.0
-pytrends>=4.9.2
-fpdf2>=2.7.0
-stripe>=7.0.0
-Pillow>=10.0.0
-openpyxl>=3.1.0
-tweepy>=4.14.0
-pandas-datareader>=0.10.0
-redis>=5.0.0
+# Every requirement carries an UPPER bound as well as a lower one.
+#
+# WHY: 16 services in render.yaml each run their own `pip install -r
+# requirements.txt`. With bare `>=`, each one resolves independently at the
+# moment it builds, so the SAME COMMIT can install different versions on
+# different services — and a resolution that lands on a version with no
+# matching wheel falls back to a source build, which is slow and
+# memory-hungry on a small cron instance. That is the signature of "the same
+# push built for some services and failed for others", and it also means a
+# deploy is not reproducible, which undermines verifying anything at the
+# origin.
+#
+# The ceilings are the NEXT major in every case, chosen so nothing currently
+# installed can be downgraded by adding them — they close the door on a new
+# major landing mid-deploy without moving anything that works today.
+#
+# This is a mitigation, not the fix. The fix is a lockfile generated from a
+# known-good Render build (`pip freeze` on the web service), which pins exact
+# versions rather than ranges. That needs the resolved versions off the
+# running service, and should replace this file when it exists.
+
+streamlit>=1.38.0,<2
+fastapi>=0.110.0,<1
+uvicorn[standard]>=0.27.0,<1
+yfinance>=0.2.40,<1
+pandas>=2.0.0,<3
+numpy>=1.26.0,<3
+plotly>=5.20.0,<7
+scipy>=1.12.0,<2
+requests>=2.31.0,<3
+sqlalchemy>=2.0.0,<3
+psycopg2-binary>=2.9.0,<3
+bcrypt>=4.0.0,<6
+streamlit-cookies-manager-v2>=0.3.1,<1
+anthropic>=0.25.0,<1
+pytrends>=4.9.2,<5
+fpdf2>=2.7.0,<3
+stripe>=7.0.0,<13
+Pillow>=10.0.0,<12
+openpyxl>=3.1.0,<4
+tweepy>=4.14.0,<5
+pandas-datareader>=0.10.0,<1
+redis>=5.0.0,<7
