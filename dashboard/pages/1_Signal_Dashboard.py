@@ -652,10 +652,9 @@ if _signal_section == "Signal Library":
                         )
                         _src_badge = source_badge(cfg.get("source", ""), cfg.get("series_id", ""))
                         st.markdown(
-                            f'<div class="ua-signal-card" style="background:linear-gradient(180deg,'
-                            f'rgba({_bc_r},{_bc_g},{_bc_b},0.10) 0%,rgba(var(--ua-card-rgb),0.82) 44%);'
+                            f'<div class="ua-signal-card" style="background:rgba(var(--ua-card-rgb),0.82);'
                             f'border-radius:12px;padding:14px 16px;'
-                            f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:2px solid {border};'
+                            f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);'
                             f'margin-bottom:10px;font-family:Inter,sans-serif;'
                             f'backdrop-filter:blur(12px) saturate(150%);'
                             f'-webkit-backdrop-filter:blur(12px) saturate(150%);'
@@ -705,7 +704,10 @@ if _signal_section == "Signal Library":
                     else:
                         # ── PRO card: full metrics ───────────────────────────────
                         z_score  = sv.get("z_score", 0.0)
-                        pct_rank = sv.get("percentile", 50.0)
+                        # Percentile was a third framing of "how extreme is this
+                        # right now", alongside Dev% (raw) and the z-score
+                        # (standardised). It is still on the Details & chart
+                        # expander, which is where the full metric table lives.
                         _dev_fmt = f"{dev:+.1f}" if dev == dev else "n/a"
                         _z_fmt   = f"{z_score:.1f}" if z_score == z_score else "n/a"
                         _trend_fmt = f"{trend:+.1f}" if trend == trend else "n/a"
@@ -720,10 +722,9 @@ if _signal_section == "Signal Library":
                             if _flip_note else ""
                         )
                         st.markdown(
-                            f'<div class="ua-signal-card" style="background:linear-gradient(180deg,'
-                            f'rgba({_bc_r},{_bc_g},{_bc_b},0.10) 0%,rgba(var(--ua-card-rgb),0.82) 44%);'
+                            f'<div class="ua-signal-card" style="background:rgba(var(--ua-card-rgb),0.82);'
                             f'border-radius:12px;padding:14px 16px;'
-                            f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-top:2px solid {border};'
+                            f'border:1px solid rgba(var(--ua-onbg-rgb),0.08);'
                             f'backdrop-filter:blur(12px) saturate(150%);'
                             f'-webkit-backdrop-filter:blur(12px) saturate(150%);'
                             f'box-shadow:0 4px 20px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k)));'
@@ -746,10 +747,10 @@ if _signal_section == "Signal Library":
                             f'{_pro_conf_badge}'
                             f'</div>'
                             f'</div>'
-                            f'<div style="font-size:0.65rem;color:var(--ua-ink-mut);">score/100 · 7d trend · confidence</div></div>'
+                            f'</div>'
                             f'<div style="font-size:0.76rem;color:var(--ua-ink-soft);line-height:1.7;">'
                             f'<div>Dev: <b>{_dev_fmt}%</b> vs 52w</div>'
-                            f'<div>Z-score: <b>{_z_fmt}σ</b> · P{pct_rank:.0f}</div>'
+                            f'<div>Z-score: <b>{_z_fmt}σ</b></div>'
                             f'<div>Trend: {trend_arrow} {_trend_fmt}% / 4w · Lead ~{cfg.get("lag_weeks", 0)}w{("  " + _streak_label) if _streak_label else ""}</div>'
                             f'</div></div>'
                             f'{_pro_flip_html}'
