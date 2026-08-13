@@ -1262,7 +1262,17 @@ _MODERN_UI_CSS = """
   cursor: pointer !important;
   position: relative !important;
   overflow: hidden !important;
-  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  /* Enumerated, not `all`. `all` includes width, padding and font-size, so
+     every hover risked a layout pass on an element that only wanted to lift
+     1px. This is the rule that actually governs buttons: the built stylesheet
+     concatenates header.py's CSS and then this file's, so a motion rule added
+     in header.py is overridden here no matter its specificity. */
+  transition:
+    transform var(--ua-dur-fast, 90ms) var(--ua-ease-spring, cubic-bezier(0.34,1.4,0.64,1)),
+    background-color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),
+    border-color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),
+    box-shadow var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),
+    color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease) !important;
 }
 
 /* CSS-only ripple on click */
@@ -1650,6 +1660,31 @@ section[data-testid="stSidebar"] {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(var(--ua-green-rgb),0.42); }
+
+/* ── Reduced motion, last word ─────────────────────────────────────────────
+   header.py carries the general reduced-motion guard, but the button hover
+   lift is set HERE with !important, and this file is concatenated after
+   header.py in build_global_css(). Two !important declarations of equal
+   specificity resolve by order, so the guard over there could never reach
+   these. Suppressing transforms has to be the last thing the stylesheet says.
+
+   Durations are not enough on their own: a 0.01ms translate is still a jump,
+   just a fast one. */
+@media (prefers-reduced-motion: reduce) {
+  .stButton > button,
+  .stButton > button:hover,
+  .stButton > button:active,
+  .stDownloadButton > button:hover,
+  .stFormSubmitButton > button:hover,
+  .stLinkButton > a:hover {
+    transform: none !important;
+    transition: none !important;
+  }
+  .stButton > button:active::after,
+  .stDownloadButton > button:active::after {
+    animation: none !important;
+  }
+}
 </style>
 """
 
