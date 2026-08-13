@@ -1370,6 +1370,17 @@ hr { border-color: var(--ua-hair-3) !important; opacity: 1 !important; }
 /* H1/H2/H3 */
 h1, h2, h3 { color: var(--ua-ink) !important; font-family: 'Inter', sans-serif !important; font-weight: 700 !important; letter-spacing: -0.3px !important; }
 h1 { font-size: 1.75rem !important; }
+/* h4-h6 had NO rule, so they kept Streamlit's defaults -- which are larger
+   than this app's h3. Measured on the deployed page: h3 16.8px but h4 24px and
+   h5 20px, both at weight 600. Every page mixing them rendered its hierarchy
+   upside down: on Ticker Deep Dive the h5 subsections were visibly bigger than
+   the h3 section heading above them, and 17 of 22 pages open at h3 or h4.
+   Sizes come from the type tokens rather than new literals, so the ratchet
+   stays flat. Scale is now monotonic: 28 > 20.8 > 16.8 > 16 > 14 > 12. */
+h4, h5, h6 { color: var(--ua-ink) !important; font-family: 'Inter', sans-serif !important; font-weight: 600 !important; letter-spacing: -0.2px !important; }
+h4 { font-size: var(--ua-text-md) !important; }
+h5 { font-size: var(--ua-text-base) !important; }
+h6 { font-size: var(--ua-text-sm) !important; }
 h2 { font-size: 1.3rem !important; }
 h3 { font-size: 1.05rem !important; }
 p  { color: var(--ua-text-mid) !important; font-family: 'Inter', sans-serif !important; }
