@@ -2521,9 +2521,9 @@ def render_data_unavailable_banner(n_unavailable: int, n_total: int) -> None:
                 margin-bottom:14px;font-family:Inter,sans-serif;font-size:0.83rem;
                 border:1px solid rgba(var(--ua-red-rgb),0.3);border-left:3px solid var(--ua-red);">
         <b style="color:#E06C75;">REAL DATA UNAVAILABLE</b> — {n_unavailable} of {n_total} signals could not be
-        loaded from their source and have been excluded from scores, rankings, and
-        exports. No placeholder or synthetic observations are used. Check provider
-        credentials under Setup or try again after the source recovers.
+        loaded from their source on this page load and have been excluded from scores,
+        rankings, and exports. No placeholder or synthetic observations are used. Check
+        provider credentials under Setup or try again after the source recovers.
     </div>
     """, unsafe_allow_html=True)
     else:
@@ -2532,8 +2532,8 @@ def render_data_unavailable_banner(n_unavailable: int, n_total: int) -> None:
     <div style="background:rgba(224,169,59,0.06);color:#D8C08A;border-radius:10px;padding:11px 16px;
                 margin-bottom:14px;font-family:Inter,sans-serif;font-size:0.8rem;
                 border:1px solid rgba(224,169,59,0.28);border-left:3px solid #E0A93B;">
-        <b style="color:#E7C063;">PARTIAL DATA</b> — {n_unavailable} of {n_total} signals are temporarily
-        unavailable from their source and have been excluded from scores and rankings;
+        <b style="color:#E7C063;">PARTIAL DATA</b> — {n_unavailable} of {n_total} signals did not return data
+        on this page load and have been excluded from scores and rankings;
         the other {_live} are live. No placeholder or synthetic observations are used.
     </div>
     """, unsafe_allow_html=True)
@@ -3501,7 +3501,16 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
             f'<span style="color:var(--ua-green);">▲ {_rb}</span>'
             f' · <span style="color:var(--ua-red);">▼ {_rr}</span>'
             f' · <span style="color:var(--ua-ink-label);">→ {_rn}</span>'
-            + (f' · <span style="color:var(--ua-ink-dim);" title="Signals with insufficient recent data this cycle">⊘ {_runavail}</span>' if _runavail else "")
+            # Deliberately says "snapshot", and says so out loud. This counts
+            # signals with no fresh row in the latest scoring cycle; the data
+            # notice on the page below counts signals whose live fetch failed on
+            # this request. Different questions, both honest, and they disagree
+            # routinely -- ⊘ 3 next to "4 of 47" reads as a bug when neither
+            # label says which is which.
+            + (f' · <span style="color:var(--ua-ink-dim);" title="Signals with no fresh snapshot in the'
+               f' latest scoring cycle. The data notice below counts something different — signals whose'
+               f' live fetch failed on this page load — so the two can disagree.">⊘ {_runavail}</span>'
+               if _runavail else "")
             + f'</span>'
             f'<span style="font-size:0.60rem;color:var(--ua-ink-label);margin-left:auto;">'
             f'{SIGNAL_COUNT} signals · {"snapshot " + _rs_date if _rs_date else "no snapshot yet"}</span>'
