@@ -19,16 +19,28 @@ def _one_svg(s: str):
     assert 'class="ua-chart"' in s
 
 
+def _has_class(svg: str, name: str) -> bool:
+    """True if any element carries `name` among its classes."""
+    return any(
+        name in attr.split()
+        for attr in re.findall(r'class="([^"]*)"', svg)
+    )
+
+
 def test_line_chart_has_axes_grid_line_and_area():
     s = C.line_chart([10, 20, 15, 40, 64], ["a", "b", "c", "d", "e"],
                      y_min=0, y_max=80, ref=50, y_title="Score")
     _one_svg(s)
     assert 'class="axis"' in s          # x and y axis lines
     assert 'class="grid"' in s          # gridlines
-    assert 'class="cline"' in s and 'class="area"' in s
+    # Match the CLASS, not the whole attribute: `cline` now travels with a
+    # modifier (`cline ua-chart-glow` / `cline ua-chart-line`), and an exact
+    # `class="cline"` string test breaks on any additional class without the
+    # element having changed.
+    assert _has_class(s, "cline") and _has_class(s, "area")
     assert 'class="refline"' in s       # neutral reference line
     assert "Score" in s                 # y-axis title
-    assert 'class="dot"' in s           # current-point marker
+    assert _has_class(s, "dot")         # current-point marker
 
 
 def test_line_chart_downsamples_plain_labels_to_ticks():

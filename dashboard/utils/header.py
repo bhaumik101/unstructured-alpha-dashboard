@@ -2478,12 +2478,220 @@ html[data-ua-theme="light"] .ua-guide-step-num {
 [data-testid="stMainBlockContainer"] {
     animation: none !important;
 }
+/* ══ SIGNATURE POLISH ══════════════════════════════════════════════════════
+   A motion and interaction layer, applied through the shared stylesheet so it
+   reaches all 33 routes at once rather than page by page.
+
+   Two rules govern everything below, because "premium" and "slow" are easy to
+   confuse:
+
+   1. ANIMATE ONLY transform AND opacity. Both are composited on the GPU and
+      skip layout and paint. The pre-existing `transition: all` on buttons was
+      the opposite -- `all` includes width, padding and color, so every hover
+      risked a layout pass. Those are now enumerated.
+   2. NOTHING ANIMATES ON ENTRANCE AT SCALE. Signal Dashboard renders 47 cards;
+      47 simultaneous entrance animations is a jank generator. Card motion is
+      hover-only, and hover is gated behind @media (hover:hover) so touch
+      devices never latch a stuck hover state.
+
+   The reduced-motion guard at the end of this file already neutralises all of
+   it for users who ask for that. ────────────────────────────────────────── */
+:root {
+    /* Durations: fast enough to feel responsive, slow enough to read as
+       deliberate. 90ms reads as instant, 320ms is the ceiling before a UI
+       starts to feel like it is waiting on you. */
+    --ua-dur-fast: 90ms;
+    --ua-dur-base: 160ms;
+    --ua-dur-slow: 320ms;
+    /* Standard easing pair: `out` for things arriving (decelerate into place),
+       `spring` for interactive feedback that should feel physical. */
+    --ua-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ua-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* ── Focus, everywhere ─────────────────────────────────────────────────────
+   A single visible focus ring on every interactive element. This is both the
+   accessibility floor and one of the clearest tells of a considered product --
+   most dashboards lose the ring entirely to a CSS reset. :focus-visible means
+   mouse users never see it; keyboard users always do. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="radio"]:focus-visible,
+[role="tab"]:focus-visible {
+    outline: 2px solid var(--ua-royal) !important;
+    outline-offset: 2px !important;
+    border-radius: var(--ua-radius-sm) !important;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────
+   Enumerated transitions (see rule 1), a press state, and a sheen that sweeps
+   the primary action once on hover. The sheen is a translated pseudo-element,
+   so it composites; it is not a background-position animation. */
+.stButton > button {
+    transition:
+        transform var(--ua-dur-fast) var(--ua-ease-spring),
+        box-shadow var(--ua-dur-base) var(--ua-ease-out),
+        border-color var(--ua-dur-base) var(--ua-ease-out),
+        color var(--ua-dur-base) var(--ua-ease-out),
+        filter var(--ua-dur-base) var(--ua-ease-out) !important;
+    position: relative;
+    overflow: hidden;
+}
+.stButton > button:active {
+    transform: translateY(0) scale(0.985) !important;
+    transition-duration: var(--ua-dur-fast) !important;
+}
+.stButton > button[kind="primary"]::after {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; left: -60%;
+    width: 45%;
+    background: linear-gradient(100deg,
+        rgba(255,255,255,0) 0%,
+        rgba(255,255,255,0.28) 50%,
+        rgba(255,255,255,0) 100%);
+    transform: translateX(0) skewX(-18deg);
+    opacity: 0;
+    pointer-events: none;
+}
+@media (hover: hover) {
+    .stButton > button[kind="primary"]:hover::after {
+        animation: ua_sheen var(--ua-dur-slow) var(--ua-ease-out) 1;
+    }
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-1px);
+    }
+}
+@keyframes ua_sheen {
+    0%   { opacity: 0; transform: translateX(0) skewX(-18deg); }
+    12%  { opacity: 1; }
+    100% { opacity: 0; transform: translateX(360%) skewX(-18deg); }
+}
+
+/* ── Cards ─────────────────────────────────────────────────────────────────
+   Hover-only, and only on devices with a real pointer. The lift is 2px: enough
+   to register as a response, small enough that a 3-column grid does not appear
+   to wobble when the cursor crosses it. */
+@media (hover: hover) {
+    .ua-signal-card,
+    .ua-guide-step {
+        transition:
+            transform var(--ua-dur-base) var(--ua-ease-out),
+            box-shadow var(--ua-dur-base) var(--ua-ease-out),
+            border-color var(--ua-dur-base) var(--ua-ease-out);
+    }
+    .ua-signal-card:hover,
+    .ua-guide-step:hover {
+        transform: translateY(-2px);
+        border-color: rgba(var(--ua-royal-rgb),0.28) !important;
+        box-shadow:
+            0 10px 30px rgba(var(--ua-shadow-rgb), calc(0.34 * var(--ua-shadow-k))),
+            0 0 0 1px rgba(var(--ua-royal-rgb),0.10);
+    }
+}
+
+/* ── Numerals ──────────────────────────────────────────────────────────────
+   Tabular figures wherever numbers are compared vertically. Proportional
+   digits make a column of scores ragged and, in a financial product, subtly
+   untrustworthy -- the 1s are narrow and the column stops lining up. This is
+   the single cheapest "expensive product" detail available. */
+.ua-signal-card,
+[data-testid="stMetric"],
+[data-testid="stMetricValue"],
+[data-testid="stDataFrame"],
+[data-testid="stTable"],
+.ua-tape,
+.ua-page-title + * {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+/* ── Tabs, expanders, inputs ───────────────────────────────────────────────
+   Same easing vocabulary, so the whole surface feels like one system rather
+   than a pile of components with different opinions about time. */
+.stTabs [data-baseweb="tab"] {
+    transition: color var(--ua-dur-base) var(--ua-ease-out) !important;
+}
+div[data-testid="stExpander"] {
+    transition:
+        border-color var(--ua-dur-base) var(--ua-ease-out),
+        box-shadow var(--ua-dur-base) var(--ua-ease-out) !important;
+}
+@media (hover: hover) {
+    div[data-testid="stExpander"]:hover {
+        border-color: rgba(var(--ua-royal-rgb),0.24) !important;
+    }
+}
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input,
+.stSelectbox > div > div {
+    transition:
+        border-color var(--ua-dur-base) var(--ua-ease-out),
+        box-shadow var(--ua-dur-base) var(--ua-ease-out) !important;
+}
+.stTextInput > div > div > input:focus {
+    border-color: rgba(var(--ua-royal-rgb),0.55) !important;
+    box-shadow: 0 0 0 3px rgba(var(--ua-royal-rgb),0.14) !important;
+}
+
+/* ── Loading shimmer ───────────────────────────────────────────────────────
+   Streamlit's skeletons are flat blocks. A slow sweep reads as "working"
+   rather than "stalled" -- which matters here specifically, because the splash
+   now hands off to these while data is still arriving (see #140). */
+[data-testid="stSkeleton"] {
+    position: relative;
+    overflow: hidden;
+}
+[data-testid="stSkeleton"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0) 0%,
+        rgba(255,255,255,0.06) 50%,
+        rgba(255,255,255,0) 100%);
+    animation: ua_shimmer 1.4s var(--ua-ease-out) infinite;
+}
+@keyframes ua_shimmer {
+    100% { transform: translateX(100%); }
+}
+
+/* ── Nav underline ─────────────────────────────────────────────────────────
+   Scales from the centre on hover. transform:scaleX only -- no layout, and no
+   reflow of the nav row, which a border-bottom would cause. */
+@media (hover: hover) {
+    .ua-tnav-item { position: relative; }
+    .ua-tnav-item::after {
+        content: "";
+        position: absolute;
+        left: 8px; right: 8px; bottom: 2px;
+        height: 1.5px;
+        background: var(--ua-royal);
+        transform: scaleX(0);
+        transform-origin: center;
+        transition: transform var(--ua-dur-base) var(--ua-ease-out);
+        border-radius: var(--ua-radius-pill);
+    }
+    .ua-tnav-item:hover::after { transform: scaleX(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+    /* Transforms are not durations -- a reduced-motion user should get no
+       movement at all, not instant movement. */
+    .stButton > button:hover,
+    .stButton > button:active,
+    .ua-signal-card:hover,
+    .ua-guide-step:hover { transform: none !important; }
+    [data-testid="stSkeleton"]::after { display: none !important; }
 }
 </style>
 """
