@@ -435,7 +435,21 @@ _PRO_GATE_CSS = """
     text-align: center;
     margin: 24px 0;
 }
-.pro-gate h2 { color: var(--ua-ink); font-size: 1.45rem; margin: 0 0 8px; }
+/* The gate heading IS the page title in this state -- require_pro() calls
+   st.stop() before render_page_header ever runs, so without this the page has
+   no h1 at all and its heading hierarchy starts at h2.
+
+   1.3rem, not the 1.45rem this rule asked for before. A global h2 sizing rule
+   marked !important had been beating it, so the heading has always rendered at
+   20.8px -- measured on the deployed gate, not read off this rule. As an h1 it
+   would instead take the global h1 sizing rule (28px) plus the browser's
+   default 18.76px margins, so both are pinned here with !important. Same
+   specificity fight as .ua-page-title. */
+.pro-gate h1 {
+    color: var(--ua-ink);
+    font-size: 1.3rem !important;
+    margin: 0 0 8px !important;
+}
 .pro-gate p  { color: #8892B0; font-size: 0.95rem; margin: 0 0 20px; }
 .pro-badge {
     display: inline-block;
@@ -477,7 +491,7 @@ def require_pro(page_name: str = "this page", benefit: str | None = None) -> Non
         st.html(
             '<div class="pro-gate">'
             '<div class="pro-badge">Pro Feature</div>'
-            f'<h2>Sign in to access {page_name}</h2>'
+            f'<h1>Sign in to access {page_name}</h1>'
             f'<p>{_lead}</p>'
             '</div>'
         )
@@ -523,7 +537,7 @@ def require_pro(page_name: str = "this page", benefit: str | None = None) -> Non
     st.html(
         '<div class="pro-gate">'
         '<div class="pro-badge">Pro Feature</div>'
-        f'<h2>Unlock {page_name}</h2>'
+        f'<h1>Unlock {page_name}</h1>'
         f'<p>{_lead}</p>'
         f'<p style="font-size:0.82rem;color:#6B7280;">Pro — '
         f'${PRO_PRICE_ANNUAL_PER_MONTH}/mo billed annually · '
