@@ -167,9 +167,61 @@ def _build_runtime() -> str:
     uaMarkQueued=true;
     requestAnimationFrame(function(){ uaMarkQueued=false; uaMarkProxyLinks(); });
   }
+  /* ── Streamlit's false "Page not found" on a valid deep link ─────────────
+     Observed live on /signal-dashboard while signed in, and on /track-record:
+     a large overlay reading "The page that you have requested does not seem to
+     exist. Running the app's main page." -- and then the correct page renders
+     underneath it.
+
+     It is a cold-start race, not a routing bug. st.navigation() is already the
+     first Streamlit call in app.py, but on a freshly started process the
+     frontend resolves the URL before the page list exists. Warm loads never
+     show it, which is why it survived this long: it greets the FIRST visitor
+     after every deploy and every idle spin-down, on a link that works.
+
+     Self-limiting by construction. The message is only removed when the
+     current path has a registered route, proven by the presence of a proxy
+     page_link with that exact slug -- the same list render_header emits. A
+     genuine 404 has no matching proxy, so the real message still shows. */
+  function uaDropFalse404(){
+    try{
+      var slug = location.pathname.replace(/^\/+|\/+$/g, '');
+      if(!slug) return;                    /* home is always valid */
+      var registered = false;
+      var links = document.querySelectorAll(
+        '.st-key-ua_spa_proxy_rail [data-testid="stPageLink-NavLink"]');
+      for(var i=0;i<links.length;i++){
+        if((links[i].getAttribute('href')||'').replace(/^\/+|\/+$/g,'') === slug){
+          registered = true; break;
+        }
+      }
+      if(!registered) return;              /* real 404 -- leave it alone */
+
+      var nodes = document.querySelectorAll('div,span,p');
+      for(var j=0;j<nodes.length;j++){
+        var n = nodes[j];
+        if(n.children.length) continue;    /* leaf text only */
+        if(!/does not seem to exist/i.test(n.textContent||'')) continue;
+        /* Walk up to the alert/toast/dialog Streamlit wrapped it in and drop
+           that, rather than guessing a testid that changes between releases. */
+        var box = n;
+        for(var k=0;k<6 && box.parentElement;k++){
+          box = box.parentElement;
+          var tid = box.getAttribute('data-testid') || '';
+          if(/stToast|stAlert|stDialog|stModal|stNotification/i.test(tid)){
+            box.remove(); return;
+          }
+        }
+        n.closest('div') && n.closest('div').remove();
+        return;
+      }
+    }catch(e){}
+  }
+
   try{
     uaQueueMark();
-    new MutationObserver(uaQueueMark)
+    uaDropFalse404();
+    new MutationObserver(function(){ uaQueueMark(); uaDropFalse404(); })
       .observe(document.documentElement, {childList:true, subtree:true});
   }catch(e){}
 
