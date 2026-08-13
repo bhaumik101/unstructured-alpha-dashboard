@@ -518,6 +518,14 @@ if _signal_section == "Signal Library":
             dev    = sv.get("deviation_pct", 0)
             trend  = sv.get("trend_4w_pct", 0)
             cat    = CATEGORIES.get(cfg.get("category", "macro"), {})
+            # Hoisted so both card variants colour the category chip from the
+            # SAME source. They did not: Simple used the category's own colour,
+            # Pro used the bull/bear colour, so a chip carrying the category
+            # name and icon was painted by the signal's direction instead.
+            _cat_color = cat.get("color", "#6B7FBF")
+            _cat_cr, _cat_cg, _cat_cb = (
+                int(_cat_color[1:3], 16), int(_cat_color[3:5], 16), int(_cat_color[5:7], 16)
+            )
             sym    = STATUS_SYM.get(status, "●")
             lbl    = STATUS_LABEL.get(status, "●")
             trend_arrow = "↑" if trend > 1 else ("↓" if trend < -1 else "→")
@@ -643,8 +651,6 @@ if _signal_section == "Signal Library":
                             if _flip_note else ""
                         )
                         _src_badge = source_badge(cfg.get("source", ""), cfg.get("series_id", ""))
-                        _cat_color = cat.get("color", "#6B7FBF")
-                        _cat_cr, _cat_cg, _cat_cb = int(_cat_color[1:3], 16), int(_cat_color[3:5], 16), int(_cat_color[5:7], 16)
                         st.markdown(
                             f'<div class="ua-signal-card" style="background:linear-gradient(180deg,'
                             f'rgba({_bc_r},{_bc_g},{_bc_b},0.10) 0%,rgba(var(--ua-card-rgb),0.82) 44%);'
@@ -723,9 +729,9 @@ if _signal_section == "Signal Library":
                             f'box-shadow:0 4px 20px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k)));'
                             f'margin-bottom:10px;font-family:Inter,sans-serif;min-height:140px;">'
                             f'<div style="font-size:0.66rem;letter-spacing:0.03em;margin-bottom:2px;">'
-                            f'<span style="background:rgba({_bc_r},{_bc_g},{_bc_b},0.12);'
-                            f'color:rgba({_bc_r},{_bc_g},{_bc_b},1);'
-                            f'border:1px solid rgba({_bc_r},{_bc_g},{_bc_b},0.28);'
+                            f'<span style="background:rgba({_cat_cr},{_cat_cg},{_cat_cb},0.12);'
+                            f'color:rgba({_cat_cr},{_cat_cg},{_cat_cb},1);'
+                            f'border:1px solid rgba({_cat_cr},{_cat_cg},{_cat_cb},0.28);'
                             f'border-radius:6px;padding:1px 6px;font-weight:600;">'
                             f'{_cat_icon} {_cat_name}</span>'
                             f'<span style="color:var(--ua-ink-label);margin-left:6px;">PCS {cfg["pcs"]}/10</span></div>'
