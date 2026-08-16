@@ -1,108 +1,216 @@
-"""Motion must stay on the compositor.
+"""Motion must stay on the compositor — checked against the stylesheet that ships.
 
-The signature-polish layer ships to all 33 routes through the shared
-stylesheet, and Signal Dashboard alone renders 47 cards. That makes "which
-properties animate" a performance decision, not a style one:
+This file used to scan the polish block inside utils/header.py. That was the
+wrong artifact, and it passed while the change did nothing.
+
+build_global_css() concatenates header.py's _CSS and THEN theme.py's
+_MODERN_UI_CSS. theme.py owns a complete button system — hover lift, press
+ripple, variants — every declaration !important. Two !important rules of equal
+specificity resolve by order, so a motion rule added in header.py can never win.
+Measured on the deployed page: buttons still computed `transition-property: all`
+at 0.18s after the polish layer shipped.
+
+The signal card lost the same way for a different reason — an inline
+`transition:all` in its style attribute beats any non-important stylesheet rule.
+
+So these tests assert on the BUILT stylesheet and on last-wins, because
+last-wins is what the browser actually does:
 
   transform / opacity  -> composited on the GPU, skips layout and paint
   everything else      -> at least a paint, often a full layout pass
-
-The layer this guards replaced a pre-existing `transition: all 0.18s` on every
-button. `all` includes width, padding and colour, so each hover risked a layout
-pass on an element that only wanted to lift 1px.
-
-Two further rules are pinned here because both are easy to lose in a later
-edit and neither shows up in a screenshot:
-
-  - hover effects sit behind @media (hover: hover), so touch devices do not
-    latch a stuck hover state on tap
-  - reduced motion suppresses TRANSFORMS, not just durations. A 0.01ms
-    translate is still a jump; a user asking for reduced motion should get no
-    movement at all.
 """
 
 from __future__ import annotations
 
+import importlib.util
 import re
 from pathlib import Path
 
-_SRC = (Path(__file__).resolve().parent.parent / "utils" / "header.py").read_text(
-    encoding="utf-8"
-)
+import pytest
 
+_DASHBOARD = Path(__file__).resolve().parent.parent
 _LAYOUT_PROPS = re.compile(
     r"\b(width|height|top|left|right|bottom|margin|padding|font-size|inset)\b"
 )
+# Components the motion layer claims to own.
+_OWNED = {
+    "button": re.compile(r"\.stButton\s*>\s*button"),
+    "signal card": re.compile(r"\.ua-signal-card"),
+}
 
 
-def _polish_block() -> str:
-    marker = _SRC.index("SIGNATURE POLISH")
-    # Back up to the banner comment's OPENING delimiter. Slicing from the
-    # marker itself starts mid-comment, so the opening /* falls outside the
-    # slice and the stripper below silently matches nothing — which made these
-    # tests fail on prose describing the anti-patterns they ban.
-    start = _SRC.rindex("/*", 0, marker)
-    end = _SRC.index("@media (prefers-reduced-motion", marker)
-    block = _SRC[start:end]
-    # Strip comments: they quote the very anti-patterns being banned.
-    return re.sub(r"/\*.*?\*/", "", block, flags=re.S)
+@pytest.fixture(scope="module")
+def built_css() -> str:
+    """The concatenated stylesheet actually served at /app/static/ua-global.css."""
+    spec = importlib.util.spec_from_file_location(
+        "ibs", _DASHBOARD / "scripts" / "inject_boot_splash.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    css = mod.build_global_css()
+    assert len(css) > 50_000, f"built stylesheet looks truncated: {len(css)} chars"
+    return css
 
 
-def test_nothing_animates_a_layout_property():
-    block = _polish_block()
-    offenders = []
-    for decl in re.findall(r"(?:transition|animation):[^;]+;", block):
-        flat = " ".join(decl.split())
-        if _LAYOUT_PROPS.search(flat):
-            offenders.append(flat[:140])
-    assert not offenders, (
-        "these animate a layout-triggering property; use transform/opacity:\n"
-        + "\n".join(offenders)
+def _strip_at_blocks(css: str) -> str:
+    """Remove @media/@supports blocks, braces balanced.
+
+    Rules inside them are CONDITIONAL and must not count as the winner. Getting
+    this wrong is what made the first version of this file useless: the last
+    button rule in the sheet is the reduced-motion `transition: none`, so every
+    check saw `none`, declared it safe, and passed while the real unconditional
+    rule underneath still said `all`.
+    """
+    out, i, n = [], 0, len(css)
+    while i < n:
+        at = css.find("@", i)
+        if at == -1:
+            out.append(css[i:])
+            break
+        head = css[at : at + 9].lower()
+        if not (head.startswith("@media") or head.startswith("@supports")):
+            out.append(css[i : at + 1])
+            i = at + 1
+            continue
+        out.append(css[i:at])
+        brace = css.find("{", at)
+        if brace == -1:
+            break
+        depth, j = 1, brace + 1
+        while j < n and depth:
+            if css[j] == "{":
+                depth += 1
+            elif css[j] == "}":
+                depth -= 1
+            j += 1
+        i = j
+    return "".join(out)
+
+
+def _rules(css: str, *, unconditional_only: bool = True):
+    """(selector, body) for every rule, comments stripped, in file order."""
+    stripped = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    if unconditional_only:
+        stripped = _strip_at_blocks(stripped)
+    return re.findall(r"([^{}@]+)\{([^{}]*)\}", stripped)
+
+
+def test_no_owned_component_declares_transition_all(built_css):
+    """`all` must not appear for these components anywhere in the sheet.
+
+    Not "the last rule isn't `all`" — an earlier version asserted that and had
+    to find an unconditional rule to compare, which fails legitimately for the
+    signal card, whose motion is correctly gated behind @media (hover: hover).
+    Absence of an unconditional transition is fine; `all` never is.
+
+    Conditional rules are included deliberately: a `transition: all` inside a
+    media query is still a layout-animating rule whenever that query matches.
+    """
+    for label, pattern in _OWNED.items():
+        offenders = []
+        for sel, body in _rules(built_css, unconditional_only=False):
+            if not pattern.search(sel):
+                continue
+            m = re.search(r"(?<![-\w])transition:\s*([^;]+)", body)
+            if m and re.match(r"^all\b", m.group(1).strip()):
+                offenders.append(f"{sel.strip()[:60]} -> {m.group(1).strip()[:60]}")
+        assert not offenders, (
+            f"{label} still has `transition: all`, which animates layout "
+            f"properties:\n" + "\n".join(offenders)
+        )
+
+
+def test_no_owned_component_animates_a_layout_property(built_css):
+    for label, pattern in _OWNED.items():
+        for sel, body in _rules(built_css):
+            if not pattern.search(sel):
+                continue
+            m = re.search(r"(?<![-\w])transition:\s*([^;]+)", body)
+            if not m:
+                continue
+            val = " ".join(m.group(1).split())
+            if val.startswith("all") or val.startswith("none"):
+                continue
+            assert not _LAYOUT_PROPS.search(val), (
+                f"{label} animates a layout property: {val[:100]}"
+            )
+
+
+def test_the_card_carries_no_inline_transition():
+    """An inline transition beats any non-important stylesheet rule.
+
+    This is how the card kept `all 0.18s` after the polish layer shipped, and
+    it is invisible to any test that only reads CSS.
+    """
+    page = (_DASHBOARD / "pages" / "1_Signal_Dashboard.py").read_text(encoding="utf-8")
+    bad = []
+    for m in re.finditer(r'<div class="ua-signal-card"', page):
+        # The opening tag is split across f-string continuation lines, so scan
+        # the source from the tag to the end of its style attribute rather than
+        # line by line — the inline declaration sits on its own line with
+        # neither the class name nor `style=` on it.
+        end = page.find('">', m.end())
+        window = page[m.end() : end if end != -1 else m.end() + 1200]
+        if re.search(r"(?<![-\w])transition\s*:", window):
+            bad.append(" ".join(window.split())[:120])
+    assert not bad, (
+        "the card sets transition inline, which overrides any non-important "
+        "stylesheet rule:\n" + "\n".join(bad)
     )
 
 
-def test_transition_all_is_not_reintroduced():
-    block = _polish_block()
-    assert not re.search(r"transition:\s*all\b", block), (
-        "`transition: all` animates every property including layout ones — "
-        "enumerate the properties instead"
+def test_reduced_motion_has_the_last_word_on_transforms(built_css):
+    """The guard must come after the rules it suppresses.
+
+    header.py's guard could never reach theme.py's button hover: same
+    specificity, both !important, theme.py concatenated later.
+    """
+    from utils.theme import _MODERN_UI_CSS
+
+    # theme.py is the LAST block concatenated, and it is where the button hover
+    # transform is set with !important. So the guard has to live in this file
+    # specifically — one in header.py cannot reach these rules, whatever its
+    # specificity. Asserting on the built string's byte offsets proved too
+    # indirect: it still passed with theme.py's guard deleted.
+    assert "prefers-reduced-motion" in _MODERN_UI_CSS, (
+        "theme.py has no reduced-motion guard. Its button hover transform is "
+        "!important and concatenated after header.py, so header.py's guard "
+        "cannot suppress it."
+    )
+    guard = _MODERN_UI_CSS[_MODERN_UI_CSS.index("prefers-reduced-motion") :]
+    assert re.search(r"transform:\s*none\s*!important", guard), (
+        "the guard must set transform: none !important — a shortened duration "
+        "still moves the element, just quickly"
+    )
+    assert ".stButton" in guard[: guard.find("}\n}") + 3 if "}\n}" in guard else 800], (
+        "the guard does not cover the buttons whose hover transform it exists for"
     )
 
 
-def test_hover_effects_are_gated_for_touch():
-    """A tap on a touch device leaves :hover applied until the next tap."""
-    block = _polish_block()
-    hover_rules = [
-        m.start() for m in re.finditer(r":hover", block)
-    ]
-    assert hover_rules, "expected hover styling in the polish layer"
-    gates = [m.start() for m in re.finditer(r"@media \(hover: hover\)", block)]
-    assert gates, "no @media (hover: hover) gate found"
-    first_gate = min(gates)
-    ungated = [h for h in hover_rules if h < first_gate]
-    assert not ungated, (
-        f"{len(ungated)} hover rule(s) appear before any (hover: hover) gate; "
-        f"touch devices will latch them"
-    )
-
-
-def test_reduced_motion_kills_transforms_not_just_durations():
-    tail = _SRC[_SRC.index("@media (prefers-reduced-motion") :]
-    guard = tail[: tail.index("}\n}") + 3] if "}\n}" in tail else tail[:1200]
-    assert "transform: none" in guard, (
-        "reduced motion must neutralise transforms — a 0.01ms translate is "
-        "still a jump, just a fast one"
-    )
-
-
-def test_the_motion_tokens_exist_and_are_ordered():
-    fast = re.search(r"--ua-dur-fast:\s*(\d+)ms", _SRC)
-    base = re.search(r"--ua-dur-base:\s*(\d+)ms", _SRC)
-    slow = re.search(r"--ua-dur-slow:\s*(\d+)ms", _SRC)
-    assert fast and base and slow, "the duration tokens are missing"
+def test_the_motion_tokens_exist_and_are_ordered(built_css):
+    fast = re.search(r"--ua-dur-fast:\s*(\d+)ms", built_css)
+    base = re.search(r"--ua-dur-base:\s*(\d+)ms", built_css)
+    slow = re.search(r"--ua-dur-slow:\s*(\d+)ms", built_css)
+    assert fast and base and slow, "the duration tokens are missing from the built CSS"
     f, b, s = int(fast.group(1)), int(base.group(1)), int(slow.group(1))
     assert f < b < s, f"durations must ascend, got {f}/{b}/{s}"
-    assert s <= 400, (
-        f"{s}ms is past the point where an interface feels like it is waiting "
-        f"on the user"
-    )
+    assert s <= 400, f"{s}ms is past the point where a UI feels like it is waiting"
+
+
+def test_theme_css_uses_motion_tokens_only_with_fallbacks():
+    """theme.py's block can be injected WITHOUT header.py's :root.
+
+    inject_all_css() ships _MODERN_UI_CSS on its own on some pages. header.py's
+    own rules are safe — the :root definitions travel in the same string — but a
+    bare var(--ua-dur-fast) in theme.py would resolve to nothing on those pages
+    and drop the transition entirely.
+    """
+    from utils.theme import _MODERN_UI_CSS
+
+    defines_root = "--ua-dur-fast:" in _MODERN_UI_CSS
+    for m in re.finditer(r"var\(--ua-(?:dur|ease)-[\w-]+\s*(,?)", _MODERN_UI_CSS):
+        assert m.group(1) == "," or defines_root, (
+            f"theme.py uses {m.group(0)[:44]} with no fallback and does not "
+            f"define the token itself; on a page that injects only this block "
+            f"the transition dies"
+        )

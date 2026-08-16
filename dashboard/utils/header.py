@@ -1277,7 +1277,10 @@ div[data-testid="stExpander"] { background: rgba(var(--ua-card-rgb),0.6) !import
 .stButton > button {
     font-family: 'Inter', sans-serif !important;
     border-radius: 8px !important; font-weight: 500 !important; font-size: 0.83rem !important;
-    transition: all 0.18s cubic-bezier(0.4,0,0.2,1) !important;
+    /* No transition here. theme.py's MODERN BUTTONS rule is concatenated
+       after this file and sets the transition for every button; this
+       declaration was silently superseded, and `all` would animate
+       layout properties if it ever won. */
     border: 1px solid var(--ua-hair) !important;
     background: var(--ua-surface) !important; color: var(--ua-text-mid) !important;
 }
@@ -1759,7 +1762,10 @@ code, pre {
     font-weight: 700 !important;
     letter-spacing: 0.01em !important;
     box-shadow: 0 2px 14px rgba(var(--ua-royal-rgb),0.30), 0 1px 3px rgba(var(--ua-shadow-rgb),calc(0.3*var(--ua-shadow-k))) !important;
-    transition: all 0.18s cubic-bezier(0.4,0,0.2,1) !important;
+    /* No transition here. theme.py's MODERN BUTTONS rule is concatenated
+       after this file and sets the transition for every button; this
+       declaration was silently superseded, and `all` would animate
+       layout properties if it ever won. */
 }
 .stButton > button[kind="primary"]:hover {
     box-shadow: 0 4px 22px rgba(var(--ua-royal-rgb),0.44), 0 2px 6px rgba(var(--ua-shadow-rgb),calc(0.4*var(--ua-shadow-k))) !important;
@@ -2526,50 +2532,15 @@ textarea:focus-visible,
     border-radius: var(--ua-radius-sm) !important;
 }
 
-/* ── Buttons ───────────────────────────────────────────────────────────────
-   Enumerated transitions (see rule 1), a press state, and a sheen that sweeps
-   the primary action once on hover. The sheen is a translated pseudo-element,
-   so it composites; it is not a background-position animation. */
-.stButton > button {
-    transition:
-        transform var(--ua-dur-fast) var(--ua-ease-spring),
-        box-shadow var(--ua-dur-base) var(--ua-ease-out),
-        border-color var(--ua-dur-base) var(--ua-ease-out),
-        color var(--ua-dur-base) var(--ua-ease-out),
-        filter var(--ua-dur-base) var(--ua-ease-out) !important;
-    position: relative;
-    overflow: hidden;
-}
-.stButton > button:active {
-    transform: translateY(0) scale(0.985) !important;
-    transition-duration: var(--ua-dur-fast) !important;
-}
-.stButton > button[kind="primary"]::after {
-    content: "";
-    position: absolute;
-    top: 0; bottom: 0; left: -60%;
-    width: 45%;
-    background: linear-gradient(100deg,
-        rgba(255,255,255,0) 0%,
-        rgba(255,255,255,0.28) 50%,
-        rgba(255,255,255,0) 100%);
-    transform: translateX(0) skewX(-18deg);
-    opacity: 0;
-    pointer-events: none;
-}
-@media (hover: hover) {
-    .stButton > button[kind="primary"]:hover::after {
-        animation: ua_sheen var(--ua-dur-slow) var(--ua-ease-out) 1;
-    }
-    .stButton > button[kind="primary"]:hover {
-        transform: translateY(-1px);
-    }
-}
-@keyframes ua_sheen {
-    0%   { opacity: 0; transform: translateX(0) skewX(-18deg); }
-    12%  { opacity: 1; }
-    100% { opacity: 0; transform: translateX(360%) skewX(-18deg); }
-}
+/* Buttons are NOT styled here. utils/theme.py's "MODERN BUTTONS" section owns
+   them -- hover lift, press ripple, secondary/primary variants -- and the built
+   stylesheet concatenates this file's CSS and THEN theme.py's, so any button
+   rule added here is overridden regardless of specificity. An earlier version
+   of this block duplicated all of it and lost the cascade silently; the
+   transition it was trying to enumerate now lives in theme.py, at the rule
+   that actually wins. A pseudo-element sheen was dropped for the same reason:
+   theme.py already puts a ripple on ::after, and two competing pseudo-elements
+   on one button is not a design. */
 
 /* ── Cards ─────────────────────────────────────────────────────────────────
    Hover-only, and only on devices with a real pointer. The lift is 2px: enough
