@@ -36,7 +36,8 @@ services:
     # inject_boot_splash: patch Streamlit's served index.html with an on-brand dark
     # loader so the pre-boot JS-download window shows a branded splash instead of a
     # blank screen. Defensive + idempotent; can never fail the build (always exits 0).
-    buildCommand: pip install -r requirements.txt && python scripts/inject_boot_splash.py
+    # See the retry note on the cron services below.
+    buildCommand: (pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt) && python scripts/inject_boot_splash.py
     startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
     # Liveness-only check — Streamlit's built-in health endpoint (returns 200
     # "ok" when the server is up). Deliberately NOT a DB/provider-dependent path,
@@ -111,7 +112,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 12 * * *"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.send_digest
     envVars:
       - key: DATABASE_URL
@@ -135,7 +141,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 15 * * *"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.run_group lifecycle
     envVars:
       - key: DATABASE_URL
@@ -159,7 +170,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 */2 * * *"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.send_threshold_alerts
     envVars:
       - key: DATABASE_URL
@@ -183,7 +199,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 2 * * 1,4"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.resolve_predictions
     envVars:
       - key: DATABASE_URL
@@ -206,7 +227,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 7 * * *"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.check_data_freshness
     envVars:
       - key: DATABASE_URL
@@ -222,7 +248,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "10 4 * * *"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.score_universe --tier core --budget 250 --deadline-min 40 --passes 6
     envVars:
       - key: DATABASE_URL
@@ -249,7 +280,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "40 5 * * 1,3,5"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.score_universe --tier rest --rotate-days 1 --budget 250 --deadline-min 40 --passes 10
     envVars:
       - key: DATABASE_URL
@@ -274,7 +310,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 3 * * 0"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.grow_universe
     envVars:
       - key: DATABASE_URL
@@ -291,7 +332,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "30 15 * * *"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.run_group watchlist-insights
     envVars:
       - key: DATABASE_URL
@@ -317,7 +363,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 14 * * 1,3,5"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.tweet_best_ideas
     envVars:
       - key: TWITTER_POSTING_ENABLED
@@ -347,7 +398,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 15 * * 0"   # 15:00 UTC Sunday = 11:00 AM ET
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.send_weekly_brief
     envVars:
       - key: DATABASE_URL
@@ -376,7 +432,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 16 * * 0"   # 16:00 UTC Sunday = 12:00 PM ET
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.send_brief_subscribers
     envVars:
       - key: DATABASE_URL
@@ -410,7 +471,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "0 13 * * 1-5"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.tweet_signal_flips
     envVars:
       - key: TWITTER_POSTING_ENABLED
@@ -441,7 +507,12 @@ services:
     runtime: python
     rootDir: dashboard
     schedule: "15 */6 * * *"
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.signal_flip_alerts
     envVars:
       - key: DATABASE_URL
@@ -470,7 +541,12 @@ services:
     runtime: python
     plan: starter
     rootDir: dashboard
-    buildCommand: pip install -r requirements.txt
+    # Retry without the cache if the cached install fails. A poisoned pip
+    # cache entry is otherwise permanent: it is replayed on every build and
+    # survives a Python-version change, because pip's HTTP cache is keyed by
+    # URL, not interpreter. Four services sat broken for three days on
+    # exactly this. Normal builds still use the cache and stay fast.
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: "sh -c 'PYTHONPATH=/opt/render/project/src/dashboard python -m uvicorn seo.main:app --host 0.0.0.0 --port $PORT'"
     healthCheckPath: /healthz   # liveness — no deps (readiness is /readyz)
     envVars:
