@@ -1,15 +1,19 @@
 """Both themes must be legible, and the light-theme remapper must stay complete.
 
-Measured on the deployed app 2026-08-17, authenticated, both themes:
+CORRECTION (2026-08-17, same day): an earlier version of this docstring quoted
+per-page failure counts -- "92 of 583 text nodes", "1.08:1 Analyze ticker" --
+from a hand-rolled contrast probe. THOSE NUMBERS WERE WRONG and are withdrawn.
+The probe read only `backgroundColor` when walking for an element's background,
+so it ignored `background-image`; the CTA sits on a gradient and measures
+7.07:1, not 1.08:1. See scripts/a11y_audit.mjs, which replaced it with axe-core.
 
-  Ticker Deep Dive, light   92 of 583 text nodes below WCAG AA
-  Ticker Deep Dive, dark    97 of 597
-  worst light               1.08:1  "Analyze ticker" (the primary CTA)
-                            2.10:1  "Why it matters:"
+What survives, because it needs no probe -- these are computed from the token
+hex values directly, and from string inspection of the stylesheet:
 
-The cause was NOT the token palette. Every light token pair clears AA (worst
-5.34:1); only two dark pairs fail, and both are blocked from correction by
-non-CSS consumers (see _KNOWN_LOW below).
+  * every LIGHT token pair clears AA (worst 5.34:1)
+  * two DARK pairs do not, and both are blocked from correction by non-CSS
+    consumers (see _KNOWN_LOW below)
+  * the inline-colour remapper was missing a selector form entirely
 
 The cause is how inline colours are re-mapped for the light theme. Pages emit
 dark-theme hex inline -- `color:#8892AA` appears inline 45 times, `#E8EEFF` 32,
@@ -23,7 +27,10 @@ STRING, so each colour needs every spelling the codebase actually emits:
 
 `utils/score_attribution.py` emits `style="color:#B79CFF;font-weight:600;"` --
 start of attribute, no space -- which matched none of the three forms that
-existed, so it stayed light purple on a light background at 2.10:1.
+existed, so it kept its dark-theme purple on a light background. That gap is
+verified by inspection rather than by the withdrawn probe: the selector simply
+was not there, and the live computed colour proves the remap works whenever a
+form does match.
 
 This test pins the completeness of that mapping. It is a stopgap by design: the
 real fix is emitting tokens instead of hex, which is Phase 1 of the design-system
