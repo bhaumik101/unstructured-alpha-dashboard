@@ -2279,130 +2279,144 @@ section[data-testid="stSidebar"] {
    color and border-color, and leaves Python color parsing + Plotly untouched.
    Browsers serialize inline hex values to rgb(), so both forms are covered. */
 html[data-ua-theme="light"] :is(
-    [style^="color: #00D566" i], [style*="; color: #00D566" i],
+    [style^="color: #00D566" i], [style^="color:#00D566" i], [style*="; color: #00D566" i],
     [style^="color:#00D566" i],  [style*=";color:#00D566" i],
-    [style^="color: rgb(0, 213, 102)" i], [style*="; color: rgb(0, 213, 102)" i],
-    [style^="color: #34D399" i], [style*="; color: #34D399" i],
+    [style^="color: rgb(0, 213, 102)" i], [style^="color:rgb(0,213,102)" i], [style*="; color: rgb(0, 213, 102)" i],
+    [style^="color: #34D399" i], [style^="color:#34D399" i], [style*="; color: #34D399" i],
     [style*=";color:#34D399" i],
     [style^="color:#34D399" i],  [style*=";color:#34D399" i],
-    [style^="color: rgb(52, 211, 153)" i], [style*="; color: rgb(52, 211, 153)" i],
-    [style^="color: #00A847" i], [style*="; color: #00A847" i],
+    [style^="color: rgb(52, 211, 153)" i], [style^="color:rgb(52,211,153)" i], [style*="; color: rgb(52, 211, 153)" i],
+    [style^="color: #00A847" i], [style^="color:#00A847" i], [style*="; color: #00A847" i],
     [style*=";color:#00A847" i],
-    [style^="color: rgb(0, 168, 71)" i], [style*="; color: rgb(0, 168, 71)" i],
-    [style^="color: #00C853" i], [style*="; color: #00C853" i],
+    [style^="color: rgb(0, 168, 71)" i], [style^="color:rgb(0,168,71)" i], [style*="; color: rgb(0, 168, 71)" i],
+    [style^="color: #00C853" i], [style^="color:#00C853" i], [style*="; color: #00C853" i],
     [style*=";color:#00C853" i],
-    [style^="color: rgb(0, 200, 83)" i], [style*="; color: rgb(0, 200, 83)" i],
-    [style^="color: #22C55E" i], [style*="; color: #22C55E" i],
+    [style^="color: rgb(0, 200, 83)" i], [style^="color:rgb(0,200,83)" i], [style*="; color: rgb(0, 200, 83)" i],
+    [style^="color: #22C55E" i], [style^="color:#22C55E" i], [style*="; color: #22C55E" i],
     [style*=";color:#22C55E" i],
-    [style^="color: rgb(34, 197, 94)" i], [style*="; color: rgb(34, 197, 94)" i],
-    [style^="color: #35C98B" i], [style*="; color: #35C98B" i],
+    [style^="color: rgb(34, 197, 94)" i], [style^="color:rgb(34,197,94)" i], [style*="; color: rgb(34, 197, 94)" i],
+    [style^="color: #35C98B" i], [style^="color:#35C98B" i], [style*="; color: #35C98B" i],
     [style*=";color:#35C98B" i],
-    [style^="color: rgb(53, 201, 139)" i], [style*="; color: rgb(53, 201, 139)" i]
+    [style^="color: rgb(53, 201, 139)" i], [style^="color:rgb(53,201,139)" i], [style*="; color: rgb(53, 201, 139)" i]
 ) { color: var(--ua-green) !important; opacity: 1 !important; }
 
 html[data-ua-theme="light"] :is(
-    [style^="color: #FF4444" i], [style*="; color: #FF4444" i],
+    [style^="color: #FF4444" i], [style^="color:#FF4444" i], [style*="; color: #FF4444" i],
     [style^="color:#FF4444" i],  [style*=";color:#FF4444" i],
-    [style^="color: rgb(255, 68, 68)" i], [style*="; color: rgb(255, 68, 68)" i],
-    [style^="color: #FF2222" i], [style*="; color: #FF2222" i],
+    [style^="color: rgb(255, 68, 68)" i], [style^="color:rgb(255,68,68)" i], [style*="; color: rgb(255, 68, 68)" i],
+    [style^="color: #FF2222" i], [style^="color:#FF2222" i], [style*="; color: #FF2222" i],
     [style*=";color:#FF2222" i],
-    [style^="color: rgb(255, 34, 34)" i], [style*="; color: rgb(255, 34, 34)" i],
-    [style^="color: #CC3333" i], [style*="; color: #CC3333" i],
+    [style^="color: rgb(255, 34, 34)" i], [style^="color:rgb(255,34,34)" i], [style*="; color: rgb(255, 34, 34)" i],
+    [style^="color: #CC3333" i], [style^="color:#CC3333" i], [style*="; color: #CC3333" i],
     [style*=";color:#CC3333" i],
-    [style^="color: rgb(204, 51, 51)" i], [style*="; color: rgb(204, 51, 51)" i],
-    [style^="color: #FF4D6A" i], [style*="; color: #FF4D6A" i],
+    [style^="color: rgb(204, 51, 51)" i], [style^="color:rgb(204,51,51)" i], [style*="; color: rgb(204, 51, 51)" i],
+    [style^="color: #FF4D6A" i], [style^="color:#FF4D6A" i], [style*="; color: #FF4D6A" i],
     [style*=";color:#FF4D6A" i],
-    [style^="color: rgb(255, 77, 106)" i], [style*="; color: rgb(255, 77, 106)" i],
-    [style^="color: #FF6B6B" i], [style*="; color: #FF6B6B" i],
+    [style^="color: rgb(255, 77, 106)" i], [style^="color:rgb(255,77,106)" i], [style*="; color: rgb(255, 77, 106)" i],
+    [style^="color: #FF6B6B" i], [style^="color:#FF6B6B" i], [style*="; color: #FF6B6B" i],
     [style*=";color:#FF6B6B" i],
-    [style^="color: rgb(255, 107, 107)" i], [style*="; color: rgb(255, 107, 107)" i],
-    [style^="color: #E06C75" i], [style*="; color: #E06C75" i],
+    [style^="color: rgb(255, 107, 107)" i], [style^="color:rgb(255,107,107)" i], [style*="; color: rgb(255, 107, 107)" i],
+    [style^="color: #E06C75" i], [style^="color:#E06C75" i], [style*="; color: #E06C75" i],
     [style*=";color:#E06C75" i],
-    [style^="color: rgb(224, 108, 117)" i], [style*="; color: rgb(224, 108, 117)" i]
+    [style^="color: rgb(224, 108, 117)" i], [style^="color:rgb(224,108,117)" i], [style*="; color: rgb(224, 108, 117)" i]
 ) { color: var(--ua-red) !important; opacity: 1 !important; }
 
 html[data-ua-theme="light"] :is(
-    [style^="color: #00C8E0" i], [style*="; color: #00C8E0" i],
+    [style^="color: #00C8E0" i], [style^="color:#00C8E0" i], [style*="; color: #00C8E0" i],
     [style^="color:#00C8E0" i],  [style*=";color:#00C8E0" i],
-    [style^="color: rgb(0, 200, 224)" i], [style*="; color: rgb(0, 200, 224)" i],
-    [style^="color: #0EA5E9" i], [style*="; color: #0EA5E9" i],
+    [style^="color: rgb(0, 200, 224)" i], [style^="color:rgb(0,200,224)" i], [style*="; color: rgb(0, 200, 224)" i],
+    [style^="color: #0EA5E9" i], [style^="color:#0EA5E9" i], [style*="; color: #0EA5E9" i],
     [style*=";color:#0EA5E9" i],
-    [style^="color: rgb(14, 165, 233)" i], [style*="; color: rgb(14, 165, 233)" i],
-    [style^="color: #4A9EFF" i], [style*="; color: #4A9EFF" i],
+    [style^="color: rgb(14, 165, 233)" i], [style^="color:rgb(14,165,233)" i], [style*="; color: rgb(14, 165, 233)" i],
+    [style^="color: #4A9EFF" i], [style^="color:#4A9EFF" i], [style*="; color: #4A9EFF" i],
     [style*=";color:#4A9EFF" i],
-    [style^="color: rgb(74, 158, 255)" i], [style*="; color: rgb(74, 158, 255)" i],
-    [style^="color: #55A7D8" i], [style*="; color: #55A7D8" i],
+    [style^="color: rgb(74, 158, 255)" i], [style^="color:rgb(74,158,255)" i], [style*="; color: rgb(74, 158, 255)" i],
+    [style^="color: #55A7D8" i], [style^="color:#55A7D8" i], [style*="; color: #55A7D8" i],
     [style*=";color:#55A7D8" i],
-    [style^="color: rgb(85, 167, 216)" i], [style*="; color: rgb(85, 167, 216)" i],
-    [style^="color: #67E8F9" i], [style*="; color: #67E8F9" i],
+    [style^="color: rgb(85, 167, 216)" i], [style^="color:rgb(85,167,216)" i], [style*="; color: rgb(85, 167, 216)" i],
+    [style^="color: #67E8F9" i], [style^="color:#67E8F9" i], [style*="; color: #67E8F9" i],
     [style*=";color:#67E8F9" i],
-    [style^="color: rgb(103, 232, 249)" i], [style*="; color: rgb(103, 232, 249)" i],
-    [style^="color: #72D6E2" i], [style*="; color: #72D6E2" i],
+    [style^="color: rgb(103, 232, 249)" i], [style^="color:rgb(103,232,249)" i], [style*="; color: rgb(103, 232, 249)" i],
+    [style^="color: #72D6E2" i], [style^="color:#72D6E2" i], [style*="; color: #72D6E2" i],
     [style*=";color:#72D6E2" i],
-    [style^="color: rgb(114, 214, 226)" i], [style*="; color: rgb(114, 214, 226)" i]
+    [style^="color: rgb(114, 214, 226)" i], [style^="color:rgb(114,214,226)" i], [style*="; color: rgb(114, 214, 226)" i]
 ) { color: var(--ua-cyan) !important; opacity: 1 !important; }
 
 html[data-ua-theme="light"] :is(
-    [style^="color: #F59E0B" i], [style*="; color: #F59E0B" i],
+    [style^="color: #F59E0B" i], [style^="color:#F59E0B" i], [style*="; color: #F59E0B" i],
     [style^="color:#F59E0B" i],  [style*=";color:#F59E0B" i],
-    [style^="color: rgb(245, 158, 11)" i], [style*="; color: rgb(245, 158, 11)" i],
-    [style^="color: #FFB347" i], [style*="; color: #FFB347" i],
+    [style^="color: rgb(245, 158, 11)" i], [style^="color:rgb(245,158,11)" i], [style*="; color: rgb(245, 158, 11)" i],
+    [style^="color: #FFB347" i], [style^="color:#FFB347" i], [style*="; color: #FFB347" i],
     [style*=";color:#FFB347" i],
-    [style^="color: rgb(255, 179, 71)" i], [style*="; color: rgb(255, 179, 71)" i],
-    [style^="color: #E8C766" i], [style*="; color: #E8C766" i],
+    [style^="color: rgb(255, 179, 71)" i], [style^="color:rgb(255,179,71)" i], [style*="; color: rgb(255, 179, 71)" i],
+    [style^="color: #E8C766" i], [style^="color:#E8C766" i], [style*="; color: #E8C766" i],
     [style*=";color:#E8C766" i],
-    [style^="color: rgb(232, 199, 102)" i], [style*="; color: rgb(232, 199, 102)" i],
-    [style^="color: #E7C063" i], [style*="; color: #E7C063" i],
+    [style^="color: rgb(232, 199, 102)" i], [style^="color:rgb(232,199,102)" i], [style*="; color: rgb(232, 199, 102)" i],
+    [style^="color: #E7C063" i], [style^="color:#E7C063" i], [style*="; color: #E7C063" i],
     [style*=";color:#E7C063" i],
-    [style^="color: rgb(231, 192, 99)" i], [style*="; color: rgb(231, 192, 99)" i],
-    [style^="color: #D8C08A" i], [style*="; color: #D8C08A" i],
+    [style^="color: rgb(231, 192, 99)" i], [style^="color:rgb(231,192,99)" i], [style*="; color: rgb(231, 192, 99)" i],
+    [style^="color: #D8C08A" i], [style^="color:#D8C08A" i], [style*="; color: #D8C08A" i],
     [style*=";color:#D8C08A" i],
-    [style^="color: rgb(216, 192, 138)" i], [style*="; color: rgb(216, 192, 138)" i],
-    [style^="color: #F97316" i], [style*="; color: #F97316" i],
+    [style^="color: rgb(216, 192, 138)" i], [style^="color:rgb(216,192,138)" i], [style*="; color: rgb(216, 192, 138)" i],
+    [style^="color: #F97316" i], [style^="color:#F97316" i], [style*="; color: #F97316" i],
     [style*=";color:#F97316" i],
-    [style^="color: rgb(249, 115, 22)" i], [style*="; color: rgb(249, 115, 22)" i]
+    [style^="color: rgb(249, 115, 22)" i], [style^="color:rgb(249,115,22)" i], [style*="; color: rgb(249, 115, 22)" i]
 ) { color: var(--ua-amber) !important; opacity: 1 !important; }
 
 html[data-ua-theme="light"] :is(
-    [style^="color: #7C3AED" i], [style*="; color: #7C3AED" i],
+    [style^="color: #7C3AED" i], [style^="color:#7C3AED" i], [style*="; color: #7C3AED" i],
     [style*=";color:#7C3AED" i],
-    [style^="color: rgb(124, 58, 237)" i], [style*="; color: rgb(124, 58, 237)" i],
-    [style^="color: #A78BFA" i], [style*="; color: #A78BFA" i],
+    [style^="color: rgb(124, 58, 237)" i], [style^="color:rgb(124,58,237)" i], [style*="; color: rgb(124, 58, 237)" i],
+    [style^="color: #A78BFA" i], [style^="color:#A78BFA" i], [style*="; color: #A78BFA" i],
     [style*=";color:#A78BFA" i],
-    [style^="color: rgb(167, 139, 250)" i], [style*="; color: rgb(167, 139, 250)" i],
-    [style^="color: #A855F7" i], [style*="; color: #A855F7" i],
+    [style^="color: rgb(167, 139, 250)" i], [style^="color:rgb(167,139,250)" i], [style*="; color: rgb(167, 139, 250)" i],
+    [style^="color: #A855F7" i], [style^="color:#A855F7" i], [style*="; color: #A855F7" i],
     [style*=";color:#A855F7" i],
-    [style^="color: rgb(168, 85, 247)" i], [style*="; color: rgb(168, 85, 247)" i],
-    [style^="color: #818CF8" i], [style*="; color: #818CF8" i],
+    [style^="color: rgb(168, 85, 247)" i], [style^="color:rgb(168,85,247)" i], [style*="; color: rgb(168, 85, 247)" i],
+    [style^="color: #818CF8" i], [style^="color:#818CF8" i], [style*="; color: #818CF8" i],
     [style*=";color:#818CF8" i],
-    [style^="color: rgb(129, 140, 248)" i], [style*="; color: rgb(129, 140, 248)" i],
-    [style^="color: #B79CFF" i], [style*="; color: #B79CFF" i],
+    [style^="color: rgb(129, 140, 248)" i], [style^="color:rgb(129,140,248)" i], [style*="; color: rgb(129, 140, 248)" i],
+    [style^="color: #B79CFF" i], [style^="color:#B79CFF" i], [style*="; color: #B79CFF" i],
     [style*=";color:#B79CFF" i],
-    [style^="color: rgb(183, 156, 255)" i], [style*="; color: rgb(183, 156, 255)" i]
+    [style^="color: rgb(183, 156, 255)" i], [style^="color:rgb(183,156,255)" i], [style*="; color: rgb(183, 156, 255)" i]
 ) { color: var(--ua-purple) !important; opacity: 1 !important; }
 
 html[data-ua-theme="light"] :is(
-    [style^="color: #8892AA" i], [style*="; color: #8892AA" i],
+    /* Muted caption/label greys emitted inline by pages (34, 28, 21, 16 and
+       13 uses). All are small secondary text; without a remap they keep a
+       dark-theme grey on a near-white page. Found by the coverage test in
+       tests/test_theme_contrast.py, not by eye. */
+    [style^="color: #6B7A95" i], [style^="color:#6B7A95" i],
+    [style*="; color: #6B7A95" i], [style*=";color:#6B7A95" i],
+    [style^="color: #4A5280" i], [style^="color:#4A5280" i],
+    [style*="; color: #4A5280" i], [style*=";color:#4A5280" i],
+    [style^="color: #4A5568" i], [style^="color:#4A5568" i],
+    [style*="; color: #4A5568" i], [style*=";color:#4A5568" i],
+    [style^="color: #8892B0" i], [style^="color:#8892B0" i],
+    [style*="; color: #8892B0" i], [style*=";color:#8892B0" i],
+    [style^="color: #4A5063" i], [style^="color:#4A5063" i],
+    [style*="; color: #4A5063" i], [style*=";color:#4A5063" i],
+    [style^="color: #8892AA" i], [style^="color:#8892AA" i], [style*="; color: #8892AA" i],
     [style*=";color:#8892AA" i],
-    [style^="color: rgb(136, 146, 170)" i], [style*="; color: rgb(136, 146, 170)" i],
-    [style^="color: #6B7FBF" i], [style*="; color: #6B7FBF" i],
+    [style^="color: rgb(136, 146, 170)" i], [style^="color:rgb(136,146,170)" i], [style*="; color: rgb(136, 146, 170)" i],
+    [style^="color: #6B7FBF" i], [style^="color:#6B7FBF" i], [style*="; color: #6B7FBF" i],
     [style*=";color:#6B7FBF" i],
-    [style^="color: rgb(107, 127, 191)" i], [style*="; color: rgb(107, 127, 191)" i],
-    [style^="color: #6B7280" i], [style*="; color: #6B7280" i],
+    [style^="color: rgb(107, 127, 191)" i], [style^="color:rgb(107,127,191)" i], [style*="; color: rgb(107, 127, 191)" i],
+    [style^="color: #6B7280" i], [style^="color:#6B7280" i], [style*="; color: #6B7280" i],
     [style*=";color:#6B7280" i],
-    [style^="color: rgb(107, 114, 128)" i], [style*="; color: rgb(107, 114, 128)" i]
+    [style^="color: rgb(107, 114, 128)" i], [style^="color:rgb(107,114,128)" i], [style*="; color: rgb(107, 114, 128)" i]
 ) { color: var(--ua-neutral) !important; opacity: 1 !important; }
 
 html[data-ua-theme="light"] :is(
-    [style^="color: #B8C0D4" i], [style*="; color: #B8C0D4" i],
+    [style^="color: #B8C0D4" i], [style^="color:#B8C0D4" i], [style*="; color: #B8C0D4" i],
     [style*=";color:#B8C0D4" i],
-    [style^="color: rgb(184, 192, 212)" i], [style*="; color: rgb(184, 192, 212)" i],
-    [style^="color: #C5CCDE" i], [style*="; color: #C5CCDE" i],
+    [style^="color: rgb(184, 192, 212)" i], [style^="color:rgb(184,192,212)" i], [style*="; color: rgb(184, 192, 212)" i],
+    [style^="color: #C5CCDE" i], [style^="color:#C5CCDE" i], [style*="; color: #C5CCDE" i],
     [style*=";color:#C5CCDE" i],
-    [style^="color: rgb(197, 204, 222)" i], [style*="; color: rgb(197, 204, 222)" i],
-    [style^="color: #E8EEFF" i], [style*="; color: #E8EEFF" i],
+    [style^="color: rgb(197, 204, 222)" i], [style^="color:rgb(197,204,222)" i], [style*="; color: rgb(197, 204, 222)" i],
+    [style^="color: #E8EEFF" i], [style^="color:#E8EEFF" i], [style*="; color: #E8EEFF" i],
     [style*=";color:#E8EEFF" i],
-    [style^="color: rgb(232, 238, 255)" i], [style*="; color: rgb(232, 238, 255)" i]
+    [style^="color: rgb(232, 238, 255)" i], [style^="color:rgb(232,238,255)" i], [style*="; color: rgb(232, 238, 255)" i]
 ) { color: var(--ua-ink) !important; }
 
 /* The premium theme defines these controls after the shared header and pins
