@@ -239,7 +239,7 @@ if not st.session_state.get("_tdd_onboarded"):
     )
     st.session_state["_tdd_onboarded"] = True
 
-st.markdown(f"### Analyzing: **{ticker_input}** — {company_name_hint}")
+st.markdown(f"## Analyzing: **{ticker_input}** — {company_name_hint}")
 
 # Credits the search_ticker onboarding step, which had no call site anywhere and
 # so could never complete. Deduped per ticker rather than per session so that
@@ -869,7 +869,7 @@ if section == "Overview":
     # Chart page, embedded here so the chart lives right beside the analysis.
     try:
         from utils.tradingview import render_tradingview_chart
-        st.markdown(f"#### {ticker_input} — Interactive Chart")
+        st.markdown(f"### {ticker_input} — Interactive Chart")
         render_tradingview_chart(ticker_input, chart_height=480, key=f"tdd_{ticker_input}")
     except Exception:
         pass
@@ -1444,7 +1444,7 @@ if section == "Overview":
     # ── Score History ─────────────────────────────────────────────────────────────
     _score_hist = get_score_history(ticker_input, days=180)
     if len(_score_hist) >= 2:
-        st.markdown("##### Score History")
+        st.markdown("#### Score History")
         _hist_dates  = [row["snapshot_date"] for row in _score_hist]
         _hist_scores = [row["score"] for row in _score_hist]
         _fig_hist = go.Figure(go.Scatter(
@@ -1558,7 +1558,7 @@ if section == "Overview":
         label_visibility="collapsed",
         key="dive_price_period",
     )
-    st.markdown(f"### {ticker_input} Price \u2014 {price_period}")
+    st.markdown(f"## {ticker_input} Price \u2014 {price_period}")
 
     # Downstream volume and RSI charts align to this same window.
     price_view = slice_period(price_series, price_period) if not price_series.empty else price_series
@@ -2072,7 +2072,7 @@ if section == "Overview":
         # boxed look, matching the same treatment given to the price chart
         # above and each Watchlist row.
         with vol_col, st.container(border=True):
-            st.markdown("##### Volume")
+            st.markdown("#### Volume")
             if not volume_series.empty:
                 vol_view = volume_series[volume_series.index >= price_view.index[0]]
                 if vol_view.empty:
@@ -2105,7 +2105,7 @@ if section == "Overview":
                 st.info(f"Volume data unavailable for {ticker_input}.")
 
         with rsi_col, st.container(border=True):
-            st.markdown("##### RSI (14-day)")
+            st.markdown("#### RSI (14-day)")
             if len(price_series.dropna()) >= 15:
                 rsi_full = compute_rsi(price_series, period=14)
                 rsi_view = rsi_full[rsi_full.index >= price_view.index[0]]
@@ -2154,7 +2154,7 @@ if section == "Overview":
     _cat_col, _news_col = st.columns([1, 2])
 
     with _cat_col:
-        st.markdown("##### Earnings")
+        st.markdown("#### Earnings")
         try:
             _earn = fetch_earnings_dates(ticker_input)   # cached — same call as price chart above
             if _earn:
@@ -2210,7 +2210,7 @@ if section == "Overview":
             st.caption(f"Earnings data unavailable: {_earn_err}")
 
     with _news_col:
-        st.markdown("##### Recent Headlines")
+        st.markdown("#### Recent Headlines")
         try:
             _news_items = fetch_ticker_news(ticker_input)
             if _news_items:
@@ -2470,7 +2470,7 @@ if section == "Overview":
     st.divider()
 
     # ── Bull & Bear Case ──────────────────────────────────────────────────────────
-    st.markdown("### Bull Case vs. Bear Case")
+    st.markdown("## Bull Case vs. Bear Case")
 
     with st.expander("How are these cases generated?"):
         st.markdown(f"""
@@ -2824,7 +2824,7 @@ if section == "Overview":
     st.divider()
 
     # ── Signal Detail Table ───────────────────────────────────────────────────────
-    st.markdown("### Signal Detail Table")
+    st.markdown("## Signal Detail Table")
     st.caption("Every signal scored and contextualized. Click on any row to see its sparkline chart.")
 
     with st.expander("Understanding the table columns"):
@@ -2989,7 +2989,7 @@ if section == "Overview":
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown(f"##### Statistically Significant Signals for {ticker_input} (p < 0.05)")
+        st.markdown(f"#### Statistically Significant Signals for {ticker_input} (p < 0.05)")
         st.dataframe(
             table_df.drop(columns=["N"]),
             width="stretch",
@@ -3030,7 +3030,7 @@ if section == "Overview":
 
         # ── Per-signal reasoning cards ─────────────────────────────────────────────
         st.markdown("")
-        st.markdown("#### Why these scores?")
+        st.markdown("### Why these scores?")
         st.caption("Detailed reasoning for every signal's current bullish/bearish/neutral reading.")
 
         # Build name→sig_id lookup so we can get relevant_tickers per signal
@@ -3102,7 +3102,7 @@ if section == "Overview":
                 )
 
     # ── Export ────────────────────────────────────────────────────────────────────
-    st.markdown("### Export Analysis")
+    st.markdown("## Export Analysis")
 
     if table_rows:
         export_data = {
@@ -3256,7 +3256,7 @@ elif section == "Thesis Workspace":
 elif section == "Insider & Short Interest":
     st.html(section_label("INSIDER AND SHORT INTEREST", color="#55A7D8", dot="#55A7D8"))
     # ── Insider Transactions ──────────────────────────────────────────────────────
-    st.markdown("### Insider Transactions (SEC Form 4)")
+    st.markdown("## Insider Transactions (SEC Form 4)")
 
     with st.expander("Why insider trades matter and how to interpret them"):
         st.markdown(f"""
@@ -3365,7 +3365,7 @@ elif section == "Insider & Short Interest":
 
     st.divider()
     # ── Short Interest ──────────────────────────────────────────────────────────────
-    st.markdown("### Short Interest (FINRA, Exchange-Listed)")
+    st.markdown("## Short Interest (FINRA, Exchange-Listed)")
 
     with st.expander("How short interest works and what this score means"):
         st.markdown("""
@@ -3411,7 +3411,7 @@ elif section == "Insider & Short Interest":
 elif section == "13F & Federal Contracts":
     st.html(section_label("13F AND FEDERAL CONTRACTS", color="#D6A34A", dot="#D6A34A"))
     # ── Federal Contract Awards ───────────────────────────────────────────────────
-    st.markdown("### Federal Contract Awards (USASpending.gov)")
+    st.markdown("## Federal Contract Awards (USASpending.gov)")
 
     with st.expander("Why federal contracts matter for investors"):
         st.markdown("""
@@ -3508,7 +3508,7 @@ elif section == "13F & Federal Contracts":
 
     st.divider()
     # ── 13F Institutional Positioning ────────────────────────────────────────────
-    st.markdown("### 13F Institutional Positioning")
+    st.markdown("## 13F Institutional Positioning")
 
     with st.expander("What is a 13F filing, and why is this section limited to a few funds?"):
         _curated_funds_list_str = ", ".join(f"{_f['name']} ({_f['style'].lower()})" for _f in CURATED_FUNDS)
@@ -3718,7 +3718,7 @@ elif section == "Deep Correlation Scan":
             )
 
             st.divider()
-            st.markdown("##### Is this signal's lead time stable, or is it decaying?")
+            st.markdown("#### Is this signal's lead time stable, or is it decaying?")
             st.caption(
                 "Uses the same extended fetch already pulled above for the validated scan -- no extra "
                 "network calls. Honest caveat specific to alt-data signals: insider/short-interest "
@@ -3852,7 +3852,7 @@ elif section == "Deep Correlation Scan":
                 st.plotly_chart(fig_ov, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
         st.divider()
-        st.markdown("##### Is this signal's lead time stable, or is it decaying?")
+        st.markdown("#### Is this signal's lead time stable, or is it decaying?")
         st.caption(
             "The data above uses the page's standard 2-year window, which isn't enough history to "
             "track a trend in the lead time itself. This re-fetches a longer history (up to 10 years, "
@@ -3899,7 +3899,7 @@ elif section == "Earnings Track Record":
     # Data coverage is organic: score history accumulates only when someone
     # opens this ticker on Ticker Deep Dive, so early-stage tickers may have
     # sparse history. We're honest about that here.
-    st.markdown("### Pre-Earnings Signal Track Record")
+    st.markdown("## Pre-Earnings Signal Track Record")
     st.caption(
         f"Did the Confluence Score correctly anticipate earnings outcomes for **{ticker_input}**? "
         "Shows score snapshots recorded 7–45 days before each past earnings date vs actual EPS result. "
