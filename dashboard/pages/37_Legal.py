@@ -42,7 +42,7 @@ if _legal_section == "Privacy Policy":
 
 <p style="font-size:0.78rem;color:var(--ua-ink-mut);">Last updated: July 26, 2026 &nbsp;·&nbsp; Unstructured Alpha</p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">What we collect</h3>
+<h2 style="margin-top:24px;">What we collect</h2>
 <p>
 When you create an account, we store your <strong>email address</strong> and a
 <strong>salted hash of your password</strong> — we never store your password in plain text.
@@ -66,14 +66,14 @@ addresses, browser type, and page-request timestamps for up to 30 days for opera
 security purposes.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">What we don't collect</h3>
+<h2 style="margin-top:24px;">What we don't collect</h2>
 <p>
 We do not use analytics cookies, ad pixels, cross-site tracking, or advertising profiles. We
 do not sell or share your data with third parties for marketing purposes. We do not collect your real name, phone
 number, or mailing address. We do not collect financial account numbers or trading history.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Why we collect it</h3>
+<h2 style="margin-top:24px;">Why we collect it</h2>
 <p>
 Your email is used to: (1) identify your account and restore sessions, (2) send transactional
 messages you have requested (verification codes, digest emails, price alerts), and (3) notify
@@ -81,7 +81,7 @@ you of material changes to these policies. We do not send marketing emails unles
 explicitly opt in.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Legal basis for processing (GDPR)</h3>
+<h2 style="margin-top:24px;">Legal basis for processing (GDPR)</h2>
 <p>
 For users in the European Economic Area, our legal bases for processing personal data are:
 <strong>contract performance</strong> (to provide the account and subscription you signed up for),
@@ -89,7 +89,7 @@ For users in the European Economic Area, our legal bases for processing personal
 <strong>consent</strong> (for optional digest emails and alerts, which you can withdraw at any time).
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Cookies</h3>
+<h2 style="margin-top:24px;">Cookies</h2>
 <p>
 We set one first-party cookie (<code>ua_remember</code>) only when you check "Remember me"
 at login. This cookie stores a secure session token — not your password — and expires after
@@ -98,7 +98,7 @@ delete it at any time by logging out. We do not set any advertising, analytics, 
 cookies.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Third-party services</h3>
+<h2 style="margin-top:24px;">Third-party services</h2>
 <p>
 We use <strong>Resend</strong> to send transactional emails (verification codes, digests, alerts).
 We use <strong>Stripe</strong> for payment processing. We use <strong>Render</strong> to host
@@ -107,14 +107,14 @@ agreements. We do not share your email with any of these parties beyond what is 
 deliver the service you requested.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Data residency</h3>
+<h2 style="margin-top:24px;">Data residency</h2>
 <p>
 Your data is stored on servers located in the United States. If you are accessing the service
 from outside the US, your data will be transferred to and processed in the US. By using the
 service, you consent to this transfer.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Data retention</h3>
+<h2 style="margin-top:24px;">Data retention</h2>
 <p>
 Account data is retained for as long as your account is active. You can request deletion at
 any time by emailing <a href="mailto:privacy@unstructuredalpha.com" style="color:var(--ua-cyan);">privacy@unstructuredalpha.com</a>.
@@ -123,7 +123,7 @@ data within 7 business days of receiving a verified deletion request. Stripe may
 billing records independently in accordance with their legal obligations.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Your rights</h3>
+<h2 style="margin-top:24px;">Your rights</h2>
 <p>
 Under GDPR and CCPA, you have the right to:
 </p>
@@ -143,14 +143,14 @@ GDPR users also have the right to lodge a complaint with a supervisory authority
 country of residence.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Age restriction</h3>
+<h2 style="margin-top:24px;">Age restriction</h2>
 <p>
 Unstructured Alpha is intended for users 13 years of age and older. If you are under 13,
 do not create an account. If we become aware that a user under 13 has created an account,
 we will delete it promptly.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Changes to this policy</h3>
+<h2 style="margin-top:24px;">Changes to this policy</h2>
 <p>
 If we make material changes, we'll send an email to your registered address at least 14 days
 before the change takes effect. Non-material changes (such as formatting or clarifications)
@@ -172,7 +172,7 @@ if _legal_section == "Terms of Service":
 
 <p style="font-size:0.78rem;color:var(--ua-ink-mut);">Last updated: July 7, 2026 &nbsp;·&nbsp; Unstructured Alpha</p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">1. Not financial advice</h3>
+<h2 style="margin-top:24px;">1. Not financial advice</h2>
 <p>
 <strong style="color:#FF4D6A;">Unstructured Alpha is a research and signal intelligence tool,
 not a registered investment adviser.</strong> Nothing on this platform constitutes investment
@@ -186,7 +186,7 @@ any indicator. <strong>You are solely responsible for your own investment decisi
 You should consult a licensed financial adviser before making investment decisions.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">2. Eligibility and accounts</h3>
+<h2 style="margin-top:24px;">2. Eligibility and accounts</h2>
 <p>
 By creating an account, you confirm that you are at least 13 years old and have the legal
 capacity to enter into this agreement. You are responsible for maintaining the confidentiality
@@ -196,7 +196,7 @@ if you believe your account has been compromised. One account per person; sharin
 or credentials is not permitted.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">3. Acceptable use</h3>
+<h2 style="margin-top:24px;">3. Acceptable use</h2>
 <p>
 You agree to use Unstructured Alpha for lawful purposes only. Prohibited conduct includes:
 </p>
@@ -212,7 +212,7 @@ You agree to use Unstructured Alpha for lawful purposes only. Prohibited conduct
 We reserve the right to terminate accounts that violate these restrictions without refund.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">4. Intellectual property</h3>
+<h2 style="margin-top:24px;">4. Intellectual property</h2>
 <p>
 The Unstructured Alpha platform, including its design, signals, scoring methodology,
 AI-generated content, and software, is owned by Unstructured Alpha and protected by
@@ -224,7 +224,7 @@ Your account data (watchlist tickers, alert settings, digest preferences) remain
 do not claim ownership of any data you input into the platform.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">5. Pro subscription and billing</h3>
+<h2 style="margin-top:24px;">5. Pro subscription and billing</h2>
 <p>
 Pro subscriptions are billed monthly or annually via Stripe. Prices are displayed in USD on
 the Upgrade page. We reserve the right to change pricing with at least 30 days' written
@@ -242,7 +242,7 @@ subscription within 30 days, you are eligible for a full refund (see Refund Poli
 After 30 days, the annual period is non-refundable.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">6. Data accuracy and sources</h3>
+<h2 style="margin-top:24px;">6. Data accuracy and sources</h2>
 <p>
 Signal data is sourced from FRED (Federal Reserve Bank of St. Louis), SEC EDGAR, FINRA, EIA,
 and public market data feeds. We make no warranties — express or implied — about the accuracy,
@@ -252,7 +252,7 @@ falls below our standard threshold. You should independently verify any data bef
 on it for financial decisions.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">7. Service availability and changes</h3>
+<h2 style="margin-top:24px;">7. Service availability and changes</h2>
 <p>
 We strive for high availability but do not guarantee uninterrupted access. We may modify,
 suspend, or discontinue features or the service as a whole at any time. If we discontinue
@@ -260,7 +260,7 @@ a material feature included in your Pro plan, we will notify you by email and of
 prorated refund for the affected period.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">8. Account termination</h3>
+<h2 style="margin-top:24px;">8. Account termination</h2>
 <p>
 You may close your account at any time by emailing
 <a href="mailto:support@unstructuredalpha.com" style="color:var(--ua-cyan);">support@unstructuredalpha.com</a>.
@@ -270,7 +270,7 @@ service or other users. Terminated accounts are not entitled to refunds beyond w
 provided in our Refund Policy.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">9. Disclaimer of warranties</h3>
+<h2 style="margin-top:24px;">9. Disclaimer of warranties</h2>
 <p>
 The service is provided "as is" and "as available" without warranties of any kind, express
 or implied, including but not limited to merchantability, fitness for a particular purpose,
@@ -279,7 +279,7 @@ or that signals or scores will meet your expectations or produce any particular 
 outcome.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">10. Limitation of liability</h3>
+<h2 style="margin-top:24px;">10. Limitation of liability</h2>
 <p>
 To the maximum extent permitted by applicable law, Unstructured Alpha shall not be liable
 for any investment losses, financial damages, indirect, incidental, special, or consequential
@@ -292,7 +292,7 @@ Your sole remedy for dissatisfaction with the service is to cancel your subscrip
 request a refund under our Refund Policy.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">11. Dispute resolution</h3>
+<h2 style="margin-top:24px;">11. Dispute resolution</h2>
 <p>
 We prefer to resolve disputes informally. If you have a concern, email
 <a href="mailto:legal@unstructuredalpha.com" style="color:var(--ua-cyan);">legal@unstructuredalpha.com</a>
@@ -302,21 +302,21 @@ resolved by binding arbitration under the rules of the American Arbitration Asso
 or class-wide arbitration against Unstructured Alpha.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">12. Governing law</h3>
+<h2 style="margin-top:24px;">12. Governing law</h2>
 <p>
 These terms are governed by the laws of the State of Delaware, United States, without regard
 to conflict of law principles. Any dispute not subject to arbitration will be resolved
 exclusively in the courts of Delaware.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">13. Changes to these terms</h3>
+<h2 style="margin-top:24px;">13. Changes to these terms</h2>
 <p>
 We may update these terms from time to time. Material changes will be communicated by email
 at least 14 days before they take effect. Continued use of the service after the effective
 date constitutes acceptance of the updated terms.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">14. Contact</h3>
+<h2 style="margin-top:24px;">14. Contact</h2>
 <p>
 Questions about these terms:
 <a href="mailto:legal@unstructuredalpha.com" style="color:var(--ua-cyan);">legal@unstructuredalpha.com</a>
@@ -332,7 +332,7 @@ if _legal_section == "Refund Policy":
 
 <p style="font-size:0.78rem;color:var(--ua-ink-mut);">Last updated: July 7, 2026 &nbsp;·&nbsp; Unstructured Alpha</p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">30-day money-back guarantee</h3>
+<h2 style="margin-top:24px;">30-day money-back guarantee</h2>
 <p>
 If you are not satisfied with Pro for any reason within the first 30 days of your initial
 purchase, email <a href="mailto:support@unstructuredalpha.com" style="color:var(--ua-cyan);">support@unstructuredalpha.com</a>
@@ -341,14 +341,14 @@ No questions asked. The 30-day window begins on the date of your first charge (n
 of any free trial).
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">After 30 days — monthly plans</h3>
+<h2 style="margin-top:24px;">After 30 days — monthly plans</h2>
 <p>
 After the 30-day window, monthly subscriptions are non-refundable for the current billing
 period. You can cancel at any time and your Pro access will continue through the end of the
 period you've already paid for. We do not issue partial-period refunds on monthly plans.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">After 30 days — annual plans</h3>
+<h2 style="margin-top:24px;">After 30 days — annual plans</h2>
 <p>
 Annual subscriptions are non-refundable after the 30-day window. If you cancel an annual
 plan after 30 days, your Pro access continues until the end of the annual period you paid
@@ -356,14 +356,14 @@ for, but no refund is issued. If you downgrade mid-year, no partial credit is ap
 future billing periods.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Trials</h3>
+<h2 style="margin-top:24px;">Trials</h2>
 <p>
 Free trials are not charged if cancelled before the trial period ends. If you are charged
 after a trial due to a technical error on our end, contact us and we will refund the charge
 within 2 business days, no verification required.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">Exceptional circumstances</h3>
+<h2 style="margin-top:24px;">Exceptional circumstances</h2>
 <p>
 If we discontinue a material feature included in your active Pro plan, or if the service
 experiences extended downtime (more than 72 consecutive hours) during your billing period,
@@ -371,7 +371,7 @@ you may be eligible for a prorated refund for the affected period regardless of 
 window. Contact us to discuss.
 </p>
 
-<h3 style="color:var(--ua-ink);font-size:1.0rem;margin-top:24px;">How to request a refund</h3>
+<h2 style="margin-top:24px;">How to request a refund</h2>
 <p>
 Email <a href="mailto:support@unstructuredalpha.com" style="color:var(--ua-cyan);">support@unstructuredalpha.com</a>
 from the email address associated with your account. Include "Refund Request" in the subject
