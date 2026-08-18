@@ -41,14 +41,14 @@ CHART_CSS = """
    which share the class). No opacity here -- the gradient carries its own. */
 .ua-chart .area{fill:var(--ua-royal-2,#8B7BF7);opacity:.16}
 .ua-chart path.area[fill^="url"]{opacity:1}
-.ua-chart .cline{fill:none;stroke:var(--ua-royal-2,#8B7BF7);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ua-chart .cline{fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .ua-chart .ua-chart-glow{stroke-width:3.2}
-.ua-chart .dot{fill:var(--ua-royal-2,#8B7BF7)}
+.ua-chart .dot{fill:currentColor}
 /* Halo behind the latest point. Animating `r` would trigger geometry work on
    every frame, so the pulse scales the whole node instead -- transform only,
    with the origin pinned to the circle's own centre. */
 .ua-chart .ua-chart-halo{
-  fill:var(--ua-royal-2,#8B7BF7);opacity:.22;
+  fill:currentColor;opacity:.22;
   transform-box:fill-box;transform-origin:center;
   animation:ua_chart_pulse 2.4s cubic-bezier(0.16,1,0.3,1) infinite;
 }
@@ -72,7 +72,7 @@ def _fmt(v: float) -> str:
 
 
 def line_chart(values, x_labels, y_min=0.0, y_max=100.0, y_ticks=None,
-               ref=None, y_title="", W=560, H=280) -> str:
+               ref=None, y_title="", W=560, H=280, color=None) -> str:
     """A line chart with a filled area, axes, gridlines, and an optional
     horizontal reference line (e.g. the neutral-50 level).
 
@@ -94,7 +94,11 @@ def line_chart(values, x_labels, y_min=0.0, y_max=100.0, y_ticks=None,
     def sx(i): return x0 + (x1 - x0) * (i / (n - 1) if n > 1 else 0)
     def sy(v): return y0 - (y0 - y1) * (v - y_min) / (y_max - y_min or 1)
 
-    parts = [f'<svg viewBox="0 0 {W} {H}" class="ua-chart" preserveAspectRatio="xMidYMid meet">']
+    # `color` drives the series hue. The line, dot, halo and gradient stops all
+    # resolve through currentColor, so one attribute recolours the whole series
+    # without a per-chart <style> block or an id collision.
+    _hue = f' style="color:{_esc(color)}"' if color else ""
+    parts = [f'<svg viewBox="0 0 {W} {H}" class="ua-chart"{_hue} preserveAspectRatio="xMidYMid meet">']
     for v in y_ticks:
         y = sy(v)
         parts.append(f'<line class="grid" x1="{x0}" y1="{y:.1f}" x2="{x1}" y2="{y:.1f}"/>')

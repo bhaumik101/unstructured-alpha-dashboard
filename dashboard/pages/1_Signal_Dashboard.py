@@ -21,6 +21,7 @@ from utils.header import render_header, render_sidebar_base, render_page_header,
 from utils.score_history import get_signal_flips, get_signal_trends, get_signal_streaks, compute_signal_correlation_matrix
 from utils.signals_cache import get_all_signal_scores
 from utils.analysis import compute_signal_confidence
+from utils import ua_charts
 from utils.theme import (
     inject_skeleton_css, skeleton_cards, source_badge, inject_premium_css,
     PLOTLY_CONFIG, render_disclaimer, render_signal_legend, render_data_freshness,
@@ -792,34 +793,33 @@ if _signal_section == "Signal Library":
                             for c in cases:
                                 st.markdown(f"- {c}")
 
-                    # Sparkline — both modes
+                    # Sparkline — both modes.
+                    #
+                    # Inline SVG, not Plotly. This renders once per card, and
+                    # Streamlit builds expander contents eagerly even while the
+                    # expander is closed -- so the old go.Figure here put ~41
+                    # Plotly instances into the DOM of a page nobody had opened
+                    # yet. utils.ua_charts is dependency-free, ~2KB per chart,
+                    # and re-themes with the page because its colours resolve
+                    # through CSS rather than being baked into a figure.
+                    #
+                    # What is lost: Plotly's hover readout. The caption directly
+                    # below already states current vs 52-week average in words,
+                    # which is the number the hover was being used to find.
                     data = sv.get("data", pd.Series(dtype=float))
                     if not data.empty and len(data) > 4:
-                        _r = int(border[1:3], 16)
-                        _g = int(border[3:5], 16)
-                        _b = int(border[5:7], 16)
-                        spark = go.Figure(go.Scatter(
-                            x=data.index[-104:],
-                            y=data.values[-104:],
-                            mode="lines",
-                            line=dict(color=border, width=2),
-                            fill="tozeroy",
-                            fillcolor=f"rgba({_r},{_g},{_b},0.09)",
+                        _pts = [float(v) for v in data.values[-104:]]
+                        _lo, _hi = min(_pts), max(_pts)
+                        _pad = (_hi - _lo) * 0.08 or (abs(_hi) * 0.08 or 1.0)
+                        st.html(ua_charts.line_chart(
+                            _pts,
+                            [""] * len(_pts),          # a sparkline carries no x labels
+                            y_min=_lo - _pad,
+                            y_max=_hi + _pad,
+                            ref=float(data.tail(104).mean()),
+                            W=560, H=140,
+                            color=border,
                         ))
-                        spark.add_hline(
-                            y=float(data.tail(104).mean()),
-                            line_dash="dash", line_color="#8892AA",
-                            annotation_text="2Y avg", annotation_font_size=9,
-                        )
-                        spark.update_layout(
-                            height=140, margin=dict(l=0, r=0, t=8, b=0),
-                            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#0F1118",
-                            xaxis=dict(showgrid=False, showticklabels=False),
-                            yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)",
-                                       tickfont=dict(size=8, color="#8892AA")),
-                            showlegend=False,
-                        )
-                        st.plotly_chart(spark, width="stretch", config=PLOTLY_CONFIG, key=f"spark_{sig_id}_{mode}", theme=None)
 
                         # Insight caption below the sparkline
                         _cur_val  = sv.get("current", float("nan"))
