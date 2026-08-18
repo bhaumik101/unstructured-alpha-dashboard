@@ -1210,7 +1210,7 @@ def send_trial_reminder_email(to_email: str, trial_end_display: str) -> None:
                 No charge until <strong>{trial_end_display}</strong>.
             </p>
             <div style="text-align:center;">
-                <a href="https://unstructuredalpha.com/Upgrade"
+                <a href="{_APP_URL}/upgrade-to-pro"
                    style="background:linear-gradient(90deg,#7C3AED,#00C8E0);color:#fff;
                           padding:12px 28px;border-radius:6px;text-decoration:none;
                           font-size:0.95rem;font-weight:700;display:inline-block;">
@@ -1258,7 +1258,7 @@ def send_welcome_email(to_email: str) -> None:
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
-    html = """
+    html = f"""
     <div style="font-family:Georgia,serif;max-width:540px;color:#1A1612;">
         <div style="background:#1C2B4A;padding:20px 28px;border-radius:8px 8px 0 0;">
             <div style="font-size:0.70rem;color:#C9A84C;letter-spacing:0.12em;text-transform:uppercase;">
@@ -1281,17 +1281,17 @@ def send_welcome_email(to_email: str) -> None:
             </p>
             <ul style="color:#4A4A4A;font-size:0.9rem;padding-left:20px;margin:0 0 24px;line-height:1.8;">
                 <li>
-                    <a href="https://unstructuredalpha.com/Today%27s_Brief"
+                    <a href="{_APP_URL}/today-s-brief"
                        style="color:#1C2B4A;font-weight:700;">Today's Brief</a>
                     — daily signal pulse with what flipped overnight
                 </li>
                 <li>
-                    <a href="https://unstructuredalpha.com/Ticker_Deep_Dive"
+                    <a href="{_APP_URL}/ticker-deep-dive"
                        style="color:#1C2B4A;font-weight:700;">Ticker Deep Dive</a>
                     — type any stock ticker to see which signals are driving it
                 </li>
                 <li>
-                    <a href="https://unstructuredalpha.com/Watchlist"
+                    <a href="{_APP_URL}/my-watchlist"
                        style="color:#1C2B4A;font-weight:700;">Watchlist</a>
                     — track your stocks and set alerts
                 </li>
@@ -1310,7 +1310,7 @@ def send_welcome_email(to_email: str) -> None:
                 You're on the <strong>Free plan</strong>. Upgrade to Pro anytime for
                 factor exposure, PDF reports, the signal backtester, and the morning
                 digest email.
-                <a href="https://unstructuredalpha.com/Upgrade"
+                <a href="{_APP_URL}/upgrade-to-pro"
                    style="color:#1C2B4A;">See what's included →</a>
             </p>
         </div>
@@ -1558,7 +1558,7 @@ def send_pro_welcome_email(to_email: str) -> None:
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
-    html = """
+    html = f"""
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
                 max-width:580px;margin:0 auto;background:#0B0D12;color:#E8EEFF;">
 
@@ -1598,7 +1598,7 @@ def send_pro_welcome_email(to_email: str) -> None:
             The daily signal pulse: what's bullish, what's bearish, what flipped
             overnight. Takes 60 seconds. Sets your macro frame for the day.
           </div>
-          <a href="https://unstructuredalpha.com/Today%27s_Brief"
+          <a href="{_APP_URL}/today-s-brief"
              style="display:inline-block;margin-top:10px;font-size:0.82rem;
                     color:#A78BFA;text-decoration:none;font-weight:600;">
             Open Today's Brief →
@@ -1615,7 +1615,7 @@ def send_pro_welcome_email(to_email: str) -> None:
             are driving it, an auto-explainer, insider cluster detection, a radar
             chart across 5 signal axes, and the full PDF export. This is the core.
           </div>
-          <a href="https://unstructuredalpha.com/Ticker_Deep_Dive"
+          <a href="{_APP_URL}/ticker-deep-dive"
              style="display:inline-block;margin-top:10px;font-size:0.82rem;
                     color:#00D566;text-decoration:none;font-weight:600;">
             Open Ticker Deep Dive →
@@ -1633,7 +1633,7 @@ def send_pro_welcome_email(to_email: str) -> None:
             transactions, 13F institutional holders, and methodology notes —
             formatted and ready to share or archive.
           </div>
-          <a href="https://unstructuredalpha.com/Export"
+          <a href="{_APP_URL}/export-report"
              style="display:inline-block;margin-top:10px;font-size:0.82rem;
                     color:#00C8E0;text-decoration:none;font-weight:600;">
             Try PDF Export →
@@ -1684,7 +1684,7 @@ def send_pro_welcome_email(to_email: str) -> None:
             You'll get notified when a ticker crosses into bullish or bearish
             territory — without having to check manually.
           </div>
-          <a href="https://unstructuredalpha.com/Watchlist"
+          <a href="{_APP_URL}/my-watchlist"
              style="display:inline-block;margin-top:10px;font-size:0.82rem;
                     color:#8892AA;text-decoration:none;font-weight:600;">
             Set up Watchlist →
@@ -1703,7 +1703,7 @@ def send_pro_welcome_email(to_email: str) -> None:
           Get a Seeking Alpha-style macro briefing in your inbox every morning at
           7 AM ET — signal pulse, what flipped, top movers, and an editorial
           take on the day's setup. Enable it in your
-          <a href="https://unstructuredalpha.com/Watchlist"
+          <a href="{_APP_URL}/my-watchlist"
              style="color:#A78BFA;">Watchlist settings</a>.
         </div>
       </div>
@@ -1765,7 +1765,7 @@ def send_referral_welcome_email(to_email: str) -> None:
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
-    html = """<!DOCTYPE html>
+    html = f"""<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#0B0D12;">
 <div style="max-width:560px;margin:0 auto;background:#12151E;
@@ -1857,7 +1857,7 @@ def send_referral_welcome_email(to_email: str) -> None:
 
   <!-- CTA -->
   <div style="background:#0f1119;padding:24px 32px;text-align:center;">
-    <a href="https://unstructuredalpha.com/Upgrade"
+    <a href="{_APP_URL}/upgrade-to-pro"
        style="display:inline-block;background:linear-gradient(135deg,#00C8E0,#7C3AED);
               color:#FFFFFF;padding:14px 36px;border-radius:8px;
               text-decoration:none;font-size:0.95rem;font-weight:700;
@@ -2127,7 +2127,7 @@ def send_score_moved_email(to_email: str, moved: list[dict]) -> None:
 
   <!-- CTA -->
   <div style="padding:4px 28px 24px;text-align:center;">
-    <a href="https://unstructuredalpha.com/Watchlist"
+    <a href="{_APP_URL}/my-watchlist"
        style="display:inline-block;background:linear-gradient(135deg,#00C8E0,#7C3AED);
               color:#FFFFFF;padding:12px 32px;border-radius:8px;
               text-decoration:none;font-size:0.90rem;font-weight:700;">
@@ -2286,7 +2286,7 @@ def send_velocity_alert_email(to_email: str, alerts: list[dict]) -> None:
 
   <!-- CTA -->
   <div style="padding:4px 28px 24px;text-align:center;">
-    <a href="https://unstructuredalpha.com/Ticker_Deep_Dive"
+    <a href="{_APP_URL}/ticker-deep-dive"
        style="display:inline-block;background:linear-gradient(135deg,#F59E0B,#D97706);
               color:#0B0D12;padding:12px 32px;border-radius:8px;
               text-decoration:none;font-size:0.90rem;font-weight:800;">
@@ -2464,7 +2464,7 @@ def send_weekly_brief_email(
       {mover_rows}
     </table>
     <div style="text-align:right;margin-top:6px;">
-      <a href="https://unstructuredalpha.com/Watchlist"
+      <a href="{_APP_URL}/my-watchlist"
          style="font-size:0.72rem;color:#7C3AED;text-decoration:none;">
         Open Watchlist →
       </a>
@@ -2507,7 +2507,7 @@ def send_weekly_brief_email(
       {flip_rows}
     </table>
     <div style="text-align:right;margin-top:6px;">
-      <a href="https://unstructuredalpha.com/Today%27s_Brief"
+      <a href="{_APP_URL}/today-s-brief"
          style="font-size:0.72rem;color:#7C3AED;text-decoration:none;">
         View full signal state →
       </a>
@@ -2660,7 +2660,7 @@ def send_weekly_brief_email(
 
   <!-- Main CTA -->
   <div style="padding:24px 24px;text-align:center;">
-    <a href="https://unstructuredalpha.com/Watchlist"
+    <a href="{_APP_URL}/my-watchlist"
        style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#5B21B6);
               color:#FFFFFF;padding:12px 30px;border-radius:8px;
               text-decoration:none;font-size:0.92rem;font-weight:700;
@@ -2673,7 +2673,7 @@ def send_weekly_brief_email(
   <div style="background:#0B0D12;padding:14px 28px;border-top:1px solid #1E2535;
               font-size:0.68rem;color:#4A5280;text-align:center;line-height:1.7;">
     Unstructured Alpha · unstructuredalpha.com · Not financial advice · Data from public sources<br>
-    <a href="https://unstructuredalpha.com/Watchlist"
+    <a href="{_APP_URL}/my-profile"
        style="color:#6B7A95;text-decoration:none;">Manage email preferences</a>
     &nbsp;·&nbsp;
     <a href="https://unstructuredalpha.com/Best_Ideas"
@@ -2837,7 +2837,7 @@ def send_reengagement_email(
 
   <!-- CTA -->
   <div style="padding:20px 28px 24px;text-align:center;">
-    <a href="https://unstructuredalpha.com/Watchlist"
+    <a href="{_APP_URL}/my-watchlist"
        style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#5B21B6);
               color:#FFFFFF;padding:12px 32px;border-radius:8px;
               text-decoration:none;font-size:0.92rem;font-weight:700;">
@@ -2845,7 +2845,7 @@ def send_reengagement_email(
     </a>
     <div style="margin-top:10px;font-size:0.72rem;color:#4A5280;">
       Or go to
-      <a href="https://unstructuredalpha.com/Today%27s_Brief"
+      <a href="{_APP_URL}/today-s-brief"
          style="color:#7C3AED;text-decoration:none;">Today's Brief</a>
       for the full macro picture.
     </div>
@@ -2855,7 +2855,7 @@ def send_reengagement_email(
   <div style="background:#0B0D12;padding:14px 28px;border-top:1px solid #1E2535;
               font-size:0.68rem;color:#4A5280;text-align:center;line-height:1.7;">
     Unstructured Alpha · unstructuredalpha.com · Not financial advice<br>
-    <a href="https://unstructuredalpha.com/Watchlist"
+    <a href="{_APP_URL}/my-profile"
        style="color:#6B7A95;text-decoration:none;">Manage email preferences</a>
   </div>
 
@@ -2921,7 +2921,7 @@ def send_day3_onboarding_email(
   </div>
 </div>"""
 
-    _upgrade_cta = "" if is_pro else """
+    _upgrade_cta = "" if is_pro else f"""
 <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.22);
             border-radius:10px;padding:14px 20px;margin:20px 0;text-align:center;">
   <div style="font-size:0.88rem;font-weight:700;color:#C5CCDE;margin-bottom:6px;">
@@ -2930,7 +2930,7 @@ def send_day3_onboarding_email(
   <div style="font-size:0.78rem;color:#8892AA;margin-bottom:12px;">
     $20/month · Cancel anytime · 7-day free trial
   </div>
-  <a href="https://unstructuredalpha.com/Upgrade"
+  <a href="{_APP_URL}/upgrade-to-pro"
      style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#5B21B6);
             color:#fff;padding:10px 28px;border-radius:8px;
             text-decoration:none;font-size:0.88rem;font-weight:700;">
@@ -2993,7 +2993,7 @@ def send_day3_onboarding_email(
         The AI explanation shows exactly which signals are driving the score — and which
         would need to flip to change the thesis. Each signal links to its source data.
       </div>
-      <a href="https://unstructuredalpha.com/Ticker_Deep_Dive"
+      <a href="{_APP_URL}/ticker-deep-dive"
          style="display:inline-block;margin-top:10px;font-size:0.80rem;font-weight:700;
                 color:#F59E0B;text-decoration:none;">Open Ticker Deep Dive →</a>
     </div>
@@ -3010,7 +3010,7 @@ def send_day3_onboarding_email(
         crosses your thresholds. The new Weekly Score Report Card grades each ticker A–F
         on 7-day score trajectory.
       </div>
-      <a href="https://unstructuredalpha.com/My_Watchlist"
+      <a href="{_APP_URL}/my-watchlist"
          style="display:inline-block;margin-top:10px;font-size:0.80rem;font-weight:700;
                 color:#00D566;text-decoration:none;">Open My Watchlist →</a>
     </div>
@@ -3022,7 +3022,7 @@ def send_day3_onboarding_email(
   <div style="background:#0B0D12;padding:14px 28px;border-top:1px solid #1E2535;
               font-size:0.68rem;color:#4A5280;text-align:center;line-height:1.7;">
     Unstructured Alpha · unstructuredalpha.com · Not financial advice<br>
-    <a href="https://unstructuredalpha.com/My_Watchlist"
+    <a href="{_APP_URL}/my-watchlist"
        style="color:#6B7A95;text-decoration:none;">Manage email preferences</a>
   </div>
 
@@ -3136,7 +3136,7 @@ def send_day7_onboarding_email(
         flip_html = ""
 
     # ── Pro CTA (free only) ───────────────────────────────────────────────────
-    pro_cta = "" if is_pro else """
+    pro_cta = "" if is_pro else f"""
         <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.20);
                     border-radius:10px;padding:16px 20px;margin:20px 0;">
           <div style="font-size:0.72rem;font-weight:700;color:#A78BFA;
@@ -3147,7 +3147,7 @@ def send_day7_onboarding_email(
             You've seen the free tier — Pro unlocks personalized daily email alerts,
             macro stress testing, webhook notifications, and AI watchlist narratives.
           </div>
-          <a href="https://unstructuredalpha.com/Upgrade_to_Pro"
+          <a href="{_APP_URL}/upgrade-to-pro"
              style="display:inline-block;background:#7C3AED;color:#FFFFFF;
                     border-radius:6px;padding:9px 20px;font-size:0.82rem;
                     font-weight:700;text-decoration:none;letter-spacing:0.04em;">
@@ -3249,7 +3249,7 @@ def send_day7_onboarding_email(
   <div style="margin-top:32px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06);
               font-size:0.68rem;color:#4A5280;text-align:center;line-height:1.7;">
     Unstructured Alpha · unstructuredalpha.com · Not financial advice<br>
-    <a href="https://unstructuredalpha.com/My_Watchlist"
+    <a href="{_APP_URL}/my-watchlist"
        style="color:#6B7A95;text-decoration:none;">Manage email preferences</a>
   </div>
 
