@@ -811,15 +811,23 @@ if _signal_section == "Signal Library":
                         _pts = [float(v) for v in data.values[-104:]]
                         _lo, _hi = min(_pts), max(_pts)
                         _pad = (_hi - _lo) * 0.08 or (abs(_hi) * 0.08 or 1.0)
-                        st.html(ua_charts.line_chart(
-                            _pts,
-                            [""] * len(_pts),          # a sparkline carries no x labels
-                            y_min=_lo - _pad,
-                            y_max=_hi + _pad,
-                            ref=float(data.tail(104).mean()),
-                            W=560, H=140,
-                            color=border,
-                        ))
+                        # st.markdown(..., unsafe_allow_html=True), NOT st.html().
+                        # st.html sanitises against an allowlist that drops <svg>,
+                        # so the chart vanished silently -- the caption below it
+                        # still printed, which is what made the loss hard to see.
+                        # Every other ua_charts caller in the app uses markdown.
+                        st.markdown(
+                            ua_charts.line_chart(
+                                _pts,
+                                [""] * len(_pts),      # a sparkline carries no x labels
+                                y_min=_lo - _pad,
+                                y_max=_hi + _pad,
+                                ref=float(data.tail(104).mean()),
+                                W=560, H=140,
+                                color=border,
+                            ),
+                            unsafe_allow_html=True,
+                        )
 
                         # Insight caption below the sparkline
                         _cur_val  = sv.get("current", float("nan"))
