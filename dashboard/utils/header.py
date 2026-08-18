@@ -1180,13 +1180,28 @@ section[data-testid="stSidebar"] .stButton > button p { color: var(--ua-green) !
 .page-card .page-desc  { font-size: 0.79rem; color: var(--ua-ink-mut); line-height: 1.55; }
 
 /* ── Section header ──────────────────────────────────────────────────────── */
+/* Section titles. These are <h2> now, not <div> — they were already the visible
+   section labels on Signal Dashboard, so an 11-screen page had real sections
+   that the document outline could not see. Same defect as the page title in
+   #133, one level down.
+
+   Every contested declaration is !important because the global heading rules
+   below (which set colour, family, weight and letter-spacing on h1-h3, and a
+   size on h2, all !important) would otherwise restyle these from 0.63rem
+   uppercase micro-labels into 20.8px headings. Margin is pinned for the same
+   reason — an h2 brings the browser's default top margin, a div does not.
+   This must render pixel-identical to the div it replaces. */
 .section-header {
-    font-size: 0.63rem; font-weight: 700; color: var(--ua-ink-mut);
-    font-family: 'Inter', sans-serif; letter-spacing: 0.13em;
+    font-size: 0.63rem !important; font-weight: 700 !important;
+    color: var(--ua-ink-mut) !important;
+    font-family: 'Inter', sans-serif !important; letter-spacing: 0.13em !important;
     text-transform: uppercase;
     border-bottom: 1px solid var(--ua-hair-3);
-    padding-bottom: 8px; margin-bottom: 14px;
+    padding-bottom: 8px; margin: 0 0 14px !important;
 }
+/* Streamlit attaches a hover permalink to anything it parses as a heading.
+   These are section labels, not anchor targets. */
+.section-header [data-testid="stHeaderActionElements"] { display: none !important; }
 
 /* ── Score numbers ───────────────────────────────────────────────────────── */
 .score-number { font-size: 2.8rem; font-weight: 800; line-height: 1.0; font-family: 'Inter', sans-serif; letter-spacing: -1.5px; }

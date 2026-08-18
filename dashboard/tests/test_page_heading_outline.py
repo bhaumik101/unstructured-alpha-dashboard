@@ -42,14 +42,22 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parent.parent
 _PAGES = _ROOT / "pages"
 
-# Markdown heading inside a Python string literal: "## Title" / f"### {x}"
-_HEADING = re.compile(r'["\'](#{1,6})\s+[^"\'\n]{2,80}["\']')
+# Pages emit headings two ways, and the outline is the union of both. Counting
+# only markdown would have missed the <h2 class="section-header"> elements on
+# Signal Dashboard entirely — they are real headings in the shipped DOM.
+_HEADING = re.compile(r'["\'](#{1,6})\s+[^"\'\n]{2,80}["\']')   # "## Title"
+_HTML_HEADING = re.compile(r"<h([1-6])[\s>]")                     # <h2 class="...">
+
+
+def _html_levels(src: str) -> set[int]:
+    """HTML heading levels, ignoring h1 — that belongs to render_page_header."""
+    return {int(m.group(1)) for m in _HTML_HEADING.finditer(src)} - {1}
 
 # Pages whose outline is not yet corrected. Deep Dive was fixed first because it
 # is the deepest page in the product at ~15 screens. Shrink this list; never
 # grow it.
 _NOT_YET_FIXED = {
-    "1_Signal_Dashboard.py", "2_Today_Digest.py",
+    "2_Today_Digest.py",
     "4_Power_Supercycle.py", "5_Market_Overview.py", "6_Stock_Screener.py",
     "10_Watchlist.py", "27_Factor_Exposure.py",
     "29_Upgrade.py", "30_Track_Record_Live.py", "32_Profile.py",
@@ -58,16 +66,24 @@ _NOT_YET_FIXED = {
     "44_Portfolio_Suite.py", "46_Thesis_Journal.py",
     "48_Data_Trust.py", "49_Decision_Queue.py", "50_Investor_Checkup.py",
     "51_Signal_Research.py", "home_page.py",
+    # Added, not regressed: 37_Legal.py emits 31 <h3> and no markdown headings,
+    # so the markdown-only detector never saw it. Widening detection to HTML
+    # surfaced a page that was always broken. Promoting its h3s means they jump
+    # 16px -> 20.8px under the global h2 rule, so it wants its own change rather
+    # than being folded into a Signal Dashboard PR.
+    "37_Legal.py",
 }
 # Removed from the backlog by the honesty test below, which found them already
 # valid rather than taking my word for it:
-#   3_Ticker_Deep_Dive.py  fixed in this change
+#   3_Ticker_Deep_Dive.py  fixed (heading promotion)
+#   1_Signal_Dashboard.py  fixed (section-header div -> h2)
 #   45_Options_Flow.py     already {h2, h3, h4}
 #   9_AI_Assistant.py      already {h2}
 
 
 def _levels(path: Path) -> set[int]:
-    return {len(m.group(1)) for m in _HEADING.finditer(path.read_text(encoding="utf-8"))}
+    src = path.read_text(encoding="utf-8")
+    return {len(m.group(1)) for m in _HEADING.finditer(src)} | _html_levels(src)
 
 
 def _describe(levels: set[int]) -> str:
