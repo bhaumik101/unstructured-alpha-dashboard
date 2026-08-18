@@ -921,7 +921,7 @@ if _signal_section == "Signal Library":
 
     # ── Confluence Heat Map ───────────────────────────────────────────────────────
     if mode == "Pro":
-        st.markdown('<div class="section-header">MULTI-SIGNAL HEAT MAP</div>', unsafe_allow_html=True)
+        st.markdown('<h2 class="section-header">MULTI-SIGNAL HEAT MAP</h2>', unsafe_allow_html=True)
         st.caption("Which tickers have the most signals aligned in the same direction?")
 
         ht_tickers = ["SPY", "QQQ", "UNP", "DHI", "CCJ", "CEG", "FCX", "WMB", "VST", "NVDA", "PWR", "NEE"]
@@ -963,7 +963,7 @@ if _signal_section == "Signal Library":
         )
     else:
         # Simple mode: show a clean ranked list
-        st.markdown('<div class="section-header">TOP SIGNALS TO WATCH</div>', unsafe_allow_html=True)
+        st.markdown('<h2 class="section-header">TOP SIGNALS TO WATCH</h2>', unsafe_allow_html=True)
         st.caption("The signals with the strongest current readings — furthest from normal.")
 
         ranked = sorted(
@@ -1003,7 +1003,7 @@ if _signal_section == "Signal Library":
     if mode == "Pro":
         st.divider()
         st.markdown(
-            '<div class="section-header">SIGNAL INDEPENDENCE — PAIRWISE CORRELATION MATRIX</div>',
+            '<h2 class="section-header">SIGNAL INDEPENDENCE — PAIRWISE CORRELATION MATRIX</h2>',
             unsafe_allow_html=True,
         )
         st.caption(
@@ -1175,7 +1175,7 @@ if _signal_section == "Regime Playbook":
         unsafe_allow_html=True,
     )
 
-    st.markdown("#### Signal Category Breakdown")
+    st.markdown("## Signal Category Breakdown")
     _sv_rp = _rp_get_scores()
     _cat_data = {}
     for _sid_rp, _sv in _sv_rp.items():
@@ -1212,7 +1212,7 @@ if _signal_section == "Regime Playbook":
             unsafe_allow_html=True,
         )
 
-    st.markdown("#### Sector ETF Performance")
+    st.markdown("## Sector ETF Performance")
     SECTOR_ETFS_RP = {
         "XLK": "Technology", "XLE": "Energy", "XLF": "Financials", "XLV": "Healthcare",
         "XLI": "Industrials", "XLY": "Consumer Disc.", "XLP": "Consumer Staples",
