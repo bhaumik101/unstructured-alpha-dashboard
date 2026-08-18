@@ -42,7 +42,7 @@ render_page_header(
 
 # ── Sidebar: parameters ───────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("###  Strategy Parameters")
+    st.markdown("##  Strategy Parameters")
     long_threshold   = st.slider("Bullish threshold (→ LONG)", 50, 80, 65, 5,
                                  help="Composite score above this = 100% long SPY")
     reduce_threshold = st.slider("Bearish threshold (→ CASH)", 20, 50, 35, 5,
@@ -126,7 +126,7 @@ if _strategy_section == "Performance Summary":
     """, unsafe_allow_html=True)
 
     # ── Performance metric cards ──────────────────────────────────────────────────
-    st.markdown("### Performance Summary")
+    st.markdown("## Performance Summary")
 
     def _delta_color(val: float) -> str:
         return "#22c55e" if val >= 0 else "#ef4444"
@@ -163,7 +163,7 @@ if _strategy_section == "Performance Summary":
 
 if _strategy_section == "Equity Curve":
     # ── Equity curve chart ────────────────────────────────────────────────────────
-    st.markdown("### Equity Curve")
+    st.markdown("## Equity Curve")
 
     fig = make_subplots(
         rows=3, cols=1,
@@ -231,7 +231,7 @@ if _strategy_section == "Equity Curve":
 
 if _strategy_section == "Signal Scores":
     # ── Individual signal scores ──────────────────────────────────────────────────
-    st.markdown("### Individual Signal Scores")
+    st.markdown("## Individual Signal Scores")
     st.markdown("<p style='color:var(--text-muted); font-size:var(--ua-text-base);'>Each signal scored 0–100 (rolling 252-day percentile). Higher = more bullish. Weighted composite drives the position.</p>", unsafe_allow_html=True)
 
     sig_scores = result["signal_scores"]
@@ -264,7 +264,7 @@ if _strategy_section == "Signal Scores":
 
 if _strategy_section == "Methodology":
     # ── Detailed metrics table ────────────────────────────────────────────────────
-    st.markdown("### Full Performance Comparison")
+    st.markdown("## Full Performance Comparison")
 
     metrics_df = pd.DataFrame({
         "Metric":    ["Total Return", "CAGR", "Ann. Volatility", "Sharpe Ratio",

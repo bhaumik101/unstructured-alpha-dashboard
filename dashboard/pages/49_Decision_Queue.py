@@ -51,21 +51,21 @@ render_guided_steps(
 
 
 if section == "Methodology":
-    st.markdown("#### How the queue ranks work")
+    st.markdown("## How the queue ranks work")
     st.markdown(
         "The engine evaluates five review conditions: material seven-day score movement, "
         "upcoming earnings, conflict between an active thesis and current score evidence, "
         "an elapsed thesis horizon, and portfolio concentration. Missing score coverage is "
         "also elevated so unavailable evidence is never silently treated as neutral."
     )
-    st.markdown("#### What it deliberately does not do")
+    st.markdown("## What it deliberately does not do")
     st.markdown(
         "It does not predict an earnings result, alter the canonical Confluence Score, infer "
         "a position you did not save, or recommend a transaction. Earnings dates supplied by "
         "the market-data provider are labeled provisional. Completed work reopens only when "
         "its evidence fingerprint changes."
     )
-    st.markdown("#### Priority order")
+    st.markdown("## Priority order")
     st.dataframe(
         {
             "Review condition": [

@@ -727,7 +727,7 @@ if _track_section == "Earnings Track Record":
     import datetime as _dt
     import pandas as pd
 
-    st.markdown("### Pre-Earnings Signal Track Record")
+    st.markdown("## Pre-Earnings Signal Track Record")
     st.caption(
         "Compare what the Confluence Score said 7–45 days before past earnings events "
         "against actual EPS results. History grows as tickers are viewed on Ticker Deep Dive."

@@ -91,7 +91,7 @@ if section == "Coverage Overview":
             row["Available"] += 1
         row[_status_label(fresh["state"])] += 1
     frame = pd.DataFrame(coverage.values()).sort_values(["Unavailable", "Provider"], ascending=[False, True])
-    st.markdown("### Coverage by provider")
+    st.markdown("## Coverage by provider")
     st.caption("Availability reflects the current shared signal snapshot; delayed data can still be valid for weekly or monthly releases.")
     st.dataframe(frame, hide_index=True, width="stretch")
 
@@ -108,7 +108,7 @@ elif section == "Provider Health":
             "Last success": _time_label(provider["last_success"]),
             "Last error": provider["last_error"] or "—",
         })
-    st.markdown("### Current provider health")
+    st.markdown("## Current provider health")
     st.caption(
         "This is a privacy-safe view of outbound calls made by the current web service process. "
         "Not checked means no call has been observed since the service last started; it does not mean the provider is down."
@@ -144,7 +144,7 @@ elif section == "Signal Freshness":
     st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
 
 elif section == "Revision Bias":
-    st.markdown("### Revision bias — are we scoring on hindsight?")
+    st.markdown("## Revision bias — are we scoring on hindsight?")
     st.markdown(
         "Government macro data gets **revised** after its first release. A backtest "
         "that uses today's revised numbers gives a signal credit for values nobody "
@@ -210,7 +210,7 @@ elif section == "Revision Bias":
         st.info("Click **Run revision audit** to measure how much each FRED signal is revised.")
 
 else:
-    st.markdown("### What each state means")
+    st.markdown("## What each state means")
     definitions = [
         ("Fresh", "The latest real observation is within the expected window for that signal's release frequency."),
         ("Cached live", "A provider call failed, so the service is showing a labeled copy of a genuine result fetched earlier by this running service."),
@@ -222,12 +222,12 @@ else:
         st.markdown(f"**{title}**")
         st.write(body)
 
-    st.markdown("### Reliability safeguards")
+    st.markdown("## Reliability safeguards")
     st.write(
         "Provider requests use pooled connections, bounded retries for safe idempotent calls, timeouts, and independent circuit breakers. "
         "Telemetry records only provider name, outcome, latency, status class, and time—never API keys, request URLs, or response payloads."
     )
-    st.markdown("### Scoring contract")
+    st.markdown("## Scoring contract")
     st.write(
         "Unavailable signals do not receive a synthetic neutral observation. Coverage warnings appear wherever a partial source set could affect interpretation, "
         "and the Data Trust Center exposes that coverage in one place."

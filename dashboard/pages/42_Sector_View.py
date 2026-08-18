@@ -200,7 +200,7 @@ if _sector_section == "Market Heatmap":
 if _sector_section == "Supply Chain":
     import plotly.graph_objects as go
 
-    st.markdown("### Supply Chain Signal Network")
+    st.markdown("## Supply Chain Signal Network")
     st.caption(
         "Which macro signals are most interconnected with supply-chain sensitive tickers? "
         "Use this to spot upstream disruptions before they hit earnings."
@@ -261,7 +261,7 @@ if _sector_section == "Supply Chain":
     )
     st.plotly_chart(fig3, width="stretch", config=PLOTLY_CONFIG, theme=None)
 
-    st.markdown("#### Supply Chain Signal Scores")
+    st.markdown("### Supply Chain Signal Scores")
     with st.spinner("Loading supply chain signals…"):
         from utils.signals_cache import get_all_signal_scores
         all_sv = get_all_signal_scores()

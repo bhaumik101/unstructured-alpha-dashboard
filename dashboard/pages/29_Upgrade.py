@@ -398,7 +398,7 @@ if user:
                     st.warning("Subscription no longer active — downgraded to Free.")
                     st.rerun()
 
-        st.markdown("### Your Pro workspace")
+        st.markdown("## Your Pro workspace")
         _p1, _p2, _p3, _p4 = st.columns(4)
         if _p1.button("Deep Research", width="stretch", key="pro_deep"):
             st.switch_page("pages/3_Ticker_Deep_Dive.py")

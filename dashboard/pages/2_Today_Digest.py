@@ -215,7 +215,7 @@ if _brief_section == "Decision Cockpit":
                     "automatically when its underlying evidence changes."
                 )
             else:
-                st.markdown("#### What deserves attention")
+                st.markdown("## What deserves attention")
                 _cockpit_cols = st.columns(len(_cockpit_attention), gap="medium")
                 for _rank, (_col, _item) in enumerate(
                     zip(_cockpit_cols, _cockpit_attention), start=1

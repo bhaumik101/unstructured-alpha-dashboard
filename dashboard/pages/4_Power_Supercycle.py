@@ -207,7 +207,7 @@ st.caption(
 )
 
 # ── Always-visible: Five Leg Cards ────────────────────────────────────────────
-st.markdown("### Five Legs of the Supercycle")
+st.markdown("## Five Legs of the Supercycle")
 
 leg_map = {
     "Nuclear Fuel":   ["uranium_proxy"],

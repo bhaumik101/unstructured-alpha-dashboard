@@ -129,7 +129,7 @@ calendar = _calendar()
 
 
 if section == "Macro Calendar":
-    st.markdown("#### Official macro release calendar")
+    st.markdown("## Official macro release calendar")
     st.caption("High-impact releases scheduled during the next 45 days, sourced directly from FRED.")
     if not calendar.get("available"):
         st.warning(
@@ -157,7 +157,7 @@ if section == "Macro Calendar":
 
 
 elif section == "Event Forecaster":
-    st.markdown("#### Pre-event signal regime")
+    st.markdown("## Pre-event signal regime")
     st.caption(
         "This read describes the live macro regime around verified upcoming releases. It does not forecast the print."
     )
@@ -258,7 +258,7 @@ elif section == "Review Plans":
     except Exception:
         plans = []
         st.warning("Your private review book is temporarily unavailable. Try again shortly.")
-    st.markdown("#### Private pre/post-event review book")
+    st.markdown("## Private pre/post-event review book")
     st.caption("Compare what you expected with what happened. Plans are visible only to your account.")
     if not plans:
         st.info("No plans yet. Open Portfolio Catalysts and save a plan before an upcoming event.")
