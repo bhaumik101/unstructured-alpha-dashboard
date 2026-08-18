@@ -27,7 +27,12 @@
   --text-mid:     #c2c8da;
   --text-lo:      #929ab1;
   --text-cap:     #8792ba;
-  --text-dim:     #687188;
+  /* Lightened from #687188, which was the ONLY source of every colour-contrast
+     violation axe-core reported on this page -- all 54 of them. It renders on
+     three surfaces (#090b11, #10131c, #151821) at 10-14px, scoring 4.03 / 3.80
+     / 3.64 against a 4.5 requirement. This value is the minimum hue-preserving
+     lift that clears AA on all three: 5.05 / 4.76 / 4.55. */
+  --text-dim:     #788198;
   --border:       rgba(139, 124, 255, 0.17);
   --border-lo:    rgba(139, 124, 255, 0.09);
   --border-strong:rgba(139, 124, 255, 0.28);
@@ -1011,4 +1016,12 @@ img, svg {
   .mobile-theme-toggle {
     display: block;
   }
+}
+
+/* Visually hidden, still announced. The free-tier list marks unavailable rows
+   with a "—" glyph; that is a visual cue only, so the row also carries a
+   spoken prefix. Status must not be conveyed by appearance alone. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }

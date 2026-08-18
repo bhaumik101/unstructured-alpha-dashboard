@@ -310,7 +310,7 @@ export default function Home() {
                className="nav-cta"
                style={{ background: T.green, color: "var(--button-ink)", padding: "8px 18px",
                         borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
-              Launch App →
+              Open dashboard →
             </a>
           </div>
 
@@ -335,7 +335,7 @@ export default function Home() {
           <button type="button" className="mobile-theme-toggle" onClick={toggleTheme}>
             Toggle light / dark theme
           </button>
-          <a href={APP_URL}       onClick={() => setMobileOpen(false)}>Launch App — Free →</a>
+          <a href={APP_URL}       onClick={() => setMobileOpen(false)}>Open dashboard →</a>
         </div>
       </nav>
 
@@ -582,7 +582,7 @@ export default function Home() {
               </div>
               <a href={APP_URL} style={{ fontSize: 13, color: T.green, fontWeight: 600,
                                         display: "flex", alignItems: "center", gap: 4 }}>
-                See live dashboard →
+                Open dashboard →
               </a>
             </div>
           </div>
@@ -818,14 +818,14 @@ export default function Home() {
                   <li key={f}><span className="check">✓</span><span>{f}</span></li>
                 ))}
                 {FREE_LOCKED.map((f) => (
-                  <li key={f} style={{ opacity: 0.45 }}><span className="locked">—</span><span>{f}</span></li>
+                  <li key={f}><span className="locked" aria-hidden="true">—</span><span><span className="sr-only">Not included: </span>{f}</span></li>
                 ))}
               </ul>
               <a href={APP_URL} className="btn-secondary"
                  style={{ display: "block", textAlign: "center", padding: "13px", borderRadius: 10,
                           border: "1px solid rgba(255,255,255,0.12)", color: T.bright, fontSize: 14,
                           fontWeight: 600 }}>
-                Start for free →
+                Open the dashboard — free →
               </a>
             </div>
 
@@ -833,7 +833,7 @@ export default function Home() {
             <div className="pro-card-wrap" data-reveal data-delay="4" style={{ position: "relative" }}>
               {/* "Most popular" pill floats above the gradient border */}
               <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
-                            background: T.purple, color: "#fff", fontSize: 11, fontWeight: 700,
+                            background: T.purple, color: "var(--button-ink)", fontSize: 11, fontWeight: 700,
                             padding: "3px 14px", borderRadius: 100, letterSpacing: "0.08em",
                             textTransform: "uppercase" as const, whiteSpace: "nowrap" as const, zIndex: 10 }}>
                 Most popular
@@ -866,7 +866,7 @@ export default function Home() {
                 </ul>
                 <a href={`${APP_URL}/upgrade-to-pro`}
                    style={{ display: "block", textAlign: "center", padding: "13px", borderRadius: 10,
-                            background: T.purple, color: "#fff", fontSize: 14, fontWeight: 700,
+                            background: T.purple, color: "var(--button-ink)", fontSize: 14, fontWeight: 700,
                             transition: "all 0.2s ease", boxShadow: "0 4px 20px rgba(124,58,237,0.35)" }}>
                   Start 7-Day Free Trial
                 </a>
@@ -949,7 +949,7 @@ export default function Home() {
             <a href={APP_URL} className="btn-primary"
                style={{ background: T.green, color: "var(--button-ink)", padding: "16px 44px", borderRadius: 12,
                         fontSize: 16, fontWeight: 800, display: "inline-block", letterSpacing: "-0.01em" }}>
-              Open the Dashboard — Free →
+              Open the dashboard — free →
             </a>
             <div style={{ marginTop: 16, fontSize: 13, color: T.dimmer }}>
               Free · No card · 47 signals · Scored daily · Cancel Pro anytime
@@ -986,7 +986,7 @@ export default function Home() {
                 disabled={subStatus === "loading" || subStatus === "success"}
                 style={{ padding: "10px 18px", borderRadius: 8, cursor: "pointer",
                          background: T.purple, border: "none",
-                         color: "#fff", fontSize: 14, fontWeight: 700,
+                         color: "var(--button-ink)", fontSize: 14, fontWeight: 700,
                          opacity: subStatus === "loading" ? 0.6 : 1 }}>
                 {subStatus === "loading" ? "..." : subStatus === "success" ? "✓ Subscribed" : "Get Brief"}
               </button>
@@ -1046,7 +1046,7 @@ export default function Home() {
                   <a href="#how-it-works" style={{ color: T.dimmer, fontSize: 13 }}>How it works</a>
                   <a href="#features"     style={{ color: T.dimmer, fontSize: 13 }}>Features</a>
                   <a href="#pricing"      style={{ color: T.dimmer, fontSize: 13 }}>Pricing</a>
-                  <a href={APP_URL}       style={{ color: T.dimmer, fontSize: 13 }}>Launch App</a>
+                  <a href={APP_URL}       style={{ color: T.dimmer, fontSize: 13 }}>Open dashboard</a>
                 </div>
               </div>
               <div>
