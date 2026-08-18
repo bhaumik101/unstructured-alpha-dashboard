@@ -59,22 +59,17 @@ def _html_levels(src: str) -> set[int]:
     """HTML heading levels, ignoring h1 — that belongs to render_page_header."""
     return {int(m.group(1)) for m in _HTML_HEADING.finditer(src)} - {1}
 
-# Pages whose outline is not yet corrected. Deep Dive was fixed first because it
-# is the deepest page in the product at ~15 screens. Shrink this list; never
-# grow it.
-_NOT_YET_FIXED = {
-    # 37_Legal.py emits 31 <h3> in raw HTML with inline sizing. Promoting them
-    # pushes 16px -> 20.8px under the global h2 rule, which is a visible change
-    # on a legal document and wants its own review rather than riding along with
-    # 17 mechanical markdown shifts.
-    "37_Legal.py",
-}
-# Removed from the backlog by the honesty test below, which found them already
-# valid rather than taking my word for it:
-#   3_Ticker_Deep_Dive.py  fixed (heading promotion)
-#   1_Signal_Dashboard.py  fixed (section-header div -> h2)
-#   45_Options_Flow.py     already {h2, h3, h4}
-#   9_AI_Assistant.py      already {h2}
+_NOT_YET_FIXED: set[str] = set()
+# EMPTY. Every page in the product now has a contiguous outline starting at h2.
+# Keep it that way: test_no_page_regresses_into_the_unfixed_list below now covers
+# all 33 routes, so adding a name here is a deliberate regression, not a to-do.
+#
+# Cleared in order:
+#   3_Ticker_Deep_Dive.py  heading promotion (deepest page, ~15 screens)
+#   1_Signal_Dashboard.py  section-header div -> h2
+#   37_Legal.py            31 raw <h3> -> <h2>, the last one
+#   45_Options_Flow.py     already {h2, h3, h4}   (found valid, never needed work)
+#   9_AI_Assistant.py      already {h2}           (found valid, never needed work)
 
 
 def _levels(path: Path) -> set[int]:
