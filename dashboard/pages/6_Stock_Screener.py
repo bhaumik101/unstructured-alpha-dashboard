@@ -643,7 +643,7 @@ if _screener_section == "Rankings":
     from utils.top_tickers import get_top_tickers as _get_top
     from utils.theme import inject_premium_css as _ipc2
 
-    st.markdown("### Live Score Rankings")
+    st.markdown("## Live Score Rankings")
     st.caption(f"All {SUPPORTED_TICKER_COUNT} supported tickers ranked by macro confluence score. Green ≥ 65 · Red ≤ 35 · White = neutral.")
 
     @st.cache_data(ttl=7200, show_spinner=False, max_entries=1)
@@ -707,7 +707,7 @@ if _screener_section == "Short Squeeze Radar":
     from utils.top_tickers import get_top_tickers as _get_top_sq
     from utils.theme import source_badge as _src_badge
 
-    st.markdown("### Short Squeeze Radar")
+    st.markdown("## Short Squeeze Radar")
     st.caption(
         "High short interest + bullish macro confluence + insider buying cluster → squeeze setup. "
         "Squeeze Score = Short Ratio Rank (35%) + Macro Score (40%) + Insider Bonus (25%)."

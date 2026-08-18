@@ -62,7 +62,7 @@ _workspace_holdings = [
 if _portfolio_section == "Holdings":
     import pandas as pd
 
-    st.markdown("#### Your saved portfolio")
+    st.markdown("## Your saved portfolio")
     st.caption(
         "These positions persist across sessions and power Portfolio Macro X-Ray, "
         "scenario analysis, and the personalized daily intelligence workspace. "
@@ -153,7 +153,7 @@ if _portfolio_section == "Holdings":
 
     if _workspace_holdings:
         st.markdown("---")
-        st.markdown("#### Continue your workflow")
+        st.markdown("## Continue your workflow")
         _next_cols = st.columns(4)
         if _next_cols[0].button("Open portfolio review", width="stretch"):
             st.session_state["portfolio_suite_section_rail"] = "Portfolio Review"
@@ -178,7 +178,7 @@ if _portfolio_section == "Portfolio Review":
     )
     from utils.risk_profile import get_risk_profile
 
-    st.markdown("#### Portfolio Review")
+    st.markdown("## Portfolio Review")
     st.caption(
         "An executive read of your saved holdings, position weights, personalized scores, "
         "coverage gaps, and concentration exceptions. Generation is explicit and cached by "
@@ -219,7 +219,7 @@ if _portfolio_section == "Portfolio Review":
             )
             if _review is None:
                 with st.container(border=True):
-                    st.markdown("##### Generate the current executive review")
+                    st.markdown("### Generate the current executive review")
                     st.caption(
                         "This reads stored evidence only—no market-data provider calls. A maximum "
                         "of three materially new reviews can be generated per account per day."
@@ -281,7 +281,7 @@ if _portfolio_section == "Portfolio Fit Lab":
 
     from utils.portfolio_fit import load_fit_records, simulate_portfolio_fit
 
-    st.markdown("#### Portfolio Fit Lab")
+    st.markdown("## Portfolio Fit Lab")
     st.caption(
         "Model how a candidate position would change your saved portfolio's macro score, "
         "factor concentration, and hidden overlap before you alter the real holdings. "
@@ -407,7 +407,7 @@ if _portfolio_section == "Portfolio Fit Lab":
                     unsafe_allow_html=True,
                 )
 
-                st.markdown("##### Factor exposure changes")
+                st.markdown("### Factor exposure changes")
                 shift_rows = [
                     {
                         "Macro factor": row["name"],
@@ -434,14 +434,14 @@ if _portfolio_section == "Portfolio Fit Lab":
 
                 detail_cols = st.columns(2)
                 with detail_cols[0]:
-                    st.markdown("##### Exposure this candidate adds")
+                    st.markdown("### Exposure this candidate adds")
                     if fit_result["new_factors"]:
                         for factor in fit_result["new_factors"]:
                             st.markdown(f"- {factor}")
                     else:
                         st.caption("No new macro-factor family clears the material exposure threshold.")
                 with detail_cols[1]:
-                    st.markdown("##### Exposure this candidate repeats")
+                    st.markdown("### Exposure this candidate repeats")
                     if fit_result["shared_factors"]:
                         for factor in fit_result["shared_factors"][:5]:
                             st.markdown(
@@ -475,7 +475,7 @@ if _portfolio_section == "Portfolio Backtest":
     from utils.backtest_integrity import (
         DEFAULT_COST_BPS, DEFAULT_BORROW_BPS_ANNUAL,
     )
-    st.markdown("#### Signal-Driven Long/Short Backtest")
+    st.markdown("## Signal-Driven Long/Short Backtest")
     st.caption(f"Rank all {len(_TK)} tickers by confluence score at each rebalance date. Go long the top N, short the bottom N.")
 
     bc1, bc2, bc3, bc4 = st.columns(4)
@@ -744,7 +744,7 @@ if _portfolio_section == "Portfolio Backtest":
 if _portfolio_section == "Stress Tester":
     import pandas as pd
 
-    st.markdown("#### Macro Scenario Stress Tester")
+    st.markdown("## Macro Scenario Stress Tester")
     st.caption("Build a portfolio and test it against macro regime scenarios — credit shock, inflation surge, growth collapse, and more.")
 
     @st.cache_data(ttl=3600, show_spinner=False, max_entries=4)
@@ -840,7 +840,7 @@ if _portfolio_section == "Signal Backtester":
     import plotly.graph_objects as go
     from datetime import datetime, timedelta
 
-    st.markdown("#### Custom Signal Combination Backtester")
+    st.markdown("## Custom Signal Combination Backtester")
     st.caption("Select signals and a ticker, set your thresholds, and see how this combination would have predicted price direction historically.")
 
     from utils.config import SIGNALS
@@ -947,7 +947,7 @@ if _portfolio_section == "Signal Backtester":
 if _portfolio_section == "Macro Exposure":
     import pandas as pd
 
-    st.markdown("#### Portfolio Macro Exposure")
+    st.markdown("## Portfolio Macro Exposure")
     st.caption("See which macro signals your portfolio is most exposed to, based on each holding's sector and the current signal regime.")
 
     from utils.config import TICKERS as TICKER_META2
@@ -1143,7 +1143,7 @@ if _portfolio_section == "Basket Builder":
     import pandas as pd
     import plotly.graph_objects as go
 
-    st.markdown("#### Thematic Basket Builder")
+    st.markdown("## Thematic Basket Builder")
     st.caption("Build a signal-driven thematic basket and see how it scores on macro alignment.")
 
     from utils.config import TICKERS as TICKER_META3

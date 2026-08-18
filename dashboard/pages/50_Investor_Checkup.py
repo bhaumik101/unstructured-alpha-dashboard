@@ -130,7 +130,7 @@ if section == "Overview":
     metrics[3].metric("Needs a current record", checkup["missing_count"])
 
     with st.container(border=True):
-        st.markdown(f'### {checkup["headline"]}')
+        st.markdown(f'## {checkup["headline"]}')
         st.write(checkup["explanation"])
         st.caption(
             f'{checkup["supportive_count"]} supportive · {checkup["mixed_count"]} mixed · '
@@ -153,7 +153,7 @@ if section == "Overview":
 
 
 elif section == "What Changed":
-    st.markdown("#### Where to look first")
+    st.markdown("### Where to look first")
     st.caption("Ranked by recorded score movement first, then distance from the neutral range. This is research priority—not trade priority.")
     if not checkup["attention"]:
         st.info("No current recorded scores are available for these tickers yet.")
@@ -178,7 +178,7 @@ elif section == "What Changed":
 
 
 elif section == "Upcoming Events":
-    st.markdown("#### Upcoming earnings context")
+    st.markdown("### Upcoming earnings context")
     st.caption("Provider-supplied forward earnings dates are provisional until company-confirmed. No date means none is shown.")
     if not checkup["upcoming_earnings"]:
         st.info("No provider-supplied earnings date was found for these tickers in the next 21 days.")
@@ -194,7 +194,7 @@ elif section == "Upcoming Events":
 
 
 elif section == "Learn the Read":
-    st.markdown("#### Four terms, in plain English")
+    st.markdown("### Four terms, in plain English")
     definitions = (
         ("Recorded score", "The last full Confluence Score saved by the platform. It is evidence context, not a price target."),
         ("Supportive", "A score of 65 or higher. More of the tracked macro evidence is in a historically favorable range."),
@@ -204,7 +204,7 @@ elif section == "Learn the Read":
     for term, meaning in definitions:
         with st.expander(term):
             st.write(meaning)
-    st.markdown("#### What this free checkup does not know")
+    st.markdown("### What this free checkup does not know")
     st.write(
         "It does not know your position sizes, cost basis, tax situation, goals, or risk capacity. It equally weights the ticker list "
         "and deliberately avoids portfolio-level recommendations."

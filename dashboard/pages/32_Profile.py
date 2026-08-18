@@ -123,7 +123,7 @@ if section == "Profile & Preferences":
     identity_col, preference_col = st.columns([1, 1.15], gap="large")
 
     with identity_col:
-        st.markdown("### Public identity")
+        st.markdown("## Public identity")
         st.caption("This name replaces your email anywhere the product identifies you as signed in.")
         with st.form("profile_identity_form"):
             new_name = st.text_input(
@@ -148,7 +148,7 @@ if section == "Profile & Preferences":
                 st.error(str(exc))
 
     with preference_col:
-        st.markdown("### Research preferences")
+        st.markdown("## Research preferences")
         st.caption(
             "These settings power Your Score and alert relevance. The canonical Confluence Score remains unchanged."
         )
@@ -200,7 +200,7 @@ if section == "Profile & Preferences":
 
 
 elif section == "Notifications":
-    st.markdown("### Notification Policy Center")
+    st.markdown("## Notification Policy Center")
     st.caption(
         "Control proactive research delivery at the source. These limits are enforced by the daily job before email HTML is built."
     )
@@ -234,7 +234,7 @@ elif section == "Notifications":
 
         delivery_col, policy_col = st.columns([0.9, 1.35], gap="large")
         with delivery_col:
-            st.markdown("#### Delivery")
+            st.markdown("### Delivery")
             current_digest = bool(profile.get("digest_opted_in"))
             digest_enabled = st.toggle(
                 "Morning intelligence email",
@@ -254,7 +254,7 @@ elif section == "Notifications":
             )
 
         with policy_col:
-            st.markdown("#### Catalyst agenda")
+            st.markdown("### Catalyst agenda")
             st.caption("Choose a plain-language starting point, then fine-tune only if you want to.")
             preset_cols = st.columns(3)
             preset_specs = (
@@ -330,7 +330,7 @@ elif section == "Security":
     account_col, password_col = st.columns(2, gap="large")
 
     with account_col:
-        st.markdown("### Account email")
+        st.markdown("## Account email")
         st.text_input(
             "Verified email",
             value=profile["email"],
@@ -340,7 +340,7 @@ elif section == "Security":
         st.caption("Used only for authentication, billing, and emails you have enabled.")
 
         st.divider()
-        st.markdown("### Session security")
+        st.markdown("## Session security")
         st.markdown(
             '<div class="ua-profile-note">Logging out revokes this browser’s persistent sign-in token. '
             'Other devices remain signed in until their own token expires or they log out.</div>',
@@ -351,7 +351,7 @@ elif section == "Security":
             st.rerun()
 
     with password_col:
-        st.markdown("### Change password")
+        st.markdown("## Change password")
         st.caption("Use at least 8 characters and avoid reusing a password from another service.")
         with st.form("profile_change_password_form"):
             current_password = st.text_input("Current password", type="password")
@@ -376,7 +376,7 @@ elif section == "Security":
 
 
 elif section == "API Access":
-    st.markdown("### Pro API access")
+    st.markdown("## Pro API access")
     st.caption(
         "Read the latest persisted Confluence Score snapshots from your own tools. "
         "The API never starts a live score calculation and never substitutes estimated data."
@@ -401,7 +401,7 @@ elif section == "API Access":
 
         api_left, api_right = st.columns([1, 1.15], gap="large")
         with api_left:
-            st.markdown("#### Create a key")
+            st.markdown("### Create a key")
             with st.form("profile_api_key_form"):
                 _api_key_name = st.text_input(
                     "Key name",
@@ -420,7 +420,7 @@ elif section == "API Access":
                 except (ValueError, PermissionError) as exc:
                     st.error(str(exc))
 
-            st.markdown("#### Request example")
+            st.markdown("### Request example")
             st.code(
                 'curl "https://www.unstructuredalpha.com/api/v1/scores/AAPL" \\\n+  -H "Authorization: Bearer YOUR_API_KEY"',
                 language="bash",
@@ -431,7 +431,7 @@ elif section == "API Access":
             )
 
         with api_right:
-            st.markdown("#### Active credentials")
+            st.markdown("### Active credentials")
             _api_keys = list_api_keys(user["id"])
             _active_keys = [row for row in _api_keys if not row.get("revoked_at")]
             if not _active_keys:
@@ -465,7 +465,7 @@ elif section == "Plan & Referrals":
     plan_col, referral_col = st.columns([1, 1.15], gap="large")
 
     with plan_col:
-        st.markdown("### Subscription")
+        st.markdown("## Subscription")
         st.metric("Current plan", tier_label)
         if tier == "pro":
             trial_end = profile.get("trial_end_at")
@@ -499,7 +499,7 @@ elif section == "Plan & Referrals":
             st.caption("Unlock personalized research, Thesis Journal, exports, alerts, and morning intelligence.")
 
         st.divider()
-        st.markdown("### Account details")
+        st.markdown("## Account details")
         created_at = profile.get("created_at", "")
         if created_at:
             try:
@@ -510,7 +510,7 @@ elif section == "Plan & Referrals":
         st.caption(f"Account ID: {user['id']}")
 
     with referral_col:
-        st.markdown("### Referral program")
+        st.markdown("## Referral program")
         try:
             from utils.referral import get_or_create_referral_code, get_referral_stats
 

@@ -45,7 +45,13 @@ _PAGES = _ROOT / "pages"
 # Pages emit headings two ways, and the outline is the union of both. Counting
 # only markdown would have missed the <h2 class="section-header"> elements on
 # Signal Dashboard entirely — they are real headings in the shipped DOM.
-_HEADING = re.compile(r'["\'](#{1,6})\s+[^"\'\n]{2,80}["\']')   # "## Title"
+# Must be the argument to a Streamlit text call. Matching any quoted "# ..."
+# string counted chart axis titles as headings -- `title=dict(text="# Tickers")`
+# on Stock Screener and `y_title="# of signals"` on Home both registered as h1,
+# which would have demanded "fixing" a chart label.
+_HEADING = re.compile(
+    r'st\.(?:markdown|write|subheader)\(\s*f?["\'](#{1,6})\s'
+)
 _HTML_HEADING = re.compile(r"<h([1-6])[\s>]")                     # <h2 class="...">
 
 
@@ -57,20 +63,10 @@ def _html_levels(src: str) -> set[int]:
 # is the deepest page in the product at ~15 screens. Shrink this list; never
 # grow it.
 _NOT_YET_FIXED = {
-    "2_Today_Digest.py",
-    "4_Power_Supercycle.py", "5_Market_Overview.py", "6_Stock_Screener.py",
-    "10_Watchlist.py", "27_Factor_Exposure.py",
-    "29_Upgrade.py", "30_Track_Record_Live.py", "32_Profile.py",
-    "35_Signal_Strategy.py", "38_Admin.py", "40_Stock_Recommender.py",
-    "41_Alternative_Data.py", "42_Sector_View.py", "43_Events_Forecasts.py",
-    "44_Portfolio_Suite.py", "46_Thesis_Journal.py",
-    "48_Data_Trust.py", "49_Decision_Queue.py", "50_Investor_Checkup.py",
-    "51_Signal_Research.py", "home_page.py",
-    # Added, not regressed: 37_Legal.py emits 31 <h3> and no markdown headings,
-    # so the markdown-only detector never saw it. Widening detection to HTML
-    # surfaced a page that was always broken. Promoting its h3s means they jump
-    # 16px -> 20.8px under the global h2 rule, so it wants its own change rather
-    # than being folded into a Signal Dashboard PR.
+    # 37_Legal.py emits 31 <h3> in raw HTML with inline sizing. Promoting them
+    # pushes 16px -> 20.8px under the global h2 rule, which is a visible change
+    # on a legal document and wants its own review rather than riding along with
+    # 17 mechanical markdown shifts.
     "37_Legal.py",
 }
 # Removed from the backlog by the honesty test below, which found them already

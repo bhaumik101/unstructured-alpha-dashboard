@@ -105,7 +105,7 @@ else:
         with st.container(border=True):
             _title_col, _meta_col, _action_col = st.columns([2.2, 2.4, 1])
             with _title_col:
-                st.markdown(f"### {_item['ticker']}")
+                st.markdown(f"## {_item['ticker']}")
                 st.markdown(
                     f'<span style="color:{_stance_color};font-size:.78rem;font-weight:800;'
                     f'letter-spacing:.07em;text-transform:uppercase;">{_item["stance"]}</span>',

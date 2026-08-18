@@ -635,7 +635,7 @@ if _recommender_section == "Track Record":
     # ─────────────────────────────────────────────────────────────────────────────
 
     st.markdown("---")
-    st.markdown("###  Track Record — Past High-Conviction Calls")
+    st.markdown("##  Track Record — Past High-Conviction Calls")
     st.caption(
         "Tickers the model scored ≥70 (bullish) or ≤30 (bearish) in the last 6 months, "
         "resolved to their realized 30-day forward return. "
@@ -778,7 +778,7 @@ if _recommender_section == "Ranked Universe":
     # ─────────────────────────────────────────────────────────────────────────────
 
     st.markdown("---")
-    st.markdown("### Full Ranked Universe")
+    st.markdown("## Full Ranked Universe")
     st.caption("All scored tickers sorted by confluence score.  = enriched with full signal set.")
 
     if all_rows:
@@ -811,7 +811,7 @@ if _recommender_section == "Score Distribution":
     # Score distribution histogram
     # ─────────────────────────────────────────────────────────────────────────────
 
-    st.markdown("### Score Distribution")
+    st.markdown("## Score Distribution")
     if all_rows:
         scores = [r["score"] for r in all_rows]
         colors = ["#00D566" if s >= 65 else "#FF4444" if s <= 35 else "#6B7FBF" for s in scores]

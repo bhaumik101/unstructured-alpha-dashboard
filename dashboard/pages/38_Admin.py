@@ -401,7 +401,7 @@ def _render_conversion_measurement(data: dict) -> None:
     )
 
     totals = data["totals"]
-    st.markdown("### Redesign conversion measurement")
+    st.markdown("## Redesign conversion measurement")
     st.caption(
         f"Real stored records only · {data['window_start']} through "
         f"{data['window_end']} UTC · refreshes every 60 seconds"
@@ -460,7 +460,7 @@ def _render_conversion_measurement(data: dict) -> None:
             f"{totals['unique_visitors']:,} unique visitor(s))."
         )
 
-    st.markdown("#### 1. Unique visitors per day")
+    st.markdown("### 1. Unique visitors per day")
     daily = data["daily"]
     visitor_rows = [
         {
@@ -496,7 +496,7 @@ def _render_conversion_measurement(data: dict) -> None:
             unsafe_allow_html=True,
         )
 
-    st.markdown("#### 2. Signups per day")
+    st.markdown("### 2. Signups per day")
     signup_rows = [
         {"Date (UTC)": row["date"], "Signups": row["signups"]}
         for row in daily
@@ -516,7 +516,7 @@ def _render_conversion_measurement(data: dict) -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown("#### 3. Weekly visitor → signup conversion")
+    st.markdown("### 3. Weekly visitor → signup conversion")
     weekly_rows = [
         {
             "Week": f"{row['week_start']} → {row['week_end']}",
@@ -558,7 +558,7 @@ def _render_conversion_measurement(data: dict) -> None:
             "misleading and is not rendered."
         )
 
-    st.markdown("#### 4. Landing-page bounce proxy")
+    st.markdown("### 4. Landing-page bounce proxy")
     bounce = data["bounce"]
     if bounce.get("unavailable_reason"):
         # Withheld rather than estimated. Showing a rate derived only from the
@@ -590,7 +590,7 @@ def _render_conversion_measurement(data: dict) -> None:
     else:
         st.info("No reconstructed visit in this window starts on Home/Landing.")
 
-    st.markdown("#### 5. Last page viewed before signup")
+    st.markdown("### 5. Last page viewed before signup")
     attribution = data["attribution"]
     attr_cols = st.columns(3)
     attr_cols[0].metric("Signups", totals["signups"])
@@ -709,7 +709,7 @@ with st.spinner("Loading metrics..."):
 
 # ── KPI cards ─────────────────────────────────────────────────────────────────
 
-st.markdown("###  Top-Line KPIs")
+st.markdown("##  Top-Line KPIs")
 
 c1, c2, c3, c4, c5, c6 = st.columns(6)
 c1.metric("Total Users", m["total"])
@@ -725,7 +725,7 @@ st.markdown("---")
 
 # ── Revenue (estimated) ───────────────────────────────────────────────────────
 
-st.markdown("###  Revenue (estimated)")
+st.markdown("##  Revenue (estimated)")
 
 _PRO_MONTHLY = 20  # $/mo — Pro monthly list price (see billing.py)
 _mrr = m["pro"] * _PRO_MONTHLY
@@ -740,7 +740,7 @@ st.markdown("---")
 
 # ── Traffic ───────────────────────────────────────────────────────────────────
 
-st.markdown("###  Traffic")
+st.markdown("##  Traffic")
 st.caption(
     "Unique visitors use a salted, one-way network + coarse-device identifier — "
     "not Streamlit sessions. Raw IP addresses and full user-agent strings are never "
@@ -854,7 +854,7 @@ st.markdown("---")
 
 # ── Acquisition ───────────────────────────────────────────────────────────────
 
-st.markdown("###  Acquisition")
+st.markdown("##  Acquisition")
 
 a1, a2, a3 = st.columns(3)
 a1.metric("New Today",    m["new_today"])
@@ -863,7 +863,7 @@ a3.metric("New (30 days)", m["new_30d"])
 
 # ── Engagement ────────────────────────────────────────────────────────────────
 
-st.markdown("###  Engagement")
+st.markdown("##  Engagement")
 
 e1, e2, e3 = st.columns(3)
 e1.metric("Active (7d)",  m["active_7d"],
@@ -875,7 +875,7 @@ e3.metric("Have Watchlist", m["users_with_watchlist"],
 
 # ── Conversion funnel ─────────────────────────────────────────────────────────
 
-st.markdown("###  Conversion Funnel")
+st.markdown("##  Conversion Funnel")
 
 if m["total"] > 0:
     import plotly.graph_objects as go
@@ -899,7 +899,7 @@ else:
 
 # ── Daily signups chart ───────────────────────────────────────────────────────
 
-st.markdown("###  Daily Signups (last 30 days)")
+st.markdown("##  Daily Signups (last 30 days)")
 
 if m["daily_counts"]:
     import plotly.graph_objects as go
@@ -930,7 +930,7 @@ else:
 
 # ── Referral stats ────────────────────────────────────────────────────────────
 
-st.markdown("###  Referral Program")
+st.markdown("##  Referral Program")
 
 r1, r2, r3 = st.columns(3)
 r1.metric("Total Referrals",  m["ref_total"])
@@ -940,7 +940,7 @@ r3.metric("Rewarded",         m["ref_rewarded"])
 
 # ── Recent signups table ──────────────────────────────────────────────────────
 
-st.markdown("###  Recent Signups (last 50)")
+st.markdown("##  Recent Signups (last 50)")
 
 if m["recent"]:
     import pandas as pd

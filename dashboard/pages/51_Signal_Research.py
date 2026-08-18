@@ -80,7 +80,7 @@ if _section == "Trust Overview":
     _validation = validation_summary(_records)
     _track = get_track_record()
 
-    st.markdown("#### The evidence behind the signal stack")
+    st.markdown("## The evidence behind the signal stack")
     st.caption(
         "This view separates four different questions that used to live on four "
         "different pages: what the model uses, how it was tested, what happened "
@@ -102,23 +102,23 @@ if _section == "Trust Overview":
 
     _cards = st.columns(4, gap="medium")
     with _cards[0]:
-        st.markdown("##### Validation")
+        st.markdown("### Validation")
         st.write("See relative weights, measured reliability, and known limitations for every signal.")
         _open_section("Validation", key="src_open_validation")
     with _cards[1]:
-        st.markdown("##### Track Record")
+        st.markdown("### Track Record")
         st.write("Compare timestamped calls with the actual 4-, 8-, and 12-week outcomes.")
         _open_section("Track Record", key="src_open_track")
     with _cards[2]:
-        st.markdown("##### Data Quality")
+        st.markdown("### Data Quality")
         st.write("Inspect provider health, observation freshness, and unavailable coverage.")
         _open_section("Data Quality", key="src_open_quality")
     with _cards[3]:
-        st.markdown("##### Methodology")
+        st.markdown("### Methodology")
         st.write("Understand percentile scoring, confluence weighting, and model limitations.")
         _open_section("Methodology", key="src_open_method")
 
-    st.markdown("#### Composite-model status")
+    st.markdown("## Composite-model status")
     st.html(render_composites_html(get_static_validation_summary()))
 
 
@@ -147,7 +147,7 @@ elif _section == "Validation":
     _records = build_validation_table(SIGNALS, reliabilities=_reliabilities)
     _summary = validation_summary(_records)
     with _cta_copy:
-        st.markdown("#### Signal-level validation")
+        st.markdown("## Signal-level validation")
         st.caption(
             f'{_summary["core"]} core, {_summary["supporting"]} supporting, and '
             f'{_summary["experimental"]} limited or experimental signals. '
@@ -195,7 +195,7 @@ elif _section == "Track Record":
     from utils.prediction_log import get_predictions_feed, get_track_record
 
     _track = get_track_record()
-    st.markdown("#### Timestamped calls and realized outcomes")
+    st.markdown("## Timestamped calls and realized outcomes")
     st.caption(
         "Calls are recorded before outcomes are known. Forward returns are populated "
         "only after each window expires and real price data is available."
@@ -306,7 +306,7 @@ elif _section == "Data Quality":
     _quality_metrics[2].metric("Cached live", _quality["cached_live"])
     _quality_metrics[3].metric("Unavailable", _quality["unavailable"])
 
-    st.markdown("#### Signal freshness")
+    st.markdown("## Signal freshness")
     _freshness_rows = []
     for _signal_id, _signal in _signals.items():
         _fresh = freshness_for_signal(_signal)
@@ -352,7 +352,7 @@ elif _section == "Data Quality":
 
 
 else:
-    st.markdown("#### How the signal stack works")
+    st.markdown("## How the signal stack works")
     _method_steps = (
         (
             "1. Collect real observations",
@@ -380,7 +380,7 @@ else:
             st.markdown(f"**{_title}**")
             st.write(_body)
 
-    st.markdown("#### What the scores do not mean")
+    st.markdown("## What the scores do not mean")
     st.write(
         "A score is not a price target, probability of a gain, or instruction to "
         "trade. Macro relationships change across regimes, low-frequency data can "
