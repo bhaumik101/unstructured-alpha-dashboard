@@ -5,7 +5,8 @@
 # Runs every Sunday at 16:00 UTC (12:00 PM ET) — one hour after the Pro
 # weekly brief (15:00 UTC). Sends the latest macro_narratives row to every
 # contact in the Resend audience (landing page email capture), as a clean
-# plain-English brief with a link to the public /brief page on the SEO service.
+# plain-English brief. The email is self-contained: it carries the whole note
+# and links out only to the dashboard.
 #
 # This is the free-tier retention anchor: subscribers get value every Sunday
 # without needing a dashboard account. The email CTA drives them to create one.
@@ -17,7 +18,6 @@
 #   RESEND_AUDIENCE_ID -- Resend audience ID for landing page subscribers
 #
 # OPTIONAL ENV VARS:
-#   SEO_BASE_URL       -- Public URL of the SEO service (default: https://stocks.unstructuredalpha.com)
 #   APP_BASE_URL       -- Public URL of the dashboard (default: https://unstructuredalpha.com)
 #
 # Run manually from dashboard/:
@@ -39,7 +39,6 @@ from utils.db import init_db, engine, macro_narratives
 from sqlalchemy import select
 
 _RESEND_API_URL  = "https://api.resend.com/emails"
-_SEO_BASE_URL    = os.environ.get("SEO_BASE_URL", "https://stocks.unstructuredalpha.com").rstrip("/")
 _APP_BASE_URL    = os.environ.get("APP_BASE_URL", "https://unstructuredalpha.com").rstrip("/")
 _FROM_EMAIL      = os.environ.get("RESEND_FROM_EMAIL", "Unstructured Alpha <brief@unstructuredalpha.com>")
 _API_KEY         = os.environ.get("RESEND_API_KEY", "")
@@ -127,10 +126,18 @@ def _build_brief_html(brief: dict, first_name: str = "") -> tuple[str, str]:
         except Exception:
             date_str = str(note_date)[:10]
 
-    # Truncate body to first 3 paragraphs for email preview (rest behind link)
+    # Send the whole note. This used to ship paras[:3] with the remainder "behind
+    # a link" -- but the link pointed at stocks.unstructuredalpha.com, which has
+    # never had a DNS record, and /brief exists only in the undeployed seo/app.py
+    # (the deployed seo/main.py has no such route). So the remainder was
+    # unreachable by any means.
+    #
+    # The generator asks for a 550-700 word note ending in a "Bottom Line:"
+    # paragraph -- what it means for positioning, what would flip the regime,
+    # what to watch. That paragraph is always last, so a [:3] cut dropped the
+    # conclusion from every brief ever sent. 550-700 words is an ordinary
+    # newsletter length; there is nothing to protect the reader from.
     paras = [p.strip() for p in body.split("\n\n") if p.strip()]
-    preview_paras = paras[:3]
-    has_more = len(paras) > 3
 
     # Regime chip color
     regime_colors = {
@@ -144,17 +151,25 @@ def _build_brief_html(brief: dict, first_name: str = "") -> tuple[str, str]:
 
     greeting = f"Hi {first_name}," if first_name else "Hi,"
 
-    paras_html = "".join(
-        f'<p style="color:#B8C0D4;font-size:15px;line-height:1.75;margin:0 0 14px;">{p}</p>'
-        for p in preview_paras
-    )
+    def _para(text: str) -> str:
+        # The closing paragraph is the actionable one. border-left + padding is
+        # safe across Gmail, Outlook and Apple Mail; no layout table needed.
+        if text.lower().startswith("bottom line"):
+            return (
+                f'<p style="color:#E8EEFF;font-size:15px;line-height:1.75;'
+                f'margin:20px 0 14px;padding:12px 0 12px 14px;'
+                f'border-left:3px solid #7C3AED;">{text}</p>'
+            )
+        return (
+            f'<p style="color:#B8C0D4;font-size:15px;line-height:1.75;'
+            f'margin:0 0 14px;">{text}</p>'
+        )
 
-    more_html = (
-        f'<p style="margin:20px 0 0;">'
-        f'<a href="{_SEO_BASE_URL}/brief" style="color:#A78BFA;font-weight:600;text-decoration:none;">'
-        f'Continue reading → full brief at stocks.unstructuredalpha.com</a></p>'
-        if has_more else ""
-    )
+    paras_html = "".join(_para(p) for p in paras)
+
+    # No "continue reading" link: the email now contains the whole note, so there
+    # is nothing left to continue to.
+    more_html = ""
 
     html = f"""<!DOCTYPE html>
 <html>
@@ -212,7 +227,6 @@ def _build_brief_html(brief: dict, first_name: str = "") -> tuple[str, str]:
     Signal readings reflect publicly available data from FRED, SEC EDGAR, FINRA, EIA, and CBOE.
     Past performance does not predict future results. Do your own research.<br><br>
     You're receiving this because you subscribed at unstructuredalpha.com.
-    <a href="{_SEO_BASE_URL}/brief" style="color:#4A5478;">Read in browser</a> ·
     To unsubscribe, reply with "unsubscribe" or manage your preferences via Resend.
   </p>
 

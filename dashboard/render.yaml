@@ -423,8 +423,8 @@ services:
 
   # Free subscriber brief cron — runs every Sunday at 16:00 UTC (12:00 PM ET).
   # Fetches the latest macro_narratives row and emails every active contact in
-  # the Resend audience (landing page free subscribers). First 3 paragraphs
-  # in the email as a preview; full brief lives at stocks.unstructuredalpha.com/brief.
+  # the Resend audience (landing page free subscribers). The email carries the
+  # whole note -- it used to send only the first 3 paragraphs and link out.
   # Runs one hour after the Pro brief (15:00 UTC) to avoid overlapping DB load.
   # Requires RESEND_AUDIENCE_ID set to the Resend audience ID for the landing page.
   - type: cron
@@ -448,8 +448,9 @@ services:
         sync: false
       - key: RESEND_AUDIENCE_ID
         sync: false
-      - key: SEO_BASE_URL
-        value: "https://stocks.unstructuredalpha.com"
+      # No SEO_BASE_URL here. It pointed at stocks.unstructuredalpha.com, which
+      # has never had a DNS record, and the brief email no longer links out --
+      # it carries the whole note.
       - key: APP_BASE_URL
         value: "https://unstructuredalpha.com"
 
