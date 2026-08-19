@@ -783,7 +783,14 @@ SIGNALS = {
         "tier": 2,
         "pcs": 5,
         "source": "arxiv",
-        "series_id": "qubit error correction fault tolerant quantum computing",
+        # Field-scoped phrases, not loose keywords. arXiv ANDs bare terms across all
+        # fields, so the old string matched essentially the whole quant-ph category
+        # (184,786 results): the 300 most recent papers spanned SIX DAYS and
+        # resampled to two weekly buckets, far too few for a z-score, so the signal
+        # reported insufficient data. Scoped to fault-tolerance and error-correction
+        # work it returns 1,366 results, the same 300 papers span 314 days, and the
+        # series has 46 weekly buckets -- from one request.
+        "series_id": 'abs:"error correction" AND abs:"fault tolerant"',
         "frequency": "weekly",
         "lag_weeks": 4,
         "inverse": False,
