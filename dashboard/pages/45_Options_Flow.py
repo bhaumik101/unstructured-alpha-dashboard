@@ -21,10 +21,16 @@ from utils.theme import PLOTLY_CONFIG
 
 st.set_page_config(page_title="Options Flow — UA", layout="wide")
 
+# require_pro() AFTER the chrome, matching Decision Queue, Thesis Journal,
+# Portfolio Intelligence and Stock Recommender. Gating first renders the upgrade
+# wall with no nav and no header -- measured at 334 chars against ~1,200 for
+# chrome alone -- so a visitor who follows a Pro CTA lands on a dead end whose
+# only exits are sign-in and the back button. render_header() emits chrome, not
+# Pro content, so nothing leaks by running it first.
 from utils.billing import require_pro
-require_pro("Options Flow")
 
 render_header("Unusual Options Activity")
+require_pro("Options Flow")
 _options_section = render_sidebar_base(
     page_title="Options Flow",
     sections=("Market Snapshot", "Strike Positioning", "Unusual Activity", "Full Chain", "Methodology"),

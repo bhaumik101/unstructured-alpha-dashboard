@@ -22,8 +22,9 @@ from utils.theme import inject_skeleton_css, skeleton_cards
 st.set_page_config(page_title="Export Report — UA", layout="wide")
 
 from utils.billing import require_pro
-require_pro("Export Report")
+# Gate AFTER the chrome: ahead of it the upgrade wall replaces the whole page.
 render_header("Report Export")
+require_pro("Export Report")
 render_sidebar_base()
 render_page_header(
     "Export Report",

@@ -15,11 +15,12 @@ from utils.product_metrics import SUPPORTED_TICKER_COUNT
 
 st.set_page_config(page_title="AI Assistant — UA", layout="wide")
 from utils.billing import require_pro
+# Gate AFTER the chrome: ahead of it the upgrade wall replaces the whole page.
+render_header("AI Research Assistant")
 require_pro(
     "AI Research Assistant",
     "Use a live signal-aware research copilot grounded in the platform's current real-data state.",
 )
-render_header("AI Research Assistant")
 render_sidebar_base()
 
 render_page_header(

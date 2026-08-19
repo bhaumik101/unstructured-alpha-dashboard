@@ -474,7 +474,11 @@ def require_pro(page_name: str = "this page", benefit: str | None = None) -> Non
     If logged in but free tier: shows upgrade CTA + st.stop().
     If Pro: returns silently so the page can continue.
 
-    Call this at the TOP of any Pro-gated page, before rendering any content.
+    Call this after the page chrome (render_header / render_sidebar_base) and
+    before any Pro CONTENT. Chrome is not content: gating ahead of it renders
+    the upgrade wall with no nav and no header, which strands a visitor who
+    arrived from a Pro CTA. Options Flow and Factor Exposure did that and
+    measured 334 chars against a ~1,200-char chrome-only baseline.
 
     benefit: one sentence naming the specific value of THIS page. If omitted,
              falls back to _PAGE_BENEFIT[page_name], then to a generic line.
