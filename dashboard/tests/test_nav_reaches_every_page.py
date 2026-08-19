@@ -40,6 +40,11 @@ INTENTIONALLY_UNLINKED: dict[str, str] = {
     ),
     "admin": "admin-only; rendered into the nav conditionally, not for every user",
     "upgrade-to-pro": "reached from the Upgrade button and Pro-locked states",
+    "share-watchlist": (
+        "public read-only view of someone else's watchlist; reached only via the "
+        "link from utils/share_watchlist.build_share_url(), and putting it in the "
+        "nav would offer every visitor a page that needs a slug to mean anything"
+    ),
 }
 
 _PAGE = re.compile(

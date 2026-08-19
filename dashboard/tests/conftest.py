@@ -122,6 +122,7 @@ ROUTED_PAGES = [
     "pages/29_Upgrade.py",
     "pages/30_Track_Record_Live.py",
     "pages/32_Profile.py",
+    "pages/35_Share_Watchlist.py",
     "pages/35_Signal_Strategy.py",
     "pages/37_Legal.py",
     "pages/38_Admin.py",

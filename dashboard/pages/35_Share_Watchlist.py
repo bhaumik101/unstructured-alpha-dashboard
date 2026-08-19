@@ -1,7 +1,7 @@
 # pages/35_Share_Watchlist.py
 # Unstructured Alpha — Public Read-Only Watchlist View
 #
-# Reached via: /Share_Watchlist?id=<slug>
+# Reached via: /share-watchlist?id=<slug>
 # No account required. Shows the watchlist owner's tickers + current
 # Confluence Scores + score sparklines without exposing any personal data.
 #
@@ -29,14 +29,17 @@ st.set_page_config(
 from utils.header import render_header, render_sidebar_base, render_page_header
 from utils.theme import inject_premium_css, PLOTLY_CONFIG
 from utils.db import init_db
-from utils.auth_ui import try_restore_session, init_cookies_for_this_run
 
 render_header("Shared Watchlist")
 render_sidebar_base()
 inject_premium_css()
 
-_cookies = init_cookies_for_this_run()
-try_restore_session(_cookies)
+# No init_cookies_for_this_run() here. app.py constructs the single
+# CookieManager for every run before pg.run(), and building a second one in the
+# same run raises StreamlitDuplicateElementKey. render_header() above already
+# restored the session from it via get_cookies(). This page predated that
+# ownership split and carried its own call, which is why it crashed on the first
+# render after being restored.
 init_db()
 
 # ── Parse slug from query params ──────────────────────────────────────────────
@@ -69,8 +72,8 @@ _display = _owner.get("display_name") or "An Unstructured Alpha user"
 render_page_header(
     f"{_display}'s Watchlist",
     f"{len(_tickers)} ticker{'s' if len(_tickers) != 1 else ''} · "
-    "Real-time Confluence Scores powered by 28 macro signals",
-    icon="🔗",
+    "Real-time Confluence Scores powered by 47 macro signals",
+    icon="",
 )
 
 # ── Load scores ───────────────────────────────────────────────────────────────
@@ -221,7 +224,7 @@ for _i in range(0, len(_tickers), _cols_per_row):
                         yaxis=dict(visible=False, range=[0, 100]),
                         showlegend=False,
                     )
-                    st.plotly_chart(_sh_fig, use_container_width=True,
+                    st.plotly_chart(_sh_fig, width="stretch", theme=None,
                                     config=PLOTLY_CONFIG,
                                     key=f"share_spark_{_tk}")
                 else:
@@ -231,7 +234,7 @@ for _i in range(0, len(_tickers), _cols_per_row):
                 if st.button(
                     "Deep Dive →",
                     key=f"share_tdd_{_tk}",
-                    use_container_width=True,
+                    width="stretch",
                     help=f"View full signal analysis for {_tk}",
                 ):
                     st.session_state["selected_ticker"] = _tk
@@ -243,18 +246,18 @@ st.markdown(
     '<div style="background:rgba(0,200,224,0.06);border:1px solid rgba(0,200,224,0.18);'
     'border-radius:14px;padding:24px 28px;text-align:center;max-width:620px;margin:0 auto;">'
     '<div style="font-size:1.1rem;font-weight:800;color:#E8EEFF;margin-bottom:8px;">'
-    '📊 Want signals for YOUR stocks?</div>'
+    'Want signals for YOUR stocks?</div>'
     '<div style="font-size:0.88rem;color:#8892AA;margin-bottom:16px;">'
-    'Track any ticker with 28 real macro signals — free account, no credit card required.'
+    'Track any ticker with 47 real macro signals — free account, no credit card required.'
     '</div>'
     '</div>',
     unsafe_allow_html=True,
 )
 _cta_col1, _cta_col2, _cta_col3 = st.columns([1.5, 1, 1.5])
 with _cta_col2:
-    if st.button("Create Free Account →", type="primary", use_container_width=True):
+    if st.button("Create Free Account →", type="primary", width="stretch"):
         st.switch_page("pages/29_Upgrade.py")
 
 st.caption(
-    "Powered by Unstructured Alpha · 28 macro signals · Data from FRED, SEC EDGAR, FINRA, EIA"
+    "Powered by Unstructured Alpha · 47 macro signals · Data from FRED, SEC EDGAR, FINRA, EIA"
 )

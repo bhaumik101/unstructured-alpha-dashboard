@@ -106,6 +106,10 @@ pg = st.navigation(
             st.Page("pages/27_Factor_Exposure.py",    title="Factor Exposure",     url_path="factor-exposure"),
             st.Page("pages/45_Options_Flow.py",       title="Options Flow",        url_path="options-flow"),
             st.Page("pages/28_Export.py",             title="Export Report",       url_path="export-report"),
+            # Public read-only view of a shared watchlist. No account required and
+            # never in the nav: it is reached solely via the link produced by
+            # utils/share_watchlist.build_share_url().
+            st.Page("pages/35_Share_Watchlist.py",     title="Shared Watchlist",    url_path="share-watchlist"),
         ],
         # ── Signals & Methodology ─────────────────────────────────────────────
         "Signals & Methodology": [
