@@ -1127,12 +1127,7 @@ def send_digest_email(
 
     <!-- CTA -->
     <div style="padding:4px 24px 28px;text-align:center;">
-        <a href="{_APP_URL}/today-s-brief"
-           style="display:inline-block;background:#7C3AED;color:#ffffff;
-                  padding:12px 28px;border-radius:6px;text-decoration:none;
-                  font-size:0.9rem;font-weight:700;">
-            Open Full Brief →
-        </a>
+        {email_button(_APP_URL + "/today-s-brief", "Open Full Brief →", bg="#7C3AED", full_width=True)}
     </div>
 
     <!-- Footer -->
@@ -1210,12 +1205,7 @@ def send_trial_reminder_email(to_email: str, trial_end_display: str) -> None:
                 No charge until <strong>{trial_end_display}</strong>.
             </p>
             <div style="text-align:center;">
-                <a href="{_APP_URL}/upgrade-to-pro"
-                   style="background:linear-gradient(90deg,#7C3AED,#00C8E0);color:#fff;
-                          padding:12px 28px;border-radius:6px;text-decoration:none;
-                          font-size:0.95rem;font-weight:700;display:inline-block;">
-                    Continue with Pro →
-                </a>
+                {email_button(_APP_URL + "/upgrade-to-pro", "Continue with Pro →", bg="#7C3AED", full_width=True)}
             </div>
         </div>
 
@@ -1298,12 +1288,7 @@ def send_welcome_email(to_email: str) -> None:
             </ul>
 
             <div style="text-align:center;">
-                <a href="https://unstructuredalpha.com"
-                   style="background:#1C2B4A;color:#FAF7F0;padding:13px 30px;
-                          border-radius:5px;text-decoration:none;
-                          font-size:0.95rem;font-weight:700;display:inline-block;">
-                    Open the Dashboard →
-                </a>
+                {email_button(_APP_URL, "Open the Dashboard →", bg="#1C2B4A", fg="#FAF7F0", full_width=True)}
             </div>
 
             <p style="font-size:0.82rem;color:#8B8B8B;margin:24px 0 0;line-height:1.5;">
@@ -1504,11 +1489,7 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
 
   <!-- CTA -->
   <div style="background:#F9FAFB;padding:22px 28px;text-align:center;">
-    <a href="{_cta_url}"
-       style="display:inline-block;background:#6D28D9;color:#FFFFFF;padding:12px 30px;border-radius:6px;
-              text-decoration:none;font-size:0.9rem;font-weight:700;letter-spacing:0.02em;">
-      {_cta_label} →
-    </a>
+    {email_button(_cta_url, _cta_label + " →", bg="#6D28D9", full_width=True)}
     <div style="margin-top:10px;">
       <a href="{_APP_URL}/today-s-brief"
          style="font-size:0.72rem;color:#5B21B6;text-decoration:none;font-weight:700;">
@@ -1694,13 +1675,7 @@ def send_pro_welcome_email(to_email: str) -> None:
 
       <!-- CTA -->
       <div style="background:#12151E;padding:12px 32px 28px;text-align:center;">
-        <a href="https://unstructuredalpha.com"
-           style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#00C8E0);
-                  color:#FFFFFF;padding:14px 36px;border-radius:8px;
-                  text-decoration:none;font-size:0.95rem;font-weight:700;
-                  letter-spacing:0.02em;">
-          Open Unstructured Alpha →
-        </a>
+        {email_button(_APP_URL, "Open Unstructured Alpha →", bg="#7C3AED", full_width=True)}
       </div>
 
       <!-- Footer -->
@@ -1841,13 +1816,7 @@ def send_referral_welcome_email(to_email: str) -> None:
 
   <!-- CTA -->
   <div style="background:#0f1119;padding:24px 32px;text-align:center;">
-    <a href="{_APP_URL}/upgrade-to-pro"
-       style="display:inline-block;background:linear-gradient(135deg,#00C8E0,#7C3AED);
-              color:#FFFFFF;padding:14px 36px;border-radius:8px;
-              text-decoration:none;font-size:0.95rem;font-weight:700;
-              letter-spacing:0.02em;">
-      Start Your 14-Day Free Trial →
-    </a>
+    {email_button(_APP_URL + "/upgrade-to-pro", "Start Your 14-Day Free Trial →", bg="#7C3AED", full_width=True)}
     <div style="font-size:0.75rem;color:#6B7A95;margin-top:10px;">
       Full Pro access · No charge for 14 days
     </div>
@@ -2111,12 +2080,7 @@ def send_score_moved_email(to_email: str, moved: list[dict]) -> None:
 
   <!-- CTA -->
   <div style="padding:4px 28px 24px;text-align:center;">
-    <a href="{_APP_URL}/my-watchlist"
-       style="display:inline-block;background:linear-gradient(135deg,#00C8E0,#7C3AED);
-              color:#FFFFFF;padding:12px 32px;border-radius:8px;
-              text-decoration:none;font-size:0.90rem;font-weight:700;">
-      View Watchlist →
-    </a>
+    {email_button(_APP_URL + "/my-watchlist", "View Watchlist →", bg="#7C3AED", full_width=True)}
   </div>
 
   <!-- Footer -->
@@ -2270,12 +2234,7 @@ def send_velocity_alert_email(to_email: str, alerts: list[dict]) -> None:
 
   <!-- CTA -->
   <div style="padding:4px 28px 24px;text-align:center;">
-    <a href="{_APP_URL}/ticker-deep-dive"
-       style="display:inline-block;background:linear-gradient(135deg,#F59E0B,#D97706);
-              color:#0B0D12;padding:12px 32px;border-radius:8px;
-              text-decoration:none;font-size:0.90rem;font-weight:800;">
-      Analyze on Ticker Deep Dive →
-    </a>
+    {email_button(_APP_URL + "/ticker-deep-dive", "Analyze on Ticker Deep Dive →", bg="#F59E0B", fg="#0B0D12", full_width=True)}
   </div>
 
   <!-- Footer -->
@@ -2644,13 +2603,7 @@ def send_weekly_brief_email(
 
   <!-- Main CTA -->
   <div style="padding:24px 24px;text-align:center;">
-    <a href="{_APP_URL}/my-watchlist"
-       style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#5B21B6);
-              color:#FFFFFF;padding:12px 30px;border-radius:8px;
-              text-decoration:none;font-size:0.92rem;font-weight:700;
-              letter-spacing:0.02em;">
-      Open Dashboard →
-    </a>
+    {email_button(_APP_URL + "/my-watchlist", "Open Dashboard →", bg="#7C3AED", full_width=True)}
   </div>
 
   <!-- Footer -->
@@ -2821,12 +2774,7 @@ def send_reengagement_email(
 
   <!-- CTA -->
   <div style="padding:20px 28px 24px;text-align:center;">
-    <a href="{_APP_URL}/my-watchlist"
-       style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#5B21B6);
-              color:#FFFFFF;padding:12px 32px;border-radius:8px;
-              text-decoration:none;font-size:0.92rem;font-weight:700;">
-      Check Your Watchlist →
-    </a>
+    {email_button(_APP_URL + "/my-watchlist", "Check Your Watchlist →", bg="#7C3AED", full_width=True)}
     <div style="margin-top:10px;font-size:0.72rem;color:#4A5280;">
       Or go to
       <a href="{_APP_URL}/today-s-brief"
@@ -2914,12 +2862,7 @@ def send_day3_onboarding_email(
   <div style="font-size:0.78rem;color:#8892AA;margin-bottom:12px;">
     $20/month · Cancel anytime · 7-day free trial
   </div>
-  <a href="{_APP_URL}/upgrade-to-pro"
-     style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#5B21B6);
-            color:#fff;padding:10px 28px;border-radius:8px;
-            text-decoration:none;font-size:0.88rem;font-weight:700;">
-    Start Free Trial →
-  </a>
+  {email_button(_APP_URL + "/upgrade-to-pro", "Start Free Trial →", bg="#7C3AED", full_width=True)}
 </div>"""
 
     html = f"""<!DOCTYPE html>
@@ -3133,12 +3076,7 @@ def send_day7_onboarding_email(
             You've seen the free tier — Pro unlocks personalized daily email alerts,
             macro stress testing, webhook notifications, and AI watchlist narratives.
           </div>
-          <a href="{_APP_URL}/upgrade-to-pro"
-             style="display:inline-block;background:#7C3AED;color:#FFFFFF;
-                    border-radius:6px;padding:9px 20px;font-size:0.82rem;
-                    font-weight:700;text-decoration:none;letter-spacing:0.04em;">
-            Start Free Trial →
-          </a>
+          {email_button(_APP_URL + "/upgrade-to-pro", "Start Free Trial →", bg="#7C3AED")}
         </div>"""
 
     subject = "One week in — what the machine is seeing right now"
@@ -3224,12 +3162,7 @@ def send_day7_onboarding_email(
 
   <!-- CTA -->
   <div style="text-align:center;margin:24px 0 8px;">
-    <a href="https://unstructuredalpha.com/"
-       style="display:inline-block;background:#00D566;color:#0B0D12;
-              border-radius:6px;padding:11px 28px;font-size:0.88rem;
-              font-weight:800;text-decoration:none;letter-spacing:0.04em;">
-      Open Dashboard →
-    </a>
+    {email_button(_APP_URL, "Open Dashboard →", bg="#00D566", fg="#0B0D12", full_width=True)}
   </div>
 
   <!-- Footer -->
