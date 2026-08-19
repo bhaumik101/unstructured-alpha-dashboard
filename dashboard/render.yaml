@@ -95,8 +95,11 @@ services:
         sync: false
       - key: STRIPE_PUBLISHABLE_KEY
         sync: false
-      # Referral link base URL — Render sets this automatically to the service's public URL.
-      # If left unset, referral.py falls back to http://localhost:8501 (wrong in production).
+      # Referral link base URL. APP_BASE_URL is explicit and carries the custom
+      # domain; RENDER_EXTERNAL_URL, which Render sets automatically here, holds
+      # the .onrender.com host and is kept only as a fallback.
+      - key: APP_BASE_URL
+        value: https://app.unstructuredalpha.com
       - key: RENDER_EXTERNAL_URL
         sync: false
       # Anthropic — used by utils/fetchers.py for earnings transcript sentiment scoring
@@ -406,6 +409,11 @@ services:
     buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.send_weekly_brief
     envVars:
+      # Referral and alert links are user-facing. RENDER_EXTERNAL_URL is not
+      # injected on cron services, so without this the code falls back to its
+      # localhost default and the links ship dead.
+      - key: APP_BASE_URL
+        value: https://app.unstructuredalpha.com
       - key: DATABASE_URL
         sync: false
       - key: RESEND_API_KEY
@@ -516,6 +524,11 @@ services:
     buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.signal_flip_alerts
     envVars:
+      # Referral and alert links are user-facing. RENDER_EXTERNAL_URL is not
+      # injected on cron services, so without this the code falls back to its
+      # localhost default and the links ship dead.
+      - key: APP_BASE_URL
+        value: https://app.unstructuredalpha.com
       - key: DATABASE_URL
         sync: false
       - key: RESEND_API_KEY

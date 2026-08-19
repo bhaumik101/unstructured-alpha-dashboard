@@ -112,10 +112,20 @@ def get_watchlist_for_user(user_id: int) -> list[str]:
 def build_share_url(slug: str) -> str:
     """
     Build the full public URL for this slug.
-    Uses RENDER_EXTERNAL_URL in production, falls back to localhost in dev.
+
+    WARNING: /Share_Watchlist is not a registered route. The page was retired
+    (pages/retired/35_Share_Watchlist.py) and never re-registered, while the
+    Watchlist page still offers "Generate Share Link" and tells the user to
+    "copy and share freely". Restoring it is real work -- the page calls
+    st.set_page_config(), which a st.navigation app only allows in app.py, and
+    it is meant to render with no account behind an app that gates on auth.
+    Tracked in tests/test_shared_links_have_a_real_host.py.
+
+    The host resolution below is correct regardless of that.
     """
     base = (
-        os.environ.get("RENDER_EXTERNAL_URL")
+        os.environ.get("APP_BASE_URL")
+        or os.environ.get("RENDER_EXTERNAL_URL")
         or "http://localhost:8501"
     ).rstrip("/")
     return f"{base}/Share_Watchlist?id={slug}"

@@ -54,7 +54,16 @@ from utils.ticker_score import SECTOR_SIGNAL_MAP
 
 _DEFAULT_FROM  = "Unstructured Alpha <onboarding@resend.dev>"
 _RESEND_URL    = "https://api.resend.com/emails"
-_SITE_URL      = os.environ.get("RENDER_EXTERNAL_URL", "https://unstructuredalpha.com")
+# Prefer an explicit APP_BASE_URL. RENDER_EXTERNAL_URL is injected by Render only
+# on WEB services -- a cron job has no public URL and never receives it -- so any
+# cron reading it silently falls through to the localhost default and ships a
+# dead link. Even where Render does set it, it carries the .onrender.com host
+# rather than the custom domain.
+_SITE_URL = (
+    os.environ.get("APP_BASE_URL")
+    or os.environ.get("RENDER_EXTERNAL_URL")
+    or "https://unstructuredalpha.com"
+).rstrip("/")
 
 
 def _resend_config() -> tuple[str, str]:

@@ -483,7 +483,13 @@ elif section == "Plan & Referrals":
                 try:
                     from utils.billing import create_portal_session
 
-                    base_url = os.environ.get("RENDER_EXTERNAL_URL", "https://unstructuredalpha.com")
+                    # Stripe returns the customer here after the portal. The old
+                    # fallback was the marketing site, where /my-profile 404s.
+                    base_url = (
+                        os.environ.get("APP_BASE_URL")
+                        or os.environ.get("RENDER_EXTERNAL_URL")
+                        or "https://app.unstructuredalpha.com"
+                    ).rstrip("/")
                     portal_url = create_portal_session(
                         customer_id,
                         return_url=f"{base_url}/my-profile",
@@ -515,7 +521,13 @@ elif section == "Plan & Referrals":
             from utils.referral import get_or_create_referral_code, get_referral_stats
 
             referral_code = get_or_create_referral_code(user["id"])
-            base_url = os.environ.get("RENDER_EXTERNAL_URL", "https://unstructuredalpha.com")
+            # This link is displayed for the user to copy and share, so the host
+            # has to be the app: ?ref= is read by Streamlit, not the marketing site.
+            base_url = (
+                os.environ.get("APP_BASE_URL")
+                or os.environ.get("RENDER_EXTERNAL_URL")
+                or "https://app.unstructuredalpha.com"
+            ).rstrip("/")
             referral_url = f"{base_url}/?ref={referral_code}"
             st.text_input(
                 "Your referral link",

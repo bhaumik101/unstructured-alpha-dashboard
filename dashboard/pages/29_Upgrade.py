@@ -37,7 +37,11 @@ inject_all_css()
 
 # ── Base URL ──────────────────────────────────────────────────────────────────
 def _base_url() -> str:
-    return os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8501").rstrip("/")
+    return (
+        os.environ.get("APP_BASE_URL")
+        or os.environ.get("RENDER_EXTERNAL_URL")
+        or "http://localhost:8501"
+    ).rstrip("/")
 
 def _page_url(path: str = "/upgrade-to-pro") -> str:
     normalized = path if path.startswith("/") else f"/{path}"
