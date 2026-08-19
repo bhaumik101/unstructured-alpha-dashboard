@@ -364,6 +364,7 @@ def _html_head(
     .badge-bull {{ background: #064E3B; color: #34D399; }}
     .badge-bear {{ background: #7F1D1D; color: #FCA5A5; }}
     .badge-neut {{ background: #1E2535; color: #6B7A95; }}
+    .badge-na   {{ background: #2A2417; color: #E0B252; }}  /* no data != neutral */
 
     .cta-block {{
       background: linear-gradient(135deg, #1A1340 0%, #0B0D12 100%);
@@ -460,6 +461,27 @@ def _latest_ticker_score(engine, score_snapshots, ticker: str) -> dict | None:
 # one query per window per process. Bounded (single entry) — no unbounded growth.
 _SIG_STATUS_CACHE: dict[str, object] = {"ts": 0.0, "val": None}
 _SIG_STATUS_TTL = 300  # seconds
+
+
+# A signal can be bullish, bearish or neutral -- or it can have no usable data.
+# Only the first three are readings. Collapsing the rest into "neutral" states a
+# market view the data does not support, which is worse than saying nothing:
+# utils/regime.py exists precisely so these numbers reconcile instead of hiding.
+_READINGS = ("bullish", "bearish", "neutral")
+
+
+def _is_reading(status: str | None) -> bool:
+    return status in _READINGS
+
+
+def _status_badge(status: str | None) -> str:
+    if status == "bullish":
+        return '<span class="badge badge-bull">&#9650; Bullish</span>'
+    if status == "bearish":
+        return '<span class="badge badge-bear">&#9660; Bearish</span>'
+    if status == "neutral":
+        return '<span class="badge badge-neut">&#9679; Neutral</span>'
+    return '<span class="badge badge-na">&#9675; No data</span>'
 
 
 def _latest_signal_statuses(engine, signal_snapshots) -> dict[str, str]:
@@ -723,14 +745,7 @@ def ticker_page(symbol: str):
     for sig_id in sorted(rel_ids):
         cfg    = SIGNALS.get(sig_id, {})
         status = rel_statuses.get(sig_id, "—")
-        if status == "bullish":
-            badge = '<span class="badge badge-bull">▲ Bullish</span>'
-        elif status == "bearish":
-            badge = '<span class="badge badge-bear">▼ Bearish</span>'
-        elif status in ("neutral", "insufficient_data"):
-            badge = '<span class="badge badge-neut">● Neutral</span>'
-        else:
-            badge = f'<span class="badge badge-neut">{status}</span>'
+        badge = _status_badge(status)
 
         signal_rows += f"""
         <tr>
@@ -849,19 +864,18 @@ def signal_page(signal_id: str):
     cur_score  = float(history[-1]["score"]) if history else None
     snap_date  = history[-1]["snapshot_date"] if history else None
 
-    if cur_status == "bullish":
-        status_badge = '<span class="badge badge-bull">▲ Bullish</span>'
-        status_word  = "bullish"
-    elif cur_status == "bearish":
-        status_badge = '<span class="badge badge-bear">▼ Bearish</span>'
-        status_word  = "bearish"
-    else:
-        status_badge = '<span class="badge badge-neut">● Neutral</span>'
-        status_word  = "neutral"
+    status_badge = _status_badge(cur_status)
+    status_word  = cur_status if _is_reading(cur_status) else None
 
     page_title = f"{sig_name} — Macro Signal Analysis — {SITE_NAME}"
+    # Only claim a reading when there is one. Saying nothing beats publishing
+    # "is currently neutral" for a signal whose data did not arrive.
+    _lede = (
+        f"{sig_name} is currently {status_word}. " if status_word
+        else f"{sig_name} has no current reading -- its latest data is unavailable. "
+    )
     seo_desc   = (
-        f"{sig_name} is currently {status_word}. "
+        f"{_lede}"
         f"{description[:160].rstrip('.')}. "
         f"Tracked by Unstructured Alpha as part of its {category} signal library."
     )
@@ -893,12 +907,7 @@ def signal_page(signal_id: str):
     history_rows = ""
     for h in reversed(history[-7:]):
         st  = h["status"]
-        if st == "bullish":
-            b = '<span class="badge badge-bull">▲ Bullish</span>'
-        elif st == "bearish":
-            b = '<span class="badge badge-bear">▼ Bearish</span>'
-        else:
-            b = '<span class="badge badge-neut">● Neutral</span>'
+        b = _status_badge(st)
         sc = f"{float(h['score']):.0f}" if h.get("score") is not None else "—"
         history_rows += f"""
         <tr>
@@ -988,22 +997,37 @@ def signals_report():
 
     bull_sigs = [(sid, SIGNALS[sid]) for sid, st in statuses.items() if st == "bullish" and sid in SIGNALS]
     bear_sigs = [(sid, SIGNALS[sid]) for sid, st in statuses.items() if st == "bearish" and sid in SIGNALS]
-    neut_sigs = [(sid, SIGNALS[sid]) for sid, st in statuses.items() if st not in ("bullish", "bearish") and sid in SIGNALS]
+    neut_sigs = [(sid, SIGNALS[sid]) for sid, st in statuses.items() if st == "neutral" and sid in SIGNALS]
+    # Everything the scorer could not read. Previously folded into neut_sigs by a
+    # `st not in ("bullish", "bearish")` catch-all, which published signals with
+    # no data as a neutral market reading -- by name, in the report's table.
+    # Keyed on SIGNALS, not on statuses. The common real case is a signal with no
+    # row in signal_snapshots at all -- live, 44 of 47 had one -- and iterating
+    # statuses would skip exactly the three that are missing, which is the
+    # silent-omission half of this bug. statuses.get() returns None for those,
+    # and None is not a reading.
+    na_sigs   = [(sid, cfg) for sid, cfg in SIGNALS.items()
+                 if not _is_reading(statuses.get(sid))]
 
-    total = len(bull_sigs) + len(bear_sigs) + len(neut_sigs) or 1
-    regime = (
-        "Bullish" if len(bull_sigs) / total >= 0.50 else
-        "Bearish" if len(bear_sigs) / total >= 0.50 else
-        "Mixed"
+    # One regime implementation for the whole product. utils/regime.py divides by
+    # signals actually scored, and derives `excluded` as total - scored so the
+    # numbers reconcile to the advertised count instead of quietly dropping
+    # whatever failed this cycle.
+    from utils.regime import compute_macro_regime
+    _regime = compute_macro_regime(
+        {sid: {"status": st} for sid, st in statuses.items() if sid in SIGNALS},
+        total=ACTIVE_SIGNAL_COUNT,
     )
-    regime_color = GREEN if regime == "Bullish" else (RED if regime == "Bearish" else AMBER)
+    regime       = _regime.label
+    regime_color = _regime.color
 
     today_str  = datetime.now(timezone.utc).strftime("%B %-d, %Y")
     page_title = f"Macro Signal Report — {today_str} — {SITE_NAME}"
     seo_desc   = (
         f"Daily macro signal report from Unstructured Alpha. As of {today_str}: "
-        f"{len(bull_sigs)} bullish, {len(bear_sigs)} bearish, {len(neut_sigs)} neutral signals. "
-        f"Overall regime: {regime}."
+        f"{len(bull_sigs)} bullish, {len(bear_sigs)} bearish, {len(neut_sigs)} neutral"
+        f"{f', {len(na_sigs)} awaiting data' if na_sigs else ''} "
+        f"of {ACTIVE_SIGNAL_COUNT} signals. Overall regime: {regime}."
     )
     canonical  = f"{BASE_URL}/signals/report"
 
@@ -1061,6 +1085,10 @@ def signals_report():
       <div class="val" style="color:{AMBER};">{len(neut_sigs)}</div>
       <div class="lbl">Neutral</div>
     </div>
+    {f'<div class="signal-stat"><div class="val" style="color:#E0B252;">{len(na_sigs)}</div><div class="lbl">Awaiting data</div></div>' if na_sigs else ''}
+  </div>
+  <div style="color:#6B7A95;font-size:0.78rem;margin-top:6px;">
+    {len(bull_sigs) + len(bear_sigs) + len(neut_sigs)} of {ACTIVE_SIGNAL_COUNT} signals scored this cycle.
   </div>
 
   {"<div class='section-head'>Bullish Signals (" + str(len(bull_sigs)) + ")</div><table class='signal-table'><thead><tr><th>Signal</th><th>Category</th><th>Status</th></tr></thead><tbody>" + _sig_rows(bull_sigs, "badge-bull", "▲ Bullish") + "</tbody></table>" if bull_sigs else ""}
@@ -1068,6 +1096,8 @@ def signals_report():
   {"<div class='section-head'>Bearish Signals (" + str(len(bear_sigs)) + ")</div><table class='signal-table'><thead><tr><th>Signal</th><th>Category</th><th>Status</th></tr></thead><tbody>" + _sig_rows(bear_sigs, "badge-bear", "▼ Bearish") + "</tbody></table>" if bear_sigs else ""}
 
   {"<div class='section-head'>Neutral Signals (" + str(len(neut_sigs)) + ")</div><table class='signal-table'><thead><tr><th>Signal</th><th>Category</th><th>Status</th></tr></thead><tbody>" + _sig_rows(neut_sigs, "badge-neut", "● Neutral") + "</tbody></table>" if neut_sigs else ""}
+
+  {"<div class='section-head'>Awaiting Data (" + str(len(na_sigs)) + ")</div><div style='color:#6B7A95;font-size:0.80rem;margin:-6px 0 10px;'>These signals have no usable reading in the latest scoring cycle. They are excluded from the regime calculation rather than counted as neutral.</div><table class='signal-table'><thead><tr><th>Signal</th><th>Category</th><th>Status</th></tr></thead><tbody>" + _sig_rows(na_sigs, "badge-na", "○ No data") + "</tbody></table>" if na_sigs else ""}
 
   <div class="cta-block">
     <h2>Get the Full Signal Dashboard</h2>

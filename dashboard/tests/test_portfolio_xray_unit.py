@@ -26,9 +26,32 @@ _SIGNAL_FACTOR = {
 }
 _tax.factor_family_of = lambda s: _SIGNAL_FACTOR.get(s, "growth")
 _tax.factor_family_name = lambda f: (_tax.FACTOR_FAMILIES.get(f) or {}).get("name", f.replace("_", " ").title())
+import utils as _utils_pkg
+_real_tax_mod  = sys.modules.get("utils.taxonomy")
+_real_tax_attr = getattr(_utils_pkg, "taxonomy", None)
 sys.modules["utils.taxonomy"] = _tax
+_utils_pkg.taxonomy = _tax
 
 from utils import portfolio_xray as px  # noqa: E402
+
+# Put the real utils.taxonomy back. px.taxonomy stays bound to the stub
+# above -- that is the point of it -- but leaving the stub in sys.modules AND on
+# the utils package object poisons every module imported later in the same
+# xdist worker. It surfaced as seo/main.py failing to collect with
+# "cannot import name 'category_display' from 'utils.taxonomy' (unknown
+# location)", which reads like a path bug and is not one.
+if _real_tax_mod is not None:
+    sys.modules["utils.taxonomy"] = _real_tax_mod
+else:
+    sys.modules.pop("utils.taxonomy", None)
+if _real_tax_attr is not None:
+    _utils_pkg.taxonomy = _real_tax_attr
+else:
+    try:
+        del _utils_pkg.taxonomy
+    except AttributeError:
+        pass
+
 
 
 def _H(t, sec, corr, scr, score):

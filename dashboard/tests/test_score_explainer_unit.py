@@ -44,9 +44,32 @@ _TAXNAMES = {"credit": "Credit", "capex_tech": "Capex & Technology", "rates": "R
              "energy": "Energy", "volatility": "Volatility & Positioning", "growth": "Growth"}
 _tax.factor_family_of = lambda s: _TAXMAP.get(s, "growth")
 _tax.factor_family_name = lambda f: _TAXNAMES.get(f, f.replace("_", " ").title())
+import utils as _utils_pkg
+_real_tax_mod  = sys.modules.get("utils.taxonomy")
+_real_tax_attr = getattr(_utils_pkg, "taxonomy", None)
 sys.modules["utils.taxonomy"] = _tax
+_utils_pkg.taxonomy = _tax
 
 from utils import score_explainer as se  # noqa: E402
+
+# Put the real utils.taxonomy back. se.taxonomy stays bound to the stub
+# above -- that is the point of it -- but leaving the stub in sys.modules AND on
+# the utils package object poisons every module imported later in the same
+# xdist worker. It surfaced as seo/main.py failing to collect with
+# "cannot import name 'category_display' from 'utils.taxonomy' (unknown
+# location)", which reads like a path bug and is not one.
+if _real_tax_mod is not None:
+    sys.modules["utils.taxonomy"] = _real_tax_mod
+else:
+    sys.modules.pop("utils.taxonomy", None)
+if _real_tax_attr is not None:
+    _utils_pkg.taxonomy = _real_tax_attr
+else:
+    try:
+        del _utils_pkg.taxonomy
+    except AttributeError:
+        pass
+
 
 
 # ── 1. Band labels ───────────────────────────────────────────────────────────
