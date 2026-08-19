@@ -23,9 +23,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 from datetime import datetime, timedelta, timezone
+from html import escape as _esc   # the brief body is model-written prose from
+                                  # the DB, not static config -- it is the one
+                                  # thing on these pages that must be escaped
 from pathlib import Path
 
 # ── sys.path: ensure dashboard/ is importable ─────────────────────────────────
@@ -625,7 +629,19 @@ def sitemap_xml():
     urls = [
         f"  <url><loc>{BASE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>",
         f"  <url><loc>{BASE_URL}/signals/report</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>",
+        f"  <url><loc>{BASE_URL}/brief</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>",
     ]
+    try:
+        engine, _, _ = _get_engine()
+        for _n in _brief_rows(engine):
+            urls.append(
+                f"  <url><loc>{BASE_URL}/brief/{_n['id']}</loc>"
+                f"<lastmod>{str(_n['note_date'])[:10]}</lastmod>"
+                f"<changefreq>monthly</changefreq><priority>0.6</priority></url>"
+            )
+    except Exception:
+        pass  # a sitemap missing the archive still beats a 500
+
     for symbol in sorted(TICKERS.keys()):
         urls.append(
             f"  <url><loc>{BASE_URL}/ticker/{symbol}</loc>"
@@ -988,6 +1004,144 @@ def signal_page(signal_id: str):
     return html
 
 
+# ── Weekly brief ──────────────────────────────────────────────────────────────
+# macro_narratives holds the generated weekly note: a 550-700 word macro read
+# ending in a "Bottom Line:" paragraph. It was previously reachable only by
+# email, and #162 had to strip a "continue reading" link because the page it
+# promised existed solely in an undeployed copy of this service.
+
+_BRIEF_CACHE: dict = {}
+_BRIEF_TTL = 900
+
+
+def _brief_rows(engine, limit: int = 12) -> list[dict]:
+    """Most recent notes, newest first. Cached process-locally."""
+    import time as _t
+    now = _t.time()
+    hit = _BRIEF_CACHE.get("rows")
+    if hit is not None and (now - float(_BRIEF_CACHE["ts"])) < _BRIEF_TTL:
+        return hit
+    from sqlalchemy import text
+    try:
+        with engine.begin() as conn:
+            rows = conn.execute(text("""
+                SELECT id, note_date, regime, headline, body, bull_count, bear_count
+                FROM macro_narratives
+                WHERE note_date IS NOT NULL AND body IS NOT NULL
+                ORDER BY note_date DESC
+                LIMIT :lim
+            """), {"lim": limit}).mappings().fetchall()
+        out = [dict(r) for r in rows]
+        _BRIEF_CACHE["ts"], _BRIEF_CACHE["rows"] = now, out
+        return out
+    except Exception:
+        return hit if hit is not None else []
+
+
+def _brief_paragraphs(body: str) -> list[str]:
+    return [p.strip() for p in (body or "").split("\n\n") if p.strip()]
+
+
+def _brief_date(note_date) -> str:
+    try:
+        return datetime.strptime(str(note_date)[:10], "%Y-%m-%d").strftime("%B %-d, %Y")
+    except Exception:
+        return str(note_date)[:10]
+
+
+def _render_brief(note: dict, archive: list[dict]) -> str:
+    """One note, plus links to the others. Shared by /brief and /brief/{id}."""
+    paras   = _brief_paragraphs(note.get("body"))
+    date_s  = _brief_date(note.get("note_date"))
+    regime  = note.get("regime") or "MIXED / TRANSITION"
+    bull    = note.get("bull_count") or 0
+    bear    = note.get("bear_count") or 0
+    head    = note.get("headline") or "Weekly Macro Signal Brief"
+
+    body_html = ""
+    for para in paras:
+        # The closing paragraph is the actionable one; give it the emphasis the
+        # email version gives it rather than burying it in the run of text.
+        if para.lower().startswith("bottom line"):
+            body_html += (
+                f'<p style="color:#E8EEFF;font-size:1.02rem;line-height:1.8;'
+                f'margin:26px 0 16px;padding:14px 0 14px 18px;'
+                f'border-left:3px solid {BRAND_COLOR};">{_esc(para)}</p>'
+            )
+        else:
+            body_html += (
+                f'<p style="color:#B8C0D4;font-size:1.02rem;line-height:1.8;'
+                f'margin:0 0 16px;">{_esc(para)}</p>'
+            )
+
+    arch_html = ""
+    if archive:
+        items = "".join(
+            f'<tr><td style="white-space:nowrap;color:#6B7A95;font-size:0.80rem;">'
+            f'{_brief_date(r["note_date"])}</td>'
+            f'<td><a href="{BASE_URL}/brief/{r["id"]}" style="color:#B8C0D4;">'
+            f'{_esc(r.get("headline") or "Weekly Macro Signal Brief")}</a></td></tr>'
+            for r in archive
+        )
+        arch_html = (
+            '<div class="section-head">Earlier Briefs</div>'
+            f'<table class="signal-table"><tbody>{items}</tbody></table>'
+        )
+
+    page_title = f"{head} — Weekly Macro Brief — {SITE_NAME}"
+    seo_desc = (
+        f"{date_s}: {head} Regime {regime}, {bull} bullish and {bear} bearish "
+        f"signals of {ACTIVE_SIGNAL_COUNT}. Read the full macro brief."
+    )
+    canonical = f"{BASE_URL}/brief/{note['id']}" if note.get("id") else f"{BASE_URL}/brief"
+    json_ld = f"""<script type="application/ld+json">
+{{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": {json.dumps(head)},
+  "datePublished": {json.dumps(str(note.get("note_date"))[:10])},
+  "author": {{"@type": "Organization", "name": {json.dumps(SITE_NAME)}}},
+  "publisher": {{"@type": "Organization", "name": {json.dumps(SITE_NAME)}}},
+  "mainEntityOfPage": {json.dumps(canonical)}
+}}
+</script>"""
+
+    html = _html_head(page_title, seo_desc, canonical, json_ld)
+    html += f"""
+<div class="container">
+  <div class="hero">
+    <div class="hero-eyebrow">Weekly Macro Brief &middot; {date_s}</div>
+    <h1 class="hero-name">{_esc(head)}</h1>
+    <div style="margin-top:10px;color:#6B7A95;font-size:0.86rem;">
+      Regime <strong style="color:#B8C0D4;">{_esc(regime)}</strong>
+      &nbsp;&middot;&nbsp; {bull} bullish &nbsp;&middot;&nbsp; {bear} bearish
+      &nbsp;of {ACTIVE_SIGNAL_COUNT} signals
+    </div>
+  </div>
+
+  <div style="max-width:720px;">
+    {body_html}
+  </div>
+
+  {arch_html}
+
+  <div class="cta-block">
+    <h2>See the signals behind this brief</h2>
+    <p>
+      Every claim above is derived from {ACTIVE_SIGNAL_COUNT} macro signals scored
+      against public data from FRED, SEC EDGAR, FINRA, EIA and CBOE. The daily
+      report shows each one, including the ones with no reading.
+    </p>
+    <a class="cta-btn" href="{BASE_URL}/signals/report">
+      Open the signal report &rarr;
+    </a>
+  </div>
+</div>
+"""
+    html += _html_foot()
+    return html
+
+
 @app.get("/signals/report", response_class=HTMLResponse)
 def signals_report():
     TICKERS, SIGNALS = _get_config()
@@ -1113,6 +1267,34 @@ def signals_report():
 """
     html += _html_foot()
     return html
+
+
+@app.get("/brief", response_class=HTMLResponse)
+def brief_latest():
+    engine, _, _ = _get_engine()
+    rows = _brief_rows(engine)
+    if not rows:
+        return HTMLResponse(
+            _html_head("Weekly Macro Brief — " + SITE_NAME,
+                       "The weekly macro brief has not been published yet.",
+                       f"{BASE_URL}/brief")
+            + '<div class="container"><div class="hero"><h1 class="hero-name">'
+              'No brief published yet</h1><div style="color:#6B7A95;margin-top:10px;">'
+              'The weekly note is generated each Sunday. Check back shortly.</div>'
+              '</div></div>' + _html_foot(),
+            status_code=503,
+        )
+    return _render_brief(rows[0], rows[1:7])
+
+
+@app.get("/brief/{note_id}", response_class=HTMLResponse)
+def brief_by_id(note_id: int):
+    engine, _, _ = _get_engine()
+    rows = _brief_rows(engine)
+    note = next((r for r in rows if int(r["id"]) == int(note_id)), None)
+    if note is None:
+        raise HTTPException(status_code=404, detail="Brief not found")
+    return _render_brief(note, [r for r in rows if int(r["id"]) != int(note_id)][:6])
 
 
 if __name__ == "__main__":
