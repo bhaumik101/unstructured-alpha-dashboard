@@ -48,7 +48,16 @@ _ADMIN_EMAILS: list[str] = [
     if e.strip()
 ]
 
-_BASE_URL = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8501").rstrip("/")
+# Prefer an explicit APP_BASE_URL. RENDER_EXTERNAL_URL is injected by Render only
+# on WEB services -- a cron job has no public URL and never receives it -- so any
+# cron reading it silently falls through to the localhost default and ships a
+# dead link. Even where Render does set it, it carries the .onrender.com host
+# rather than the custom domain.
+_BASE_URL = (
+    os.environ.get("APP_BASE_URL")
+    or os.environ.get("RENDER_EXTERNAL_URL")
+    or "http://localhost:8501"
+).rstrip("/")
 
 
 # ── Recipient lookup ──────────────────────────────────────────────────────────

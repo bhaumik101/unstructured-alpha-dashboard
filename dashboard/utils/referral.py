@@ -29,9 +29,18 @@ from sqlalchemy import select, update
 
 from utils.db import engine, users, referrals
 
-# Base URL used to build referral links. Matches the Render external URL in
-# production; falls back to localhost so local dev links are still usable.
-_BASE_URL = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8501").rstrip("/")
+# Base URL used to build referral links -- these are shared publicly by users,
+# so a wrong host here is an acquisition bug, not a cosmetic one.
+# Prefer an explicit APP_BASE_URL. RENDER_EXTERNAL_URL is injected by Render only
+# on WEB services -- a cron job has no public URL and never receives it -- so any
+# cron reading it silently falls through to the localhost default and ships a
+# dead link. Even where Render does set it, it carries the .onrender.com host
+# rather than the custom domain.
+_BASE_URL = (
+    os.environ.get("APP_BASE_URL")
+    or os.environ.get("RENDER_EXTERNAL_URL")
+    or "http://localhost:8501"
+).rstrip("/")
 _UPGRADE_PATH = "/upgrade-to-pro"
 
 
