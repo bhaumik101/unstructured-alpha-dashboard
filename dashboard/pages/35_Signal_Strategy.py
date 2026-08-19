@@ -23,12 +23,15 @@ from utils.theme import inject_all_css, PLOTLY_CONFIG
 
 st.set_page_config(page_title="Signal Strategy | Unstructured Alpha", layout="wide")
 from utils.billing import require_pro
-require_pro(
-    "Signal Backtester",
-    "Test configurable signal thresholds with point-in-time rules, costs, and benchmark comparisons.",
-)
+# Gate AFTER the chrome: ahead of it the upgrade wall replaces the whole page.
 inject_all_css()
 render_header()
+require_pro(
+    # "Signal Backtester" was the retired page's name; this one is Signal
+    # Strategy everywhere else, including the emails rewritten in #164.
+    "Signal Strategy",
+    "Test configurable signal thresholds with point-in-time rules, costs, and benchmark comparisons.",
+)
 _strategy_section = render_sidebar_base(
     page_title="Signal Strategy",
     sections=("Performance Summary", "Equity Curve", "Signal Scores", "Methodology"),
