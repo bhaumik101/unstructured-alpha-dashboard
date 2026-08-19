@@ -989,7 +989,7 @@ st.markdown("""
 # ── WHO THIS IS FOR ───────────────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center;margin:8px 0 20px;font-family:Inter,sans-serif;">
-    <div style="font-size:0.57rem;letter-spacing:0.18em;font-weight:700;color:var(--ua-purple);margin-bottom:8px;">
+    <div style="font-size:0.57rem;letter-spacing:0.18em;font-weight:700;color:var(--ua-purple-text);margin-bottom:8px;">
         WHO IS THIS FOR?
     </div>
     <div style="font-size:1.35rem;font-weight:800;color:var(--ua-ink);letter-spacing:-0.5px;">
@@ -1400,7 +1400,7 @@ st.markdown("""
             border:1px solid rgba(var(--ua-purple-rgb),0.2);
             border-radius:16px;padding:32px 36px;margin:8px 0 32px;
             font-family:Inter,sans-serif;text-align:center;">
-    <div style="font-size:0.60rem;letter-spacing:0.18em;color:var(--ua-purple);margin-bottom:12px;
+    <div style="font-size:0.60rem;letter-spacing:0.18em;color:var(--ua-purple-text);margin-bottom:12px;
                 font-weight:700;">THE EDGE ISN'T THE DATA — IT'S KNOWING WHICH SIGNALS TO WATCH</div>
     <div style="font-size:1.3rem;font-weight:800;color:var(--ua-ink);max-width:640px;margin:0 auto;
                 line-height:1.4;letter-spacing:-0.3px;">

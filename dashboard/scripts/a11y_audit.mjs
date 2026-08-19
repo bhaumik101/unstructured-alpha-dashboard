@@ -53,10 +53,23 @@ const DEFAULTS = [
   `${APP}/today-s-brief`,
 ];
 
-// A page is "rendered" once the main block carries real copy and the boot splash
-// has lifted. 3000 chars is above the ~1,200-char chrome-only baseline (nav +
-// 33 proxy links + ticker tape) so an empty page cannot pass this check.
-const MIN_CHARS = 3000;
+// A page is "rendered" once the boot splash has lifted and the main block
+// carries copy of its own.
+//
+// The first version demanded 3,000 chars, which measured the wrong thing. On a
+// full 32-route sweep that disqualified 13 pages that HAD rendered -- every Pro
+// gate and auth wall (~1,700 chars: chrome plus an upgrade panel) plus four
+// real content pages sitting at 2,383-2,988. Their axe results were discarded
+// as "no data", including four genuine contrast failures on /sector-view.
+//
+// A gate is not a failure to render. It is what an anonymous visitor actually
+// sees, which makes it one of the more important surfaces to audit, not one to
+// throw away. So the bar is the chrome-only baseline (~1,200: nav + 33 proxy
+// links + ticker tape) plus a margin, and the page reports WHICH state it
+// reached rather than a bare pass/fail.
+const CHROME_BASELINE = 1200;
+const MIN_CHARS = 1400;   // chrome + something of the page's own
+const FULL_PAGE_CHARS = 3000;   // enough copy to be a populated content page
 const SETTLE_TRIES = 40;
 const SETTLE_MS = 3000;
 
@@ -94,7 +107,7 @@ for (const url of urls) {
     const r = await settle((min) => {
       const m = document.querySelector('[data-testid="stMain"]') || document.body;
       return (m.innerText || "").length > min && !document.getElementById("ua-boot-splash");
-    }, MIN_CHARS);
+    }, FULL_PAGE_CHARS);
     rendered = r === true;
     if (rendered) break;
     await new Promise((r) => setTimeout(r, SETTLE_MS));
@@ -126,11 +139,20 @@ for (const url of urls) {
   });
 
   const nodes = res.violations.reduce((a, v) => a + v.n, 0);
-  worstNodes = Math.max(worstNodes, nodes);
+  // A state, not a boolean. "gate" is a real surface with real results; only
+  // "empty" means the numbers below are meaningless.
+  const state = diag.chars >= FULL_PAGE_CHARS ? "full"
+              : diag.chars >= MIN_CHARS       ? "gate"
+              : "empty";
+  if (state !== "empty") worstNodes = Math.max(worstNodes, nodes);
   console.log(`\n=== ${url}`);
   console.log(
-    `    rendered=${rendered}  chars=${diag.chars}  theme=${diag.theme}` +
-      (rendered ? "" : "   << NO DATA — page did not render, ignore the result below"),
+    `    state=${state}  settled=${rendered}  chars=${diag.chars}  theme=${diag.theme}` +
+      (state === "empty"
+        ? `   << NO DATA — under the ~${CHROME_BASELINE}-char chrome baseline, ignore the result below`
+        : state === "gate"
+          ? "   (gate/auth wall — real surface, results count)"
+          : ""),
   );
   console.log(
     `    ${res.violations.length} violation types, ${nodes} nodes | ` +

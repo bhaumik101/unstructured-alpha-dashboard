@@ -41,7 +41,7 @@ if _about_section == "Overview":
 <div style="background:linear-gradient(135deg,rgba(var(--ua-purple-rgb),0.10),rgba(var(--ua-cyan-rgb),0.05));
      border:1px solid rgba(var(--ua-purple-rgb),0.22);border-radius:16px;padding:26px 28px;
      margin-bottom:20px;font-family:Inter,sans-serif;">
-  <div style="font-size:0.62rem;color:var(--ua-purple);font-weight:750;letter-spacing:0.14em;
+  <div style="font-size:0.62rem;color:var(--ua-purple-text);font-weight:750;letter-spacing:0.14em;
        text-transform:uppercase;margin-bottom:10px;">Research context, not a prediction engine</div>
   <div style="font-size:1.18rem;font-weight:720;color:var(--ua-ink);line-height:1.45;
        max-width:920px;margin-bottom:10px;">
@@ -198,7 +198,7 @@ if _about_section == "Overview":
         """
 <div style="margin:24px 0 8px;padding:18px 20px;background:rgba(var(--ua-card-rgb),0.58);
      border:1px solid rgba(var(--ua-onbg-rgb),0.08);border-radius:12px;font-family:Inter,sans-serif;">
-  <div style="font-size:0.62rem;color:var(--ua-purple);font-weight:750;letter-spacing:0.12em;
+  <div style="font-size:0.62rem;color:var(--ua-purple-text);font-weight:750;letter-spacing:0.12em;
        text-transform:uppercase;margin-bottom:7px;">Built by Bhaumik Giri</div>
   <div style="font-size:0.79rem;color:var(--ua-ink-mut);line-height:1.7;">
     Unstructured Alpha is an independent product built to make institutional-style evidence
