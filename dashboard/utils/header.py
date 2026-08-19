@@ -64,6 +64,12 @@ _CSS = """
     --ua-green:      #00D566;
     --ua-cyan:       #00C8E0;
     --ua-purple:     #7C3AED;
+    /* Purple as TEXT, not as a surface. #7C3AED is the brand and stays the
+       brand for buttons, borders and fills -- but as small type on a dark card
+       it measures 3.26:1 (axe, /about-methodology, 9.76px bold), and WCAG only
+       relaxes to 3:1 above 18.66px bold. #A78BFA is the lighter purple the
+       emails already use, at 6.82:1 on #10131b. */
+    --ua-purple-text: #A78BFA;
     --ua-red:        #FF4444;
     --ua-amber:      #F59E0B;
     --ua-text-hi:    #E7EAF0;
@@ -237,6 +243,8 @@ html[data-ua-theme="light"] {
     --ua-green:      #087443;
     --ua-cyan:       #076879;
     --ua-purple:     #5724B3;
+    /* On a near-white ground the brand purple is already the readable one. */
+    --ua-purple-text: #5724B3;
     --ua-red:        #B01F2A;
     --ua-amber:      #8C3C05;
     /* Triples must match the hexes above, or a tint and its solid disagree. */

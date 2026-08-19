@@ -1107,7 +1107,7 @@ if section == "Overview":
                 <div style="background:rgba(var(--ua-purple-rgb),0.06);border:1px solid rgba(var(--ua-purple-rgb),0.20);
                             border-left:4px solid var(--ua-purple);border-radius:0 10px 10px 0;
                             padding:16px 20px;margin:0 0 20px;font-family:Inter,sans-serif;">
-                  <div style="font-size:0.60rem;font-weight:700;color:var(--ua-purple);
+                  <div style="font-size:0.60rem;font-weight:700;color:var(--ua-purple-text);
                               letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">
                     AI SIGNAL INTERPRETATION — PRO
                   </div>
@@ -1126,7 +1126,7 @@ if section == "Overview":
                         border-left:4px solid rgba(var(--ua-purple-rgb),0.4);border-radius:0 10px 10px 0;
                         padding:16px 20px;margin:0 0 20px;font-family:Inter,sans-serif;
                         position:relative;overflow:hidden;">
-              <div style="font-size:0.60rem;font-weight:700;color:var(--ua-purple);
+              <div style="font-size:0.60rem;font-weight:700;color:var(--ua-purple-text);
                           letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">
                 AI SIGNAL INTERPRETATION — PRO
               </div>
