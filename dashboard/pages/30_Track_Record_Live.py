@@ -117,7 +117,17 @@ if _track_section == "Signal Track Record":
     _pending  = _tr["pending"]
     _acc_4w   = _tr["accuracy_4w"]
     _acc_12w  = _tr["accuracy_12w"]
-    _med_12w  = _tr["median_ret_12w"]
+    _n_4w     = _tr["n_4w"]
+
+    # Report the longest horizon that has actually produced outcomes. Fixing the
+    # headline to 12w meant the page read empty for the first twelve weeks of a
+    # call's life even though its 4-week result was already known and stored.
+    _pnl_h, _pnl, _pnl_n = None, None, 0
+    for _h in ("12w", "8w", "4w"):
+        if _tr.get(f"mean_pnl_{_h}") is not None:
+            _pnl_h, _pnl, _pnl_n = _h, _tr[f"mean_pnl_{_h}"], _tr[f"n_{_h}"]
+            break
+    _pnl_pos = (_pnl or 0) >= 0
 
     st.html(f"""
     <div class="ua-gradient-border" style="margin-bottom:24px;">
@@ -130,7 +140,7 @@ if _track_section == "Signal Track Record":
           <div style="font-size:2.2rem;font-weight:900;color:{CYAN};
                       text-shadow:0 0 24px {CYAN}45;line-height:1;">{_total}</div>
           <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">
-            {_resolved} resolved · {_pending} pending
+            {_resolved} fully resolved · {_pending} still maturing
           </div>
         </div>
 
@@ -143,7 +153,8 @@ if _track_section == "Signal Track Record":
             {"—" if _acc_4w is None else f"{_acc_4w:.0f}%"}
           </div>
           <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">
-            {"not enough resolved data yet" if _acc_4w is None else "direction correct"}
+            {"no call has reached 4 weeks yet" if _acc_4w is None
+             else f"direction correct · {_n_4w} call{'' if _n_4w == 1 else 's'}"}
           </div>
         </div>
 
@@ -163,14 +174,18 @@ if _track_section == "Signal Track Record":
         <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{PURPLE};
              flex:1;min-width:130px;text-align:center;padding:18px 16px;">
           <div style="font-size:0.58rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;
-                      letter-spacing:0.12em;margin-bottom:6px;">Median 12w Return</div>
+                      letter-spacing:0.12em;margin-bottom:6px;">
+            Return Per Call{"" if _pnl_h is None else f" · {_pnl_h}"}</div>
           <div style="font-size:2.2rem;font-weight:900;
-                      color:{"var(--ua-green)" if (_med_12w or 0) >= 0 else "var(--ua-red)"};
-                      text-shadow:0 0 24px {"rgba(var(--ua-green-rgb),0.27)" if (_med_12w or 0) >= 0 else "rgba(var(--ua-red-rgb),0.27)"};
+                      color:{"var(--ua-green)" if _pnl_pos else "var(--ua-red)"};
+                      text-shadow:0 0 24px {"rgba(var(--ua-green-rgb),0.27)" if _pnl_pos else "rgba(var(--ua-red-rgb),0.27)"};
                       line-height:1;">
-            {"—" if _med_12w is None else f"{_med_12w:+.1f}%"}
+            {"—" if _pnl is None else f"{_pnl:+.1f}%"}
           </div>
-          <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">on resolved calls</div>
+          <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">
+            {"no outcomes yet" if _pnl is None
+             else f"equal-weight, short counted as gain · {_pnl_n} call{'' if _pnl_n == 1 else 's'}"}
+          </div>
         </div>
 
       </div>

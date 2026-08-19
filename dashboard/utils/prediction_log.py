@@ -293,6 +293,8 @@ def resolve_pending(max_resolve: int = 20) -> int:
         return 0
 
     resolved_count = 0
+    partial_count = 0
+    failures: dict[str, int] = {}
     now_iso = datetime.now(timezone.utc).isoformat()
 
     for row in pending:
@@ -330,7 +332,14 @@ def resolve_pending(max_resolve: int = 20) -> int:
                 updates[col_r] = round(ret, 2)
                 updates[col_c] = correct
 
+            if not updates:
+                # Overdue by the 4-week filter above, yet no horizon produced a
+                # price. Almost always a ticker yfinance returned nothing for.
+                failures["no price in window"] = failures.get("no price in window", 0) + 1
+
             if updates:
+                if not all_resolved:
+                    partial_count += 1
                 updates["status"] = "resolved" if all_resolved else "pending"
                 with db.engine.begin() as conn:
                     conn.execute(
@@ -352,32 +361,67 @@ def resolve_pending(max_resolve: int = 20) -> int:
                             ticker=ticker,
                             direction=direction,
                         )
-        except Exception:
+        except Exception as exc:
+            # Was a bare `continue`. A row that fails here is indistinguishable
+            # from one that is still maturing: it stays pending forever and the
+            # cron reports resolved=0 with no reason. Name the failure instead.
+            key = f"{type(exc).__name__}: {str(exc)[:60]}"
+            failures[key] = failures.get(key, 0) + 1
             continue
+
+    # The cron's only output used to be resolved=N, which is 0 both when there
+    # was nothing to do and when every row blew up.
+    print(
+        f"[resolve] examined={len(pending)} fully_resolved={resolved_count} "
+        f"partial={partial_count} failed={sum(failures.values())}",
+        flush=True,
+    )
+    for reason, n in sorted(failures.items(), key=lambda kv: -kv[1]):
+        print(f"[resolve]   {n:>4}  {reason}", flush=True)
 
     return resolved_count
 
 
 # ── Track Record ──────────────────────────────────────────────────────────────
 
+def _signed_return(row: dict, field: str) -> float | None:
+    """The return the CALL earned, not the price move.
+
+    A bear call on a stock that fell 8% made +8%. Aggregating raw price moves
+    across a mixed book measures whether prices rose, which is not a question
+    anyone asked -- and it drags the headline negative every time a bear call is
+    right. Sign-adjusting by direction is what turns these rows into P&L.
+    """
+    ret = row.get(field)
+    if ret is None:
+        return None
+    return float(ret) if row.get("direction") == "bull" else -float(ret)
+
+
 def get_track_record() -> dict:
     """
-    Aggregate accuracy stats across all resolved predictions.
+    Aggregate outcome stats across every prediction with a realized horizon.
 
-    Returns:
-        {
-            "total":        int,
-            "resolved":     int,
-            "pending":      int,
-            "accuracy_4w":  float | None,   # % correct at 4-week horizon
-            "accuracy_8w":  float | None,
-            "accuracy_12w": float | None,
-            "median_ret_4w":  float | None,
-            "median_ret_8w":  float | None,
-            "median_ret_12w": float | None,
-            "by_type":      dict,           # event_type → {accuracy, count}
-            "recent":       list[dict],     # last 10 resolved predictions
-        }
+    HORIZONS RESOLVE INDEPENDENTLY
+    ------------------------------
+    resolve_pending() fills 4w/8w/12w columns as each window expires, but only
+    flips status to "resolved" once ALL THREE have. This function used to read
+    only status == "resolved" rows, so a call whose 4-week outcome was known and
+    stored stayed invisible for the following eight weeks -- the page reported
+    "0 resolved" and "not enough resolved data yet" while the data sat in the
+    table. Every horizon is now counted from the rows that actually have it.
+
+    That also fixes a quieter misstatement: accuracy_4w was previously computed
+    only over calls old enough to have 12-week data, so the "4-week" number
+    silently excluded every recent call.
+
+    Returns, per horizon h in (4w, 8w, 12w):
+        "n_{h}"           int          rows with a realized outcome at h
+        "accuracy_{h}"    float|None   % where direction was right
+        "median_ret_{h}"  float|None   median raw price move
+        "median_pnl_{h}"  float|None   median direction-adjusted return
+        "mean_pnl_{h}"    float|None   equal-weight book return
+    plus total / resolved / pending / by_type / recent.
     """
     try:
         with db.engine.begin() as conn:
@@ -392,54 +436,64 @@ def get_track_record() -> dict:
     if not rows:
         return _empty_track_record()
 
+    import statistics
+
     total    = len(rows)
     resolved = [r for r in rows if r["status"] == "resolved"]
     pending  = [r for r in rows if r["status"] == "pending"]
 
-    def _accuracy(field: str) -> float | None:
-        vals = [r[field] for r in resolved if r.get(field) is not None]
-        return round(100 * sum(vals) / len(vals), 1) if vals else None
+    out: dict = {
+        "total":    total,
+        "resolved": len(resolved),
+        "pending":  len(pending),
+    }
 
-    def _median_ret(field: str) -> float | None:
-        import statistics
-        vals = [r[field] for r in resolved if r.get(field) is not None]
-        return round(statistics.median(vals), 2) if vals else None
+    for h in ("4w", "8w", "12w"):
+        # Presence of the outcome column, not the row's overall status.
+        have = [r for r in rows if r.get(f"correct_{h}") is not None]
+        rets = [r for r in rows if r.get(f"return_{h}") is not None]
+        pnls = [v for v in (_signed_return(r, f"return_{h}") for r in rets) if v is not None]
 
-    # By event type
+        out[f"n_{h}"]          = len(have)
+        out[f"accuracy_{h}"]   = (
+            round(100 * sum(int(r[f"correct_{h}"]) for r in have) / len(have), 1)
+            if have else None
+        )
+        out[f"median_ret_{h}"] = (
+            round(statistics.median(float(r[f"return_{h}"]) for r in rets), 2) if rets else None
+        )
+        out[f"median_pnl_{h}"] = round(statistics.median(pnls), 2) if pnls else None
+        out[f"mean_pnl_{h}"]   = round(sum(pnls) / len(pnls), 2) if pnls else None
+
+    # By event type, at the horizon most calls actually have.
     by_type: dict[str, dict] = {}
-    for r in resolved:
+    for r in rows:
+        if r.get("correct_12w") is None:
+            continue
         et = r["event_type"]
-        if et not in by_type:
-            by_type[et] = {"correct_12w": [], "count": 0}
+        by_type.setdefault(et, {"correct_12w": [], "count": 0})
         by_type[et]["count"] += 1
-        if r.get("correct_12w") is not None:
-            by_type[et]["correct_12w"].append(r["correct_12w"])
+        by_type[et]["correct_12w"].append(int(r["correct_12w"]))
     for et, d in by_type.items():
         vals = d.pop("correct_12w")
         d["accuracy_12w"] = round(100 * sum(vals) / len(vals), 1) if vals else None
 
-    return {
-        "total":          total,
-        "resolved":       len(resolved),
-        "pending":        len(pending),
-        "accuracy_4w":    _accuracy("correct_4w"),
-        "accuracy_8w":    _accuracy("correct_8w"),
-        "accuracy_12w":   _accuracy("correct_12w"),
-        "median_ret_4w":  _median_ret("return_4w"),
-        "median_ret_8w":  _median_ret("return_8w"),
-        "median_ret_12w": _median_ret("return_12w"),
-        "by_type":        by_type,
-        "recent":         resolved[:10],
-    }
+    out["by_type"] = by_type
+    # Anything with a realized outcome belongs in the recent list, not only the
+    # calls that have run the full twelve weeks.
+    out["recent"] = [r for r in rows if r.get("correct_4w") is not None][:10]
+    return out
 
 
 def _empty_track_record() -> dict:
-    return {
-        "total": 0, "resolved": 0, "pending": 0,
-        "accuracy_4w": None, "accuracy_8w": None, "accuracy_12w": None,
-        "median_ret_4w": None, "median_ret_8w": None, "median_ret_12w": None,
-        "by_type": {}, "recent": [],
-    }
+    out: dict = {"total": 0, "resolved": 0, "pending": 0, "by_type": {}, "recent": []}
+    for h in ("4w", "8w", "12w"):
+        out[f"n_{h}"] = 0
+        out[f"accuracy_{h}"] = None
+        out[f"median_ret_{h}"] = None
+        out[f"median_pnl_{h}"] = None
+        out[f"mean_pnl_{h}"] = None
+    return out
 
 
 # ── Notification helpers ──────────────────────────────────────────────────────
@@ -540,7 +594,11 @@ def get_signal_accuracy_stats() -> list[dict]:
         with db.engine.begin() as conn:
             rows = conn.execute(
                 select(prediction_log)
-                .where(prediction_log.c.status == "resolved")
+                # Not status == "resolved": that flips only once all three
+                # horizons expire, so per-signal 4w accuracy stayed empty for
+                # eight weeks after the 4w outcome was known and stored. The
+                # per-horizon accumulator below already skips missing columns.
+                .where(prediction_log.c.correct_4w.isnot(None))
                 .where(prediction_log.c.signals_triggered.isnot(None))
             ).mappings().all()
     except Exception:
