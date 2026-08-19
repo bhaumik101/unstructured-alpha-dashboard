@@ -99,16 +99,28 @@ def test_no_link_points_at_a_host_the_product_does_not_serve():
     )
 
 
-def test_no_link_promises_a_brief_page():
-    """/brief exists only in the undeployed seo/app.py.
+def test_any_brief_link_points_at_the_host_that_serves_it():
+    """/brief exists again -- but only on the SEO service.
 
-    Guards the specific path rather than just the host, so pointing /brief at a
-    host that DOES resolve still fails while the deployed app lacks the route.
+    This test used to assert that NO link mentioned /brief, because the route
+    lived solely in seo/app.py, an undeployed copy of the service. That premise
+    stopped being true when the route was added to seo/main.py, so the assertion
+    changed rather than being deleted: the concern was never "never say /brief",
+    it was "never link somewhere nothing serves".
+
+    The host has to be the one the SEO pages canonicalise to. Pointing the email
+    at a second host that also serves the page splits the ranking signal for the
+    same content, which is what the www consolidation existed to stop.
     """
     html = _html()
-    assert "/brief" not in html, (
-        "something links to /brief, but the deployed SEO service (seo.main:app) "
-        "has no such route -- only the undeployed seo/app.py does"
+    hosts = {
+        m.group(1).lower()
+        for m in re.finditer(r'href="https?://([^/"]+)/brief', html)
+    }
+    assert hosts, "the brief email no longer offers a browser copy at all"
+    unexpected = sorted(hosts - {"www.unstructuredalpha.com"})
+    assert not unexpected, (
+        "brief links must use the canonical SEO host; found: " + ", ".join(unexpected)
     )
 
 

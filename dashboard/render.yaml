@@ -456,9 +456,10 @@ services:
         sync: false
       - key: RESEND_AUDIENCE_ID
         sync: false
-      # No SEO_BASE_URL here. It pointed at stocks.unstructuredalpha.com, which
-      # has never had a DNS record, and the brief email no longer links out --
-      # it carries the whole note.
+      # Serves /brief for the email's "Read in browser" link. Must match the
+      # host the SEO pages canonicalise to, or the link competes with itself.
+      - key: SEO_BASE_URL
+        value: "https://www.unstructuredalpha.com"
       - key: APP_BASE_URL
         value: "https://unstructuredalpha.com"
 

@@ -5,8 +5,8 @@
 # Runs every Sunday at 16:00 UTC (12:00 PM ET) — one hour after the Pro
 # weekly brief (15:00 UTC). Sends the latest macro_narratives row to every
 # contact in the Resend audience (landing page email capture), as a clean
-# plain-English brief. The email is self-contained: it carries the whole note
-# and links out only to the dashboard.
+# plain-English brief. The email carries the whole note -- the browser link is
+# an archive convenience, not the place the content lives.
 #
 # This is the free-tier retention anchor: subscribers get value every Sunday
 # without needing a dashboard account. The email CTA drives them to create one.
@@ -19,6 +19,8 @@
 #
 # OPTIONAL ENV VARS:
 #   APP_BASE_URL       -- Public URL of the dashboard (default: https://unstructuredalpha.com)
+#   SEO_BASE_URL       -- Public URL of the SEO service, which serves /brief
+#                         (default: https://www.unstructuredalpha.com)
 #
 # Run manually from dashboard/:
 #   python -m cron.send_brief_subscribers
@@ -40,6 +42,11 @@ from sqlalchemy import select
 
 _RESEND_API_URL  = "https://api.resend.com/emails"
 _APP_BASE_URL    = os.environ.get("APP_BASE_URL", "https://unstructuredalpha.com").rstrip("/")
+# Restored. #162 removed this because /brief did not exist in the deployed SEO
+# service and the value pointed at stocks.unstructuredalpha.com, which has never
+# had a DNS record. Both halves are fixed: the route exists, and the default is
+# the host the SEO pages actually canonicalise to.
+_SEO_BASE_URL    = os.environ.get("SEO_BASE_URL", "https://www.unstructuredalpha.com").rstrip("/")
 _FROM_EMAIL      = os.environ.get("RESEND_FROM_EMAIL", "Unstructured Alpha <brief@unstructuredalpha.com>")
 _API_KEY         = os.environ.get("RESEND_API_KEY", "")
 _AUDIENCE_ID     = os.environ.get("RESEND_AUDIENCE_ID", "")
@@ -227,6 +234,7 @@ def _build_brief_html(brief: dict, first_name: str = "") -> tuple[str, str]:
     Signal readings reflect publicly available data from FRED, SEC EDGAR, FINRA, EIA, and CBOE.
     Past performance does not predict future results. Do your own research.<br><br>
     You're receiving this because you subscribed at unstructuredalpha.com.
+    <a href="{_SEO_BASE_URL}/brief" style="color:#4A5478;">Read in browser</a> &middot;
     To unsubscribe, reply with "unsubscribe" or manage your preferences via Resend.
   </p>
 
