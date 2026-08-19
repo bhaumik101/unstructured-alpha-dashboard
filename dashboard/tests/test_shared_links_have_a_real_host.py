@@ -129,16 +129,14 @@ def test_the_service_list_is_honest():
 # from the host problem above: these resolve to the right server and still land
 # nowhere. Listed rather than silently tolerated, because each one is a feature
 # the UI actively offers.
-_UNROUTED_DESTINATIONS = {
-    # pages/retired/35_Share_Watchlist.py. utils/share_watchlist.build_share_url
-    # is called live from pages/10_Watchlist.py:914, which renders the URL and
-    # captions it "Copy and share freely." Restoring the page is not a config
-    # change: it calls st.set_page_config() (allowed only in app.py under
-    # st.navigation) and is designed to render without an account inside an app
-    # that gates on auth. Needs a product decision -- restore, or stop offering
-    # the button.
-    "/Share_Watchlist",
-}
+_UNROUTED_DESTINATIONS: set[str] = set()
+# EMPTY. /Share_Watchlist was the only entry: the page had been retired while
+# utils/share_watchlist.build_share_url() kept emitting links to it and the
+# Watchlist page kept telling users to "copy and share freely".
+#
+# Restored as pages/35_Share_Watchlist.py with url_path="share-watchlist", and
+# the builder now emits that slug. Anything added here again is a feature the
+# UI offers that leads nowhere.
 
 
 def test_generated_link_paths_resolve_to_registered_routes():
@@ -175,4 +173,42 @@ def test_the_unrouted_list_is_honest():
     assert not stale, (
         "these are registered now; remove them from _UNROUTED_DESTINATIONS:\n  "
         + "\n  ".join(stale)
+    )
+
+
+def test_the_share_link_query_param_matches_what_the_page_reads():
+    """The builder and the page must agree on the parameter name.
+
+    The path half of this contract already drifted once -- the page was retired
+    while the builder kept emitting links to it. The query string is the other
+    half: build_share_url() emits ?id=<slug>, and the page has to look for
+    exactly that key or every shared link renders "No watchlist link provided".
+    """
+    builder = (_ROOT / "utils" / "share_watchlist.py").read_text(encoding="utf-8")
+    page = (_ROOT / "pages" / "35_Share_Watchlist.py").read_text(encoding="utf-8")
+
+    emitted = re.search(r'f"\{base\}/share-watchlist\?([A-Za-z0-9_]+)=', builder)
+    assert emitted, "build_share_url no longer emits a /share-watchlist?<param>= link"
+    param = emitted.group(1)
+
+    assert re.search(rf'st\.query_params\.get\(\s*["\']{re.escape(param)}["\']', page), (
+        f"build_share_url emits ?{param}= but the page does not read that key"
+    )
+
+
+def test_the_share_page_does_not_build_its_own_cookie_manager():
+    """app.py owns the single CookieManager for the run.
+
+    Constructing a second one raises StreamlitDuplicateElementKey and takes the
+    whole page down. This page shipped that call from before app.py took
+    ownership, and it crashed on the first render after being restored.
+    """
+    page = (_ROOT / "pages" / "35_Share_Watchlist.py").read_text(encoding="utf-8")
+    # Strip comments first. The page carries a comment explaining why it must
+    # NOT call this, and a plain substring check fails on the explanation --
+    # exactly the false positive that makes a test look broken and get deleted.
+    code = "\n".join(re.sub(r"#.*$", "", line) for line in page.splitlines())
+    assert "init_cookies_for_this_run()" not in code, (
+        "the share page constructs its own CookieManager; app.py already made "
+        "one for this run and a second raises StreamlitDuplicateElementKey"
     )
