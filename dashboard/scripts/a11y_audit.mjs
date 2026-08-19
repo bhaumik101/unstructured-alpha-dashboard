@@ -64,8 +64,10 @@ const urls = process.argv.slice(2).length ? process.argv.slice(2) : DEFAULTS;
 const browser = await puppeteer.launch({ headless: "new", args: ["--no-sandbox"] });
 let worstNodes = 0;
 
+const failed = [];
 for (const url of urls) {
   const page = await browser.newPage();
+  try {
   await page.setViewport({ width: 1440, height: 900 });
   try {
     await page.goto(url, { waitUntil: "networkidle2", timeout: 90000 });
@@ -73,23 +75,38 @@ for (const url of urls) {
     /* measure whatever painted rather than aborting the run */
   }
 
+  // Streamlit is an SPA: it can re-navigate while we are mid-evaluate, which
+  // rejects with "Execution context was destroyed". Unhandled, that killed the
+  // WHOLE run on the fourth URL and is why this harness had only ever been
+  // pointed at a handful of pages. A destroyed context is a retry, not a
+  // failure -- the next poll runs in the new context.
+  const settle = async (fn, arg) => {
+    try {
+      return await page.evaluate(fn, arg);
+    } catch (e) {
+      if (String(e).includes("Execution context was destroyed")) return null;
+      throw e;
+    }
+  };
+
   let rendered = false;
   for (let i = 0; i < SETTLE_TRIES; i++) {
-    rendered = await page.evaluate((min) => {
+    const r = await settle((min) => {
       const m = document.querySelector('[data-testid="stMain"]') || document.body;
       return (m.innerText || "").length > min && !document.getElementById("ua-boot-splash");
     }, MIN_CHARS);
+    rendered = r === true;
     if (rendered) break;
     await new Promise((r) => setTimeout(r, SETTLE_MS));
   }
 
-  const diag = await page.evaluate(() => {
+  const diag = (await settle(() => {
     const m = document.querySelector('[data-testid="stMain"]') || document.body;
     return {
       chars: (m.innerText || "").length,
       theme: document.documentElement.getAttribute("data-ua-theme") || "dark",
     };
-  });
+  })) || { chars: 0, theme: "unknown" };
 
   await page.evaluate(AXE);
   const res = await page.evaluate(async () => {
@@ -125,8 +142,20 @@ for (const url of urls) {
         `${v.id.padEnd(26)} ${v.help.slice(0, 52)}`,
     );
   }
-  await page.close();
+  } catch (e) {
+    // One unmeasurable page must not end the sweep. Record it and move on --
+    // a partial sweep with a named gap beats no sweep at all.
+    failed.push(`${url} :: ${String(e).split("\n")[0]}`);
+    console.log(`\n=== ${url}`);
+    console.log(`    NOT MEASURED — ${String(e).split("\n")[0]}`);
+  } finally {
+    await page.close();
+  }
 }
 
 await browser.close();
 console.log(`\nworst single page: ${worstNodes} nodes`);
+if (failed.length) {
+  console.log(`\n${failed.length} page(s) could not be measured:`);
+  for (const f of failed) console.log(`  ${f}`);
+}
