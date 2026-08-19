@@ -183,6 +183,34 @@ def _build_runtime() -> str:
      current path has a registered route, proven by the presence of a proxy
      page_link with that exact slug -- the same list render_header emits. A
      genuine 404 has no matching proxy, so the real message still shows. */
+  /* axe: scrollable-region-focusable. A container that scrolls but cannot be
+     focused is unreachable by keyboard -- you can see the overflow and have no
+     way to move it without a mouse. Streamlit generates these wrappers itself
+     (stElementContainer around wide tables and chart blocks), so there is no
+     Python-side hook; found by axe against the live app, 7 nodes on Market
+     Overview and 1 on Sector View.
+
+     tabindex="0" on the scroller is the fix the rule asks for. Skipped when the
+     region already contains something focusable, so we do not add a redundant
+     tab stop in front of controls that are already reachable. */
+  function uaFocusableScrollers(){
+    try{
+      var nodes = document.querySelectorAll(
+        '[data-testid="stElementContainer"], [data-testid="stDataFrame"]');
+      for(var i=0;i<nodes.length;i++){
+        var el = nodes[i];
+        if(el.hasAttribute('tabindex')) continue;
+        var scrolls = el.scrollHeight > el.clientHeight + 2 ||
+                      el.scrollWidth  > el.clientWidth  + 2;
+        if(!scrolls) continue;
+        var style = window.getComputedStyle(el);
+        if(!/(auto|scroll)/.test(style.overflowX + ' ' + style.overflowY)) continue;
+        if(el.querySelector('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')) continue;
+        el.setAttribute('tabindex','0');
+      }
+    }catch(e){}
+  }
+
   function uaDropFalse404(){
     try{
       var slug = location.pathname.replace(/^\/+|\/+$/g, '');
@@ -221,8 +249,10 @@ def _build_runtime() -> str:
   try{
     uaQueueMark();
     uaDropFalse404();
-    new MutationObserver(function(){ uaQueueMark(); uaDropFalse404(); })
-      .observe(document.documentElement, {childList:true, subtree:true});
+    uaFocusableScrollers();
+    new MutationObserver(function(){
+      uaQueueMark(); uaDropFalse404(); uaFocusableScrollers();
+    }).observe(document.documentElement, {childList:true, subtree:true});
   }catch(e){}
 
   /* Handle for the real toggle button once every page is migrated. */
