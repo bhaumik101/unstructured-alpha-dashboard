@@ -2422,6 +2422,32 @@ html[data-ua-theme="light"] :is(
     [style^="color: rgb(107, 114, 128)" i], [style^="color:rgb(107,114,128)" i], [style*="; color: rgb(107, 114, 128)" i]
 ) { color: var(--ua-neutral) !important; opacity: 1 !important; }
 
+/* Dark theme is the DEFAULT (light sets data-ua-theme="light"; dark removes the
+   attribute), so this is :not([data-ua-theme="light"]).
+
+   Two of the muted greys above are too dark for the dark ground as well, which
+   the token-pair test in tests/test_theme_contrast.py cannot see -- it compares
+   TOKENS, and these are inline literals emitted by pages. axe-core against the
+   live app found them:
+
+     #4A5280  11.5px on #0a0d12  2.60:1   Signal Dashboard cadence line
+     #4A5568   9.6px on #101318  2.47:1   Sector View source captions (x4)
+
+   Both map to --ua-ink-mut, the design system's muted text, which clears AA on
+   every dark surface (5.85:1 raised, 5.97:1 card, 6.24:1 page). Remapping to
+   the token rather than to a new hex keeps one muted grey in the system instead
+   of three. !important is required: these are inline styles. */
+html:not([data-ua-theme="light"]) :is(
+    [style^="color: #4A5280" i], [style^="color:#4A5280" i],
+    [style*="; color: #4A5280" i], [style*=";color:#4A5280" i],
+    [style^="color: rgb(74, 82, 128)" i], [style^="color:rgb(74,82,128)" i],
+    [style*="; color: rgb(74, 82, 128)" i], [style*=";color:rgb(74,82,128)" i],
+    [style^="color: #4A5568" i], [style^="color:#4A5568" i],
+    [style*="; color: #4A5568" i], [style*=";color:#4A5568" i],
+    [style^="color: rgb(74, 85, 104)" i], [style^="color:rgb(74,85,104)" i],
+    [style*="; color: rgb(74, 85, 104)" i], [style*=";color:rgb(74,85,104)" i]
+) { color: var(--ua-ink-mut) !important; }
+
 html[data-ua-theme="light"] :is(
     [style^="color: #B8C0D4" i], [style^="color:#B8C0D4" i], [style*="; color: #B8C0D4" i],
     [style*=";color:#B8C0D4" i],
