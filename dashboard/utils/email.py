@@ -1200,8 +1200,8 @@ def send_trial_reminder_email(to_email: str, trial_end_display: str) -> None:
             <ul style="color:#4A4A4A;font-size:0.9rem;padding-left:20px;margin:0 0 20px;">
                 <li>Factor Exposure — Fama-French regression for any ticker</li>
                 <li>PDF Research Reports</li>
-                <li>Signal Backtester</li>
-                <li>Portfolio Analyzer</li>
+                <li>Signal Strategy — the composite score backtested since 2010</li>
+                <li>Portfolio Intelligence</li>
                 <li>Options Flow</li>
                 <li>Morning digest email</li>
             </ul>
@@ -1641,40 +1641,24 @@ def send_pro_welcome_email(to_email: str) -> None:
         </div>
 
         <!-- Item 4 -->
-        <div style="border-left:3px solid #F59E0B;padding:14px 0 14px 18px;margin-bottom:20px;">
+        <div style="border-left:3px solid #FF4444;padding:14px 0 14px 18px;margin-bottom:20px;">
           <div style="font-size:1rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">
-            Short Squeeze Radar
+            📈 Signal Strategy — see whether the signals actually paid
           </div>
           <div style="font-size:0.88rem;color:#8892AA;line-height:1.6;">
-            Screens for tickers with high short interest + macro tailwinds +
-            insider cluster buying. The combination that historically precedes
-            sharp moves. Updated daily.
+            The same composite score, run as mechanical rules-based positioning
+            against SPY buy-and-hold since 2010. Yesterday's score sets today's
+            position, so there is no lookahead, and every position change pays
+            0.1% round-trip. The results are what they are.
           </div>
-          <a href="https://unstructuredalpha.com/Short_Squeeze_Radar"
+          <a href="{_APP_URL}/signal-strategy"
              style="display:inline-block;margin-top:10px;font-size:0.82rem;
-                    color:#F59E0B;text-decoration:none;font-weight:600;">
-            Open Radar →
+                    color:#FF4444;text-decoration:none;font-weight:600;">
+            Open Signal Strategy →
           </a>
         </div>
 
         <!-- Item 5 -->
-        <div style="border-left:3px solid #FF4444;padding:14px 0 14px 18px;margin-bottom:20px;">
-          <div style="font-size:1rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">
-            📈 Signal Backtester — build and test your own thesis
-          </div>
-          <div style="font-size:0.88rem;color:#8892AA;line-height:1.6;">
-            Pick any combination of signals and see how they would have
-            performed historically on any ticker. Pro-only. Great for validating
-            whether a setup you see today has actually worked before.
-          </div>
-          <a href="https://unstructuredalpha.com/Signal_Backtester"
-             style="display:inline-block;margin-top:10px;font-size:0.82rem;
-                    color:#FF4444;text-decoration:none;font-weight:600;">
-            Open Backtester →
-          </a>
-        </div>
-
-        <!-- Item 6 -->
         <div style="border-left:3px solid #8892AA;padding:14px 0 14px 18px;margin-bottom:4px;">
           <div style="font-size:1rem;font-weight:700;color:#E8EEFF;margin-bottom:4px;">
             Watchlist & Alerts — let it come to you
@@ -1845,10 +1829,10 @@ def send_referral_welcome_email(to_email: str) -> None:
         </td>
         <td style="padding:8px 0;">
           <div style="font-size:0.88rem;font-weight:700;color:#E8EEFF;">
-            Short Squeeze Radar + PDF Reports
+            Signal Strategy + PDF Reports
           </div>
           <div style="font-size:0.80rem;color:#8892AA;margin-top:2px;line-height:1.5;">
-            Screen for macro-backed squeeze setups · export institutional-grade PDF research
+            Backtest the composite score against SPY · export institutional-grade PDF research
           </div>
         </td>
       </tr>
@@ -2579,12 +2563,12 @@ def send_weekly_brief_email(
       {idea_rows}
     </table>
     <div style="margin-top:10px;">
-      <a href="https://unstructuredalpha.com/Best_Ideas"
+      <a href="{_APP_URL}/stock-recommender"
          style="display:inline-block;background:rgba(245,158,11,0.10);
                 border:1px solid rgba(245,158,11,0.30);color:#F59E0B;
                 padding:8px 18px;border-radius:6px;text-decoration:none;
                 font-size:0.82rem;font-weight:700;">
-        See full Best Ideas list →
+        See the full ranked list →
       </a>
     </div>
   </div>"""
@@ -2676,8 +2660,8 @@ def send_weekly_brief_email(
     <a href="{_APP_URL}/my-profile"
        style="color:#6B7A95;text-decoration:none;">Manage email preferences</a>
     &nbsp;·&nbsp;
-    <a href="https://unstructuredalpha.com/Best_Ideas"
-       style="color:#6B7A95;text-decoration:none;">Best Ideas</a>
+    <a href="{_APP_URL}/stock-recommender"
+       style="color:#6B7A95;text-decoration:none;">Stock Recommender</a>
   </div>
 
 </div>
@@ -2969,17 +2953,19 @@ def send_day3_onboarding_email(
     <!-- Feature 1 -->
     <div style="border:1px solid #1E2535;border-radius:12px;padding:18px 20px;margin-bottom:14px;">
       <div style="font-size:0.62rem;font-weight:700;color:#00C8E0;text-transform:uppercase;
-                  letter-spacing:0.10em;margin-bottom:6px;">Best Ideas Page</div>
+                  letter-spacing:0.10em;margin-bottom:6px;">Stock Recommender</div>
       <div style="font-size:0.92rem;font-weight:700;color:#E8EEFF;margin-bottom:6px;">
-        The machine's highest-conviction bullish calls right now
+        The machine's highest-conviction calls right now
       </div>
       <div style="font-size:0.82rem;color:#8892AA;line-height:1.6;">
-        Score ≥ 62 + positive velocity = rising conviction. Updated hourly.
-        Tickers are ranked by score + momentum — not sorted by name like a screener.
+        Every tracked ticker ranked by macro signal confluence, then the top of
+        each side re-scored in full — price correlation, momentum, insider
+        activity, short interest, 13F positioning. The same score you see on
+        Ticker Deep Dive, not a name-sorted screener.
       </div>
-      <a href="https://unstructuredalpha.com/Best_Ideas"
+      <a href="{_APP_URL}/stock-recommender"
          style="display:inline-block;margin-top:10px;font-size:0.80rem;font-weight:700;
-                color:#00C8E0;text-decoration:none;">Open Best Ideas →</a>
+                color:#00C8E0;text-decoration:none;">Open Stock Recommender →</a>
     </div>
 
     <!-- Feature 2 -->
@@ -3222,14 +3208,15 @@ def send_day7_onboarding_email(
   <div style="background:#12151E;border:1px solid rgba(255,255,255,0.07);
               border-radius:10px;padding:16px 20px;margin-bottom:20px;">
     <div style="font-size:0.65rem;font-weight:700;color:#00C8E0;letter-spacing:0.10em;
-                text-transform:uppercase;margin-bottom:8px;">Tip: Signal Backtester</div>
+                text-transform:uppercase;margin-bottom:8px;">Tip: Signal Strategy</div>
     <div style="font-size:0.85rem;color:#B8C0D4;line-height:1.6;margin-bottom:10px;">
-      Pick any combination of signals and see how well they predicted 4–12 week forward
-      returns — before you trust them. Most retail platforms hide this test entirely.
+      See what the composite score would have returned as a mechanical rule since
+      2010, against SPY buy-and-hold — costs included, no lookahead. Most retail
+      platforms never show you the losing stretches. This one does.
     </div>
-    <a href="https://unstructuredalpha.com/Signal_Backtester"
+    <a href="{_APP_URL}/signal-strategy"
        style="font-size:0.82rem;color:#00C8E0;text-decoration:none;font-weight:600;">
-      Open Signal Backtester →
+      Open Signal Strategy →
     </a>
   </div>
 
