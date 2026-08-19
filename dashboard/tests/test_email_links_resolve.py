@@ -55,11 +55,22 @@ def _registered_routes() -> set[str]:
 # exists, so the surrounding marketing copy has to be rewritten or removed, which
 # is a product decision rather than a find-and-replace. Tracked here so they
 # cannot be forgotten and so no NEW ones can be added quietly.
-_RETIRED_FEATURE_LINKS = {
-    "/Best_Ideas",           # retired 34_Best_Ideas.py  (nearest live page: /stock-recommender)
-    "/Signal_Backtester",    # retired 19_Signal_Backtester.py (nearest live: /signal-strategy)
-    "/Short_Squeeze_Radar",  # retired 16_Short_Squeeze_Radar.py (no live equivalent)
-}
+_RETIRED_FEATURE_LINKS: set[str] = set()
+# EMPTY. All three retired-feature links are gone from the templates:
+#
+#   Short Squeeze Radar  block CUT from the Pro welcome. The page is retired and
+#                        has no live equivalent, so there was nothing to point at
+#                        -- promising a paid customer a feature that does not
+#                        exist is worse than one fewer item in the list.
+#   Signal Backtester    -> /signal-strategy, copy REWRITTEN. The retired page
+#                        composed arbitrary signal rules; the live one is
+#                        mechanical and rules-based, so re-pointing the href
+#                        under the old pitch would have described the wrong page.
+#   Best Ideas           -> /stock-recommender, copy REWRITTEN. The weekly
+#                        brief's Best Ideas SECTION stays -- send_weekly_brief.py
+#                        computes that data independently of the retired page.
+#
+# Anything added here again is a link to a feature the product does not have.
 
 
 def test_app_links_point_at_registered_routes():
@@ -123,4 +134,31 @@ def test_app_url_is_never_interpolated_into_a_plain_string():
         "these lines contain {_APP_URL} inside a plain (non-f) string, so the "
         "braces would render literally in the email: " + ", ".join(map(str, bad))
         + "\nadd the f prefix to the template literal"
+    )
+
+
+# Retired features with NO live counterpart. Deliberately an explicit list, not
+# derived from pages/retired/*.py: several names in that directory (Model
+# Validation, Track Record, Factor Exposure, Options Flow, Export) ALSO exist as
+# live pages, so deriving would fire on every one of them.
+#
+# "Best Ideas" is deliberately absent. The retired PAGE is gone, but the weekly
+# brief still renders a live Best Ideas section -- send_weekly_brief.py computes
+# that data itself -- so the phrase is real content, not a claim about a page.
+_DEAD_FEATURE_NAMES = ("Short Squeeze", "Signal Backtester", "Portfolio Analyzer")
+
+
+def test_no_email_advertises_a_feature_that_no_longer_exists():
+    """Naming a retired feature is the same bug as linking to one.
+
+    Fixing only the hrefs left three plain-text mentions behind: the trial
+    reminder told users they would "lose access to" Signal Backtester and
+    Portfolio Analyzer, and the referral email pitched Short Squeeze Radar.
+    A reader cannot tell the difference between a dead link and a dead promise.
+    """
+    found = [name for name in _DEAD_FEATURE_NAMES if name in _SRC]
+    assert not found, (
+        "these emails name features the product no longer has: "
+        + ", ".join(found)
+        + "\nthe pages exist only in pages/retired/, which is not shipped"
     )
