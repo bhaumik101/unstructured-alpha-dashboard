@@ -34,6 +34,9 @@ _stub.SIGNALS = {
     "crude_oil":         {"name": "Crude Oil",                "category": "energy"},
     "vix":               {"name": "VIX",                      "category": "macro"},
 }
+import utils as _utils_pkg
+_real_cfg_mod  = sys.modules.get("utils.config")
+_real_cfg_attr = getattr(_utils_pkg, "config", None)
 sys.modules.setdefault("utils.config", _stub)
 
 # ── Stub utils.taxonomy — score_explainer now groups by macro-factor family ──
@@ -51,6 +54,26 @@ sys.modules["utils.taxonomy"] = _tax
 _utils_pkg.taxonomy = _tax
 
 from utils import score_explainer as se  # noqa: E402
+
+# Put the real utils.config back. The modules imported just above keep whatever
+# they bound from the stub -- that is the isolation this file wants -- but
+# leaving the stub in sys.modules replaces utils.config PROCESS-WIDE for the
+# rest of this xdist worker. Measured: a probe run after this file saw
+# utils.config with __file__ = None, i.e. the stub, reporting fake SIGNALS and
+# TICKERS; after the 6-signal variant in test_score_explainer_unit.py it could
+# not import from utils.product_metrics at all.
+if _real_cfg_mod is not None:
+    sys.modules["utils.config"] = _real_cfg_mod
+else:
+    sys.modules.pop("utils.config", None)
+if _real_cfg_attr is not None:
+    _utils_pkg.config = _real_cfg_attr
+else:
+    try:
+        del _utils_pkg.config
+    except AttributeError:
+        pass
+
 
 # Put the real utils.taxonomy back. se.taxonomy stays bound to the stub
 # above -- that is the point of it -- but leaving the stub in sys.modules AND on

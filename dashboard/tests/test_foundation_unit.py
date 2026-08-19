@@ -14,14 +14,43 @@ import types
 import pytest
 
 _stub = types.ModuleType("utils.config")
-_stub.SIGNALS = {f"s{i}": {"source": "fred"} for i in range(47)}
-_stub.TICKERS = {f"T{i}": {} for i in range(193)}
+# These sizes must mirror the REAL registry, because sys.modules.setdefault()
+# below only applies when utils.config has not been imported yet -- so whether
+# product_metrics derives its counts from the stub or from the real module
+# depends purely on collection order. With TICKERS at a stale 193 this file
+# passed inside the full suite and failed on its own, which is the signature of
+# a test that is measuring the order it ran in.
+_stub.SIGNALS = {f"s{i}": {"source": "fred"} for i in range(47)}    # ACTIVE_SIGNAL_COUNT
+_stub.TICKERS = {f"T{i}": {} for i in range(280)}                   # SUPPORTED_TICKER_COUNT
 _stub.CATEGORIES = {"ai_infrastructure": {"name": "AI Infrastructure"}}
+import utils as _utils_pkg
+_real_cfg_mod  = sys.modules.get("utils.config")
+_real_cfg_attr = getattr(_utils_pkg, "config", None)
 sys.modules.setdefault("utils.config", _stub)
 
 from utils import taxonomy as tx          # noqa: E402
 from utils import coverage as cov          # noqa: E402
 from utils import product_metrics as pm    # noqa: E402
+
+# Put the real utils.config back. The modules imported just above keep whatever
+# they bound from the stub -- that is the isolation this file wants -- but
+# leaving the stub in sys.modules replaces utils.config PROCESS-WIDE for the
+# rest of this xdist worker. Measured: a probe run after this file saw
+# utils.config with __file__ = None, i.e. the stub, reporting fake SIGNALS and
+# TICKERS; after the 6-signal variant in test_score_explainer_unit.py it could
+# not import from utils.product_metrics at all.
+if _real_cfg_mod is not None:
+    sys.modules["utils.config"] = _real_cfg_mod
+else:
+    sys.modules.pop("utils.config", None)
+if _real_cfg_attr is not None:
+    _utils_pkg.config = _real_cfg_attr
+else:
+    try:
+        del _utils_pkg.config
+    except AttributeError:
+        pass
+
 
 
 # ── Taxonomy ─────────────────────────────────────────────────────────────────
