@@ -49,6 +49,7 @@
 #      directory causes real SQLite disk I/O errors, confirmed live).
 
 import os
+import threading as _threading
 from datetime import datetime, timezone
 
 import streamlit as st
@@ -940,16 +941,32 @@ def _migrate_analytics_events_table() -> None:
         ))
 
 
+_INIT_LOCK = _threading.Lock()
+
+
 def init_db() -> None:
     """Create every table if it doesn't already exist, then apply any
-    pending column migrations. Safe to call on every page load."""
-    metadata.create_all(engine)
-    _migrate_users_table()
-    _migrate_prediction_log_table()
-    _migrate_alert_state_table()
-    _migrate_score_snapshots_table()
-    _migrate_saved_recommender_screens_table()
-    _migrate_analytics_events_table()
+    pending column migrations. Safe to call on every page load.
+
+    Serialised, because create_all(checkfirst=True) is NOT atomic: it inspects
+    the schema and then issues CREATE TABLE, and two callers can both pass the
+    inspection before either creates anything. The loser gets
+    "table users already exists".
+
+    That is not hypothetical. seo/main.py warms the engine in a daemon thread at
+    import, which races any other init_db() in the same process -- it surfaced as
+    tests/test_brief_page.py failing roughly 1 run in 5 with all 8 tests erroring
+    at fixture setup, and the same collision is available to the live service
+    whenever a request initialises while that warm thread is still running.
+    """
+    with _INIT_LOCK:
+        metadata.create_all(engine)
+        _migrate_users_table()
+        _migrate_prediction_log_table()
+        _migrate_alert_state_table()
+        _migrate_score_snapshots_table()
+        _migrate_saved_recommender_screens_table()
+        _migrate_analytics_events_table()
 
 
 # Probability that any single page load triggers run_periodic_maintenance()
