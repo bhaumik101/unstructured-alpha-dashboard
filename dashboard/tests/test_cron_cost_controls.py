@@ -39,6 +39,14 @@ def test_low_frequency_jobs_are_grouped():
     assert crons["unstructured-alpha-watchlist-insights"]["startCommand"].endswith(
         "run_group watchlist-insights"
     )
+    # The freshness watchdog runs the "health" group rather than its own module:
+    # the canonical-host check shares its slot instead of becoming a 15th
+    # service. Grouping was only safe once run_group started honouring a
+    # non-zero RETURN -- both health jobs report failure that way, and the
+    # loop previously only caught exceptions.
+    assert crons["unstructured-alpha-check-freshness"]["startCommand"].endswith(
+        "run_group health"
+    )
     # Pinned so cron sprawl has to be a deliberate decision — each one is a
     # separate Render service with its own build and monthly cost.
     # 13 -> 14 on 2026-08-09: unstructured-alpha-check-freshness. It earns the

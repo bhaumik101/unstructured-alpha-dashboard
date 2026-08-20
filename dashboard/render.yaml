@@ -236,7 +236,7 @@ services:
     # URL, not interpreter. Four services sat broken for three days on
     # exactly this. Normal builds still use the cache and stay fast.
     buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
-    startCommand: python -m cron.check_data_freshness
+    startCommand: python -m cron.run_group health
     envVars:
       - key: DATABASE_URL
         sync: false
