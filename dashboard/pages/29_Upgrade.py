@@ -216,6 +216,19 @@ st.markdown(f"""
 cookies = get_cookies()
 user    = try_restore_session(cookies)
 
+# The pricing page is the last step before checkout, so its view count is the
+# denominator for CHECKOUT_STARTED. Fired once per session rather than per
+# rerun -- Streamlit re-executes the whole script on every widget interaction,
+# and counting those would inflate the top of the funnel against a checkout
+# count that can only happen once.
+if not st.session_state.get("_pricing_viewed_tracked"):
+    st.session_state["_pricing_viewed_tracked"] = True
+    try:
+        from utils.analytics import Event as _Event, track as _track
+        _track(_Event.PRICING_VIEWED, user_id=(user or {}).get("id"))
+    except Exception:
+        pass
+
 # ── State 1: Returning from Stripe Checkout ───────────────────────────────────
 params = st.query_params
 stripe_session_id = params.get("stripe_session_id", "")
