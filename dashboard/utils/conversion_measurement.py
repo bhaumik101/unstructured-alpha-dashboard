@@ -499,10 +499,34 @@ def build_acquisition_funnel(event_rows: Iterable[dict]) -> dict:
         })
         prev = count if count else None
 
+    # Which step to point at. NOT the lowest retention percentage: on a real
+    # funnel the tail is tiny, so "Subscribed kept 0% of 1 person" wins that
+    # contest and says nothing. Measured on the live shape -- 190 visits, 11
+    # signups, 4 verified, 3 pricing, 1 checkout, 0 paid -- lowest-percentage
+    # named Subscribed while the funnel actually loses 179 people at the first
+    # step.
+    #
+    # Absolute people lost is what a founder can act on, and it is robust to a
+    # denominator of one.
+    biggest_drop = None
+    prev_count = None
+    for step in steps:
+        if prev_count is not None:
+            lost = prev_count - step["count"]
+            if lost > 0 and (biggest_drop is None or lost > biggest_drop["lost"]):
+                biggest_drop = {
+                    "label": step["label"],
+                    "event": step["event"],
+                    "lost": lost,
+                    "pct_of_prev": step["pct_of_prev"],
+                }
+        prev_count = step["count"]
+
     return {
         "instrumented": first_seen is not None,
         "first_seen": first_seen,
         "steps": steps,
+        "biggest_drop": biggest_drop,
     }
 
 
