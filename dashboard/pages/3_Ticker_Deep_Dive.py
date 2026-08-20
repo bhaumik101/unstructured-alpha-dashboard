@@ -92,7 +92,16 @@ render_header("Ticker Deep Dive")
 _tdd_section = render_sidebar_base(
     page_title="Ticker Deep Dive",
     sections=(
+        # Overview used to be all five of the first entries in one branch: 2,534
+        # lines, 70% of the page, against 115-323 for every other section. The
+        # rail already worked for the rest of the page; it just was not applied
+        # here. Nothing was removed -- the same blocks render, in the section
+        # they belong to, and a reader loads one of them instead of all five.
         "Overview",
+        "Price & Technicals",
+        "Catalysts & News",
+        "Model & Cases",
+        "Signal Detail",
         "Thesis Workspace",
         "Deep Correlation Scan",
         "Insider & Short Interest",
@@ -604,11 +613,14 @@ except Exception:
 
 st.divider()
 
+# Read once for every Overview sub-section below. These are dict lookups off
+# `confluence`, which is computed above, so hoisting them costs nothing.
+score_val  = confluence["overall_score"]
+conviction = confluence["conviction"]
+case       = confluence["case"]
+
 if section == "Overview":
     # ── Confluence Score Banner ────────────────────────────────────────────────────
-    score_val  = confluence["overall_score"]
-    conviction = confluence["conviction"]
-    case       = confluence["case"]
 
     # De-correlated conviction read (see utils/signal_independence). Raw
     # agreement over-counts signals that proxy the same macro factor; the
@@ -1534,6 +1546,12 @@ if section == "Overview":
                     st.session_state.selected_ticker = _pt
                     st.rerun()
 
+elif section == "Price & Technicals":
+    # Recomputed here rather than hoisted above the branch: the price chart
+    # overlays score history, and hoisting the query would run it for every
+    # section, including the ones that never draw a chart.
+    _score_hist = get_score_history(ticker_input, days=180)
+
     st.divider()
 
     # ── Price Chart ───────────────────────────────────────────────────────────────
@@ -2149,6 +2167,7 @@ if section == "Overview":
     # API key required. Placed here (after price/volume/RSI, before prediction
     # model) so a user reading the chart can immediately see WHAT drove recent
     # price moves before looking at the forward model's probabilities.
+elif section == "Catalysts & News":
     st.html(section_label("Catalysts & News", color="#F59E0B", dot="#F59E0B"))
 
     _cat_col, _news_col = st.columns([1, 2])
@@ -2343,6 +2362,7 @@ if section == "Overview":
     except Exception:
         pass  # Never let this crash the page
 
+elif section == "Model & Cases":
     st.divider()
 
     # ── Forward Prediction Model ───────────────────────────────────────────────────
@@ -2821,6 +2841,7 @@ if section == "Overview":
         except Exception:
             pass
 
+elif section == "Signal Detail":
     st.divider()
 
     # ── Signal Detail Table ───────────────────────────────────────────────────────
