@@ -156,6 +156,27 @@ def _is_local_host(host) -> bool:
     return host in {"localhost", "127.0.0.1", "::1", "0.0.0.0", ""} or host.startswith("/")
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _schema_exists():
+    """Create the schema once, before any test runs.
+
+    The temp file above is an EMPTY sqlite database. Nothing created tables in
+    it -- they appeared only if some earlier test happened to drive app.py
+    through AppTest, which calls utils.db.init_db() as a side effect. So whether
+    a query worked depended on what ran before it in the same worker.
+
+    Measured: tests/test_ticker_deep_dive_sections.py passes in the full suite
+    and fails on its own with "no such table: score_snapshots" -- the page reads
+    score history, and on its own nothing had built the table. Same
+    order-dependence class as the sys.modules stubs in #171, one layer down.
+
+    init_db() is idempotent (CREATE TABLE IF NOT EXISTS), so a test that also
+    calls it is unaffected.
+    """
+    from utils.db import init_db
+    init_db()
+
+
 @pytest.fixture(autouse=True)
 def _no_live_network(monkeypatch, request):
     """
