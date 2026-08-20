@@ -37,6 +37,12 @@ CHECKS: dict[str, tuple[str, int, str]] = {
         "score-core runs daily and score-rest Mon/Wed/Fri; 4 days spans the "
         "widest legitimate gap",
     ),
+    "macro_narratives": (
+        "note_date",
+        9,
+        "the weekly brief; generated Sundays, so 9 days catches a week that "
+        "produced nothing before subscribers are mailed a repeat",
+    ),
     "analytics_events": (
         "created_at",
         3,
