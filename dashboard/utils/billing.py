@@ -35,6 +35,16 @@ logger = logging.getLogger(__name__)
 # only. This function is called lazily, not at import time, so a missing key
 # doesn't crash every page load; it only surfaces on billing-specific pages.
 
+def _track_billing(event: str, user_id: int | None = None,
+                   properties: dict | None = None) -> None:
+    """Analytics must never be able to fail a payment flow."""
+    try:
+        from utils.analytics import Event, track  # noqa: F401
+        track(event, user_id=user_id, properties=properties)
+    except Exception:
+        pass
+
+
 def _stripe_client():
     """Return an initialized stripe module, raising a clear error if unconfigured."""
     import stripe  # lazy import — not installed in local dev by default
@@ -189,6 +199,11 @@ def create_checkout_session(
         allow_promotion_codes=True,
         billing_address_collection="auto",
     )
+    # The moment a user is sent to Stripe. Paired with CHECKOUT_COMPLETED below,
+    # this is the only place the payment step's drop-off becomes visible.
+    from utils.analytics import Event as _Event
+    _track_billing(_Event.CHECKOUT_STARTED, user_id=user_id,
+                   properties={"plan": plan, "trial_days": trial_days})
     return session.url
 
 
@@ -228,6 +243,11 @@ def handle_checkout_success(session_id: str, user_id: int) -> dict:
 
         sub_id = sub["id"] if sub else ""
         set_user_tier(user_id, "pro", customer_id=customer_id, subscription_id=sub_id)
+        # After the tier actually flips, not before: a session that verifies but
+        # fails to upgrade is not a completed checkout.
+        from utils.analytics import Event as _Event
+        _track_billing(_Event.CHECKOUT_COMPLETED, user_id=user_id,
+                       properties={"subscription_id": bool(sub_id)})
 
         # If this user was referred, mark their referral as converted and
         # trigger the referrer's 1-month-free reward (best-effort).

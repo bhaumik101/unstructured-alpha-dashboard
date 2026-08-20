@@ -46,12 +46,28 @@ from utils.auth import (
     request_password_reset, reset_password,
 )
 from utils.email import EmailSendError
+from utils.analytics import Event  # noqa: E402
 
 _REMEMBER_COOKIE_NAME = "ua_remember_token"
 
 
 _COOKIES_SESSION_KEY = "_cookies_this_run"
 
+
+
+def _track_funnel(event: str, user_id: int | None = None,
+                  properties: dict | None = None) -> None:
+    """Fire a funnel event without letting analytics break an auth flow.
+
+    track() is already non-blocking and documented never to raise, but these
+    call sites sit inside login and signup: if that contract ever changes, the
+    cost of finding out here is a user who cannot get into their account.
+    """
+    try:
+        from utils.analytics import track
+        track(event, user_id=user_id, properties=properties)
+    except Exception:
+        pass
 
 def init_cookies_for_this_run() -> CookieManager:
     """
@@ -160,6 +176,10 @@ def _render_verification_form(cookies: CookieManager, key_prefix: str = "") -> N
         else:
             try:
                 user = verify_email(email, code)
+                # Here, not at the signup form: an unverified account cannot log
+                # in, so counting the form submit as a completed signup would
+                # report conversions that never became users.
+                _track_funnel(Event.SIGNUP_COMPLETED, user_id=user.get("id"))
                 st.session_state["user"] = user
                 # Auto-remember right after verification, no checkbox shown
                 # here -- the device that just typed in the emailed code is,
@@ -296,6 +316,7 @@ def render_auth_forms(cookies: CookieManager, key_prefix: str = "") -> None:
                 else:
                     try:
                         user = login(email, password)
+                        _track_funnel(Event.LOGIN, user_id=user.get("id"))
                         st.session_state["user"] = user
                         if remember_me:
                             token = issue_remember_token(user["id"])
@@ -343,7 +364,14 @@ def render_auth_forms(cookies: CookieManager, key_prefix: str = "") -> None:
             else:
                 try:
                     _ref = st.query_params.get("ref", "")
+                    _track_funnel(Event.SIGNUP_STARTED,
+                                  properties={"referred": bool(_ref)})
                     signup(email, password, ref_code=_ref)
+                    # SIGNUP_STARTED fires before signup() because the account is
+                    # what we are measuring the attempt at; SIGNUP_COMPLETED is
+                    # deliberately NOT here -- the account is not usable until the
+                    # emailed code is verified, and counting it here would report
+                    # a conversion for someone who never returns.
                     st.session_state["pending_verification_email"] = email.strip().lower()
                     st.rerun()
                 except EmailSendError as e:
