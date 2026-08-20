@@ -455,6 +455,11 @@ def record_all_signal_snapshots(scores: dict) -> None:
         pass
 
 
+# A signal reports one of these, or it reports nothing usable. Only transitions
+# BETWEEN two of them are flips.
+_READING_STATUSES = frozenset({"bullish", "bearish", "neutral"})
+
+
 def get_signal_flips(days_back: int = 1) -> list[dict]:
     """
     Return signals whose status CHANGED between their most recent snapshot
@@ -485,10 +490,26 @@ def get_signal_flips(days_back: int = 1) -> list[dict]:
 
     flips = []
     for sig_id, snaps in by_sig.items():
-        if len(snaps) < 2:
+        # Compare READINGS only. bullish/bearish/neutral are what the signal
+        # says; insufficient_data and friends are what happens when a fetch
+        # fails, and cron/send_digest.py snapshots those too.
+        #
+        # Comparing raw statuses turned one transient outage into two flips --
+        # bullish -> insufficient_data, then insufficient_data -> bullish --
+        # and this function feeds a PUBLIC tweet (cron/tweet_signal_flips.py),
+        # user alert emails every six hours (cron/signal_flip_alerts.py), the
+        # daily digest, and convergence detection, which writes into the
+        # prediction log. A data gap could announce a market move that never
+        # happened.
+        #
+        # Filtering rather than skipping the signal: bullish -> [gap] -> bearish
+        # is still a real flip, and is still reported, dated from the readings
+        # either side of the gap.
+        readings = [r for r in snaps if r["status"] in _READING_STATUSES]
+        if len(readings) < 2:
             continue
-        earliest = snaps[0]
-        latest = snaps[-1]
+        earliest = readings[0]
+        latest = readings[-1]
         if earliest["status"] != latest["status"]:
             flips.append({
                 "signal_id":   sig_id,
