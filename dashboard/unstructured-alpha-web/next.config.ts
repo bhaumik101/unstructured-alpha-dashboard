@@ -35,6 +35,14 @@ const nextConfig: NextConfig = {
       { source: "/ticker/:symbol", destination: `${SEO_ORIGIN}/ticker/:symbol` },
       { source: "/signal/:id", destination: `${SEO_ORIGIN}/signal/:id` },
       { source: "/signals/report", destination: `${SEO_ORIGIN}/signals/report` },
+      // The weekly brief. Added to the SEO service and to its sitemap, but not
+      // here -- so /brief served 200 on seo.* and 404 on www, while the sitemap
+      // advertised the www URL to Google and the subscriber email's "Read in
+      // browser" link pointed at it. Anything the SEO service serves AND lists
+      // in its sitemap has to be proxied here too; tests/test_www_proxies_seo_routes.py
+      // now checks that rather than trusting this list to stay complete.
+      { source: "/brief", destination: `${SEO_ORIGIN}/brief` },
+      { source: "/brief/:id", destination: `${SEO_ORIGIN}/brief/:id` },
       { source: "/sitemap.xml", destination: `${SEO_ORIGIN}/sitemap.xml` },
       { source: "/robots.txt", destination: `${SEO_ORIGIN}/robots.txt` },
       // Authenticated Pro API traffic is transparently proxied to the existing
