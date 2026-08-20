@@ -519,6 +519,22 @@ def main() -> None:
         except Exception:
             pass
 
+    # 2b. Record every convergence event as a prediction.
+    #
+    # Until now the ONLY thing that logged these was render_convergence_events(),
+    # which logs what it draws -- capped at 3-4 bullish and 1-2 bearish by its
+    # callers -- and only when somebody loaded Home or Today's Brief. The Track
+    # Record was therefore built from the calls that fit on a page on days that
+    # had traffic, not from the calls the model made.
+    try:
+        from utils.convergence import get_convergence_events, log_convergence_predictions
+        _conv = get_convergence_events()
+        _n = log_convergence_predictions(_conv)
+        print(f"[digest] convergence events: {len(_conv)} logged={_n}", flush=True)
+    except Exception as exc:
+        print(f"[digest] convergence logging failed: "
+              f"{type(exc).__name__}: {str(exc)[:120]}", flush=True)
+
     # 3. Get flips and movers
     flips = get_signal_flips(days_back=1)
     print(f"[digest] flips since yesterday: {len(flips)}", flush=True)
