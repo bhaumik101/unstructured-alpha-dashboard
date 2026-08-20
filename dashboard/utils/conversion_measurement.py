@@ -429,3 +429,102 @@ def build_conversion_measurement(
             "invalid_signup_timestamps": invalid_signup_timestamps,
         },
     }
+
+
+# ── Acquisition funnel ───────────────────────────────────────────────────────
+# The admin funnel chart starts at "Signed Up" and is computed from the users
+# table, so it shows what happens AFTER someone has an account. The half where a
+# 0%-conversion product actually loses people -- visitor to account -- had no
+# numbers at all, because the events that measure it were defined and never
+# fired. They fire now; this reads them.
+
+ACQUISITION_STEPS: tuple[tuple[str, str], ...] = (
+    ("page_view",          "Visited"),
+    ("signup_started",     "Started signup"),
+    ("signup_completed",   "Verified email"),
+    ("pricing_viewed",     "Viewed pricing"),
+    ("checkout_started",   "Started checkout"),
+    ("checkout_completed", "Subscribed"),
+)
+
+
+def build_acquisition_funnel(event_rows: Iterable[dict]) -> dict:
+    """Count the visitor-to-subscriber steps from stored events.
+
+    Returns {"instrumented": bool, "first_seen": str|None, "steps": [...]}.
+
+    A step counts DISTINCT visitors, not events: one person reloading the
+    pricing page five times is one person who saw pricing, and counting the
+    reloads would make the step above checkout look healthier than it is.
+
+    `instrumented` distinguishes "nobody did this" from "nothing recorded it".
+    Every step below page_view was unmeasured until the events were wired, so
+    rendering a confident 0 for a period that predates the instrumentation
+    would be the same misleading certainty this module already refuses
+    elsewhere -- see VISITOR_TRACKING_START above.
+    """
+    names = {name for name, _ in ACQUISITION_STEPS}
+    seen: dict[str, set[str]] = {name: set() for name in names}
+    first_seen: str | None = None
+    funnel_names = names - {"page_view"}
+
+    for row in event_rows:
+        name = row.get("event_name")
+        if name not in names:
+            continue
+        who = row.get("visitor_id") or (
+            f"user:{row['user_id']}" if row.get("user_id") is not None else None
+        )
+        if who:
+            seen[name].add(str(who))
+        if name in funnel_names:
+            created = row.get("created_at")
+            stamp = created.isoformat() if isinstance(created, datetime) else str(created or "")
+            if stamp and (first_seen is None or stamp < first_seen):
+                first_seen = stamp
+
+    steps = []
+    top = len(seen["page_view"])
+    prev: int | None = None
+    for name, label in ACQUISITION_STEPS:
+        count = len(seen[name])
+        steps.append({
+            "event": name,
+            "label": label,
+            "count": count,
+            # Share of the top of the funnel, and of the step immediately above.
+            # The second is what names the step that is actually losing people.
+            "pct_of_top": round(100 * count / top, 1) if top else None,
+            "pct_of_prev": round(100 * count / prev, 1) if prev else None,
+        })
+        prev = count if count else None
+
+    return {
+        "instrumented": first_seen is not None,
+        "first_seen": first_seen,
+        "steps": steps,
+    }
+
+
+def load_acquisition_rows(*, days: int = 30, now: datetime | None = None) -> list[dict]:
+    """Read the events the acquisition funnel is built from."""
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    cutoff = datetime.combine(
+        current.date() - timedelta(days=days - 1), time.min, tzinfo=timezone.utc
+    ).isoformat()
+    names = [name for name, _ in ACQUISITION_STEPS]
+    with engine.connect() as conn:
+        return [
+            dict(row)
+            for row in conn.execute(
+                select(
+                    analytics_events.c.event_name,
+                    analytics_events.c.visitor_id,
+                    analytics_events.c.user_id,
+                    analytics_events.c.created_at,
+                ).where(
+                    analytics_events.c.event_name.in_(names),
+                    analytics_events.c.created_at >= cutoff,
+                )
+            ).mappings()
+        ]

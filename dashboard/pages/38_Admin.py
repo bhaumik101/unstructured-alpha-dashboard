@@ -31,6 +31,8 @@ from utils import ua_charts
 from utils.conversion_measurement import (
     build_conversion_measurement,
     load_conversion_rows,
+    build_acquisition_funnel,
+    load_acquisition_rows,
 )
 from utils.header import render_header, render_page_header, render_sidebar_base
 from utils.db import engine, users, referrals, watchlist
@@ -872,6 +874,47 @@ e2.metric("Active (30d)", m["active_30d"],
           delta=f"{round(m['active_30d']/m['total']*100)}% of users" if m["total"] else None)
 e3.metric("Have Watchlist", m["users_with_watchlist"],
           delta=f"{round(m['users_with_watchlist']/m['total']*100)}% of users" if m["total"] else None)
+
+# ── Acquisition funnel ────────────────────────────────────────────────────────
+# The chart below this one starts at "Signed Up". This is the half before it.
+
+st.markdown("##  Acquisition Funnel")
+st.caption("Visitor to subscriber, over the last 30 days. Distinct people per step, not events.")
+
+try:
+    _acq = build_acquisition_funnel(load_acquisition_rows())
+except Exception as _acq_exc:      # admin page must never die on one panel
+    _acq = None
+    st.warning(f"Acquisition funnel unavailable: {_acq_exc}")
+
+if _acq and not _acq["instrumented"]:
+    # Not the same as "nobody signed up". Rendering zeros here would assert a
+    # measurement that was never taken.
+    st.info(
+        "No funnel events recorded yet. The steps between a visit and a "
+        "subscription began emitting when the funnel instrumentation shipped — "
+        "before that they were defined but never fired, so earlier periods have "
+        "no data rather than zero conversions."
+    )
+elif _acq:
+    _rows = []
+    for _s in _acq["steps"]:
+        _rows.append({
+            "Step": _s["label"],
+            "People": _s["count"],
+            "% of visits": "—" if _s["pct_of_top"] is None else f"{_s['pct_of_top']:.1f}%",
+            "% of previous step": "—" if _s["pct_of_prev"] is None else f"{_s['pct_of_prev']:.1f}%",
+        })
+    st.dataframe(_rows, width="stretch", hide_index=True)
+    _worst = None
+    for _s in _acq["steps"][1:]:
+        if _s["pct_of_prev"] is not None and (_worst is None or _s["pct_of_prev"] < _worst["pct_of_prev"]):
+            _worst = _s
+    if _worst:
+        st.caption(
+            f"Biggest drop: **{_worst['label']}** keeps "
+            f"{_worst['pct_of_prev']:.1f}% of the step before it."
+        )
 
 # ── Conversion funnel ─────────────────────────────────────────────────────────
 
