@@ -24,6 +24,7 @@
 # fabricates substitute observations.
 
 import os
+import time as _time
 import io
 import zipfile
 import xml.etree.ElementTree as ET
@@ -1603,9 +1604,33 @@ def fetch_google_trends_fear(terms: str = "market crash,recession,stock market c
 
         term_list = [t.strip() for t in terms.split(",") if t.strip()][:5]
 
-        pt = TrendReq(hl="en-US", tz=360, timeout=(15, 30), retries=2, backoff_factor=0.5)
-        pt.build_payload(term_list, cat=0, timeframe="today 3-m", geo="US")
-        df = pt.interest_over_time()
+        # No retries=/backoff_factor= here. pytrends builds a urllib3 Retry from
+        # them using method_whitelist=, which urllib3 2.x removed (renamed to
+        # allowed_methods). With urllib3 2.5 installed, passing either argument
+        # raises TypeError before a single request is made -- so this signal was
+        # not rate-limited, it was failing deterministically on every call.
+        # Verified: without them the same query returns 93 weekly rows.
+        # Retry here rather than in pytrends. Google 429s this endpoint
+        # intermittently -- it has no official API -- and a single 429 used to
+        # end the fetch. Two attempts with a pause clears most of them; beyond
+        # that, an empty series is the honest answer and /signals/report now
+        # says "awaiting data" instead of counting the signal as neutral.
+        df = None
+        last_exc = None
+        for attempt in range(2):
+            try:
+                pt = TrendReq(hl="en-US", tz=360, timeout=(15, 30))
+                pt.build_payload(term_list, cat=0, timeframe="today 3-m", geo="US")
+                df = pt.interest_over_time()
+                break
+            except Exception as exc:
+                last_exc = exc
+                if attempt == 0:
+                    _time.sleep(5)
+        if df is None:
+            print(f"[trends] giving up after 2 attempts: "
+                  f"{type(last_exc).__name__}: {str(last_exc)[:90]}", flush=True)
+            return pd.Series(dtype=float, name="retail_fear_index")
 
         if df.empty:
             return pd.Series(dtype=float, name="retail_fear_index")
@@ -1641,9 +1666,41 @@ _FOMC_DATES = [
     # 2025
     "20250129", "20250319", "20250507", "20250618", "20250730", "20250917",
     "20251029", "20251210",
+    # 2026 -- read off the Fed's calendar page, which _fomc_meeting_dates()
+    # now re-reads at runtime so this list stops being the only source of truth.
+    "20260128", "20260318", "20260429", "20260617", "20260729",
 ]
 
 _FOMC_BASE_URL = "https://www.federalreserve.gov/newsevents/pressreleases/monetary{date}a.htm"
+_FOMC_CALENDAR_URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+
+
+@st.cache_data(ttl=604800, show_spinner=False, max_entries=1)
+def _fomc_meeting_dates() -> list[str]:
+    """Meeting dates, read from the Fed's own calendar, with the static list as a floor.
+
+    The static list below stopped at 2025-12-10. On 2026-08-19 that made the
+    "8 most recent meetings" eight months stale, and the signal reported no
+    usable data. A hardcoded schedule is a dated fuse: it works until it
+    silently does not.
+
+    The calendar page links each statement as monetary<YYYYMMDD>a.htm, which is
+    the same identifier this fetcher already needs, so discovery is a regex over
+    a page the Fed maintains. Union with the static list so a fetch failure
+    degrades to the old behaviour instead of to nothing.
+    """
+    import re
+    found: set[str] = set(_FOMC_DATES)
+    try:
+        r = resilient_get(
+            _FOMC_CALENDAR_URL, provider="fed_fomc", timeout=15,
+            headers={"User-Agent": "UnstructuredAlpha/1.0"},
+        )
+        if r.status_code == 200:
+            found |= set(re.findall(r"monetary(\d{8})a\.htm", r.text))
+    except Exception:
+        pass
+    return sorted(found)
 
 _HAWK_PROMPT = """You are a Federal Reserve analyst. Score the following FOMC monetary policy statement on a hawkishness scale from 0 to 100:
 - 0-20: Very dovish (explicit easing bias, rate cuts imminent, maximum accommodation language)
@@ -1686,7 +1743,7 @@ def fetch_fedspeaks_hawkishness(series_id: str = "fomc_hawkishness") -> pd.Serie
         return pd.Series(dtype=float, name="fedspeaks_hawkishness")
 
     # Score the most recent 8 FOMC meetings (covers ~1 year of data)
-    recent_dates = sorted(_FOMC_DATES)[-8:]
+    recent_dates = _fomc_meeting_dates()[-8:]
     scored: dict[str, float] = {}
 
     client = _anthropic.Anthropic(api_key=api_key)
