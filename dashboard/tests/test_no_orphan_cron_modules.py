@@ -102,6 +102,12 @@ def test_the_freshness_watchdog_is_scheduled():
     while the site looked healthy. A watchdog that is itself unscheduled would
     reproduce exactly that failure.
     """
-    assert "check_data_freshness" in _modules_with_a_service(), (
-        "cron/check_data_freshness.py has no Render service"
-    )
+    # Either route counts. It moved from its own service into the "health"
+    # group so the canonical-host check could share the slot rather than adding
+    # a fifteenth Render service; what matters is that something runs it.
+    assert "check_data_freshness" in (
+        _modules_with_a_service() | _modules_in_a_group()
+    ), "nothing schedules cron/check_data_freshness.py"
+    assert "check_public_surfaces" in (
+        _modules_with_a_service() | _modules_in_a_group()
+    ), "nothing schedules cron/check_public_surfaces.py"
