@@ -183,6 +183,41 @@ def get_convergence_events(
         return []
 
 
+def log_convergence_predictions(events: list[dict]) -> int:
+    """Log EVERY convergence event as a prediction. Returns the number attempted.
+
+    Rendering used to be the only thing that wrote these, and it writes only
+    what it draws -- render_convergence_events() logs bull_events[:max_bull]
+    and bear_events[:max_bear], which the callers cap at 3-4 and 1-2. So the
+    prediction log, and therefore the Track Record built on it, contained at
+    most five to seven calls per day, and only on days when somebody opened
+    Home or Today's Brief. The admin dashboard shows days with zero unique
+    visitors; on those, the model made calls that were never recorded.
+
+    That is a selection effect on the product's own accuracy number: the record
+    held the calls that fit on a page, not the calls the model made. This
+    function exists so a scheduled job can record all of them.
+
+    log_prediction() is idempotent on (ticker, event_date, event_type), so this
+    running alongside the render path produces no duplicates.
+    """
+    logged = 0
+    for ev in events:
+        try:
+            _log_convergence_prediction_once(
+                ticker=ev["ticker"],
+                direction=ev["direction"],
+                score=ev.get("score", 50.0),
+                signal_count=ev.get("count", 0),
+                signals_triggered=tuple(ev.get("signal_ids", [])),
+            )
+            logged += 1
+        except Exception as exc:
+            print(f"[convergence] could not log {ev.get('ticker')}: "
+                  f"{type(exc).__name__}: {str(exc)[:80]}", flush=True)
+    return logged
+
+
 def render_convergence_events(
     events: list[dict],
     max_bull: int = 4,
