@@ -142,3 +142,52 @@ def test_analytics_can_never_break_auth_or_payment():
                 f"{rel}:{fn.name} no longer swallows analytics failures, so a "
                 "broken tracker can fail a login or a payment"
             )
+
+
+def test_signup_events_carry_what_attribution_needs():
+    """The admin panel names these fields; recording user_id alone is not enough.
+
+    Section 5 of the admin dashboard, verbatim:
+
+        "Signup rows do not store visitor_id, session_id, or last_page, and
+         signup_completed is declared but never recorded ... Smallest future
+         addition: Record one signup_completed event with user_id, visitor_id,
+         session_id, and last_page when account creation commits."
+
+    visitor_id is filled by track() itself. session_id and last_page have to be
+    passed, and both are already in hand: the Streamlit session id, and the page
+    label utils.header._track_page_view() leaves in session_state["_pv_tracked"].
+    """
+    src = (_ROOT / "utils" / "auth_ui.py").read_text(encoding="utf-8")
+    fn = next(
+        n for n in ast.walk(ast.parse(src))
+        if isinstance(n, ast.FunctionDef) and n.name == "_track_funnel"
+    )
+    # Everything below is checked on the AST with the docstring dropped. The
+    # docstring quotes the admin panel, which names "_pv_tracked" and
+    # "session_id" -- so a text search finds the explanation and passes even
+    # when the code is deleted. Confirmed: removing the last_page line survived
+    # the first version of this assertion.
+    stmts = [n for n in fn.body if not (isinstance(n, ast.Expr)
+                                        and isinstance(n.value, ast.Constant)
+                                        and isinstance(n.value.value, str))]
+
+    track_calls = [
+        c for c in ast.walk(fn)
+        if isinstance(c, ast.Call) and getattr(c.func, "id", None) == "track"
+    ]
+    assert track_calls, "_track_funnel no longer calls track()"
+    kwargs = {k.arg for c in track_calls for k in c.keywords}
+    assert "session_id" in kwargs, (
+        "funnel events no longer carry session_id, so a signup cannot be tied "
+        "to the session that produced it"
+    )
+    literals = {
+        n.value for st_ in stmts for n in ast.walk(st_)
+        if isinstance(n, ast.Constant) and isinstance(n.value, str)
+    }
+    assert "_pv_tracked" in literals, (
+        "last_page is no longer read from session_state['_pv_tracked'], so "
+        "'Last page viewed before signup' has nothing to attribute with"
+    )
+    assert "last_page" in literals, "the last_page property is no longer set"

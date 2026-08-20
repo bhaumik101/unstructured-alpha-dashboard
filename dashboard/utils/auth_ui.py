@@ -62,10 +62,38 @@ def _track_funnel(event: str, user_id: int | None = None,
     track() is already non-blocking and documented never to raise, but these
     call sites sit inside login and signup: if that contract ever changes, the
     cost of finding out here is a user who cannot get into their account.
+
+    Carries session_id and last_page as well as user_id. The admin dashboard
+    asks for exactly this, in its own words:
+
+        "signup_completed is declared but never recorded ... Smallest future
+         addition: Record one signup_completed event with user_id, visitor_id,
+         session_id, and last_page when account creation commits."
+
+    visitor_id is filled by track() itself from visitor_context(). The other two
+    are already in hand: utils.header._track_page_view() stores the current page
+    label in session_state["_pv_tracked"], which IS the last page viewed, and
+    the Streamlit session id is read the same way that function reads it.
+
+    Without these, "Last page viewed before signup" can only attribute a signup
+    by finding a later identified page view for the same person -- which is why
+    the admin panel reports attribution as a stored-schema limitation.
     """
     try:
+        import streamlit as _st
         from utils.analytics import track
-        track(event, user_id=user_id, properties=properties)
+
+        sid = None
+        try:
+            from streamlit.runtime.scriptrunner import get_script_run_ctx
+            _ctx = get_script_run_ctx()
+            sid = getattr(_ctx, "session_id", None) if _ctx else None
+        except Exception:
+            sid = None
+
+        props = dict(properties or {})
+        props.setdefault("last_page", _st.session_state.get("_pv_tracked"))
+        track(event, user_id=user_id, properties=props, session_id=sid)
     except Exception:
         pass
 
