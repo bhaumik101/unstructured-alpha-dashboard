@@ -3,13 +3,21 @@ Tests for the Ticker Deep Dive segmented-control restructuring
 (pages/3_Ticker_Deep_Dive.py).
 
 Context: this page was originally one 1,351-line linear scroll. It was
-split into 4 sections (Overview / Insider & Short Interest / 13F &
-Federal Contracts / Deep Correlation Scan) selected via
+split into sections selected via
 sidebar section rail -- chosen deliberately over st.tabs() because a
 live check (not an assumption) confirmed st.tabs() executes every tab's
 code on every script run regardless of which tab is showing, while
 branching on the section rail's return value with if/elif genuinely
 skips code for unselected sections.
+
+Overview itself later became the same problem it was meant to solve: it
+grew to 2,534 lines, 70% of the page, while every other section sat at
+115-323. It is now five sections -- Overview / Price & Technicals /
+Catalysts & News / Model & Cases / Signal Detail -- carved at existing
+block boundaries. Nothing was deleted; the same blocks render, in the
+section they belong to. score_val/conviction/case are read once above
+the branch because every sub-section needs them, and they are dict
+lookups off an already-computed dict.
 
 The headline Confluence Score still depends on insider/short-interest/
 13F/contracts data (they're baked into the composite at a fixed 12%
@@ -114,12 +122,26 @@ def test_default_load_shows_overview_not_other_sections(app_test):
     )
     text = _all_markdown_text(at)
 
-    # Overview-exclusive content
-    assert "SIGNAL-BASED PREDICTION MODEL" in text
-    assert "Bull Case vs. Bear Case" in text
-    assert "Signal Detail Table" in text
+    # Overview-exclusive content. The prediction model, bull/bear cases and
+    # signal table used to be asserted here too: Overview was a 2,534-line
+    # branch carrying 70% of the page. They now live in Model & Cases and
+    # Signal Detail, so a default load must NOT render them -- which is the
+    # whole point of the split and is asserted below.
+    assert "Confluence Score" in text
+    assert "Interactive Chart" in text
 
-    # Content exclusive to the OTHER three sections must not leak in
+    # Content exclusive to every OTHER section must not leak in. The first four
+    # are the sections carved out of Overview; if any appears here, the split
+    # is cosmetic and the reader is still paying for the whole page.
+    # Markers unique to each carved-out section's BODY. "Signal Detail Table"
+    # is deliberately not one of them: the page intro near the top lists every
+    # section by name for all readers, so that string is present regardless and
+    # asserting on it would test the intro rather than the branching.
+    assert "SIGNAL-BASED PREDICTION MODEL" not in text     # Model & Cases
+    assert "Statistically Significant Signals" not in text  # Signal Detail
+    assert "Recent Headlines" not in text                   # Catalysts & News
+    assert "Price chart period" not in text                 # Price & Technicals
+
     assert "Federal Contract Awards (USASpending.gov)" not in text
     assert "Insider Transactions (SEC Form 4)" not in text
     assert "13F Institutional Positioning" not in text
