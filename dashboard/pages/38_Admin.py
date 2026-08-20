@@ -897,24 +897,57 @@ if _acq and not _acq["instrumented"]:
         "no data rather than zero conversions."
     )
 elif _acq:
-    _rows = []
-    for _s in _acq["steps"]:
-        _rows.append({
-            "Step": _s["label"],
-            "People": _s["count"],
-            "% of visits": "—" if _s["pct_of_top"] is None else f"{_s['pct_of_top']:.1f}%",
-            "% of previous step": "—" if _s["pct_of_prev"] is None else f"{_s['pct_of_prev']:.1f}%",
-        })
-    st.dataframe(_rows, width="stretch", hide_index=True)
-    _worst = None
-    for _s in _acq["steps"][1:]:
-        if _s["pct_of_prev"] is not None and (_worst is None or _s["pct_of_prev"] < _worst["pct_of_prev"]):
-            _worst = _s
-    if _worst:
-        st.caption(
-            f"Biggest drop: **{_worst['label']}** keeps "
-            f"{_worst['pct_of_prev']:.1f}% of the step before it."
+    # A funnel, not a table. The story here is the drop BETWEEN steps, and a
+    # dataframe makes the reader compute it. Each row is scaled to the top of
+    # the funnel so the shape is visible at a glance, and the step that loses
+    # the most is the one marked.
+    _steps = _acq["steps"]
+    _top = _steps[0]["count"] or 1
+    # People lost, not lowest percentage — see build_acquisition_funnel().
+    _drop = _acq.get("biggest_drop")
+    _worst_event = _drop["event"] if _drop else None
+
+    _rows_html = []
+    for _i, _s in enumerate(_steps):
+        _w = max(1.5, 100.0 * _s["count"] / _top)
+        _is_worst = _worst_event is not None and _s["event"] == _worst_event
+        # Colour carries meaning, not decoration: the accent walks from the top
+        # of the funnel to the paid step, and the worst drop is called out.
+        _fill = "var(--ua-red)" if _is_worst else (
+            "var(--ua-green)" if _i == len(_steps) - 1 else "var(--ua-royal-2,#8B7BF7)")
+        _keep = ("—" if _s["pct_of_prev"] is None
+                 else f"{_s['pct_of_prev']:.0f}% of previous")
+        _rows_html.append(
+            f'<div style="display:grid;grid-template-columns:170px 1fr 92px;'
+            f'gap:14px;align-items:center;padding:7px 0;">'
+            f'  <div style="font-size:0.82rem;color:var(--ua-ink);'
+            f'text-align:right;">{_s["label"]}</div>'
+            f'  <div style="position:relative;height:26px;background:var(--ua-hair-3);'
+            f'border-radius:5px;overflow:hidden;">'
+            f'    <div style="width:{_w:.1f}%;height:100%;background:{_fill};'
+            f'border-radius:5px;"></div>'
+            f'    <div style="position:absolute;inset:0;display:flex;align-items:center;'
+            f'padding-left:10px;font-size:0.78rem;font-weight:700;color:var(--ua-ink);">'
+            f'{_s["count"]:,}</div>'
+            f'  </div>'
+            f'  <div style="font-size:0.72rem;color:{"var(--ua-red)" if _is_worst else "var(--ua-ink-mut)"};'
+            f'font-weight:{"700" if _is_worst else "400"};">{_keep}</div>'
+            f'</div>'
         )
+
+    st.html(
+        '<div style="background:var(--ua-bg-card);border:1px solid var(--ua-hair-2);'
+        'border-radius:12px;padding:18px 20px;">' + "".join(_rows_html) + '</div>'
+    )
+    if _drop:
+        st.caption(
+            f"Biggest drop: **{_drop['label']}** — "
+            f"{_drop['lost']:,} people lost here"
+            + (f", {_drop['pct_of_prev']:.0f}% of the previous step continue."
+               if _drop["pct_of_prev"] is not None else ".")
+        )
+    else:
+        st.caption("No drop-off recorded yet.")
 
 # ── Conversion funnel ─────────────────────────────────────────────────────────
 

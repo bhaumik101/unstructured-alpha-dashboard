@@ -115,3 +115,40 @@ def test_the_steps_match_the_events_that_are_actually_fired():
         "these funnel steps name events that nothing fires, so they would show "
         "0 forever: " + ", ".join(unfired)
     )
+
+
+def test_biggest_drop_is_people_lost_not_lowest_percentage():
+    """The live shape is what exposed this.
+
+    190 visits, 11 signups, 4 verified, 3 pricing, 1 checkout, 0 paid.
+
+    Lowest retention picks "Subscribed" -- 0% of a sample of ONE -- and says
+    nothing anyone can act on. The funnel actually loses 179 of 190 people at
+    the very first step. Absolute loss is both the actionable number and the
+    one that survives a denominator of one.
+    """
+    rows = (
+        [_ev("page_view", visitor=f"v{i}") for i in range(190)]
+        + [_ev("signup_started", visitor=f"v{i}") for i in range(11)]
+        + [_ev("signup_completed", visitor=f"v{i}") for i in range(4)]
+        + [_ev("pricing_viewed", visitor=f"v{i}") for i in range(3)]
+        + [_ev("checkout_started", visitor=f"v{i}") for i in range(1)]
+    )
+    drop = build_acquisition_funnel(rows)["biggest_drop"]
+    assert drop is not None
+    assert drop["event"] == "signup_started", (
+        f"named {drop['event']!r}; on this shape the lowest-percentage rule "
+        "picks 'Subscribed' (0% of one person) over the step losing 179"
+    )
+    assert drop["lost"] == 179
+
+
+def test_a_perfect_funnel_reports_no_drop():
+    rows = [_ev(name, visitor="v1") for name, _ in ACQUISITION_STEPS]
+    assert build_acquisition_funnel(rows)["biggest_drop"] is None, (
+        "a funnel where nobody is lost should not nominate a step"
+    )
+
+
+def test_biggest_drop_is_absent_rather_than_guessed_when_empty():
+    assert build_acquisition_funnel([])["biggest_drop"] is None
