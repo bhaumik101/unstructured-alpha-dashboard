@@ -92,20 +92,27 @@ render_header("Ticker Deep Dive")
 _tdd_section = render_sidebar_base(
     page_title="Ticker Deep Dive",
     sections=(
-        # Overview used to be all five of the first entries in one branch: 2,534
-        # lines, 70% of the page, against 115-323 for every other section. The
-        # rail already worked for the rest of the page; it just was not applied
-        # here. Nothing was removed -- the same blocks render, in the section
-        # they belong to, and a reader loads one of them instead of all five.
+        # Order is a reading order, not a list of features. It walks from what
+        # the score IS, to what moves it, to what the model says, to the
+        # evidence underneath, and ends with the catalyst-and-earnings sequence
+        # so those three read as one line of research instead of being split by
+        # unrelated sections.
+        #
+        # Overview stays first: render_sidebar_base() takes options[0] as the
+        # default, and it is the only section that makes sense as a landing view.
+        #
+        # Reordering is safe by construction -- the page branches on the section
+        # LABEL, and _section_slug() derives ?section= from the label too, so
+        # existing links and stored selections keep working.
         "Overview",
-        "Price & Technicals",
-        "Catalysts & News",
-        "Model & Cases",
-        "Signal Detail",
         "Thesis Workspace",
+        "Price & Technicals",
+        "Signal Detail",
+        "Model & Cases",
         "Deep Correlation Scan",
         "Insider & Short Interest",
         "13F & Federal Contracts",
+        "Catalysts & News",
         "Earnings Track Record",
         "Earnings Sentiment",
     ),
