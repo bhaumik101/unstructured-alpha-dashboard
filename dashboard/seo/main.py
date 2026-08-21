@@ -1257,7 +1257,7 @@ def signals_report():
     <h2>Get the Full Signal Dashboard</h2>
     <p>
       See how today's macro signals affect the individual equities you follow.
-      Unstructured Alpha's Confluence Score aggregates {len(SIGNALS)} data sources
+      Unstructured Alpha's Confluence Score aggregates {len(SIGNALS)} macro signals
       into a single 0–100 number, updated as FRED, EIA, and SEC data arrives.
     </p>
     <a class="cta-btn" href="{APP_URL}/today-s-brief">

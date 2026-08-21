@@ -123,6 +123,19 @@ services:
     buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
     startCommand: python -m cron.send_digest
     envVars:
+      # Required. This cron is what writes signal_snapshots, and
+      # fetch_fedspeaks_hawkishness() returns an empty series on its FIRST
+      # statement when the key is absent -- before any network call. So Fed
+      # Policy Hawkishness could never be scored on the scheduled path, and the
+      # public report correctly showed it as awaiting data.
+      #
+      # Traced on production 2026-08-21: the FOMC calendar returned 46 meeting
+      # dates, all 8 statements in the scoring window returned HTTP 200 with the
+      # FOMC marker present, and the failure was solely this missing key. The
+      # web service has it, which is why the signal can look scored in-app while
+      # the snapshot the report reads has nothing.
+      - key: ANTHROPIC_API_KEY
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: RESEND_API_KEY
