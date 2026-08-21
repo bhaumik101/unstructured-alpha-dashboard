@@ -2586,13 +2586,20 @@ def regime_pill(regime: str, score: float | None = None) -> str:
     )
 
 
-def signal_confidence_badge(level: str, compact: bool = False) -> str:
+def signal_confidence_badge(level: str, compact: bool = False,
+                            neutral: bool = False) -> str:
     """
     Render a small inline HTML badge showing signal confidence level.
 
     Args:
         level:   "High" | "Medium" | "Low"
         compact: if True, show icon only (no text label) — for tight card layouts
+        neutral: if True, drop the green/amber/blue tint and render in the muted
+                 label colour. The mark (diamond filled / diamond outline /
+                 circle) already encodes the level, so on a card that is ALSO
+                 colouring the score semantically, the tint is a second colour
+                 axis competing with the one that carries meaning. Additive:
+                 existing callers keep the tinted badge.
 
     Returns an HTML string. Inline-safe (no block elements).
 
@@ -2609,11 +2616,14 @@ def signal_confidence_badge(level: str, compact: bool = False) -> str:
     }
     c = _cfg.get(level, _cfg["Low"])
     text = c["icon"] if compact else f'{c["icon"]} {c["label"]}'
+    colour = "var(--ua-ink-label)" if neutral else c["color"]
+    background = "transparent" if neutral else c["bg"]
+    edge = "rgba(var(--ua-onbg-rgb),0.18)" if neutral else c["border"]
     return (
         f'<span title="Signal confidence: {level}" '
         f'style="display:inline-block;font-size:0.62rem;font-weight:700;'
-        f'letter-spacing:0.04em;color:{c["color"]};background:{c["bg"]};'
-        f'border:1px solid {c["border"]};border-radius:4px;padding:1px 6px;'
+        f'letter-spacing:0.04em;color:{colour};background:{background};'
+        f'border:1px solid {edge};border-radius:4px;padding:1px 6px;'
         f'font-family:Inter,sans-serif;white-space:nowrap;">'
         f'{text}</span>'
     )

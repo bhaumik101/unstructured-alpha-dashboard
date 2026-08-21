@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import html as _h
+import re
 
 from utils.config import CATEGORIES, SIGNALS, TICKERS
 from utils.product_metrics import (
@@ -179,6 +180,23 @@ if _signal_section == "Signal Library":
     render_data_quality_strip(all_signals)
 
     # ── Mode + Display Toggles ────────────────────────────────────────────────────
+    # Both selections are published to the query string, for the same reason the
+    # Deep Dive section rail is: the theme control is an <a href>, so switching
+    # themes NAVIGATES. That is a fresh Streamlit session with empty
+    # session_state, and a Pro reader was silently dropped back to Simple/Cards
+    # every time they changed theme. Read before the widgets exist, so a direct
+    # link and browser back/forward win over stale state.
+    _MODE_OPTS = ["Simple", "Pro"]
+    _LAYOUT_OPTS = ["Cards", "Heatmap"]
+    for _qs_key, _state_key, _opts in (
+        ("mode", "dash_mode", _MODE_OPTS),
+        ("layout", "dash_layout", _LAYOUT_OPTS),
+    ):
+        _wanted = str(st.query_params.get(_qs_key) or "").strip().lower()
+        _match = next((o for o in _opts if o.lower() == _wanted), None)
+        if _match:
+            st.session_state[_state_key] = _match
+
     col_mode, col_display, col_spacer = st.columns([2, 2, 3])
     with col_mode:
         mode = st.radio(
@@ -199,6 +217,20 @@ if _signal_section == "Signal Library":
             key="dash_layout",
         )
 
+    # Write back only when the selection is not the default, and clear the
+    # parameter when it returns to default -- so a shared URL carries exactly
+    # the state that differs from a first visit, and no more.
+    for _qs_key, _value, _default in (
+        ("mode", mode, _MODE_OPTS[0]),
+        ("layout", _view_layout, _LAYOUT_OPTS[0]),
+    ):
+        _slug = str(_value).lower()
+        _current = str(st.query_params.get(_qs_key) or "").strip().lower()
+        if _value != _default and _current != _slug:
+            st.query_params[_qs_key] = _slug
+        elif _value == _default and _current:
+            del st.query_params[_qs_key]
+
     st.markdown("")
 
     # ── Category Filter — segmented pills with icons + live signal counts ─────────
@@ -212,7 +244,14 @@ if _signal_section == "Signal Library":
         if k == "all":
             return f"All  ({len(all_signals)})"
         cat = CATEGORIES[k]
-        return f"{cat['icon']} {cat['name']}  ({_cat_counts.get(k, 0)})"
+        # No cat['icon'] here. The emoji set (globe, lightning, robot, credit
+        # card, DNA, shopping bag, gear) is the loudest thing on a page whose
+        # cards are otherwise geometric marks and one semantic colour. The
+        # category name and its count carry the same information. The shared
+        # CATEGORIES config is deliberately untouched -- Sector View, How
+        # Signals Work and Home still use the icons, and changing those is not
+        # this PR.
+        return f"{cat['name']}  ({_cat_counts.get(k, 0)})"
 
     _cat_sel = st.segmented_control(
         "Category",
@@ -711,10 +750,40 @@ if _signal_section == "Signal Library":
                         _dev_fmt = f"{dev:+.1f}" if dev == dev else "n/a"
                         _z_fmt   = f"{z_score:.1f}" if z_score == z_score else "n/a"
                         _trend_fmt = f"{trend:+.1f}" if trend == trend else "n/a"
-                        _cat_icon  = cat.get("icon", "")
                         _cat_name  = cat.get("name", "").upper()
                         _pro_conf  = compute_signal_confidence(sv, pcs=sv.get("pcs"))
-                        _pro_conf_badge = signal_confidence_badge(_pro_conf["level"])
+                        # Neutral: the score beside it is already coloured
+                        # semantically, and the mark encodes the level.
+                        _pro_conf_badge = signal_confidence_badge(
+                            _pro_conf["level"], neutral=True
+                        )
+
+                        # Deviation is unbounded -- some series read in the
+                        # thousands of percent against a near-zero 52-week mean,
+                        # and at 1.6rem-adjacent weight that one figure sets the
+                        # card's width and drowns the score it is supposed to
+                        # support. Clamp the DISPLAY only; the exact value stays
+                        # in the tooltip and every downstream calculation is
+                        # untouched.
+                        if dev == dev and abs(dev) >= 1000:
+                            _dev_shown = f"{'+' if dev > 0 else '-'}999+"
+                        else:
+                            _dev_shown = _dev_fmt
+                        _dev_title = (
+                            f"Deviation from 52-week average: {dev:+.2f}%"
+                            if dev == dev else "Deviation unavailable"
+                        )
+
+                        # Direction is carried by the glyph, so the trend badge
+                        # does not need to repeat it in colour. Leaving it green
+                        # or red put a second directional colour on the card,
+                        # competing with the score -- which is the one colour
+                        # here that is allowed to mean something.
+                        _pro_trend_badge = re.sub(
+                            r"color:var\(--ua-(green|red)\)",
+                            "color:var(--ua-ink-soft)",
+                            _trend_badge,
+                        )
 
                         _pro_flip_html = (
                             f'<div style="font-size:0.67rem;color:var(--ua-ink-label);margin-top:6px;'
@@ -728,34 +797,47 @@ if _signal_section == "Signal Library":
                             f'backdrop-filter:blur(12px) saturate(150%);'
                             f'-webkit-backdrop-filter:blur(12px) saturate(150%);'
                             f'box-shadow:0 4px 20px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k)));'
-                            f'margin-bottom:10px;font-family:Inter,sans-serif;min-height:140px;">'
-                            f'<div style="font-size:0.66rem;letter-spacing:0.03em;margin-bottom:2px;">'
-                            f'<span style="background:rgba({_cat_cr},{_cat_cg},{_cat_cb},0.12);'
-                            f'color:rgba({_cat_cr},{_cat_cg},{_cat_cb},1);'
-                            f'border:1px solid rgba({_cat_cr},{_cat_cg},{_cat_cb},0.28);'
-                            f'border-radius:6px;padding:1px 6px;font-weight:600;">'
-                            f'{_cat_icon} {_cat_name}</span>'
-                            f'<span style="color:var(--ua-ink-label);margin-left:6px;">PCS {cfg["pcs"]}/10</span></div>'
-                            f'<div title="{cfg["name"]}" style="font-weight:700;font-size:0.88rem;color:var(--ua-ink);margin-bottom:8px;line-height:1.3;'
+                            f'margin-bottom:10px;font-family:Inter,sans-serif;min-height:172px;'
+                            f'display:flex;flex-direction:column;">'
+                            # 1. Signal name — the card's subject, and now the
+                            #    first thing read. The category chip used to sit
+                            #    above it, which put a taxonomy label ahead of
+                            #    the thing being labelled.
+                            f'<div title="{cfg["name"]}" style="font-weight:700;font-size:0.9rem;color:var(--ua-ink);'
+                            f'margin-bottom:10px;line-height:1.3;min-height:2.3em;'
                             f'overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">'
                             f'{_pulse_dot}{cfg["name"]}</div>'
-                            f'<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">'
-                            f'<div><div style="display:flex;align-items:center;gap:8px;">'
-                            f'<div style="font-size:1.6rem;font-weight:700;color:{border};">{sym} {score:.0f}</div>'
+                            # 2. Score and direction — the ONE semantic colour on
+                            #    this card. 3. Confidence, neutral beside it.
+                            f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+                            f'<div style="font-size:1.6rem;font-weight:700;color:{border};line-height:1;'
+                            f'font-variant-numeric:tabular-nums;">{sym} {score:.0f}</div>'
                             f'<div style="display:flex;flex-direction:column;gap:3px;">'
-                            f'<span style="font-size:var(--ua-text-sm);">{_trend_badge}</span>'
+                            f'<span style="font-size:var(--ua-text-sm);">{_pro_trend_badge}</span>'
                             f'{_pro_conf_badge}'
                             f'</div>'
                             f'</div>'
+                            # 4. Statistical detail — muted, tabular so the
+                            #    numbers line up down the column.
+                            f'<div style="font-size:0.76rem;color:var(--ua-ink-soft);line-height:1.65;'
+                            f'font-variant-numeric:tabular-nums;">'
+                            f'<div title="{_dev_title}">Dev: <b>{_dev_shown}%</b> vs 52w</div>'
+                            f'<div>Z-score: <b>{_z_fmt}&#963;</b></div>'
+                            f'<div>Trend: {trend_arrow} {_trend_fmt}% / 4w &middot; Lead ~{cfg.get("lag_weeks", 0)}w{("  " + _streak_label) if _streak_label else ""}</div>'
                             f'</div>'
-                            f'<div style="font-size:0.76rem;color:var(--ua-ink-soft);line-height:1.7;">'
-                            f'<div>Dev: <b>{_dev_fmt}%</b> vs 52w</div>'
-                            f'<div>Z-score: <b>{_z_fmt}σ</b></div>'
-                            f'<div>Trend: {trend_arrow} {_trend_fmt}% / 4w · Lead ~{cfg.get("lag_weeks", 0)}w{("  " + _streak_label) if _streak_label else ""}</div>'
-                            f'</div></div>'
                             f'{_pro_flip_html}'
-                            f'<div style="margin-top:8px;">'
+                            # 5. Source and provenance last, with the category and
+                            #    PCS demoted to metadata beside it. The category
+                            #    chip is neutral now: its per-category tint was a
+                            #    second colour axis on a card whose score colour
+                            #    is the one that carries meaning.
+                            f'<div style="margin-top:auto;padding-top:10px;display:flex;align-items:center;'
+                            f'gap:8px;flex-wrap:wrap;">'
                             f'{source_badge(cfg.get("source",""), cfg.get("series_id",""))}'
+                            f'<span style="font-size:0.62rem;letter-spacing:0.03em;color:var(--ua-ink-label);'
+                            f'border:1px solid rgba(var(--ua-onbg-rgb),0.14);border-radius:4px;padding:1px 6px;">'
+                            f'{_cat_name}</span>'
+                            f'<span style="font-size:0.62rem;color:var(--ua-ink-label);">PCS {cfg["pcs"]}/10</span>'
                             f'</div>'
                             f'</div>',
                             unsafe_allow_html=True,
