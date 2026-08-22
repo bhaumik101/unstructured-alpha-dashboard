@@ -1294,44 +1294,44 @@ _MODERN_UI_CSS = """
 }
 
 /* — Secondary (default) — */
-.stButton > button[data-testid="baseButton-secondary"],
-.stButton > button:not([data-testid="baseButton-primary"]) {
+.stButton > button:not([kind="primary"]),
+.stButton > button:not([kind="primary"]) {
   background: rgba(22,26,40,0.92) !important;
   border: 1px solid rgba(var(--ua-onbg-rgb),0.10) !important;
   color: #D5DAE3 !important;
   box-shadow: 0 1px 3px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k))),
               inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04) !important;
 }
-.stButton > button[data-testid="baseButton-secondary"]:hover,
-.stButton > button:not([data-testid="baseButton-primary"]):hover {
+.stButton > button:not([kind="primary"]):hover,
+.stButton > button:not([kind="primary"]):hover {
   background: rgba(32,38,58,0.95) !important;
   border-color: #536174 !important;
   color: var(--ua-ink) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 14px rgba(var(--ua-shadow-rgb),calc(0.35*var(--ua-shadow-k))) !important;
 }
-.stButton > button[data-testid="baseButton-secondary"]:active,
-.stButton > button:not([data-testid="baseButton-primary"]):active {
+.stButton > button:not([kind="primary"]):active,
+.stButton > button:not([kind="primary"]):active {
   transform: translateY(0) scale(0.975) !important;
   box-shadow: 0 1px 3px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k))) !important;
 }
 
 /* — Primary — */
-.stButton > button[data-testid="baseButton-primary"] {
+.stButton > button[kind="primary"] {
   background: #2E6654 !important;
   border: 1px solid #477D6B !important;
   color: #F1F3F5 !important;
   font-weight: 700 !important;
   box-shadow: 0 2px 8px rgba(var(--ua-shadow-rgb),calc(0.28*var(--ua-shadow-k))) !important;
 }
-.stButton > button[data-testid="baseButton-primary"]:hover {
+.stButton > button[kind="primary"]:hover {
   background: #397461 !important;
   border-color: #5A8E7D !important;
   filter: none !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 12px rgba(var(--ua-shadow-rgb),calc(0.32*var(--ua-shadow-k))) !important;
 }
-.stButton > button[data-testid="baseButton-primary"]:active {
+.stButton > button[kind="primary"]:active {
   transform: translateY(0) scale(0.975) !important;
   filter: brightness(0.96) !important;
   box-shadow: 0 2px 8px rgba(var(--ua-shadow-rgb),calc(0.28*var(--ua-shadow-k))) !important;
@@ -1673,7 +1673,7 @@ section[data-testid="stSidebar"] {
 @media (prefers-reduced-motion: reduce) {
   /* Specificity, not source order, decides this. These used to be written as
      `.stButton > button` (0,1,2), while the primary-button motion rules are
-     `.stButton > button[data-testid="baseButton-primary"]:active` (0,3,2). A
+     `.stButton > button[kind="primary"]:active` (0,3,2). A
      later rule does NOT win against a more specific one, so a reader who asked
      for reduced motion still got translateY(-1px) and scale(0.975) on every
      primary button press.
@@ -1687,11 +1687,11 @@ section[data-testid="stSidebar"] {
   .stButton > button[kind="primary"],
   .stButton > button[kind="primary"]:hover,
   .stButton > button[kind="primary"]:active,
-  .stButton > button[data-testid="baseButton-primary"],
-  .stButton > button[data-testid="baseButton-primary"]:hover,
-  .stButton > button[data-testid="baseButton-primary"]:active,
-  .stButton > button[data-testid="baseButton-secondary"]:hover,
-  .stButton > button[data-testid="baseButton-secondary"]:active,
+  .stButton > button[kind="primary"],
+  .stButton > button[kind="primary"]:hover,
+  .stButton > button[kind="primary"]:active,
+  .stButton > button:not([kind="primary"]):hover,
+  .stButton > button:not([kind="primary"]):active,
   section[data-testid="stSidebar"] .stButton > button,
   section[data-testid="stSidebar"] .stButton > button:hover,
   .stDownloadButton > button:hover,

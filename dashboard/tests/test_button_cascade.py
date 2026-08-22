@@ -162,3 +162,54 @@ def test_important_is_not_load_bearing_by_accident(css):
         f"only {len(important)} winning button declarations are !important; the "
         "cascade this stylesheet relies on has changed shape"
     )
+
+
+# ── Streamlit's internal attribute renamed under us ──────────────────────────
+
+def test_no_rule_depends_on_the_obsolete_baseButton_testid(css):
+    """data-testid="baseButton-*" matches nothing in production.
+
+    Verified in the browser on 2026-08-21 across two pages: zero elements match
+    [data-testid^="baseButton-"], and every button carries stBaseButton-*
+    instead. Streamlit renamed an internal test identifier, and the stylesheet
+    was keyed to it.
+
+    The damage was not just dead rules. The secondary group included
+    `.stButton > button:not([data-testid="baseButton-primary"])`, and an
+    exclusion referencing a non-existent attribute excludes NOTHING -- so it
+    matched primary buttons too, at equal specificity and later in the cascade.
+    Every primary button was painted with the secondary surface.
+    """
+    assert "baseButton-" not in css, (
+        "a rule is keyed to data-testid=\"baseButton-*\", which Streamlit no "
+        "longer emits. Key off [kind] instead -- it is the semantic attribute, "
+        "not an internal identifier, and it is what survived the rename."
+    )
+
+
+def test_primary_and_secondary_resolve_to_different_surfaces(css):
+    """The defect this PR fixes, stated as the invariant it broke."""
+    primary = resolved_values(
+        css, _exact(".stButton > button", '.stButton > button[kind="primary"]')
+    )
+    secondary = resolved_values(
+        css, _exact(".stButton > button", '.stButton > button:not([kind="primary"])')
+    )
+    assert primary.get("background") != secondary.get("background"), (
+        "primary and secondary buttons resolve to the same background — the app "
+        "has no visually distinct primary action"
+    )
+
+
+def test_the_secondary_exclusion_uses_an_attribute_that_exists(css):
+    """A :not() on a missing attribute silently matches everything."""
+    exclusions = re.findall(r":not\(\[([a-zA-Z-]+)=", css)
+    unknown = sorted({a for a in exclusions if a not in {"kind", "aria-checked",
+                                                         "aria-pressed", "disabled",
+                                                         "data-baseweb", "tabindex",
+                                                         "data-testid", "type", "hidden",
+                                                         "aria-selected", "open", "class",
+                                                         "style", "role", "id", "name",
+                                                         "value", "href", "target", "rel",
+                                                         "aria-expanded", "data-ua-theme"}})
+    assert not unknown, f"exclusion keyed on unexpected attribute(s): {unknown}"
