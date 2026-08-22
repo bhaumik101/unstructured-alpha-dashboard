@@ -1671,9 +1671,29 @@ section[data-testid="stSidebar"] {
    Durations are not enough on their own: a 0.01ms translate is still a jump,
    just a fast one. */
 @media (prefers-reduced-motion: reduce) {
+  /* Specificity, not source order, decides this. These used to be written as
+     `.stButton > button` (0,1,2), while the primary-button motion rules are
+     `.stButton > button[data-testid="baseButton-primary"]:active` (0,3,2). A
+     later rule does NOT win against a more specific one, so a reader who asked
+     for reduced motion still got translateY(-1px) and scale(0.975) on every
+     primary button press.
+     Found by resolving the built stylesheet rather than reading this block --
+     `transition` was correctly suppressed here, which is exactly why the gap in
+     `transform` was invisible. The attribute selectors below match the motion
+     rules' specificity so the suppression actually applies. */
   .stButton > button,
   .stButton > button:hover,
   .stButton > button:active,
+  .stButton > button[kind="primary"],
+  .stButton > button[kind="primary"]:hover,
+  .stButton > button[kind="primary"]:active,
+  .stButton > button[data-testid="baseButton-primary"],
+  .stButton > button[data-testid="baseButton-primary"]:hover,
+  .stButton > button[data-testid="baseButton-primary"]:active,
+  .stButton > button[data-testid="baseButton-secondary"]:hover,
+  .stButton > button[data-testid="baseButton-secondary"]:active,
+  section[data-testid="stSidebar"] .stButton > button,
+  section[data-testid="stSidebar"] .stButton > button:hover,
   .stDownloadButton > button:hover,
   .stFormSubmitButton > button:hover,
   .stLinkButton > a:hover {
