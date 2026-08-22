@@ -1332,14 +1332,6 @@ div[data-testid="stExpander"] { background: rgba(var(--ua-card-rgb),0.6) !import
     box-shadow: 0 0 14px rgba(var(--ua-royal-rgb),0.14) !important;
     transform: translateY(-1px);
 }
-.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #6470F5, #4B54D8) !important;
-    color: #FFFFFF !important; border: none !important; font-weight: 700 !important;
-}
-.stButton > button[kind="primary"]:hover {
-    box-shadow: 0 0 22px rgba(var(--ua-royal-rgb),0.40) !important; filter: brightness(1.06);
-}
-
 /* Inputs */
 .stTextInput > div > div > input {
     background: var(--ua-surface) !important; border: 1px solid var(--ua-hair) !important;
@@ -1777,29 +1769,17 @@ code, pre {
 .dvn-scroller::-webkit-scrollbar       { width: 4px; height: 4px; }
 .dvn-scroller::-webkit-scrollbar-thumb { background: rgba(var(--ua-green-rgb),0.22); border-radius: 2px; }
 
-/* ── Better primary button gradient ─────────────────────────────────────── */
-.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #6470F5 0%, #5A52E0 45%, #4B54D8 100%) !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.01em !important;
-    box-shadow: 0 2px 14px rgba(var(--ua-royal-rgb),0.30), 0 1px 3px rgba(var(--ua-shadow-rgb),calc(0.3*var(--ua-shadow-k))) !important;
-    /* No transition here. theme.py's MODERN BUTTONS rule is concatenated
-       after this file and sets the transition for every button; this
-       declaration was silently superseded, and `all` would animate
-       layout properties if it ever won. */
-}
-.stButton > button[kind="primary"]:hover {
-    box-shadow: 0 4px 22px rgba(var(--ua-royal-rgb),0.44), 0 2px 6px rgba(var(--ua-shadow-rgb),calc(0.4*var(--ua-shadow-k))) !important;
-    filter: brightness(1.06) !important;
-    transform: translateY(-1px) !important;
-}
-.stButton > button[kind="primary"]:active {
-    transform: translateY(0) !important;
-    filter: brightness(0.97) !important;
-}
+/* The primary-button block that stood here is gone entirely.
 
+   Five of its six declarations were re-set by theme.py's MODERN BUTTONS primary
+   rule, which uses the SAME selector and is concatenated after this file. The
+   sixth, letter-spacing, was the same value the base .stButton > button rule
+   already sets -- so it changed nothing either.
+
+   That last part was only visible by mutation: deleting the "surviving"
+   declaration and finding the state snapshot unchanged. Winning the cascade and
+   changing a value are different questions, and the first one is the easy one
+   to mistake for the second. */
 /* ── Slider track — thicker, more visible ─────────────────────────────────── */
 .stSlider [data-baseweb="slider"] {
     padding-top: 6px !important;
