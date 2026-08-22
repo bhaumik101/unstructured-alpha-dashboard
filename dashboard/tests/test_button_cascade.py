@@ -213,3 +213,63 @@ def test_the_secondary_exclusion_uses_an_attribute_that_exists(css):
                                                          "value", "href", "target", "rel",
                                                          "aria-expanded", "data-ua-theme"}})
     assert not unknown, f"exclusion keyed on unexpected attribute(s): {unknown}"
+
+
+# ── Characterisation snapshot ────────────────────────────────────────────────
+# tests/support/button_states.json holds every resolved declaration for 16
+# button states, captured from the built stylesheet. It is the safety net for
+# consolidation: a refactor that changes a computed value fails here even if the
+# diff looks harmless, and a refactor that only removes shadowed declarations
+# passes without needing to be trusted.
+#
+# To change it deliberately: make the change, confirm the diff this test prints
+# is what you intended, and update the fixture in the same commit.
+
+_STATES = {
+    "base": (".stButton > button",),
+    "hover": (".stButton > button", ".stButton > button:hover"),
+    "active": (".stButton > button", ".stButton > button:active"),
+    "focus": (".stButton > button", ".stButton > button:focus-visible"),
+    "primary": (".stButton > button", '.stButton > button[kind="primary"]'),
+    "primary_hover": (".stButton > button", '.stButton > button[kind="primary"]',
+                      '.stButton > button[kind="primary"]:hover'),
+    "primary_active": (".stButton > button", '.stButton > button[kind="primary"]',
+                       '.stButton > button[kind="primary"]:active'),
+    "secondary": (".stButton > button", '.stButton > button:not([kind="primary"])'),
+    "secondary_hover": (".stButton > button", '.stButton > button:not([kind="primary"])',
+                        '.stButton > button:not([kind="primary"]):hover'),
+    "sidebar": ('section[data-testid="stSidebar"] .stButton > button',),
+    "sidebar_hover": ('section[data-testid="stSidebar"] .stButton > button',
+                      'section[data-testid="stSidebar"] .stButton > button:hover'),
+    "light_base": ('html[data-ua-theme="light"] .stButton > button',),
+    "light_primary": ('html[data-ua-theme="light"] .stButton > button[kind="primary"]',),
+    "download": (".stDownloadButton > button",),
+    "rm_base": (".stButton > button",),
+    "rm_primary_active": (".stButton > button", '.stButton > button[kind="primary"]:active'),
+}
+_RM_STATES = {"rm_base", "rm_primary_active"}
+
+
+def test_every_button_state_matches_the_recorded_snapshot(css):
+    import json
+    from pathlib import Path
+
+    fixture = Path(__file__).parent / "support" / "button_states.json"
+    expected = json.loads(fixture.read_text(encoding="utf-8"))
+
+    changes = []
+    for state, selectors in _STATES.items():
+        media = (REDUCED_MOTION,) if state in _RM_STATES else ()
+        actual = resolved_values(css, _exact(*selectors), media=media)
+        want = expected.get(state, {})
+        for prop in sorted(set(want) | set(actual)):
+            if want.get(prop) != actual.get(prop):
+                changes.append(
+                    f"{state}.{prop}: {want.get(prop)!r} -> {actual.get(prop)!r}"
+                )
+    assert not changes, (
+        f"{len(changes)} resolved button value(s) changed:\n  "
+        + "\n  ".join(changes[:20])
+        + "\n\nIf intended, update tests/support/button_states.json in the same "
+          "commit. If not, the refactor changed what a user sees."
+    )
