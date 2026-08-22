@@ -154,6 +154,7 @@ class Event:
     DASHBOARD_VIEWED       = "dashboard_viewed"
     PRICING_VIEWED         = "pricing_viewed"
     HOW_IT_WORKS_VIEWED    = "how_it_works_viewed"
+    APP_OPENED             = "app_opened"
 
     # Auth lifecycle
     SIGNUP_STARTED         = "signup_started"

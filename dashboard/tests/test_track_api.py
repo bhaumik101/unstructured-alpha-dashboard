@@ -58,6 +58,38 @@ def test_valid_landing_page_view_is_recorded(client_and_writes):
     assert writes[0]["visitor_id"]
 
 
+def test_valid_app_open_records_bounded_action_and_ticker(client_and_writes):
+    client, writes = client_and_writes
+    res = _post(client, {
+        "event": "app_opened", "page": "Landing",
+        "action": "hero_ticker", "ticker": "nvda",
+    })
+
+    assert res.status_code == 204
+    assert len(writes) == 1
+    assert writes[0]["event"] == "app_opened"
+    assert writes[0]["properties"] == {
+        "page": "Landing", "site": "marketing",
+        "action": "hero_ticker", "ticker": "NVDA",
+    }
+
+
+def test_app_open_rejects_unknown_action_and_drops_invalid_ticker(client_and_writes):
+    client, writes = client_and_writes
+    _post(client, {
+        "event": "app_opened", "page": "Landing",
+        "action": "invented_action", "ticker": "NVDA",
+    })
+    assert writes == []
+
+    _post(client, {
+        "event": "app_opened", "page": "Landing",
+        "action": "hero_ticker", "ticker": "<script>",
+    })
+    assert len(writes) == 1
+    assert "ticker" not in writes[0]["properties"]
+
+
 def test_arbitrary_event_names_are_rejected(client_and_writes):
     """Anyone can call this, so only an allowlist may be written.
 
@@ -211,5 +243,5 @@ def test_landing_visitor_id_matches_the_app_for_the_same_person(client_and_write
 
 def test_allowlists_stay_minimal():
     """Widening these is a deliberate decision, not an accident."""
-    assert ALLOWED_EVENTS == {"page_view"}
+    assert ALLOWED_EVENTS == {"page_view", "app_opened"}
     assert "Landing" in ALLOWED_PAGES and "Other" in ALLOWED_PAGES

@@ -440,6 +440,7 @@ def build_conversion_measurement(
 
 ACQUISITION_STEPS: tuple[tuple[str, str], ...] = (
     ("page_view",          "Visited"),
+    ("app_opened",         "Opened app"),
     ("signup_started",     "Started signup"),
     ("signup_completed",   "Verified email"),
     ("pricing_viewed",     "Viewed pricing"),

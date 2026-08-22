@@ -5,6 +5,56 @@ import Link from 'next/link';
 
 const APP_URL = "https://app.unstructuredalpha.com";
 
+type AppOpenAction =
+  | "nav"
+  | "mobile_nav"
+  | "hero_ticker"
+  | "watchlist"
+  | "signal_preview"
+  | "free_plan"
+  | "pro_trial"
+  | "closing"
+  | "footer";
+
+function normalizedTicker(value: string): string {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").slice(0, 10);
+}
+
+function appDestination(action: AppOpenAction, ticker = ""): string {
+  const symbol = normalizedTicker(ticker);
+  const url = new URL(symbol ? `${APP_URL}/ticker-deep-dive` : APP_URL);
+  if (symbol) url.searchParams.set("ticker", symbol);
+  url.searchParams.set("utm_source", "marketing_landing");
+  url.searchParams.set("utm_medium", "owned");
+  url.searchParams.set("utm_campaign", "direct_ticker_activation");
+  url.searchParams.set("utm_content", action);
+  return url.toString();
+}
+
+function recordAppOpen(action: AppOpenAction, ticker = "") {
+  const symbol = normalizedTicker(ticker);
+  const body = JSON.stringify({
+    event: "app_opened",
+    page: "Landing",
+    action,
+    ...(symbol ? { ticker: symbol } : {}),
+  });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }));
+    } else {
+      void fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      });
+    }
+  } catch {
+    // Measurement must never block the visitor from entering the product.
+  }
+}
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 // Stats: specific, honest, and differentiated
@@ -197,6 +247,7 @@ export default function Home() {
   const [annual,     setAnnual]     = useState(false);
   const [openFaq,    setOpenFaq]    = useState<number | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [ticker,      setTicker]      = useState("");
   const [email,      setEmail]      = useState("");
   const [subStatus,  setSubStatus]  = useState<"idle"|"loading"|"success"|"error">("idle");
   const toggleTheme = () => {
@@ -204,6 +255,14 @@ export default function Home() {
     const next = current === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem("ua-theme", next);
+  };
+
+  const handleTickerSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const symbol = normalizedTicker(ticker);
+    if (!symbol) return;
+    recordAppOpen("hero_ticker", symbol);
+    window.location.assign(appDestination("hero_ticker", symbol));
   };
 
   const handleSubscribe = async (e: FormEvent) => {
@@ -306,7 +365,8 @@ export default function Home() {
             >
               Light / Dark
             </button>
-            <a href={`${APP_URL}`}
+            <a href={appDestination("nav")}
+               onClick={() => recordAppOpen("nav")}
                className="nav-cta"
                style={{ background: T.green, color: "var(--button-ink)", padding: "8px 18px",
                         borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
@@ -335,7 +395,7 @@ export default function Home() {
           <button type="button" className="mobile-theme-toggle" onClick={toggleTheme}>
             Toggle light / dark theme
           </button>
-          <a href={APP_URL}       onClick={() => setMobileOpen(false)}>Open dashboard →</a>
+          <a href={appDestination("mobile_nav")} onClick={() => { recordAppOpen("mobile_nav"); setMobileOpen(false); }}>Open dashboard →</a>
         </div>
       </nav>
 
@@ -380,15 +440,34 @@ export default function Home() {
           Macro context for the stocks you already hold — educational intelligence, not personalized advice.
         </p>
 
-        {/* CTA row */}
+        {/* Direct-value CTA: preserve the visitor's intent all the way into Deep Dive. */}
         <div data-reveal data-delay="3"
              className="hero-cta-row"
-             style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 52 }}>
-          <a href={APP_URL} className="btn-primary"
-             style={{ background: T.green, color: "var(--button-ink)", padding: "14px 36px",
-                      borderRadius: 10, fontSize: 15, fontWeight: 700, display: "inline-block" }}>
-            Analyze my portfolio →
-          </a>
+             style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 18 }}>
+          <form onSubmit={handleTickerSubmit} className="hero-ticker-form"
+                style={{ display: "flex", gap: 8, width: "min(100%, 520px)" }}>
+            <label htmlFor="hero-ticker" className="sr-only">Ticker symbol</label>
+            <input
+              id="hero-ticker"
+              value={ticker}
+              onChange={(e) => setTicker(normalizedTicker(e.target.value))}
+              placeholder="Enter a ticker, e.g. NVDA"
+              inputMode="text"
+              autoCapitalize="characters"
+              autoComplete="off"
+              maxLength={10}
+              required
+              style={{ flex: 1, minWidth: 0, padding: "14px 16px", borderRadius: 10,
+                       background: "var(--bg-card)", border: "1px solid var(--border-strong)",
+                       color: T.bright, fontSize: 15, outline: "none" }}
+            />
+            <button type="submit" className="btn-primary"
+                    style={{ background: T.green, color: "var(--button-ink)", padding: "14px 24px",
+                             borderRadius: 10, border: 0, fontSize: 15, fontWeight: 700,
+                             cursor: "pointer", whiteSpace: "nowrap" }}>
+              Analyze free →
+            </button>
+          </form>
           <a href="#how-it-works" className="btn-secondary"
              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
                       color: T.bright, padding: "13px 28px", borderRadius: 10, fontSize: 15,
@@ -396,6 +475,9 @@ export default function Home() {
             See How It Works
           </a>
         </div>
+        <p data-reveal data-delay="3" style={{ fontSize: 12, color: T.dimmer, marginBottom: 44 }}>
+          Opens your ticker directly in Deep Dive · No card required
+        </p>
 
         {/* ── Email capture — below-hero ── */}
         <div data-reveal data-delay="4"
@@ -495,7 +577,7 @@ export default function Home() {
             Everything else was noise.
           </p>
           <div style={{ textAlign: "center", marginTop: 22 }}>
-            <a href={APP_URL} className="btn-primary"
+            <a href={appDestination("watchlist")} onClick={() => recordAppOpen("watchlist")} className="btn-primary"
                style={{ background: T.green, color: "var(--button-ink)", padding: "13px 30px",
                         borderRadius: 10, fontSize: 15, fontWeight: 700, display: "inline-block" }}>
               Analyze my watchlist
@@ -580,7 +662,7 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <a href={APP_URL} style={{ fontSize: 13, color: T.green, fontWeight: 600,
+              <a href={appDestination("signal_preview")} onClick={() => recordAppOpen("signal_preview")} style={{ fontSize: 13, color: T.green, fontWeight: 600,
                                         display: "flex", alignItems: "center", gap: 4 }}>
                 Open dashboard →
               </a>
@@ -821,7 +903,7 @@ export default function Home() {
                   <li key={f}><span className="locked" aria-hidden="true">—</span><span><span className="sr-only">Not included: </span>{f}</span></li>
                 ))}
               </ul>
-              <a href={APP_URL} className="btn-secondary"
+              <a href={appDestination("free_plan")} onClick={() => recordAppOpen("free_plan")} className="btn-secondary"
                  style={{ display: "block", textAlign: "center", padding: "13px", borderRadius: 10,
                           border: "1px solid rgba(255,255,255,0.12)", color: T.bright, fontSize: 14,
                           fontWeight: 600 }}>
@@ -864,7 +946,8 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <a href={`${APP_URL}/upgrade-to-pro`}
+                <a href={`${APP_URL}/upgrade-to-pro?utm_source=marketing_landing&utm_medium=owned&utm_campaign=direct_ticker_activation&utm_content=pro_trial`}
+                   onClick={() => recordAppOpen("pro_trial")}
                    style={{ display: "block", textAlign: "center", padding: "13px", borderRadius: 10,
                             background: T.purple, color: "var(--button-ink)", fontSize: 14, fontWeight: 700,
                             transition: "all 0.2s ease", boxShadow: "0 4px 20px rgba(124,58,237,0.35)" }}>
@@ -946,7 +1029,7 @@ export default function Home() {
             from the same public data sources institutional desks use.
           </p>
           <div data-reveal data-delay="2">
-            <a href={APP_URL} className="btn-primary"
+            <a href={appDestination("closing")} onClick={() => recordAppOpen("closing")} className="btn-primary"
                style={{ background: T.green, color: "var(--button-ink)", padding: "16px 44px", borderRadius: 12,
                         fontSize: 16, fontWeight: 800, display: "inline-block", letterSpacing: "-0.01em" }}>
               Open the dashboard — free →
@@ -1046,7 +1129,7 @@ export default function Home() {
                   <a href="#how-it-works" style={{ color: T.dimmer, fontSize: 13 }}>How it works</a>
                   <a href="#features"     style={{ color: T.dimmer, fontSize: 13 }}>Features</a>
                   <a href="#pricing"      style={{ color: T.dimmer, fontSize: 13 }}>Pricing</a>
-                  <a href={APP_URL}       style={{ color: T.dimmer, fontSize: 13 }}>Open dashboard</a>
+                  <a href={appDestination("footer")} onClick={() => recordAppOpen("footer")} style={{ color: T.dimmer, fontSize: 13 }}>Open dashboard</a>
                 </div>
               </div>
               <div>

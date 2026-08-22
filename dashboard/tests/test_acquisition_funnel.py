@@ -101,7 +101,7 @@ def test_the_steps_match_the_events_that_are_actually_fired():
     root = Path(__file__).resolve().parent.parent
     blob = "\n".join(
         p.read_text(encoding="utf-8")
-        for p in list(root.glob("pages/*.py")) + list(root.glob("utils/*.py"))
+        for p in list(root.glob("pages/*.py")) + list(root.glob("utils/*.py")) + list(root.glob("seo/*.py"))
         if "retired" not in p.parts and p.name not in ("analytics.py", "conversion_measurement.py")
     )
     import re
@@ -120,7 +120,7 @@ def test_the_steps_match_the_events_that_are_actually_fired():
 def test_biggest_drop_is_people_lost_not_lowest_percentage():
     """The live shape is what exposed this.
 
-    190 visits, 11 signups, 4 verified, 3 pricing, 1 checkout, 0 paid.
+    190 visits, 11 app opens/signups, 4 verified, 3 pricing, 1 checkout, 0 paid.
 
     Lowest retention picks "Subscribed" -- 0% of a sample of ONE -- and says
     nothing anyone can act on. The funnel actually loses 179 of 190 people at
@@ -129,6 +129,7 @@ def test_biggest_drop_is_people_lost_not_lowest_percentage():
     """
     rows = (
         [_ev("page_view", visitor=f"v{i}") for i in range(190)]
+        + [_ev("app_opened", visitor=f"v{i}") for i in range(11)]
         + [_ev("signup_started", visitor=f"v{i}") for i in range(11)]
         + [_ev("signup_completed", visitor=f"v{i}") for i in range(4)]
         + [_ev("pricing_viewed", visitor=f"v{i}") for i in range(3)]
@@ -136,7 +137,7 @@ def test_biggest_drop_is_people_lost_not_lowest_percentage():
     )
     drop = build_acquisition_funnel(rows)["biggest_drop"]
     assert drop is not None
-    assert drop["event"] == "signup_started", (
+    assert drop["event"] == "app_opened", (
         f"named {drop['event']!r}; on this shape the lowest-percentage rule "
         "picks 'Subscribed' (0% of one person) over the step losing 179"
     )
