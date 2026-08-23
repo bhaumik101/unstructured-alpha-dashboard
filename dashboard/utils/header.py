@@ -2517,8 +2517,15 @@ html[data-ua-theme="light"] .ua-guide-step-num {
     box-shadow: none !important;
     transform: none !important;
 }
+/* The popover trigger is keyed by its own testid, not as a child of stPopover.
+   The DOM is stPopover > div[aria-haspopup] > button, so the child combinator
+   this rule used to carry matched nothing and the dark theme left the control
+   unstyled while the light theme -- which uses a descendant combinator -- did
+   not (#197). stPopoverButton targets the trigger directly, so it also cannot
+   pick up buttons in the popover BODY if Streamlit ever stops rendering that
+   body in a portal outside stPopover. */
 .stButton > button, .stDownloadButton > button,
-[data-testid="stPopover"] > button {
+[data-testid="stPopoverButton"] {
     border-radius: 6px !important;
     box-shadow: none !important;
     font-weight: 600 !important;
