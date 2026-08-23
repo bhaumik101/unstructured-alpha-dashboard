@@ -1310,9 +1310,18 @@ div[data-testid="stExpander"] { background: rgba(var(--ua-card-rgb),0.6) !import
 
 /* Global ticker search submit: keep the action legible at every viewport.
    Streamlit's default form-button padding could leave only a few pixels for
-   the label in a nested column, wrapping "Open" one character per line. */
-.st-key-global_ticker_submit button,
-[data-testid="stFormSubmitButton"] button[key="global_ticker_submit"] {
+   the label in a nested column, wrapping "Open" one character per line.
+
+   The selector carries a descendant class deliberately. `.st-key-<key> button`
+   alone is (0,1,1) -- the same specificity as `.stFormSubmitButton > button` in
+   theme.py, which is concatenated later and therefore wins. This block used to
+   pair the live selector with `button[key="global_ticker_submit"]`, and only
+   that second one was specific enough to win. `key` is a reserved React prop
+   and never reaches the DOM, so it matched nothing and six of these seven
+   declarations were silently out-voted (#197). Adding .stFormSubmitButton makes
+   the LIVE selector (0,2,1), which wins on specificity rather than on an
+   attribute that does not exist. */
+.st-key-global_ticker_submit .stFormSubmitButton > button {
     min-width: 138px !important;
     min-height: 42px !important;
     padding: 0.55rem 1rem !important;
@@ -1321,8 +1330,7 @@ div[data-testid="stExpander"] { background: rgba(var(--ua-card-rgb),0.6) !import
     color: #DCE2EC !important;
     box-shadow: none !important;
 }
-.st-key-global_ticker_submit button p,
-[data-testid="stFormSubmitButton"] button[key="global_ticker_submit"] p {
+.st-key-global_ticker_submit .stFormSubmitButton > button p {
     white-space: nowrap !important;
     overflow-wrap: normal !important;
     word-break: keep-all !important;

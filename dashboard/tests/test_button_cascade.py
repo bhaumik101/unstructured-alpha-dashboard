@@ -38,7 +38,12 @@ import re
 
 import pytest
 
-from tests.support.css_cascade import declarations_for, iter_rules, resolved_values
+from tests.support.css_cascade import (
+    declarations_for,
+    iter_rules,
+    resolved_values,
+    specificity,
+)
 
 REDUCED_MOTION = "@media (prefers-reduced-motion: reduce)"
 
@@ -232,11 +237,6 @@ def test_the_secondary_exclusion_uses_an_attribute_that_exists(css):
 # matching NOTHING, kept here so the next reader does not have to re-derive it.
 
 _DEAD_SELECTORS = {
-    '[data-testid="stFormSubmitButton"] button[key="global_ticker_submit"]':
-        "`key` is a reserved React prop -- React never forwards it to the DOM, "
-        "so `button[key]` matched 0 of 5 buttons. Streamlit exposes the widget "
-        "key as the `.st-key-<key>` CLASS on the element container instead, and "
-        "the sibling selector in this same rule already uses it.",
     '[data-testid="stPopover"] > button':
         "the trigger is a GRANDCHILD: stPopover > div[aria-haspopup] > button. "
         "The child combinator matches nothing. The light-theme rules for the "
@@ -266,34 +266,54 @@ def test_the_dead_selector_registry_is_current(css):
     )
 
 
-def test_the_ticker_submit_sizing_never_reaches_the_button(css):
-    """Characterises a live defect. Fixing it means updating this test.
+def test_the_ticker_submit_sizing_reaches_the_button(css):
+    """The fix for the defect #197 characterised, stated as its invariant.
 
-    utils/header.py styles the global ticker search submit through a two-selector
-    group: `.st-key-global_ticker_submit button` (live) and
-    `[data-testid="stFormSubmitButton"] button[key="global_ticker_submit"]`
-    (dead -- see _DEAD_SELECTORS). Only the dead half carries enough specificity
-    to win.
+    utils/header.py sizes the global ticker search submit so its label cannot
+    wrap and its height matches the text input beside it. That block used to win
+    the cascade only through `button[key="global_ticker_submit"]` -- an
+    attribute React never emits -- so six of its seven declarations lost to
+    `.stFormSubmitButton > button`, which is equal specificity and later in
+    source order. The button rendered as a royal-gradient primary 36px tall.
 
-    Live selector      (0,1,1) at source order 192
-    .stFormSubmitButton > button (0,1,1) at source order 518  <- wins on order
-
-    So six of the seven declarations lose to the generic form-submit rule. The
-    button renders as a royal-gradient primary 36px tall, not the flat grey 42px
-    the block asks for. `min-width: 138px` survives only because nothing else
-    declares it -- which is why the label-wrapping symptom the comment describes
-    stayed fixed while the rest of the intent quietly did not apply.
+    The live selector now carries `.stFormSubmitButton` too, making it (0,2,1)
+    and winning on specificity rather than on an attribute that does not exist.
+    Verified in a browser against the built stylesheet on 2026-08-23.
     """
-    declared = resolved_values(css, _exact(*_STATES["ticker_submit_as_declared"]))
-    rendered = resolved_values(css, _exact(*_STATES["ticker_submit_as_rendered"]))
-
-    assert declared["min-width"] == rendered["min-width"] == "138px", (
-        "min-width is uncontested and should apply under both readings"
+    v = resolved_values(css, _exact(*_STATES["ticker_submit"]))
+    assert v["min-width"] == "138px", "the label-wrapping fix stopped applying"
+    assert v["min-height"] == "42px", (
+        f"min-height resolved to {v.get('min-height')!r}; the generic "
+        "form-submit rule is out-voting the ticker block again"
     )
-    lost = sorted(p for p in declared if declared[p] != rendered.get(p))
-    assert lost == ["background", "border", "box-shadow", "color", "min-height",
-                    "padding"], f"the set of out-voted declarations moved: {lost}"
-    assert rendered["min-height"] == "36px" and declared["min-height"] == "42px"
+    assert v["padding"] == "0.55rem 1rem"
+    assert v["background"] == "#1D2634", (
+        f"background resolved to {v.get('background')!r} -- a gradient here "
+        "means the ticker block has lost the cascade again"
+    )
+    assert v["color"] == "#DCE2EC"
+    assert v["box-shadow"] == "none"
+
+
+def test_the_ticker_submit_selector_does_not_rely_on_source_order(css):
+    """The block sits in header.py, which is concatenated BEFORE theme.py.
+
+    So it can only win on specificity. If someone simplifies the selector back
+    to `.st-key-global_ticker_submit button` the specificity drops to (0,1,1),
+    it ties with `.stFormSubmitButton > button`, and the later block silently
+    takes over again -- which is exactly the shape of the original defect.
+    """
+    winners = declarations_for(css, _exact(*_STATES["ticker_submit"]))
+    for prop in ("min-height", "background", "padding", "color"):
+        assert "st-key-global_ticker_submit" in winners[prop].selector, (
+            f"{prop} is no longer won by the ticker block; it resolved from "
+            f"{winners[prop].selector!r}"
+        )
+        assert specificity(winners[prop].selector) > (0, 1, 1), (
+            f"{prop} is won at specificity "
+            f"{specificity(winners[prop].selector)}, which ties the generic "
+            "form-submit rule and leaves the outcome to source order"
+        )
 
 
 def test_the_dark_theme_popover_trigger_is_unstyled(css):
@@ -422,16 +442,15 @@ _STATES = {
     "link_button": (".stLinkButton > a",),
     "link_button_hover": (".stLinkButton > a", ".stLinkButton > a:hover"),
 
-    # Two readings, and they disagree -- see
-    # test_the_ticker_submit_sizing_never_reaches_the_button.
+    # popover still has two readings that disagree -- see
+    # test_the_dark_theme_popover_trigger_is_unstyled.
     "popover_as_declared": ('[data-testid="stPopover"] > button',),
     "popover_as_rendered": ('[data-testid="stPopoverButton"]',),
-    "ticker_submit_as_declared": (".stFormSubmitButton > button",
-                                  ".st-key-global_ticker_submit button",
-                                  '[data-testid="stFormSubmitButton"] '
-                                  'button[key="global_ticker_submit"]'),
-    "ticker_submit_as_rendered": (".stFormSubmitButton > button",
-                                  ".st-key-global_ticker_submit button"),
+    "ticker_submit": (".stFormSubmitButton > button",
+                      ".st-key-global_ticker_submit .stFormSubmitButton > button"),
+    "label_ticker_submit": (".stFormSubmitButton > button p",
+                            ".st-key-global_ticker_submit .stFormSubmitButton "
+                            "> button p"),
 
     # ── sidebar ──────────────────────────────────────────────────────────────
     "sidebar": (f'{_SIDEBAR} .stButton > button',),
