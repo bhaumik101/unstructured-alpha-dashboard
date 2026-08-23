@@ -300,12 +300,11 @@
   "position": "relative",
   "transition": "transform var(--ua-dur-fast, 90ms) var(--ua-ease-spring, cubic-bezier(0.34,1.4,0.64,1)),\n    background-color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),\n    border-color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),\n    box-shadow var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),\n    color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease)"
  },
- "popover_as_declared": {
+ "popover": {
   "border-radius": "6px",
   "box-shadow": "none",
   "font-weight": "600"
  },
- "popover_as_rendered": {},
  "primary": {
   "background": "#2E6654",
   "border": "1px solid #477D6B",

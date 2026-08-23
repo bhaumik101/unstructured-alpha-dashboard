@@ -237,10 +237,6 @@ def test_the_secondary_exclusion_uses_an_attribute_that_exists(css):
 # matching NOTHING, kept here so the next reader does not have to re-derive it.
 
 _DEAD_SELECTORS = {
-    '[data-testid="stPopover"] > button':
-        "the trigger is a GRANDCHILD: stPopover > div[aria-haspopup] > button. "
-        "The child combinator matches nothing. The light-theme rules for the "
-        "same control use a descendant combinator and do apply.",
     '[data-testid="stButtonGroup"] button[aria-checked="true"]':
         "segmented_control/pills mark selection with kind=\'segmented_controlActive\' "
         "and kind=\'pillsActive\'. aria-checked was null on all 4 group buttons.",
@@ -316,25 +312,47 @@ def test_the_ticker_submit_selector_does_not_rely_on_source_order(css):
         )
 
 
-def test_the_dark_theme_popover_trigger_is_unstyled(css):
-    """Characterises a live defect. Fixing it means updating this test.
+def test_the_dark_theme_popover_trigger_is_styled(css):
+    """The fix for the second defect #197 characterised.
 
-    The only dark-theme rule for the popover trigger uses a child combinator
-    against a grandchild, so nothing in the dark theme reaches that button. The
-    light theme styles the same control through a descendant combinator and
-    works. A control that is themed in one mode and bare in the other is the
-    kind of asymmetry a stylesheet read cannot surface.
+    The dark rule used `[data-testid="stPopover"] > button`, but the trigger is
+    a grandchild -- stPopover > div[aria-haspopup] > button -- so the child
+    combinator matched nothing and the dark theme left the control bare while
+    the light theme, using a descendant combinator, styled it. Keying off the
+    trigger's own testid fixes it without depending on the popover BODY staying
+    in a portal outside stPopover, which is what makes a descendant combinator
+    safe here only by accident. Verified in a browser on 2026-08-23, with the
+    popover open: the body renders under stPopoverBody, not under stPopover.
     """
-    declared = resolved_values(css, _exact(*_STATES["popover_as_declared"]))
-    rendered = resolved_values(css, _exact(*_STATES["popover_as_rendered"]))
+    dark = resolved_values(css, _exact(*_STATES["popover"]))
     light = resolved_values(css, _exact(*_STATES["light_popover"]))
 
-    assert declared, "the dark popover rule vanished; update _DEAD_SELECTORS"
-    assert rendered == {}, (
-        "the dark-theme popover trigger now resolves to something -- if that is "
-        "the fix, drop the selector from _DEAD_SELECTORS and update this test"
+    assert dark, "the dark-theme popover trigger resolves to nothing again"
+    assert dark.get("border-radius") == "6px", (
+        f"border-radius resolved to {dark.get('border-radius')!r}; the dark "
+        "popover rule is not reaching the trigger"
     )
+    assert dark.get("box-shadow") == "none"
+    assert dark.get("font-weight") == "600"
     assert light, "the light theme lost its popover styling"
+
+
+def test_no_button_rule_uses_a_child_combinator_against_a_grandchild(css):
+    """stPopover is the case that bit us; assert the shape does not come back.
+
+    A child combinator is correct for .stButton > button and its siblings --
+    the button really is a direct child there. It is wrong for stPopover, whose
+    trigger sits inside an aria-haspopup wrapper.
+    """
+    offenders = [
+        s for _, group, _, _ in iter_rules(css)
+        for s in (" ".join(x.split()) for x in group.split(","))
+        if "stPopover" in s and ">" in s
+    ]
+    assert not offenders, (
+        "a rule targets the popover trigger as a direct child of stPopover, "
+        "which it is not:\n  " + "\n  ".join(offenders)
+    )
 
 
 def test_button_group_selection_is_keyed_to_attributes_that_are_never_emitted(css):
@@ -442,10 +460,7 @@ _STATES = {
     "link_button": (".stLinkButton > a",),
     "link_button_hover": (".stLinkButton > a", ".stLinkButton > a:hover"),
 
-    # popover still has two readings that disagree -- see
-    # test_the_dark_theme_popover_trigger_is_unstyled.
-    "popover_as_declared": ('[data-testid="stPopover"] > button',),
-    "popover_as_rendered": ('[data-testid="stPopoverButton"]',),
+    "popover": ('[data-testid="stPopoverButton"]',),
     "ticker_submit": (".stFormSubmitButton > button",
                       ".st-key-global_ticker_submit .stFormSubmitButton > button"),
     "label_ticker_submit": (".stFormSubmitButton > button p",
