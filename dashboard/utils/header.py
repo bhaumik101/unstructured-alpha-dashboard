@@ -963,14 +963,13 @@ section[data-testid="stSidebar"] h3 {
 }
 [data-testid="stSidebarNavItems"] a[aria-selected="true"] p,
 [data-testid="stSidebarNavItems"] [aria-selected="true"] p { color: var(--ua-green) !important; }
+/* background/border/colour for these two live in theme.py, which restates them
+   verbatim at the same selector and later in the concatenation. Only the
+   declarations theme.py does NOT repeat are kept here. */
 section[data-testid="stSidebar"] .stButton > button {
-    background: rgba(var(--ua-green-rgb),0.09) !important;
-    border: 1px solid rgba(var(--ua-green-rgb),0.22) !important;
-    color: var(--ua-green) !important;
     border-radius: 8px !important;
 }
 section[data-testid="stSidebar"] .stButton > button:hover {
-    background: rgba(var(--ua-green-rgb),0.16) !important;
     box-shadow: 0 0 12px rgba(var(--ua-green-rgb),0.14) !important;
 }
 section[data-testid="stSidebar"] .stButton > button span,
@@ -1298,12 +1297,12 @@ div[data-testid="stExpander"] { background: rgba(var(--ua-card-rgb),0.6) !import
 
 /* Buttons */
 .stButton > button {
-    font-family: 'Inter', sans-serif !important;
-    border-radius: 8px !important; font-weight: 500 !important; font-size: 0.83rem !important;
-    /* No transition here. theme.py's MODERN BUTTONS rule is concatenated
-       after this file and sets the transition for every button; this
-       declaration was silently superseded, and `all` would animate
-       layout properties if it ever won. */
+    /* No transition, font, radius or weight here. theme.py's MODERN BUTTONS
+       rule is concatenated after this file and declares all of them for the
+       same selector, so everything it repeats is silently superseded -- this
+       block used to ask for 'Inter', 8px, 500 and 0.83rem and the page showed
+       Inter/-apple-system, 8px, 600 and 0.83rem. Only the three declarations
+       below actually reach a button. */
     border: 1px solid var(--ua-hair) !important;
     background: var(--ua-surface) !important; color: var(--ua-text-mid) !important;
 }
@@ -2517,7 +2516,12 @@ html[data-ua-theme="light"] .ua-guide-step-num {
    not (#197). stPopoverButton targets the trigger directly, so it also cannot
    pick up buttons in the popover BODY if Streamlit ever stops rendering that
    body in a portal outside stPopover. */
-.stButton > button, .stDownloadButton > button,
+.stButton > button, .stDownloadButton > button {
+    /* border-radius and font-weight used to be declared here too, asking for
+       6px/600 against theme.py's later 8px/600 for the same selectors. The 6px
+       never rendered and the 600 was a restatement. */
+    box-shadow: none !important;
+}
 [data-testid="stPopoverButton"] {
     border-radius: 6px !important;
     box-shadow: none !important;
@@ -2709,8 +2713,9 @@ div[data-testid="stExpander"] {
     }
     /* Transforms are not durations -- a reduced-motion user should get no
        movement at all, not instant movement. */
-    .stButton > button:hover,
-    .stButton > button:active,
+    /* The button selectors that used to be listed here are declared again,
+       identically, by theme.py's reduced-motion block, which is concatenated
+       later and wins. Only the two card surfaces need this rule. */
     .ua-signal-card:hover,
     .ua-guide-step:hover { transform: none !important; }
     [data-testid="stSkeleton"]::after { display: none !important; }
