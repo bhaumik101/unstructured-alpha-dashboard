@@ -105,5 +105,10 @@ def test_search_action_uses_a_descriptive_non_wrapping_label():
     source = (Path(__file__).resolve().parents[1] / "utils" / "header.py").read_text()
 
     assert '"Analyze ticker"' in source
-    assert ".st-key-global_ticker_submit button p" in source
+    # The selector gained `.stFormSubmitButton` in #197's follow-up: keyed off
+    # the .st-key- class alone it tied `.stFormSubmitButton > button` on
+    # specificity and lost on source order. What the rule RESOLVES to is
+    # covered by test_button_cascade's `label_ticker_submit` state; this only
+    # checks the block is still here and still asks for no wrapping.
+    assert ".st-key-global_ticker_submit .stFormSubmitButton > button p" in source
     assert "word-break: keep-all" in source
