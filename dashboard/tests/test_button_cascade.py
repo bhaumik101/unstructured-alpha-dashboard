@@ -1,7 +1,7 @@
 """What every button state resolves to today, pinned against the BUILT stylesheet.
 
-The button surface is declared across two source files and 47 rule blocks in the
-generated CSS, spanning 60 distinct button selectors and eight widgets -- button,
+The button surface is declared across two source files and 45 rule blocks in the
+generated CSS, spanning 48 distinct button selectors and eight widgets -- button,
 download_button, form_submit_button, link_button, popover, segmented_control,
 pills, and the sidebar variants of several. (Counted over the built stylesheet:
 blocks whose selector group mentions a button, excluding the two Plotly
@@ -409,8 +409,101 @@ def test_button_group_selection_is_not_keyed_to_aria_attributes(css):
     )
 
 
+# ── Duplication that the snapshot alone cannot see ───────────────────────────
+# The snapshot pins what every state RESOLVES to. It says nothing about how many
+# times the winning value was declared on the way there, so a stylesheet can
+# accumulate rules that never render and stay green forever. #195 removed three
+# such blocks by hand; these two tests make the whole class visible.
+#
+# A declaration is dead when a LATER rule with the byte-identical selector, in
+# the same media context, declares the same property at the same or greater
+# importance. Every element matching the first also matches the second, so the
+# first can never win for anything -- no state modelling required.
+
+# (selector, property) pairs where an earlier declaration is legitimately
+# overridden rather than duplicated: the earlier rule is a SHARED foundation
+# serving several widgets, and a later rule narrows it for one of them.
+_LEGITIMATE_OVERRIDES = {
+    (".stFormSubmitButton > button", "font-weight"),  # 600 foundation -> 700
+}
+
+
+def _button_declarations_by_selector(css):
+    import collections
+    seen = collections.defaultdict(list)
+    for stack, group, body, order in iter_rules(css):
+        selectors = [" ".join(x.split()) for x in group.split(",")]
+        if not any("utton" in s for s in selectors):
+            continue
+        for sel in set(selectors):
+            if "utton" not in sel or "rangeselector" in sel:
+                continue
+            for decl in body.split(";"):
+                if ":" not in decl:
+                    continue
+                prop, value = decl.split(":", 1)
+                prop, value = prop.strip(), value.strip()
+                if not prop or prop.startswith("--"):
+                    continue
+                seen[(sel, stack)].append(
+                    (order, prop, value.replace("!important", "").strip(),
+                     "!important" in value)
+                )
+    return seen
+
+
+def test_no_button_selector_is_repeated_inside_one_rule(css):
+    """`a, a { ... }` is the same rule twice. It renders once and reads as two."""
+    import collections
+    offenders = []
+    for _, group, _, order in iter_rules(css):
+        selectors = [" ".join(x.split()) for x in group.split(",")]
+        for sel, n in collections.Counter(selectors).items():
+            if n > 1 and "utton" in sel:
+                offenders.append(f"x{n}  {sel[:80]}")
+    assert not offenders, (
+        "a button selector is listed more than once in the same rule:\n  "
+        + "\n  ".join(sorted(set(offenders)))
+    )
+
+
+def test_no_button_declaration_is_shadowed_by_an_identical_later_selector(css):
+    """A declaration a later identical selector overrides can never render.
+
+    Whether the two values agree does not matter. If they agree the earlier one
+    is a restatement; if they disagree it is intent that the page has never
+    shown. #195 found three blocks describing gradients nobody had ever seen,
+    and this codebase has since removed 23 more declarations of both kinds.
+    """
+    dead = []
+    for (sel, stack), entries in _button_declarations_by_selector(css).items():
+        by_prop = {}
+        for order, prop, value, important in entries:
+            by_prop.setdefault(prop, []).append((order, value, important))
+        for prop, lst in by_prop.items():
+            if len(lst) < 2 or (sel, prop) in _LEGITIMATE_OVERRIDES:
+                continue
+            winner = max(lst, key=lambda t: (t[2], t[0]))
+            for entry in lst:
+                if entry == winner:
+                    continue
+                kind = "restated" if entry[1] == winner[1] else "NEVER RENDERS"
+                dead.append(
+                    f"{sel[:58]} {{{prop}}} order {entry[0]} -> {winner[0]}  "
+                    f"[{kind}] {entry[1][:26]!r} vs {winner[1][:26]!r}"
+                )
+    assert not dead, (
+        f"{len(dead)} button declaration(s) are overridden by a later rule with "
+        "the identical selector, so they never reach a button:\n  "
+        + "\n  ".join(sorted(dead))
+        + "\n\nDelete the earlier declaration, or -- if a shared foundation is "
+          "being narrowed for one widget on purpose -- add the (selector, "
+          "property) pair to _LEGITIMATE_OVERRIDES with a reason."
+    )
+
+
 # ── Characterisation snapshot ────────────────────────────────────────────────
-# tests/support/button_states.json holds every resolved declaration for the 54
+# tests/support/button_states.json holds every resolved declaration for the 56
 # button states below, captured from the built stylesheet. It is the safety net
 # for consolidation: a refactor that changes a computed value fails here even if
 # the diff looks harmless, and a refactor that only removes shadowed
@@ -453,6 +546,8 @@ _STATES = {
     "hover": (".stButton > button", ".stButton > button:hover"),
     "active": (".stButton > button", ".stButton > button:active"),
     "focus": (".stButton > button", ".stButton > button:focus-visible"),
+    # The bare global ring, which is what every button outside .stButton gets.
+    "focus_global": ("button:focus-visible",),
     "primary": (".stButton > button", '.stButton > button[kind="primary"]'),
     "primary_hover": (".stButton > button", '.stButton > button[kind="primary"]',
                       '.stButton > button[kind="primary"]:hover'),
@@ -469,6 +564,9 @@ _STATES = {
     # changes nothing in any state above, so it needs states of its own.
     "after_base": (".stButton > button::after",),
     "after_active": (".stButton > button::after", ".stButton > button:active::after"),
+    "download_after": (".stDownloadButton > button::after",),
+    "download_after_active": (".stDownloadButton > button::after",
+                              ".stDownloadButton > button:active::after"),
 
     # ── label text: the pixels a reader actually looks at ────────────────────
     # Streamlit wraps every button label in <p>, so `button p` -- not `button`
@@ -518,6 +616,8 @@ _STATES = {
     "light_group_selected_label": (f'{_LIGHT} {_GROUP} button p',
                                    f'{_LIGHT} {_GROUP} button[kind$="Active"] p'),
     "light_popover": (f'{_LIGHT} [data-testid="stPopover"] button',),
+    "light_popover_label": (f'{_LIGHT} [data-testid="stPopover"] button p',),
+    "light_popover_span": (f'{_LIGHT} [data-testid="stPopover"] button span',),
     "light_popover_button": (f'{_LIGHT} [data-testid="stPopoverButton"]',),
 
     # ── reduced motion ───────────────────────────────────────────────────────

@@ -1049,16 +1049,10 @@ _SKELETON_CSS = """
 }
 
 /* ── Streamlit element polish ────────────────────────────────────────────── */
-/* Smoother button transitions */
-.stButton > button {
-  transition: background-color 0.15s ease, border-color 0.15s ease,
-              box-shadow 0.15s ease, opacity 0.15s ease !important;
-}
-/* Download button same treatment */
-.stDownloadButton > button {
-  transition: background-color 0.15s ease, border-color 0.15s ease,
-              box-shadow 0.15s ease !important;
-}
+/* The two `transition` rules that used to sit here -- one for .stButton and one
+   for .stDownloadButton -- were both superseded by the MODERN BUTTONS
+   foundation further down this same file, which declares transition for the
+   same selectors. Neither ever reached a button. */
 /* Metric delta coloring */
 [data-testid="stMetricDelta"] svg { display: none; }
 /* Expander header hover */
@@ -1294,7 +1288,6 @@ _MODERN_UI_CSS = """
 }
 
 /* — Secondary (default) — */
-.stButton > button:not([kind="primary"]),
 .stButton > button:not([kind="primary"]) {
   background: rgba(22,26,40,0.92) !important;
   border: 1px solid rgba(var(--ua-onbg-rgb),0.10) !important;
@@ -1302,7 +1295,6 @@ _MODERN_UI_CSS = """
   box-shadow: 0 1px 3px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k))),
               inset 0 1px 0 rgba(var(--ua-onbg-rgb),0.04) !important;
 }
-.stButton > button:not([kind="primary"]):hover,
 .stButton > button:not([kind="primary"]):hover {
   background: rgba(32,38,58,0.95) !important;
   border-color: #536174 !important;
@@ -1310,7 +1302,6 @@ _MODERN_UI_CSS = """
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 14px rgba(var(--ua-shadow-rgb),calc(0.35*var(--ua-shadow-k))) !important;
 }
-.stButton > button:not([kind="primary"]):active,
 .stButton > button:not([kind="primary"]):active {
   transform: translateY(0) scale(0.975) !important;
   box-shadow: 0 1px 3px rgba(var(--ua-shadow-rgb),calc(0.30*var(--ua-shadow-k))) !important;
@@ -1690,9 +1681,6 @@ section[data-testid="stSidebar"] {
   .stButton > button,
   .stButton > button:hover,
   .stButton > button:active,
-  .stButton > button[kind="primary"],
-  .stButton > button[kind="primary"]:hover,
-  .stButton > button[kind="primary"]:active,
   .stButton > button[kind="primary"],
   .stButton > button[kind="primary"]:hover,
   .stButton > button[kind="primary"]:active,

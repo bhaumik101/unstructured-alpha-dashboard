@@ -79,6 +79,33 @@
   "position": "relative",
   "transition": "transform var(--ua-dur-fast, 90ms) var(--ua-ease-spring, cubic-bezier(0.34,1.4,0.64,1)),\n    background-color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),\n    border-color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),\n    box-shadow var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),\n    color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease)"
  },
+ "download_after": {
+  "background": "rgba(var(--ua-onbg-rgb),0.14)",
+  "border-radius": "50%",
+  "content": "''",
+  "height": "120px",
+  "left": "50%",
+  "opacity": "0",
+  "pointer-events": "none",
+  "position": "absolute",
+  "top": "50%",
+  "transform": "translate(-50%,-50%) scale(0)",
+  "width": "120px"
+ },
+ "download_after_active": {
+  "animation": "ua_btn_ripple 0.42s ease-out forwards",
+  "background": "rgba(var(--ua-onbg-rgb),0.14)",
+  "border-radius": "50%",
+  "content": "''",
+  "height": "120px",
+  "left": "50%",
+  "opacity": "0",
+  "pointer-events": "none",
+  "position": "absolute",
+  "top": "50%",
+  "transform": "translate(-50%,-50%) scale(0)",
+  "width": "120px"
+ },
  "download_hover": {
   "background": "rgba(var(--ua-cyan-rgb),0.16)",
   "border": "1px solid rgba(var(--ua-cyan-rgb),0.22)",
@@ -116,6 +143,11 @@
   "position": "relative",
   "transition": "transform var(--ua-dur-fast, 90ms) var(--ua-ease-spring, cubic-bezier(0.34,1.4,0.64,1)),\n    background-color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),\n    border-color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),\n    box-shadow var(--ua-dur-base, 160ms) var(--ua-ease-out, ease),\n    color var(--ua-dur-base, 160ms) var(--ua-ease-out, ease)",
   "will-change": "transform"
+ },
+ "focus_global": {
+  "border-radius": "var(--ua-radius-sm)",
+  "outline": "2px solid var(--ua-royal)",
+  "outline-offset": "2px"
  },
  "form_submit": {
   "background": "linear-gradient(135deg, var(--ua-royal) 0%, var(--ua-royal-deep) 100%)",
@@ -241,6 +273,12 @@
  "light_popover_button": {
   "background": "var(--ua-bg-card)",
   "border": "1px solid var(--ua-hair)",
+  "color": "var(--ua-ink)"
+ },
+ "light_popover_label": {
+  "color": "var(--ua-ink)"
+ },
+ "light_popover_span": {
   "color": "var(--ua-ink)"
  },
  "light_primary": {
