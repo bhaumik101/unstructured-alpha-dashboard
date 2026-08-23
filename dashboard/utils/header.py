@@ -2460,31 +2460,24 @@ html[data-ua-theme="light"] :is(
    dark fills with !important. The light-prefixed rules deliberately carry
    greater specificity, so pills, ticker choices, and selected states remain
    readable without relying on generated Streamlit class names. */
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] button,
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] label {
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button {
     background: var(--ua-bg-card) !important;
     border-color: var(--ua-hair) !important;
     color: var(--ua-ink-soft) !important;
 }
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] button p,
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] label p {
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button p {
     color: var(--ua-ink-soft) !important;
 }
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] button:hover,
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] label:hover {
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button:hover {
     background: rgba(var(--ua-royal-rgb),0.06) !important;
     border-color: rgba(var(--ua-royal-rgb),0.28) !important;
 }
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[aria-checked="true"],
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[aria-pressed="true"],
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] label:has(input:checked) {
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[kind$="Active"] {
     background: rgba(var(--ua-royal-rgb),0.12) !important;
     border-color: rgba(var(--ua-royal-rgb),0.42) !important;
     color: var(--ua-ink) !important;
 }
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[aria-checked="true"] p,
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[aria-pressed="true"] p,
-html[data-ua-theme="light"] [data-testid="stButtonGroup"] label:has(input:checked) p {
+html[data-ua-theme="light"] [data-testid="stButtonGroup"] button[kind$="Active"] p {
     color: var(--ua-ink) !important;
 }
 

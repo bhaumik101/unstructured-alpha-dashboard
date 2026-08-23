@@ -236,16 +236,11 @@ def test_the_secondary_exclusion_uses_an_attribute_that_exists(css):
 # took someone to check the DOM. These are the selectors that check found
 # matching NOTHING, kept here so the next reader does not have to re-derive it.
 
-_DEAD_SELECTORS = {
-    '[data-testid="stButtonGroup"] button[aria-checked="true"]':
-        "segmented_control/pills mark selection with kind=\'segmented_controlActive\' "
-        "and kind=\'pillsActive\'. aria-checked was null on all 4 group buttons.",
-    '[data-testid="stButtonGroup"] button[aria-pressed="true"]':
-        "same as aria-checked -- aria-pressed was null on all 4 group buttons.",
-    '[data-testid="stButtonGroup"] label:has(input:checked)':
-        "the only labels inside stButtonGroup are the stWidgetLabel captions "
-        "(\'Seg\', \'Pills\'), which contain no input. The :has() form does work "
-        "for st.radio, which is not what this rule is scoped to.",
+_DEAD_SELECTORS: dict[str, str] = {
+    # Empty: all three selectors #197 found dead have since been fixed (#198,
+    # #199, and this PR). Kept as a live structure -- when the next DOM rename
+    # lands, record the selector and the evidence here rather than in a commit
+    # message that nobody greps.
 }
 
 
@@ -355,30 +350,63 @@ def test_no_button_rule_uses_a_child_combinator_against_a_grandchild(css):
     )
 
 
-def test_button_group_selection_is_keyed_to_attributes_that_are_never_emitted(css):
-    """Characterises a live defect. Fixing it means updating this test.
+def test_button_group_selection_is_visible(css):
+    """The fix for the third defect #197 characterised.
 
-    Both themes style the selected segment via [aria-checked] / [aria-pressed].
-    Streamlit signals selection with kind="segmented_controlActive" and
-    kind="pillsActive"; the aria attributes are null. So the selected pill and
-    the unselected pill resolve to the same surface, and the control has no
-    visible selection state of our making -- the same failure mode as #194,
-    where an exclusion on a missing attribute excluded nothing.
+    Both themes marked the selected segment with [aria-checked] / [aria-pressed]
+    and label:has(input:checked). Streamlit emits none of those: every option in
+    the group is a <button>, selection is kind="segmented_controlActive" or
+    kind="pillsActive", and the aria attributes are null. The selected rule
+    matched nothing, so a selected pill resolved to the same surface as an
+    unselected one -- verified in the browser, both computed to rgb(21,26,34).
+
+    Keyed off [kind$="Active"], which covers both control types, single and
+    multi selection modes, and any future *Active kind.
     """
-    for base_state, sel_state in (("group", "group_checked"),
-                                  ("group", "group_pressed"),
-                                  ("light_group", "light_group_checked")):
+    for base_state, sel_state in (("group", "group_selected"),
+                                  ("light_group", "light_group_selected")):
         base = resolved_values(css, _exact(*_STATES[base_state]))
         selected = resolved_values(css, _exact(*_STATES[sel_state]))
-        assert base and selected
-        assert base["background"] != selected["background"], (
-            f"{sel_state} no longer differs from {base_state} in the stylesheet"
-        )
-    # The stylesheet distinguishes them; the DOM never asks for the distinction.
-    assert all(s in css for s in (
-        '[data-testid="stButtonGroup"] button[aria-checked="true"]',
-        '[data-testid="stButtonGroup"] button[aria-pressed="true"]',
-    ))
+        assert base and selected, f"{base_state}/{sel_state} resolve to nothing"
+        for prop in ("background", "border-color", "color"):
+            assert base[prop] != selected[prop], (
+                f"{sel_state}.{prop} is identical to {base_state}.{prop} "
+                f"({base[prop]!r}) -- the control has no visible selected state"
+            )
+
+
+def test_no_button_group_rule_targets_a_label(css):
+    """The only <label> inside stButtonGroup is the widget caption.
+
+    The old rules styled `label` and `label:has(input:checked)` alongside the
+    buttons, on the assumption that an option might render as a label wrapping
+    a radio input. It never does -- st.radio does not even use stButtonGroup.
+    What that selector actually hit was the caption ("Seg", "Pills"), painting
+    it with the option surface: a grey box behind the caption text that no
+    other widget label has. Verified in the browser on 2026-08-23.
+    """
+    offenders = [
+        sel for _, group, _, _ in iter_rules(css)
+        for sel in (" ".join(x.split()) for x in group.split(","))
+        if "stButtonGroup" in sel and "label" in sel
+    ]
+    assert not offenders, (
+        "a stButtonGroup rule targets a label, which is the widget caption, "
+        "not a selectable option:\n  " + "\n  ".join(offenders)
+    )
+
+
+def test_button_group_selection_is_not_keyed_to_aria_attributes(css):
+    """The shape of the original defect, asserted so it cannot come back."""
+    offenders = [
+        sel for _, group, _, _ in iter_rules(css)
+        for sel in (" ".join(x.split()) for x in group.split(","))
+        if "stButtonGroup" in sel and ("aria-checked" in sel or "aria-pressed" in sel)
+    ]
+    assert not offenders, (
+        "a stButtonGroup rule is keyed to an aria attribute Streamlit does not "
+        "emit on these buttons; use [kind$=\"Active\"]:\n  " + "\n  ".join(offenders)
+    )
 
 
 # ── Characterisation snapshot ────────────────────────────────────────────────
@@ -474,10 +502,7 @@ _STATES = {
 
     # ── segmented control / pills ────────────────────────────────────────────
     "group": (f'{_GROUP} button',),
-    "group_checked": (f'{_GROUP} button', f'{_GROUP} button[aria-checked="true"]'),
-    "group_pressed": (f'{_GROUP} button', f'{_GROUP} button[aria-pressed="true"]'),
-    "group_label": (f'{_GROUP} label',),
-    "group_label_checked": (f'{_GROUP} label', f'{_GROUP} label:has(input:checked)'),
+    "group_selected": (f'{_GROUP} button', f'{_GROUP} button[kind$="Active"]'),
 
     # ── light theme ──────────────────────────────────────────────────────────
     "light_base": (f'{_LIGHT} .stButton > button',),
@@ -487,10 +512,11 @@ _STATES = {
                               f'{_LIGHT} button[data-testid="stBaseButton-secondary"]:hover'),
     "light_group": (f'{_LIGHT} {_GROUP} button',),
     "light_group_hover": (f'{_LIGHT} {_GROUP} button', f'{_LIGHT} {_GROUP} button:hover'),
-    "light_group_checked": (f'{_LIGHT} {_GROUP} button',
-                            f'{_LIGHT} {_GROUP} button[aria-checked="true"]'),
-    "light_group_label_checked": (f'{_LIGHT} {_GROUP} label',
-                                  f'{_LIGHT} {_GROUP} label:has(input:checked)'),
+    "light_group_selected": (f'{_LIGHT} {_GROUP} button',
+                             f'{_LIGHT} {_GROUP} button[kind$="Active"]'),
+    "light_group_label": (f'{_LIGHT} {_GROUP} button p',),
+    "light_group_selected_label": (f'{_LIGHT} {_GROUP} button p',
+                                   f'{_LIGHT} {_GROUP} button[kind$="Active"] p'),
     "light_popover": (f'{_LIGHT} [data-testid="stPopover"] button',),
     "light_popover_button": (f'{_LIGHT} [data-testid="stPopoverButton"]',),
 
