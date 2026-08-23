@@ -33,8 +33,12 @@ def test_semantic_remaps_cover_live_serialized_color_families():
 
 def test_light_button_groups_override_late_dark_premium_rules():
     prefix = 'html[data-ua-theme="light"] [data-testid="stButtonGroup"]'
-    assert f'{prefix} button,' in HEADER
-    assert f'{prefix} button[aria-checked="true"]' in HEADER
+    # The `label` half of these selector groups went in #197's follow-up -- the
+    # only label in a button group is the widget caption, which was being
+    # painted with the option surface -- and the selected state moved from
+    # aria-checked, which Streamlit never emits here, to [kind$="Active"].
+    assert f'{prefix} button {{' in HEADER
+    assert f'{prefix} button[kind$="Active"]' in HEADER
     assert "background: var(--ua-bg-card) !important;" in HEADER
     assert "background: rgba(var(--ua-royal-rgb),0.12) !important;" in HEADER
 

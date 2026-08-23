@@ -19,6 +19,11 @@ def test_select_and_multiselect_values_have_neutral_contrast():
 
 
 def test_segmented_controls_use_non_neon_selected_states():
-    assert '[data-testid="stButtonGroup"] button[aria-checked="true"]' in THEME
+    # Keyed off [kind$="Active"] since #197's follow-up: aria-checked is null on
+    # every button in this group, so the selected rule matched nothing and a
+    # selected pill was pixel-identical to an unselected one. That the two
+    # states actually RESOLVE differently is asserted in test_button_cascade's
+    # test_button_group_selection_is_visible; this guards the palette.
+    assert '[data-testid="stButtonGroup"] button[kind$="Active"]' in THEME
     assert "background: #2A3340 !important;" in THEME
     assert "color: #F0F2F5 !important;" in THEME

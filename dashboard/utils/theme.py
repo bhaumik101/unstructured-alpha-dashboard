@@ -1558,16 +1558,22 @@ section[data-testid="stSidebar"] .stButton > button:hover {
 }
 
 /* Segmented controls and pills use neutral selected states. Selection remains
-   obvious through surface and border contrast rather than neon text. */
-[data-testid="stButtonGroup"] button,
-[data-testid="stButtonGroup"] label {
+   obvious through surface and border contrast rather than neon text.
+
+   Keyed off [kind], not aria-* and not label:has(input:checked). Streamlit
+   renders every option in this group as a <button> and marks the selected ones
+   kind="segmented_controlActive" / kind="pillsActive"; aria-checked and
+   aria-pressed are null on all of them, so the selected rule matched nothing
+   and a selected pill was pixel-identical to an unselected one (#197). The
+   `label` selectors are gone for the same reason: the only <label> inside this
+   group is the widget CAPTION, which was being painted with the option surface.
+   $= matches both control types and any future *Active kind. */
+[data-testid="stButtonGroup"] button {
   background: #151A22 !important;
   border-color: #313946 !important;
   color: #C8CED8 !important;
 }
-[data-testid="stButtonGroup"] button[aria-checked="true"],
-[data-testid="stButtonGroup"] button[aria-pressed="true"],
-[data-testid="stButtonGroup"] label:has(input:checked) {
+[data-testid="stButtonGroup"] button[kind$="Active"] {
   background: #2A3340 !important;
   border-color: #687587 !important;
   color: #F0F2F5 !important;
