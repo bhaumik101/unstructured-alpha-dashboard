@@ -116,6 +116,20 @@ def price_window() -> tuple[str, str]:
     return price_start, end
 
 
+def _empty_errored_frame() -> "pd.DataFrame":
+    """An empty frame flagged as a fetch failure.
+
+    Used when a prefetch task raised. It carries fetch_error=True so the caller
+    appends to source_errors, the score is marked incomplete, and the page says
+    the provider is unavailable -- the same path a live provider outage takes.
+    Deliberately NOT an empty-but-clean frame, which would read as "we looked
+    and there is genuinely nothing here" and silently drop the signal instead.
+    """
+    frame = pd.DataFrame()
+    frame.attrs["fetch_error"] = True
+    return frame
+
+
 def _compute_full_ticker_score(
     ticker: str,
     signal_ids: list | None = None,
@@ -155,6 +169,19 @@ def _compute_full_ticker_score(
 
     signal_scores, signal_data = {}, {}
     notify_progress(progress_callback, "macro_signals", "Loading macro signals…")
+    # Warm every signal's fetch cache concurrently before the scoring loop below
+    # walks them one at a time. The loop is deliberately left as it was: it still
+    # calls fetch_signal_series with the same (cfg, start, end) key and keeps its
+    # own error semantics, so the score it produces is unchanged -- the fetches
+    # have simply already happened. Best-effort; a failed prewarm just restores
+    # the original serial cost. See signals_cache.prewarm_signal_series.
+    with timed_stage("signal_series_prewarm", ticker=ticker, events=_timing_events,
+                     metadata={"signal_count": len(relevant_sig_ids)}):
+        try:
+            from utils.signals_cache import prewarm_signal_series
+            prewarm_signal_series(relevant_sig_ids, start, end)
+        except Exception:
+            pass
     with timed_stage("signal_series_retrieval", ticker=ticker, events=_timing_events,
                      metadata={"signal_count": len(relevant_sig_ids)}):
         for sig_id in relevant_sig_ids:
@@ -245,11 +272,36 @@ def _compute_full_ticker_score(
 
     if include_optional:
         notify_progress(progress_callback, "optional_evidence", "Checking optional evidence…")
+        # Federal contracts (USASpending), insider Form 4s (SEC EDGAR) and short
+        # interest (FINRA) are three independent providers, and each was being
+        # awaited in turn -- measured 0.6-3.4s, 1.8-5.3s and ~0.5s, all serial.
+        # They are fetched together here and scored below in the original order.
+        # Only the network read moves into the pool: every score_* call, the
+        # source_errors ordering and each has_* predicate are unchanged, so the
+        # result is identical. yfinance stays out of the pool by design; these
+        # three go through utils.resilience (requests + breaker + pooled session).
+        with timed_stage("optional_evidence_retrieval", ticker=ticker, events=_timing_events,
+                         metadata={"providers": 3}):
+            from utils.signals_cache import run_parallel
+            _fetched = run_parallel({
+                "contracts": lambda: fetch_federal_contracts(company_name_hint, years=2),
+                "insider": lambda: fetch_insider_transactions_detail(ticker, days=180),
+                "short_interest": lambda: fetch_short_interest(ticker, years=1.5),
+            }, max_workers=3)
+
+        def _frame(key):
+            """A raising task becomes an empty errored frame -- the same shape the
+            fetchers themselves return when a provider is down."""
+            value = _fetched.get(key)
+            if isinstance(value, BaseException) or value is None:
+                return _empty_errored_frame()
+            return value
+
         # Optional signal 1: federal contracts
         _contracts_outcome = {}
         with timed_stage("federal_contract_retrieval", ticker=ticker, events=_timing_events,
-                         outcome=_contracts_outcome):
-            contracts_df = fetch_federal_contracts(company_name_hint, years=2)
+                         cache_status="prefetched", outcome=_contracts_outcome):
+            contracts_df = _frame("contracts")
             contract_vel = score_contract_velocity(contracts_df)
             _contracts_outcome["success"] = not getattr(contracts_df, "attrs", {}).get("fetch_error", False)
         if getattr(contracts_df, "attrs", {}).get("fetch_error"):
@@ -259,8 +311,8 @@ def _compute_full_ticker_score(
         # Optional signal 2: insider activity
         _insider_outcome = {}
         with timed_stage("insider_retrieval", ticker=ticker, events=_timing_events,
-                         outcome=_insider_outcome):
-            insider_tx = fetch_insider_transactions_detail(ticker, days=180)
+                         cache_status="prefetched", outcome=_insider_outcome):
+            insider_tx = _frame("insider")
             insider_score = score_insider_activity(insider_tx)
             _insider_outcome["success"] = not getattr(insider_tx, "attrs", {}).get("fetch_error", False)
         if getattr(insider_tx, "attrs", {}).get("fetch_error"):
@@ -270,8 +322,8 @@ def _compute_full_ticker_score(
         # Optional signal 3: short interest
         _short_outcome = {}
         with timed_stage("short_interest_retrieval", ticker=ticker, events=_timing_events,
-                         outcome=_short_outcome):
-            short_interest_df = fetch_short_interest(ticker, years=1.5)
+                         cache_status="prefetched", outcome=_short_outcome):
+            short_interest_df = _frame("short_interest")
             short_interest_score = score_short_interest(short_interest_df)
             _short_outcome["success"] = not getattr(short_interest_df, "attrs", {}).get("fetch_error", False)
         if getattr(short_interest_df, "attrs", {}).get("fetch_error"):

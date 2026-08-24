@@ -161,6 +161,110 @@ def get_cached_signal_states() -> dict:
     return get_latest_signal_states()
 
 
+def _worker_ctx_initializer():
+    """Propagate the Streamlit ScriptRunContext into pool threads.
+
+    The inner @st.cache_data on every fetcher needs it, both so warm hits are
+    actually served and so the logs are not flooded with "missing
+    ScriptRunContext". Returns a no-op outside the Streamlit runtime, which is
+    what lets the crons and the alert engine use the same helpers.
+    """
+    try:
+        from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
+        ctx = get_script_run_ctx()
+    except Exception:
+        add_script_run_ctx, ctx = None, None
+
+    def _init():
+        if add_script_run_ctx and ctx:
+            try:
+                add_script_run_ctx(threading.current_thread(), ctx)
+            except Exception:
+                pass
+    return _init
+
+
+def prewarm_signal_series(sig_ids, start: str, end: str) -> int:
+    """Populate the per-signal fetch caches for `sig_ids`, concurrently.
+
+    WHY THIS IS A PREWARM AND NOT A RETURN VALUE
+        utils/ticker_score scores signals with its own semantics: it does NOT
+        treat an unavailable series the way get_all_signal_scores() does, and
+        the Confluence Score depends on that difference. Handing it rows from
+        this module would quietly change published scores.
+
+        So this returns nothing but a count. It calls fetch_signal_series with
+        the byte-identical (cfg, start, end) key the caller is about to use, so
+        by the time the caller's own sequential loop runs, every fetch is a warm
+        cache hit and the loop is pure CPU. The caller's code, and therefore its
+        output, is untouched.
+
+    Measured on a cold process (2026-08-23): the ticker-score signal sweep runs
+    ~5.2-5.9s serially and ~0.7s through this helper.
+
+    Never raises: a prewarm that fails just means the caller pays the original
+    serial cost, which is exactly today's behaviour.
+    """
+    from utils.fetchers import fetch_signal_series
+
+    items = [(sid, SIGNALS[sid]) for sid in sig_ids if sid in SIGNALS]
+    if len(items) < 2:
+        return 0
+
+    def _one(item):
+        try:
+            fetch_signal_series(item[1], start, end)
+        except Exception:
+            pass  # the caller's loop keeps its own per-signal error handling
+
+    workers = min(_SCORE_WORKERS, len(items)) or 1
+    try:
+        with ThreadPoolExecutor(max_workers=workers,
+                                initializer=_worker_ctx_initializer()) as ex:
+            list(ex.map(_one, items))
+    except Exception:
+        return 0
+    return len(items)
+
+
+def run_parallel(tasks: dict, max_workers: int = 4) -> dict:
+    """Run independent zero-argument callables concurrently; return {key: value}.
+
+    For small fan-outs of INDEPENDENT provider reads. A task that raises yields
+    its exception object rather than propagating, so one dead provider cannot
+    take down the caller -- callers already branch on each result's own
+    fetch_error attrs and must keep doing so.
+
+    Only for providers that go through utils.resilience (requests + circuit
+    breaker + pooled session). Do NOT put yfinance behind this: utils/quotes.py
+    records that wrapping yfinance's single-ticker API in external threads
+    crashed production, because curl_cffi does not tolerate it.
+    """
+    if not tasks:
+        return {}
+    if len(tasks) == 1:
+        key, fn = next(iter(tasks.items()))
+        try:
+            return {key: fn()}
+        except Exception as exc:
+            return {key: exc}
+
+    keys = list(tasks)
+    out: dict = {}
+
+    def _one(key):
+        try:
+            return key, tasks[key]()
+        except Exception as exc:
+            return key, exc
+
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(keys)),
+                            initializer=_worker_ctx_initializer()) as ex:
+        for key, value in ex.map(_one, keys):
+            out[key] = value
+    return out
+
+
 @st.cache_data(ttl=SCORE_REFRESH_HOURS * 3600, show_spinner=False, max_entries=1)
 def get_all_signal_scores(_v: int = 1) -> dict:
     """
