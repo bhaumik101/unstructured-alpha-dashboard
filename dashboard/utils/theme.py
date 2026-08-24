@@ -1872,6 +1872,10 @@ def source_badge(source: str, series_id: str = "", extra: str = "") -> str:
         "fomc":    ("FOMC",      "#6B7FBF"),
     }
     label, color = _SOURCE_LABELS.get(source.lower(), (source.upper(), "#6B7FBF"))
+    # Provenance is meant to be quiet, not unreadable. The neutral 0.04 tint
+    # leaves these sitting essentially on the card, where #6B7FBF measured
+    # 4.27:1 at 10px across 17 nodes on one page.
+    color = ink(color, alpha=0.04, base_kind="wash")
     parts = [label]
     if series_id:
         parts.append(series_id)
@@ -2600,6 +2604,224 @@ def regime_pill(regime: str, score: float | None = None) -> str:
     )
 
 
+# ── Accessible text on a tinted pill ─────────────────────────────────────────
+# The product renders a lot of small tinted pills: category chips, confidence
+# badges, status labels. They all follow one pattern -- the semantic hue as the
+# TEXT colour over `rgba(<same hue>, 0.10)` as the background. That pattern is
+# only legible when the hue's own luminance happens to contrast with the
+# surface, and for saturated brand hues it does not.
+#
+# Measured in the browser on Signal Dashboard (2026-08-24), dark theme:
+#   #7C3AED "Macro & Liquidity"  2.94:1   (28 instances)
+#   #6B7FBF "Low confidence"     4.20:1   (38 instances)
+#   #6B7FBF "Neutral"            4.10:1   (38 instances)
+#   #CC3333 "Bearish"            3.27:1
+# WCAG AA wants 4.5:1 for text this size. 132 failing nodes on one page.
+#
+# on_tint() keeps the hue's identity and moves only its lightness until the
+# text clears the threshold against the pill it actually sits on. Pure and
+# deterministic, so tests/test_pill_contrast.py can assert every semantic
+# colour in the product passes in BOTH themes -- contrast becomes a build-time
+# invariant instead of something a person notices in a screenshot.
+
+TINT_BASE = {"dark": "#12151E", "light": "#FFFFFF"}
+
+
+def _hex_to_rgb(value: str) -> tuple[int, int, int]:
+    v = str(value).strip().lstrip("#")
+    if len(v) == 3:
+        v = "".join(ch * 2 for ch in v)
+    return int(v[0:2], 16), int(v[2:4], 16), int(v[4:6], 16)
+
+
+def _rgb_to_hex(rgb) -> str:
+    return "#{:02X}{:02X}{:02X}".format(
+        *(max(0, min(255, int(round(c)))) for c in rgb)
+    )
+
+
+def relative_luminance(rgb) -> float:
+    """WCAG 2.1 relative luminance."""
+    def _channel(c: float) -> float:
+        c = c / 255.0
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (_channel(c) for c in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast_ratio(a, b) -> float:
+    """WCAG 2.1 contrast ratio between two opaque RGB triples."""
+    la, lb = relative_luminance(a), relative_luminance(b)
+    hi, lo = (la, lb) if la > lb else (lb, la)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def composite(hue, alpha: float, base):
+    """`rgba(hue, alpha)` painted over an opaque `base`."""
+    return tuple(h * alpha + b * (1.0 - alpha) for h, b in zip(hue, base))
+
+
+def tint_background(hue: str, *, theme: str = "dark", alpha: float = 0.10,
+                    base: str | None = None) -> str:
+    """The opaque colour a `rgba(hue, alpha)` pill actually resolves to."""
+    theme = str(theme).lower()
+    base_hex = base or TINT_BASE.get(theme, TINT_BASE["dark"])
+    return _rgb_to_hex(composite(_hex_to_rgb(hue), alpha, _hex_to_rgb(base_hex)))
+
+
+def on_tint(hue: str, *, theme: str = "dark", alpha: float = 0.10,
+            target: float = 4.5, base: str | None = None) -> str:
+    """A text colour keeping `hue`'s identity but readable on its own tint.
+
+    Blends the hue toward white on dark surfaces and toward black on light
+    ones, in 2% steps, returning the first step that clears `target`. Returning
+    the hue unchanged when it already passes means every currently-compliant
+    colour in the product is untouched -- this only moves what was failing.
+    """
+    theme = str(theme).lower()
+    hue_rgb = _hex_to_rgb(hue)
+    # Measure against the SAME rounded colour tint_background() reports, so the
+    # two functions cannot disagree at the third decimal place. Using the
+    # un-rounded composite here returned #D11C1C at 4.486:1 while believing it
+    # had cleared 4.5.
+    pill = _hex_to_rgb(tint_background(hue, theme=theme, alpha=alpha, base=base))
+
+    if contrast_ratio(hue_rgb, pill) >= target:
+        return _rgb_to_hex(hue_rgb)
+
+    toward = (255, 255, 255) if theme == "dark" else (0, 0, 0)
+    # Each candidate is rounded to the hex we will actually emit BEFORE being
+    # measured. Testing the un-rounded float and returning the rounded value
+    # shipped #3B82F6 at 4.48:1 while the loop believed it had cleared 4.5.
+    best = _rgb_to_hex(hue_rgb)
+    for step in range(1, 51):
+        mix = step / 50.0
+        candidate = _rgb_to_hex(
+            tuple(h + (t - h) * mix for h, t in zip(hue_rgb, toward))
+        )
+        best = candidate
+        if contrast_ratio(_hex_to_rgb(candidate), pill) >= target:
+            break
+    return best
+
+
+# ── Why there is no active_theme() here ──────────────────────────────────────
+# There was, and it was wrong. scripts/inject_boot_splash resolves the theme in
+# the BROWSER: the ?theme= param if present, otherwise localStorage['ua-theme'],
+# and it sets <html data-ua-theme="light"> from that. So a visitor who toggled
+# to light once and then navigates normally has NO theme in the URL, and the
+# server cannot know what they are looking at. Deriving a colour in Python and
+# baking it into an inline style therefore paints dark-theme values onto a light
+# page for every returning light-theme user.
+#
+# The fix is to let CSS decide, which is the only thing that sees the resolved
+# attribute: emit the dark value inline (dark is the default) and ship generated
+# light-theme overrides keyed on it. That is what ink() and
+# light_ink_overrides_css() below do.
+
+# The surfaces a tinted pill can sit on, per theme. Measured in the browser
+# rather than read off the token list, because the cards are translucent with a
+# backdrop filter and composite lighter than --ua-bg-card suggests.
+INK_BASES: dict[str, dict[str, str]] = {
+    # hue-tinted pill on a signal card
+    "card":  {"dark": "#12151E", "light": "#FFFFFF"},
+    # neutral white-wash badge (source_badge) -- lightens the card, not tints it
+    "wash":  {"dark": "#181A21", "light": "#F5F5F6"},
+    # the regime strip, which is page chrome rather than a card
+    "strip": {"dark": "#12151E", "light": "#F1F0F7"},
+}
+
+
+def ink_var_name(hue: str, *, alpha: float = 0.10, base_kind: str = "card") -> str:
+    """Stable CSS custom-property name for one (hue, alpha, surface) ink."""
+    token = str(hue).strip().lstrip("#").upper()
+    return f"--ua-ink-{token}-{int(round(alpha * 100)):02d}-{base_kind}"
+
+
+def ink(hue: str, *, alpha: float = 0.10, base_kind: str = "card") -> str:
+    """What to emit inline for `hue` as text on its own tint: a var() reference.
+
+    NOT a hex. Two reasons, both learned the hard way:
+
+      * The theme is resolved in the BROWSER -- ?theme= or
+        localStorage['ua-theme'], see scripts/inject_boot_splash -- so the
+        server cannot know which derivation to bake in. A returning light-theme
+        visitor has no theme in the URL at all.
+      * The obvious workaround, emitting the dark hex and remapping it with
+        `html[data-ua-theme="light"] [style*=";color:#HEX"]`, cannot work here.
+        Streamlit's HTML sanitizer re-serializes inline styles, so
+        `color:#9B69F1` reaches the DOM as `color: rgb(155, 105, 241)` and the
+        attribute selector never matches. The same defect silently disabled the
+        pre-existing #8F9AAD light-mode override in utils/header.py.
+
+    A custom property survives that round-trip untouched, and CSS -- the only
+    layer that sees the resolved data-ua-theme attribute -- picks the value.
+    """
+    return f"var({ink_var_name(hue, alpha=alpha, base_kind=base_kind)})"
+
+
+def ink_hex(hue: str, *, alpha: float = 0.10, base_kind: str = "card",
+            theme: str = "dark") -> str:
+    """The resolved hex an ink variable carries in `theme`."""
+    bases = INK_BASES.get(base_kind, INK_BASES["card"])
+    return on_tint(hue, theme=theme, alpha=alpha,
+                   base=bases.get(theme, bases["dark"]))
+
+
+def ink_variables_css(entries) -> str:
+    """`:root` and light-theme definitions for every registered ink.
+
+    Dark is the default, so it lives on bare `:root`; the light block redefines
+    only the values that differ. Deduplicated by variable name, so an entry
+    listed twice is harmless.
+    """
+    dark: dict[str, str] = {}
+    light: dict[str, str] = {}
+    for hue, alpha, base_kind in entries:
+        name = ink_var_name(hue, alpha=alpha, base_kind=base_kind)
+        dark[name] = ink_hex(hue, alpha=alpha, base_kind=base_kind, theme="dark")
+        light[name] = ink_hex(hue, alpha=alpha, base_kind=base_kind, theme="light")
+
+    def _block(selector, values):
+        body = "\n".join(f"    {n}: {v};" for n, v in sorted(values.items()))
+        return f"{selector} {{\n{body}\n}}"
+
+    changed = {n: v for n, v in light.items() if v != dark.get(n)}
+    blocks = [_block(":root", dark)]
+    if changed:
+        blocks.append(_block('html[data-ua-theme="light"]', changed))
+    return "\n".join(blocks)
+
+
+def semantic_ink_entries():
+    """(hue, alpha, base_kind) for every tinted-pill ink the product emits.
+
+    Kept in one place so light_ink_overrides_css() cannot fall behind the render
+    paths. tests/test_pill_contrast.py asserts this covers the real palettes.
+    """
+    from utils.config import CATEGORIES
+
+    entries: list[tuple[str, float, str]] = []
+    # signal-card category chips
+    for meta in CATEGORIES.values():
+        entries.append((str(meta.get("color", "#6B7FBF")), 0.12, "card"))
+    # confidence badges
+    for hue in ("#00D566", "#F59E0B", "#6B7FBF"):
+        entries.append((hue, 0.10, "card"))
+    # provenance badges (neutral wash)
+    for hue in ("#00C8E0", "#F59E0B", "#A78BFA", "#6B7FBF"):
+        entries.append((hue, 0.04, "wash"))
+    # status + score-intensity ramp
+    for hue in ("#34D399", "#00A847", "#00D566",
+                "#FF2222", "#CC3333", "#FF4444", "#6B7FBF"):
+        entries.append((hue, 0.12, "card"))
+    # regime strip
+    for hue in ("#8F9AAD", "#00D566", "#FF4444",
+                "#00A847", "#CC3333", "#6B7FBF"):
+        entries.append((hue, 0.05, "strip"))
+    return entries
+
+
 def signal_confidence_badge(level: str, compact: bool = False,
                             neutral: bool = False) -> str:
     """
@@ -2630,7 +2852,12 @@ def signal_confidence_badge(level: str, compact: bool = False,
     }
     c = _cfg.get(level, _cfg["Low"])
     text = c["icon"] if compact else f'{c["icon"]} {c["label"]}'
-    colour = "var(--ua-ink-label)" if neutral else c["color"]
+    # The hue is the pill's identity; its lightness is whatever it takes to be
+    # readable on the tint. #00D566 measured 1.81:1 on the light-theme tint and
+    # #6B7FBF 4.20:1 on the dark one -- both below AA for 10px text.
+    colour = "var(--ua-ink-label)" if neutral else ink(
+        c["color"], alpha=0.10, base_kind="card"
+    )
     background = "transparent" if neutral else c["bg"]
     edge = "rgba(var(--ua-onbg-rgb),0.18)" if neutral else c["border"]
     return (

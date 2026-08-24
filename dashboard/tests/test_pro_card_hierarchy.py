@@ -46,9 +46,15 @@ def test_the_signal_name_comes_before_the_category_chip():
 
 
 def test_the_score_is_the_only_semantically_coloured_element():
-    """`border` is the bull/bear colour. It may appear once."""
+    """The bull/bear colour may appear once.
+
+    Emitted as `_status_text` since the contrast pass: `border` is picked for a
+    4px rule and measured 3.27:1 as 13px text, so the text uses the same hue
+    lifted to WCAG AA (utils.theme.ink). One semantic colour, one appearance --
+    the invariant is unchanged, only the variable carrying it.
+    """
     card = _pro_card()
-    coloured = re.findall(r"color:\{border\}", card)
+    coloured = re.findall(r"color:\{_status_text\}", card)
     assert len(coloured) == 1, (
         f"the bull/bear colour is applied {len(coloured)} times on the Pro card; "
         "it should carry the score and nothing else"
