@@ -81,11 +81,22 @@ def test_each_variant_keeps_its_non_chromatic_cue():
 
 
 def test_each_variant_keeps_one_chromatic_cue():
-    """One chromatic cue is the budget, not zero."""
+    """One chromatic cue is the budget, not zero.
+
+    The cue is now emitted as `_status_text` rather than `border`. Same hue and
+    same single cue: `border` is chosen for a 4px rule, and reusing it for
+    10-13px text measured 3.27:1 against the card. `_status_text` is that hue
+    lifted to clear WCAG AA (utils.theme.ink) -- a readability derivation, not a
+    second colour axis. The border keeps `border` itself.
+    """
     for name, block in _VARIANTS:
-        assert re.search(r"color:\{border\}", block), (
+        assert re.search(r"color:\{_status_text\}", block), (
             f"the {name} card lost its state colour; one chromatic cue is the "
             f"budget, not zero"
+        )
+        assert not re.search(r"color:\{border\}", block), (
+            f"the {name} card colours text straight from `border` again; that "
+            f"is the sub-AA value _status_text exists to replace"
         )
 
 

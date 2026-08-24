@@ -14,6 +14,7 @@ import html as _h
 import re
 
 from utils.config import CATEGORIES, SIGNALS, TICKERS
+from utils.theme import ink as _ink
 from utils.product_metrics import (
     signal_source_labels as _signal_source_labels,
     signal_sources_phrase as _signal_sources_phrase,
@@ -566,6 +567,12 @@ if _signal_section == "Signal Library":
             _cat_cr, _cat_cg, _cat_cb = (
                 int(_cat_color[1:3], 16), int(_cat_color[3:5], 16), int(_cat_color[5:7], 16)
             )
+            # The chip paints the category hue at 0.12 alpha and used the raw hue
+            # as its text. Measured in the browser, "Macro & Liquidity" came out
+            # at 2.94:1 on the dark card -- AA wants 4.5:1 for 10px text, and
+            # this chip repeats on all 47 cards. on_tint keeps the hue and lifts
+            # only its lightness far enough to clear the threshold.
+            _cat_text = _ink(_cat_color, alpha=0.12, base_kind="card")
             sym    = STATUS_SYM.get(status, "●")
             lbl    = STATUS_LABEL.get(status, "●")
             trend_arrow = "↑" if trend > 1 else ("↓" if trend < -1 else "→")
@@ -579,6 +586,14 @@ if _signal_section == "Signal Library":
                 border = "#FF2222" if score <= 20 else ("#CC3333" if score <= 30 else "#FF4444")
             else:
                 border = STATUS_COLOR.get(status, "#8892AA")
+
+            # `border` is picked for a 4px rule, and the card then reuses it as
+            # the colour of 10-13px text (status, score, symbol). Those are two
+            # different contrast problems: measured in the browser, "Bearish"
+            # came out at 3.27:1 and the score at 3.60:1 against the card, while
+            # the border itself is fine. Keep the border exactly as chosen and
+            # derive a readable text tone from the same hue.
+            _status_text = _ink(border, alpha=0.12, base_kind="card")
 
             # Pre-compute border RGB components for gradient backgrounds
             _bc_r = int(border[1:3], 16)
@@ -643,7 +658,6 @@ if _signal_section == "Signal Library":
                         # ── SIMPLE card: big status + plain English + confidence ──
                         _dev_abs   = abs(dev) if dev == dev else 0.0   # guard NaN
                         _lbl_text  = lbl.split(" ", 1)[-1] if " " in lbl else lbl
-                        _cat_icon  = cat.get("icon", "")
                         _cat_name  = cat.get("name", "")
                         _sig_name  = cfg["name"]  # full name; CSS clamps to 2 lines w/ ellipsis
 
@@ -705,14 +719,14 @@ if _signal_section == "Signal Library":
                             f'flex:1;letter-spacing:-0.1px;overflow:hidden;display:-webkit-box;'
                             f'-webkit-line-clamp:2;-webkit-box-orient:vertical;">{_pulse_dot}{_sig_name}</div>'
                             f'<div style="text-align:right;margin-left:8px;flex-shrink:0;">'
-                            f'<div style="font-size:0.80rem;font-weight:800;color:{border};'
+                            f'<div style="font-size:0.80rem;font-weight:800;color:{_status_text};'
                             f'background:rgba({_bc_r},{_bc_g},{_bc_b},0.12);'
                             f'border:1px solid rgba({_bc_r},{_bc_g},{_bc_b},0.25);'
                             f'border-radius:6px;padding:2px 8px;white-space:nowrap;'
                             f'letter-spacing:0.02em;">{sym} {_lbl_text}</div>'
                             f'<div style="display:flex;align-items:center;justify-content:flex-end;'
                             f'gap:4px;margin-top:4px;">'
-                            f'<div style="font-size:0.64rem;color:{border};opacity:0.80;'
+                            f'<div style="font-size:0.64rem;color:{_status_text};opacity:0.80;'
                             f'font-weight:600;letter-spacing:0.02em;">{score:.0f}/100</div>'
                             f'{_conf_badge}'
                             f'</div>'
@@ -726,10 +740,10 @@ if _signal_section == "Signal Library":
                             f'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
                             f'<span style="font-size:0.62rem;'
                             f'background:rgba({_cat_cr},{_cat_cg},{_cat_cb},0.12);'
-                            f'color:rgba({_cat_cr},{_cat_cg},{_cat_cb},1);'
+                            f'color:{_cat_text};'
                             f'border:1px solid rgba({_cat_cr},{_cat_cg},{_cat_cb},0.28);'
                             f'border-radius:8px;padding:1px 7px;font-weight:600;white-space:nowrap;">'
-                            f'{_cat_icon} {_cat_name}</span>'
+                            f'{_cat_name}</span>'
                             f'{_fatigue_html}'
                             f'{_src_badge}'
                             f'</div>'
@@ -810,7 +824,7 @@ if _signal_section == "Signal Library":
                             # 2. Score and direction — the ONE semantic colour on
                             #    this card. 3. Confidence, neutral beside it.
                             f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
-                            f'<div style="font-size:1.6rem;font-weight:700;color:{border};line-height:1;'
+                            f'<div style="font-size:1.6rem;font-weight:700;color:{_status_text};line-height:1;'
                             f'font-variant-numeric:tabular-nums;">{sym} {score:.0f}</div>'
                             f'<div style="display:flex;flex-direction:column;gap:3px;">'
                             f'<span style="font-size:var(--ua-text-sm);">{_pro_trend_badge}</span>'
@@ -1075,7 +1089,7 @@ if _signal_section == "Signal Library":
             <div style="display:flex;align-items:center;gap:16px;padding:10px 14px;
                         background:rgba(var(--ua-card-rgb),0.85);border-radius:6px;border-left:4px solid {border};
                         border:1px solid rgba(var(--ua-onbg-rgb),0.07);margin-bottom:6px;font-family:Inter,sans-serif;">
-                <div style="font-size:1.3rem;color:{border};font-weight:700;min-width:36px;">{sym}</div>
+                <div style="font-size:1.3rem;color:{_status_text};font-weight:700;min-width:36px;">{sym}</div>
                 <div style="flex:1;">
                     <div style="font-weight:700;font-size:0.85rem;color:var(--ua-ink);">{cfg['name']}</div>
                     <div style="font-size:var(--ua-text-sm);color:var(--ua-ink-soft);margin-top:2px;">
@@ -1083,7 +1097,7 @@ if _signal_section == "Signal Library":
                         {f" · leads stocks ~{cfg['lag_weeks']}w" if cfg.get('lag_weeks') else ""}
                     </div>
                 </div>
-                <div style="font-size:0.80rem;color:{border};font-weight:700;text-align:right;">
+                <div style="font-size:0.80rem;color:{_status_text};font-weight:700;text-align:right;">
                     {STATUS_LABEL.get(status,'').split(' ',1)[-1]}
                 </div>
             </div>
