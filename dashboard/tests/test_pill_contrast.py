@@ -323,3 +323,48 @@ def test_the_dim_override_uses_a_token_not_a_hex():
     assert "var(--ua-text-cap)" in block, (
         "the ink-dim override should resolve through a theme-aware token"
     )
+
+
+# ── the surface is an approximation, so the derivation needs headroom ────────
+
+def _shift(hex_value: str, delta: int) -> str:
+    from utils.theme import _hex_to_rgb, _rgb_to_hex
+    return _rgb_to_hex(tuple(c + delta for c in _hex_to_rgb(hex_value)))
+
+
+@pytest.mark.parametrize("theme", THEMES)
+@pytest.mark.parametrize("delta", (-8, 8))
+def test_inks_survive_the_surface_variation_we_actually_observed(theme, delta):
+    """INK_BASES is measured on one page; other pages differ.
+
+    The provenance badge composites onto a card on Signal Dashboard and
+    straight onto the page background on Market Overview -- about 8 RGB units
+    apart, which moved its measured ratio by 0.34 and shipped a 4.42:1 label.
+    Deriving to DERIVATION_TARGET rather than exactly AA_TEXT is what absorbs
+    that, so this perturbs the base by the observed amount and requires the
+    result still clears AA.
+    """
+    from utils.theme import INK_BASES, ink_hex, semantic_ink_entries
+
+    failures = []
+    for hue, alpha, base_kind in semantic_ink_entries():
+        rendered = ink_hex(hue, alpha=alpha, base_kind=base_kind, theme=theme)
+        shifted = _shift(INK_BASES[base_kind][theme], delta)
+        pill = tint_background(hue, theme=theme, alpha=alpha, base=shifted)
+        ratio = contrast_ratio(_hex_to_rgb(rendered), _hex_to_rgb(pill))
+        if ratio < AA_NORMAL:
+            failures.append(
+                f"{hue} @{alpha}/{base_kind} -> {rendered} on {pill} = {ratio:.2f}:1"
+            )
+    assert not failures, (
+        f"{len(failures)} ink(s) drop below AA when the surface moves {delta:+d} "
+        f"in {theme}:\n  " + "\n  ".join(failures)
+    )
+
+
+def test_the_derivation_aims_above_the_assertion_threshold():
+    from utils.theme import AA_TEXT, DERIVATION_TARGET
+    assert DERIVATION_TARGET > AA_TEXT, (
+        "deriving to exactly the assertion threshold leaves no room for the "
+        "measured-surface approximation; that shipped a 4.42:1 label"
+    )
