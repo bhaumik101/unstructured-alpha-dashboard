@@ -2669,8 +2669,24 @@ def tint_background(hue: str, *, theme: str = "dark", alpha: float = 0.10,
     return _rgb_to_hex(composite(_hex_to_rgb(hue), alpha, _hex_to_rgb(base_hex)))
 
 
+# WCAG AA for text this size. Assertions use this.
+AA_TEXT = 4.5
+# What the derivation actually aims for. INK_BASES is a measured approximation
+# of a surface that genuinely varies between pages -- the same provenance badge
+# composites onto a card on Signal Dashboard and straight onto the page on
+# Market Overview, about 8 RGB units apart, which swung its measured ratio by
+# 0.34 and shipped a 4.42:1 label. Deriving to exactly 4.5 against an
+# approximate base is therefore not enough.
+#
+# 5.0 is the smallest value at which every registered ink still clears 4.5 with
+# the base perturbed +/-8 in either theme; 4.9 leaves one at 4.46. Raising it
+# further only pushes the inks further from their brand hue for no measured
+# gain. See test_inks_survive_the_surface_variation_we_actually_observed.
+DERIVATION_TARGET = 5.0
+
+
 def on_tint(hue: str, *, theme: str = "dark", alpha: float = 0.10,
-            target: float = 4.5, base: str | None = None) -> str:
+            target: float = DERIVATION_TARGET, base: str | None = None) -> str:
     """A text colour keeping `hue`'s identity but readable on its own tint.
 
     Blends the hue toward white on dark surfaces and toward black on light
@@ -2725,8 +2741,11 @@ def on_tint(hue: str, *, theme: str = "dark", alpha: float = 0.10,
 INK_BASES: dict[str, dict[str, str]] = {
     # hue-tinted pill on a signal card
     "card":  {"dark": "#12151E", "light": "#FFFFFF"},
-    # neutral white-wash badge (source_badge) -- lightens the card, not tints it
-    "wash":  {"dark": "#181A21", "light": "#F5F5F6"},
+    # neutral white-wash badge (source_badge) -- lightens the card, not tints it.
+    # Light value measured on Market Overview, where the badge's own
+    # rgba(20,22,44,0.04) composites straight onto the page rather than onto a
+    # card: #F5F5F6 was a guess and ran 0.34 too generous.
+    "wash":  {"dark": "#181A21", "light": "#EDECF3"},
     # the regime strip, which is page chrome rather than a card
     "strip": {"dark": "#12151E", "light": "#F1F0F7"},
 }
