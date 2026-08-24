@@ -106,6 +106,16 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+@media (max-width: 620px) {
+  .hero-ticker-form {
+    flex-direction: column;
+  }
+
+  .hero-ticker-form .btn-primary {
+    width: 100%;
+  }
+}
+
 a {
   text-decoration: none;
   color: inherit;

@@ -26,9 +26,11 @@ import hmac
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request, Response
+from utils.analytics import Event
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,7 @@ router = APIRouter(tags=["analytics"])
 
 # Only these may be written from the public internet. Adding to this list means
 # accepting that anyone can generate that event, so it stays minimal.
-ALLOWED_EVENTS = frozenset({"page_view"})
+ALLOWED_EVENTS = frozenset({Event.PAGE_VIEW, Event.APP_OPENED})
 
 # Landing pages we recognise. An unknown label is stored as "Other" rather than
 # echoed back into the database, so the page dimension cannot be used to inject
@@ -46,6 +48,18 @@ ALLOWED_PAGES = frozenset(
 )
 
 MAX_BODY_BYTES = 2_048
+
+ALLOWED_ACTIONS = frozenset({
+    "nav",
+    "mobile_nav",
+    "hero_ticker",
+    "watchlist",
+    "signal_preview",
+    "free_plan",
+    "pro_trial",
+    "closing",
+    "footer",
+})
 
 
 def _no_content() -> Response:
@@ -79,6 +93,16 @@ async def track_landing_event(request: Request) -> Response:
         page = str(payload.get("page") or "").strip()
         if page not in ALLOWED_PAGES:
             page = "Other"
+
+        properties: dict[str, str] = {"page": page, "site": "marketing"}
+        if event == Event.APP_OPENED:
+            action = str(payload.get("action") or "").strip()
+            if action not in ALLOWED_ACTIONS:
+                return _no_content()
+            properties["action"] = action
+            ticker = str(payload.get("ticker") or "").strip().upper()
+            if ticker and re.fullmatch(r"[A-Z0-9.-]{1,10}", ticker):
+                properties["ticker"] = ticker
 
         headers = {str(k).lower(): str(v) for k, v in request.headers.items()}
 
@@ -124,6 +148,7 @@ async def track_landing_event(request: Request) -> Response:
             page=page,
             visitor_id=visitor_id,
             device_type=device_type,
+            properties=properties,
         )
     except Exception as exc:  # never surface an error to the marketing site
         logger.debug("[track] dropped event: %s", exc)
@@ -136,6 +161,7 @@ def _write_event(
     page: str,
     visitor_id: str,
     device_type: str | None,
+    properties: dict[str, str] | None = None,
 ) -> None:
     """Insert one row using the same columns utils/analytics.py writes.
 
@@ -167,7 +193,7 @@ def _write_event(
                 "device_type": device_type,
                 # "site" distinguishes marketing traffic from in-app traffic so
                 # the funnel can be split without guessing from the page label.
-                "props": json.dumps({"page": page, "site": "marketing"}),
+                "props": json.dumps(properties or {"page": page, "site": "marketing"}),
                 "ts": datetime.now(timezone.utc).isoformat(),
             },
         )
