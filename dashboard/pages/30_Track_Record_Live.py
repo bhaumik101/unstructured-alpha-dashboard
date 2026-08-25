@@ -317,9 +317,18 @@ if _track_section == "Signal Track Record":
                 sig_ct    = row.get("signal_count") or 0
                 entry_px  = row.get("price_at_event")
                 is_res    = row["status"] == "resolved"
+                # A row keeps status "pending" until ALL THREE windows close, but
+                # resolve_pending writes each horizon's outcome the moment that
+                # window expires. Gating the badges on "resolved" hid a known
+                # 4-week result for the following eight weeks -- while the exit
+                # line directly above already showed its return, so the card
+                # contradicted itself. Show whatever has actually landed.
+                _has_outcome = any(
+                    row.get(f"correct_{_hh}") is not None for _hh in ("4w", "8w", "12w")
+                )
 
                 # Outcome section
-                if is_res:
+                if _has_outcome:
                     outcome_html = (
                         f'<div style="border-top:1px solid rgba(var(--ua-onbg-rgb),0.07);'
                         f'margin-top:10px;padding-top:10px;display:flex;flex-wrap:wrap;gap:8px;">'
@@ -328,6 +337,10 @@ if _track_section == "Signal Track Record":
                         + _hit_html(row.get("correct_8w"),  row.get("return_8w"),  "8w")
                         + "&nbsp;&nbsp;"
                         + _hit_html(row.get("correct_12w"), row.get("return_12w"), "12w")
+                        + ("" if is_res else
+                           '<div style="width:100%;font-size:0.66rem;color:var(--ua-ink-mut);'
+                           'font-style:italic;margin-top:4px;">still maturing — later windows '
+                           'fill in as they close</div>')
                         + "</div>"
                     )
                 else:

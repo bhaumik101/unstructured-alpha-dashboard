@@ -32,6 +32,45 @@ from utils import db
 from utils.db import prediction_log, system_notifications, upsert_stmt
 
 
+# ── Direction ─────────────────────────────────────────────────────────────────
+# The schema stores "bull" / "bear". utils.convergence produces events labelled
+# "bullish" / "bearish", and its two write paths disagreed about converting:
+# render_convergence_events mapped them, log_all_convergence_events (the
+# scheduled job that logs EVERY event) passed them through raw.
+#
+# Nothing validated the value, and every reader compares it with ==, so a
+# "bullish" row failed all three:
+#
+#   pages/30 _dir_sym   "▲ BULL" if d == "bull" else "▼ BEAR"   -> shown as BEAR
+#   resolve_pending     correct = (d=="bull" and ret>0) or (d=="bear" and ret<0)
+#                                                              -> ALWAYS incorrect
+#   _signed_return      ret if d == "bull" else -ret            -> P&L sign flipped
+#
+# That is how six bullish uranium calls (URA 67, BWXT 74, UUUU 72, UEC 71,
+# CCJ 71, LEU 67) appeared on the Signal Call Log as bear calls.
+#
+# Normalising here makes the writer safe; normalising in the readers below makes
+# the rows already in the table behave correctly without waiting for a
+# migration. repair_direction_labels() rewrites them properly.
+
+_BULL_LABELS = frozenset({"bull", "bullish", "long", "up"})
+_BEAR_LABELS = frozenset({"bear", "bearish", "short", "down"})
+
+
+def normalize_direction(value: str | None) -> str | None:
+    """Map any recognised direction label to the stored form, else None.
+
+    None rather than a guess: a direction nobody recognises must not silently
+    become a bull call on the product's own track record.
+    """
+    v = str(value or "").strip().lower()
+    if v in _BULL_LABELS:
+        return "bull"
+    if v in _BEAR_LABELS:
+        return "bear"
+    return None
+
+
 # ── Logging ───────────────────────────────────────────────────────────────────
 
 def log_prediction(
@@ -50,6 +89,13 @@ def log_prediction(
     Caller is responsible for fetching the current price — this module
     doesn't import yfinance to keep it fast and avoid circular imports.
     """
+    canonical = normalize_direction(direction)
+    if canonical is None:
+        print(f"[predict] refusing to log {ticker!r}: unrecognised direction "
+              f"{direction!r}", flush=True)
+        return False
+    direction = canonical
+
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     now_iso = datetime.now(timezone.utc).isoformat()
     signals_str = ",".join(signals_triggered) if signals_triggered else None
@@ -252,6 +298,46 @@ RESOLUTION_HORIZON_WEEKS = 12
 RESOLVER_GRACE_WEEKS = 1
 
 
+def repair_direction_labels(limit: int = 500) -> int:
+    """Rewrite any non-canonical direction in place. Returns rows changed.
+
+    The readers normalise defensively, so this is not required for correctness
+    -- it exists so the table itself stops carrying values that every `==`
+    comparison in the codebase gets wrong, and so a future reader that forgets
+    to normalise is not silently broken again.
+
+    Safe to run repeatedly: rows already canonical are skipped.
+    """
+    try:
+        with db.engine.begin() as conn:
+            rows = conn.execute(
+                select(prediction_log.c.id, prediction_log.c.direction).limit(limit)
+            ).mappings().all()
+    except Exception as exc:
+        print(f"[predict] could not read direction labels: {exc}", flush=True)
+        return 0
+
+    fixed = 0
+    for row in rows:
+        raw = row["direction"]
+        canonical = normalize_direction(raw)
+        if canonical is None or canonical == raw:
+            continue
+        try:
+            with db.engine.begin() as conn:
+                conn.execute(
+                    update(prediction_log)
+                    .where(prediction_log.c.id == row["id"])
+                    .values(direction=canonical)
+                )
+            fixed += 1
+        except Exception as exc:
+            print(f"[predict] could not repair id={row['id']}: {exc}", flush=True)
+    if fixed:
+        print(f"[predict] normalised {fixed} direction label(s)", flush=True)
+    return fixed
+
+
 def resolve_pending(max_resolve: int = 20) -> int:
     """
     Check all pending predictions whose event_date is ≥4 weeks ago and
@@ -310,7 +396,7 @@ def resolve_pending(max_resolve: int = 20) -> int:
         ticker = row["ticker"]
         entry_price = row["price_at_event"]
         event_dt = pd.Timestamp(row["event_date"])
-        direction = row["direction"]
+        direction = normalize_direction(row["direction"])
 
         try:
             # Extract price series for this ticker
@@ -404,7 +490,7 @@ def _signed_return(row: dict, field: str) -> float | None:
     ret = row.get(field)
     if ret is None:
         return None
-    return float(ret) if row.get("direction") == "bull" else -float(ret)
+    return float(ret) if normalize_direction(row.get("direction")) == "bull" else -float(ret)
 
 
 def get_track_record() -> dict:
