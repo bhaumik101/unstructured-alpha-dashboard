@@ -29,6 +29,7 @@ from utils.fetchers import (
     fetch_short_interest, fetch_13f_holdings,
 )
 from utils.analysis import (
+    WEIGHT_FLOOR, benjamini_hochberg,
     score_signal, compute_confluence, compute_quick_correlation_stats,
     score_insider_activity, score_short_interest, score_13f_positioning,
     score_contract_velocity,
@@ -212,26 +213,61 @@ def _compute_full_ticker_score(
     with timed_stage("correlation_calculation", ticker=ticker, events=_timing_events,
                      metadata={"signal_count": len(relevant_sig_ids)}):
         if not price_series.empty:
+            # Every signal is tested against this one ticker, so the ~47 tests
+            # form ONE family and the false-discovery rate has to be controlled
+            # across it. Collect first, correct once, then weight -- correcting
+            # per signal in the loop would be the same uncorrected alpha again.
+            stats_by_sig: dict[str, dict] = {}
             for sig_id in relevant_sig_ids:
                 cfg = SIGNALS.get(sig_id, {})
                 lag = cfg.get("lag_weeks", 0)
                 raw_series = signal_data.get(sig_id, pd.Series(dtype=float))
                 if len(raw_series.dropna()) >= 20:
-                    stat = compute_quick_correlation_stats(raw_series, price_series, lag_weeks=lag)
+                    stats_by_sig[sig_id] = compute_quick_correlation_stats(
+                        raw_series, price_series, lag_weeks=lag
+                    )
                 else:
-                    stat = {"r": 0.0, "p_value": 1.0, "significant": False, "n": 0}
+                    stats_by_sig[sig_id] = {
+                        "r": 0.0, "p_value": 1.0, "significant": False,
+                        "n": 0, "r_lower": 0.0,
+                    }
+
+            ordered = list(relevant_sig_ids)
+            rejected, q_values = benjamini_hochberg(
+                [stats_by_sig[sid]["p_value"] for sid in ordered], alpha=0.05
+            )
+
+            for position, sig_id in enumerate(ordered):
+                stat = stats_by_sig[sig_id]
+                cfg = SIGNALS.get(sig_id, {})
                 pcs = cfg.get("pcs", 5)
-                r = stat["r"]
-                weight = max(0.15, abs(r)) * (pcs / 10.0)
+                # Weight on the lower confidence bound of |r|, not |r| itself.
+                # A correlation that cannot be told apart from zero at its own
+                # sample size contributes nothing above the floor, without any
+                # significance threshold having to be chosen.
+                evidence = stat.get("r_lower", 0.0)
+                weight = max(WEIGHT_FLOOR, evidence) * (pcs / 10.0)
                 corr_info[sig_id] = {
-                    "r": r, "weight": round(weight, 4),
-                    "p_value": stat["p_value"], "significant": stat["significant"], "n": stat["n"],
+                    "r": stat["r"],
+                    "r_lower": evidence,
+                    "weight": round(weight, 4),
+                    "p_value": stat["p_value"],
+                    # Kept for continuity of the raw per-test read, but the
+                    # family-corrected flag is the one that should be believed.
+                    "significant": stat["significant"],
+                    "q_value": round(q_values[position], 6) if q_values else 1.0,
+                    "significant_fdr": bool(rejected[position]) if rejected else False,
+                    "n": stat["n"],
                 }
         else:
             for sig_id in relevant_sig_ids:
                 cfg = SIGNALS.get(sig_id, {})
                 pcs = cfg.get("pcs", 5)
-                corr_info[sig_id] = {"r": 0.0, "weight": pcs / 10.0, "p_value": 1.0, "significant": False, "n": 0}
+                corr_info[sig_id] = {
+                    "r": 0.0, "r_lower": 0.0, "weight": round(WEIGHT_FLOOR * (pcs / 10.0), 4),
+                    "p_value": 1.0, "significant": False, "q_value": 1.0,
+                    "significant_fdr": False, "n": 0,
+                }
 
         corr_weights_flat = {sid: ci["weight"] for sid, ci in corr_info.items()}
         confluence = compute_confluence(signal_scores, weights=corr_weights_flat)

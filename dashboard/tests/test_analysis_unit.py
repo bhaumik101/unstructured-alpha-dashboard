@@ -276,8 +276,12 @@ def test_quick_correlation_stats_returns_all_keys_on_insufficient_data():
     short_sig = _make_series(n=3)
     short_price = _make_series(n=3, seed=1)
     result = compute_quick_correlation_stats(short_sig, short_price)
-    assert set(result.keys()) == {"r", "p_value", "significant", "n"}
+    # r_lower joined the contract when weighting moved onto the lower confidence
+    # bound of |r| instead of |r| itself; callers index it unconditionally, so
+    # every guard path has to carry it too.
+    assert set(result.keys()) == {"r", "p_value", "significant", "n", "r_lower"}
     assert result["significant"] is False
+    assert result["r_lower"] == 0.0
 
 
 def test_quick_correlation_stats_detects_strong_correlation():
