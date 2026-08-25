@@ -335,25 +335,25 @@ if _signal_section == "Signal Library":
                 <div style="font-size:var(--ua-text-xl);font-weight:800;color:{temp_color};margin-top:2px;
                             letter-spacing:-0.3px;">{temp_label}</div>
             </div>
-            <div style="display:flex;gap:24px;text-align:center;">
+            <div class="ua-temp-stats" style="display:flex;gap:24px;text-align:center;">
                 <div>
                     <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:var(--ua-green);
                                  letter-spacing:-1px;line-height:1.0;text-shadow:0 0 20px rgba(var(--ua-green-rgb),0.3);">{bull_n}</div>
                     <div style="font-size:0.60rem;color:var(--ua-green);letter-spacing:0.10em;font-weight:700;margin-top:3px;">BULLISH</div>
                 </div>
-                <div style="width:1px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>
+                <div class="ua-temp-div" style="width:1px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>
                 <div>
                     <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:var(--ua-red);
                                  letter-spacing:-1px;line-height:1.0;text-shadow:0 0 20px rgba(var(--ua-red-rgb),0.25);">{bear_n}</div>
                     <div style="font-size:0.60rem;color:var(--ua-red);letter-spacing:0.10em;font-weight:700;margin-top:3px;">BEARISH</div>
                 </div>
-                <div style="width:1px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>
+                <div class="ua-temp-div" style="width:1px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>
                 <div>
                     <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:var(--ua-ink-label);
                                  letter-spacing:-1px;line-height:1.0;">{neut_n}</div>
                     <div style="font-size:0.60rem;color:var(--ua-ink-label);letter-spacing:0.10em;font-weight:700;margin-top:3px;">NEUTRAL</div>
                 </div>
-                <div style="width:1px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>
+                <div class="ua-temp-div" style="width:1px;background:rgba(var(--ua-onbg-rgb),0.06);"></div>
                 <div>
                     <div class="ua-number-in" style="font-size:1.8rem;font-weight:800;color:var(--ua-ink);
                                  letter-spacing:-1px;line-height:1.0;">{total_n}</div>

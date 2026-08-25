@@ -2740,6 +2740,21 @@ div[data-testid="stExpander"] {
    utils.theme.ink_variables_css from the WCAG derivation in the same module,
    so palette and contrast maths cannot drift apart. */
 __UA_LIGHT_INK_OVERRIDES__
+/* Market-temperature stat row: four figures, three hairline dividers and 24px
+   gaps come to ~350px of content inside a ~335px container at 375px, so the
+   fourth column ("SCORED") sat 10px off the right edge of the viewport --
+   measured, not theorised. Tightening the gap and dropping the dividers is
+   enough to fit it; the row keeps its single line rather than reflowing into a
+   ragged 2x2, which reads worse for four related counts. */
+@media (max-width: 640px) {
+    .ua-temp-stats {
+        width: 100%;
+        gap: 10px !important;
+        justify-content: space-between !important;
+    }
+    .ua-temp-stats .ua-temp-div { display: none; }
+}
+
 </style>
 """
 
