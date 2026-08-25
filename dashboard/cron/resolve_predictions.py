@@ -28,13 +28,22 @@ if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
 
 from utils.db import init_db
-from utils.prediction_log import resolve_pending
+from utils.prediction_log import repair_direction_labels, resolve_pending
 
 
 def main() -> None:
     print(f"[resolve] starting at {datetime.now(timezone.utc).isoformat()}", flush=True)
 
     init_db()
+
+    # Normalise any direction label that is not "bull"/"bear" before resolving.
+    # utils.convergence's scheduled logger passed "bullish"/"bearish" straight
+    # through, and resolve_pending scores direction with ==, so those rows would
+    # be marked incorrect no matter what the price did. Runs first so the repair
+    # lands before the outcomes it would corrupt. No-op once the table is clean.
+    repaired = repair_direction_labels()
+    if repaired:
+        print(f"[resolve] repaired {repaired} direction label(s)", flush=True)
 
     # Resolve up to 200 predictions per run — generous cap for a nightly cron.
     # In steady state this processes only a handful of rows (one convergence

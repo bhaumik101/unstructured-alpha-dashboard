@@ -206,7 +206,11 @@ def log_convergence_predictions(events: list[dict]) -> int:
         try:
             _log_convergence_prediction_once(
                 ticker=ev["ticker"],
-                direction=ev["direction"],
+                # Events are labelled "bullish"/"bearish"; the log stores
+                # "bull"/"bear". This path passed the raw label through while
+                # render_convergence_events converted it, so every event logged
+                # by the scheduled job was unreadable to every reader.
+                direction="bull" if ev["direction"] == "bullish" else "bear",
                 score=ev.get("score", 50.0),
                 signal_count=ev.get("count", 0),
                 signals_triggered=tuple(ev.get("signal_ids", [])),
