@@ -746,6 +746,88 @@ def mark_all_read(user_id: int) -> None:
         pass
 
 
+HORIZONS: tuple[str, ...] = ("4w", "8w", "12w")
+
+
+def get_horizon_comparison() -> dict:
+    """Compare 4w / 8w / 12w so "which holding period works best" is answerable.
+
+    TWO VIEWS, AND THE DIFFERENCE MATTERS
+    -------------------------------------
+    "all": every row that has an outcome at that horizon. This is the honest
+    per-horizon summary, but it is NOT a fair comparison between horizons.
+    Horizons mature at different times, so the 4w figure is computed over recent
+    calls and the 12w figure over calls made three months earlier -- often a
+    different market regime, and always a different sample. Ranking horizons on
+    those numbers compares the market's mood, not the model's timing.
+
+    "matched": only calls that have ALL THREE outcomes. Same calls, same
+    entries, same regime; the only thing that varies is how long the position
+    was held. That is the comparison that answers the question, and it is the
+    one `best_horizon` is drawn from.
+
+    The matched sample is necessarily the smaller and slower one -- a call joins
+    it twelve weeks after it is made -- so both are returned rather than
+    pretending the fair view is available from day one.
+
+    Returns:
+        {
+          "all":      {h: {"n", "accuracy", "median_pnl", "mean_pnl"}},
+          "matched":  {h: {...same...}},
+          "matched_n": int,          -- calls with all three outcomes
+          "best_horizon": str|None,  -- highest matched accuracy, ties -> shorter
+          "best_accuracy": float|None,
+        }
+
+    Never raises. Zero-filled on any DB error.
+    """
+    import statistics
+
+    empty_h = {h: {"n": 0, "accuracy": None, "median_pnl": None, "mean_pnl": None}
+               for h in HORIZONS}
+    try:
+        with db.engine.begin() as conn:
+            raw = conn.execute(select(prediction_log)).mappings().all()
+        rows = [dict(r) for r in raw]
+    except Exception:
+        return {"all": empty_h, "matched": dict(empty_h), "matched_n": 0,
+                "best_horizon": None, "best_accuracy": None}
+
+    def _summarise(subset: list[dict]) -> dict:
+        out: dict = {}
+        for h in HORIZONS:
+            have = [r for r in subset if r.get(f"correct_{h}") is not None]
+            pnls = [v for v in (_signed_return(r, f"return_{h}") for r in subset
+                                if r.get(f"return_{h}") is not None) if v is not None]
+            out[h] = {
+                "n": len(have),
+                "accuracy": (round(100 * sum(int(r[f"correct_{h}"]) for r in have) / len(have), 1)
+                             if have else None),
+                "median_pnl": round(statistics.median(pnls), 2) if pnls else None,
+                "mean_pnl": round(sum(pnls) / len(pnls), 2) if pnls else None,
+            }
+        return out
+
+    matched_rows = [r for r in rows
+                    if all(r.get(f"correct_{h}") is not None for h in HORIZONS)]
+
+    matched = _summarise(matched_rows)
+    # Ties go to the shorter horizon: same accuracy for less time at risk is
+    # strictly better, and HORIZONS is ordered shortest-first.
+    ranked = [(h, matched[h]["accuracy"]) for h in HORIZONS
+              if matched[h]["accuracy"] is not None]
+    best_horizon, best_accuracy = (max(ranked, key=lambda kv: kv[1])
+                                   if ranked else (None, None))
+
+    return {
+        "all":           _summarise(rows),
+        "matched":       matched,
+        "matched_n":     len(matched_rows),
+        "best_horizon":  best_horizon,
+        "best_accuracy": best_accuracy,
+    }
+
+
 def get_resolver_health() -> dict:
     """
     Diagnostic snapshot for the prediction resolver — used by the Track Record

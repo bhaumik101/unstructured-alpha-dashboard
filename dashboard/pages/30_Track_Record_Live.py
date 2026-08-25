@@ -42,6 +42,7 @@ from utils.prediction_log import (
     get_track_record,
     get_predictions_feed,
     get_signal_accuracy_stats,
+    get_horizon_comparison,
     get_resolver_health,
     resolve_pending,
 )
@@ -197,6 +198,72 @@ if _track_section == "Signal Track Record":
             "The prediction log is still building. Every time a high-confidence "
             "convergence event or score crossing is detected on Ticker Deep Dive, "
             "it's logged here automatically. Check back as more tickers are analyzed."
+        )
+
+    # ── Horizon comparison ────────────────────────────────────────────────────────
+    # Which holding period the model is actually best at. The hero shows 4w and
+    # 12w accuracy; the 8w column was computed but never displayed, so the three
+    # horizons could not be compared at all.
+    _hz = get_horizon_comparison()
+    _hz_matched_n = _hz["matched_n"]
+    _hz_best = _hz["best_horizon"]
+
+    st.html(section_label("Holding Period Comparison", color=PURPLE, dot=PURPLE))
+    st.caption(
+        "Every call is scored at three horizons. This compares them on the **same calls** — "
+        "only those old enough to have all three outcomes — because a 4-week figure drawn "
+        "from recent calls and a 12-week figure drawn from calls made three months earlier "
+        "measure different markets, not different holding periods."
+    )
+
+    _hz_cols = st.columns(3)
+    for _i, _h in enumerate(("4w", "8w", "12w")):
+        _m = _hz["matched"][_h]
+        _a = _hz["all"][_h]
+        _is_best = (_hz_best == _h and _hz_matched_n > 0)
+        with _hz_cols[_i]:
+            st.html(f"""
+            <div style="border:1px solid {'rgba(var(--ua-royal-rgb),0.45)' if _is_best
+                                          else 'rgba(var(--ua-onbg-rgb),0.10)'};
+                        border-radius:10px;padding:14px 16px;
+                        background:rgba(var(--ua-card-rgb),0.82);">
+              <div style="font-size:0.58rem;font-weight:700;color:var(--ua-ink-mut);
+                          text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px;">
+                {_h.replace('w', '-Week')}{' · best' if _is_best else ''}
+              </div>
+              <div style="font-size:1.9rem;font-weight:900;line-height:1;
+                          color:var(--ua-ink);">
+                {'—' if _m['accuracy'] is None else f"{_m['accuracy']:.0f}%"}
+              </div>
+              <div style="font-size:0.66rem;color:var(--ua-ink-mut);margin-top:5px;">
+                {'no matched calls yet' if _m['accuracy'] is None
+                 else f"direction correct · {_m['n']} matched call{'' if _m['n'] == 1 else 's'}"}
+              </div>
+              <div style="margin-top:9px;padding-top:8px;
+                          border-top:1px solid rgba(var(--ua-onbg-rgb),0.08);
+                          font-size:0.66rem;color:var(--ua-ink-soft);">
+                Median P&amp;L
+                <span style="float:right;font-variant-numeric:tabular-nums;">
+                  {'—' if _m['median_pnl'] is None else f"{_m['median_pnl']:+.1f}%"}</span>
+              </div>
+              <div style="font-size:0.66rem;color:var(--ua-ink-soft);margin-top:3px;">
+                All calls at {_h}
+                <span style="float:right;font-variant-numeric:tabular-nums;">
+                  {'—' if _a['accuracy'] is None else f"{_a['accuracy']:.0f}% · n={_a['n']}"}</span>
+              </div>
+            </div>
+            """)
+
+    if _hz_matched_n == 0:
+        st.caption(
+            "No call has all three outcomes yet — a call joins the matched sample twelve "
+            "weeks after it is logged. The per-horizon figures above will fill in as each "
+            "window closes; nothing here is estimated."
+        )
+    elif _hz_matched_n < 20:
+        st.caption(
+            f"Based on {_hz_matched_n} matched call{'' if _hz_matched_n == 1 else 's'} — "
+            "too few to separate skill from noise. Treat the ranking as provisional."
         )
 
     # ── Section 1: Prediction Log ─────────────────────────────────────────────────
