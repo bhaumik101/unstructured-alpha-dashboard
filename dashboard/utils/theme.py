@@ -185,6 +185,66 @@ def _remap_chart_colors(value):
     return value
 
 
+# ── Chart height scale ───────────────────────────────────────────────────────
+# 56 Plotly figures across the app were sized with 23 different literal heights.
+# Most of that spread is not a design decision, it is whatever number the author
+# reached for: 240, 250 and 260 all appear, as do 300, 320 and 350. The tiers
+# below are the peaks of that measured distribution -- 220 (x9), 280 (x6),
+# 320 (x6) and 380 (x6) already account for 27 of the 56 sites -- so adopting
+# them moves nothing that is already on a peak.
+#
+# This is a vocabulary, not a mandate. A chart with a real reason to be 680px
+# stays 680px; the point is that picking a size becomes a choice between named
+# tiers rather than a free-form integer, and CHART_HEIGHTS gives a test
+# something to check drift against.
+CHART_HEIGHTS: dict[str, int] = {
+    "spark":    110,   # inline sparkline, no axes
+    "xs":       140,   # single stat with a shape
+    "sm":       220,   # supporting chart beside copy
+    "md":       280,   # default: one chart in a column
+    "lg":       320,   # primary chart in a section
+    "xl":       380,   # full-width analysis
+    "xxl":      480,   # dense multi-series or subplot stack
+}
+
+
+def chart_height(tier: str) -> int:
+    """Height in px for a named tier. Unknown tiers fall back to `md`."""
+    return CHART_HEIGHTS.get(str(tier), CHART_HEIGHTS["md"])
+
+
+# Hover shown when a figure does not define its own. Plotly's default prints a
+# bare "(x, y)" tuple with full float precision, which is the single most
+# "untouched library defaults" thing left in the chart system. `x unified` puts
+# the shared x value in the header and lists each series beneath it, which is
+# the correct read for a time series and what every terminal does.
+
+
+def apply_default_hover(fig, *, value_format: str = ",.2f"):
+    """Give a figure a readable unified hover, in place.
+
+    Only fills a gap: a trace that already sets hovertemplate or hoverinfo is
+    left alone, so a chart with a hand-written hover keeps it.
+    """
+    if fig is None or not hasattr(fig, "update_layout"):
+        return fig
+    try:
+        fig.update_layout(hovermode="x unified")
+        for trace in getattr(fig, "data", ()):
+            if getattr(trace, "hovertemplate", None):
+                continue
+            if getattr(trace, "hoverinfo", None) not in (None, "all"):
+                continue
+            try:
+                trace.update(hovertemplate="%{y:" + value_format + "}<extra></extra>")
+            except (TypeError, ValueError):
+                # Trace families without a hovertemplate (Indicator, Table).
+                continue
+    except Exception:
+        return fig
+    return fig
+
+
 def normalize_plotly_figure(fig) -> object:
     """Apply the non-negotiable chart-system layer before a figure renders.
 
