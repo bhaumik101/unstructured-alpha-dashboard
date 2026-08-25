@@ -634,7 +634,19 @@ elif section == "Macro Indicators":
     MACRO_START = (datetime.now() - timedelta(days=3 * 365)).strftime("%Y-%m-%d")
 
 
-    def _light_chart(fig: go.Figure, height: int = 280, title: str = "") -> go.Figure:
+    def _light_chart(fig: go.Figure, height: int = None, title: str = "") -> go.Figure:
+        """Shared layout for this page's macro charts.
+
+        Every one of these is a dated series, and none of them defined a hover,
+        so hovering printed Plotly's default "(x, y)" tuple at full float
+        precision. apply_default_hover gives them a unified header with the
+        date and comma-formatted values, and leaves any chart that already has
+        its own hover untouched.
+        """
+        from utils.theme import apply_default_hover, chart_height as _h
+        if height is None:
+            height = _h("md")
+        apply_default_hover(fig)
         fig.update_layout(
             height=height,
             title=dict(text=title, font=dict(color="#7C3AED", size=13, family="Inter, sans-serif"), x=0),
