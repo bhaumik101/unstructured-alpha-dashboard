@@ -166,6 +166,122 @@ def compute_quick_correlation(
         return 0.0
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# EVIDENCE CORRECTIONS
+#
+# Two statistical problems in how correlation was turned into a weight, both
+# fixed here rather than at the call site so every consumer inherits them.
+#
+# 1. MULTIPLE COMPARISONS. Each ticker is tested against ~47 signals at an
+#    uncorrected alpha of 0.05. On pure noise that returns roughly two
+#    "significant" signals per ticker by construction. Bonferroni across 47 is
+#    valid but brutally conservative; Benjamini-Hochberg controls the expected
+#    proportion of false discoveries instead, which is the right error rate when
+#    the question is "which of these signals are worth weighting" rather than
+#    "is this one signal real".
+#
+# 2. SAMPLE SIZE WAS INVISIBLE. |r| entered the weight raw, so r = 0.30 measured
+#    over 8 observations counted exactly as much as r = 0.30 over 100. At n = 8
+#    a correlation must exceed about 0.71 to be distinguishable from zero; at
+#    n = 100, about 0.20. Weighting by the LOWER CONFIDENCE BOUND on |r| folds
+#    effect size, sample size and significance into one number: a correlation
+#    that cannot be told apart from noise shrinks to zero on its own, with no
+#    threshold to tune.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Two-sided normal critical value for a 95% interval.
+_Z_CRIT_95 = 1.959963984540054
+
+# A signal whose correlation with this ticker is unmeasurable still carries its
+# own reading, so it keeps a floor share rather than dropping out entirely.
+# Named so it is a decision rather than a literal buried in an expression.
+WEIGHT_FLOOR = 0.15
+
+
+def benjamini_hochberg(p_values, alpha: float = 0.05):
+    """Benjamini-Hochberg FDR correction over one family of tests.
+
+    Returns (rejected, q_values), both parallel to the input.
+
+    `rejected[i]` is True when hypothesis i is rejected controlling the false
+    discovery rate at `alpha`. `q_values[i]` is the smallest FDR at which that
+    hypothesis would be rejected -- the BH-adjusted p-value, enforced monotone
+    non-decreasing in rank as the procedure requires.
+
+    An empty family returns empty lists. NaN or None p-values are treated as
+    1.0 (never rejected) rather than dropped, so the returned lists stay
+    aligned with the caller's signal order.
+    """
+    import math as _math
+
+    ps = []
+    for value in (p_values or []):
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            v = 1.0
+        if _math.isnan(v):
+            v = 1.0
+        ps.append(min(max(v, 0.0), 1.0))
+
+    m = len(ps)
+    if m == 0:
+        return [], []
+
+    order = sorted(range(m), key=lambda i: ps[i])
+
+    # Adjusted p-values, computed from the largest rank downward so the
+    # running minimum enforces monotonicity in one pass.
+    q_sorted = [1.0] * m
+    running_min = 1.0
+    for rank in range(m, 0, -1):
+        idx = order[rank - 1]
+        candidate = min(1.0, ps[idx] * m / rank)
+        running_min = min(running_min, candidate)
+        q_sorted[rank - 1] = running_min
+
+    q_values = [1.0] * m
+    for rank, idx in enumerate(order):
+        q_values[idx] = q_sorted[rank]
+
+    rejected = [q_values[i] <= alpha for i in range(m)]
+    return rejected, q_values
+
+
+def correlation_lower_bound(r: float, n: int, z_crit: float = _Z_CRIT_95) -> float:
+    """Lower confidence bound on |r|, via the Fisher z transform.
+
+    z = arctanh(|r|) is approximately normal with standard error
+    1/sqrt(n - 3), so the bound is tanh(max(0, z - z_crit / sqrt(n - 3))).
+
+    Returns 0.0 whenever the interval reaches zero -- i.e. whenever the
+    correlation is not distinguishable from no correlation at this sample size.
+    That is the property that makes it usable as a weight directly: it needs no
+    significance threshold, because an unconvincing correlation shrinks itself.
+
+    n <= 3 has no defined standard error and returns 0.0.
+    """
+    import math as _math
+
+    try:
+        r = abs(float(r))
+        n = int(n)
+    except (TypeError, ValueError):
+        return 0.0
+    if n <= 3 or _math.isnan(r):
+        return 0.0
+
+    # arctanh diverges at 1; a sample correlation of exactly +/-1 is a
+    # degenerate fit, not infinite evidence.
+    r = min(r, 0.999999)
+    z = _math.atanh(r)
+    se = 1.0 / _math.sqrt(n - 3)
+    lower = z - z_crit * se
+    if lower <= 0:
+        return 0.0
+    return float(round(_math.tanh(lower), 4))
+
+
 def compute_quick_correlation_stats(
     signal: pd.Series,
     price: pd.Series,
@@ -187,21 +303,26 @@ def compute_quick_correlation_stats(
     try:
         aligned = align_series(signal, price, lag_weeks)
         if len(aligned) < 12:
-            return {"r": 0.0, "p_value": 1.0, "significant": False, "n": len(aligned)}
+            return {"r": 0.0, "p_value": 1.0, "significant": False, "n": len(aligned), "r_lower": 0.0}
         sr = aligned["signal"].pct_change().dropna()
         pr = aligned["price"].pct_change().dropna()
         cb = pd.DataFrame({"s": sr, "p": pr}).dropna()
         if len(cb) < 8:
-            return {"r": 0.0, "p_value": 1.0, "significant": False, "n": len(cb)}
+            return {"r": 0.0, "p_value": 1.0, "significant": False, "n": len(cb), "r_lower": 0.0}
         r, p = stats.pearsonr(cb["s"], cb["p"])
+        n = len(cb)
         return {
             "r":           float(round(r, 4)),
             "p_value":     float(round(p, 6)),
             "significant": bool(p < 0.05),
-            "n":           len(cb),
+            "n":           n,
+            # Lower 95% bound on |r|. This is what should be weighted on: it is
+            # zero whenever the correlation cannot be told apart from noise at
+            # this sample size, so it encodes effect size and evidence together.
+            "r_lower":     correlation_lower_bound(r, n),
         }
     except Exception:
-        return {"r": 0.0, "p_value": 1.0, "significant": False, "n": 0}
+        return {"r": 0.0, "p_value": 1.0, "significant": False, "n": 0, "r_lower": 0.0}
 
 
 def compute_backtested_pcs(
