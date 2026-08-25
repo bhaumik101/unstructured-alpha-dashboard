@@ -243,6 +243,15 @@ def backfill_missing_entry_prices(limit: int = 50) -> int:
     return filled
 
 
+# A prediction fills 4w/8w/12w independently but only becomes "resolved" once
+# all three have. Twelve weeks is therefore the earliest it can possibly leave
+# the pending pool -- any health metric that treats a shorter age as late is
+# measuring the design, not a fault.
+RESOLUTION_HORIZON_WEEKS = 12
+# The resolver runs Mon/Thu and needs the forward date to be a traded session.
+RESOLVER_GRACE_WEEKS = 1
+
+
 def resolve_pending(max_resolve: int = 20) -> int:
     """
     Check all pending predictions whose event_date is ≥4 weeks ago and
@@ -745,8 +754,11 @@ def get_resolver_health() -> dict:
     Returns:
         {
             "pending_total":          int,   -- all pending predictions
-            "overdue_pending":        int,   -- pending where event_date ≤ 4 weeks ago
-                                               (should have been resolved already)
+            "maturing_pending":       int,   -- pending, inside the 12-week
+                                               resolution horizon. Healthy: these
+                                               are working as designed.
+            "overdue_pending":        int,   -- pending past the FULL horizon plus
+                                               grace, i.e. genuinely stuck
             "last_resolved_date":     str | None,  -- event_date of most recently
                                                       resolved prediction (best proxy
                                                       for "when did resolver last run"
@@ -755,9 +767,32 @@ def get_resolver_health() -> dict:
                                                (quick proxy for resolver activity)
         }
 
+    WHY "OVERDUE" IS NOT MEASURED FROM FOUR WEEKS
+    ---------------------------------------------
+    It was, and the number it produced was meaningless. resolve_pending() flips
+    status to "resolved" only once ALL THREE of 4w/8w/12w have expired, so a
+    prediction cannot resolve until it is TWELVE weeks old. Counting pending
+    rows older than four weeks therefore counted every call in the eight-week
+    stretch where it is maturing exactly as designed.
+
+    In steady state that number is never zero, while the page told the operator
+    "overdue > 0 means ... typically a cron failure". It reported 56 stuck
+    predictions on a pipeline that was working, and the suggested remedy --
+    resolve them by hand -- would have meant inventing outcomes for windows that
+    have not closed yet.
+
+    The same mistake was already found and fixed once in get_track_record(),
+    which used to require full resolution before counting a realized 4-week
+    outcome. See tests/test_track_record_counts_partial_outcomes.py.
+
     Never raises. Returns zero-filled dict on any DB error.
     """
-    four_weeks_ago = (datetime.now(timezone.utc) - timedelta(weeks=4)).strftime("%Y-%m-%d")
+    # The longest window a prediction must fill before it can be called resolved.
+    horizon = datetime.now(timezone.utc) - timedelta(weeks=RESOLUTION_HORIZON_WEEKS)
+    # Plus slack: the cron runs Mon/Thu, and the 12-week forward date has to be a
+    # day the market actually traded before yfinance can price it.
+    overdue_cutoff = (horizon - timedelta(weeks=RESOLVER_GRACE_WEEKS)).strftime("%Y-%m-%d")
+    horizon_cutoff = horizon.strftime("%Y-%m-%d")
     seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
 
     try:
@@ -765,13 +800,14 @@ def get_resolver_health() -> dict:
             rows = conn.execute(select(db.prediction_log)).mappings().all()
         rows = [dict(r) for r in rows]
     except Exception:
-        return {"pending_total": 0, "overdue_pending": 0,
+        return {"pending_total": 0, "maturing_pending": 0, "overdue_pending": 0,
                 "last_resolved_date": None, "recently_resolved_7d": 0}
 
     pending  = [r for r in rows if r["status"] == "pending"]
     resolved = [r for r in rows if r["status"] == "resolved"]
 
-    overdue = [r for r in pending if r["event_date"] <= four_weeks_ago]
+    overdue  = [r for r in pending if r["event_date"] <= overdue_cutoff]
+    maturing = [r for r in pending if r["event_date"] > horizon_cutoff]
 
     last_resolved_date = None
     if resolved:
@@ -781,6 +817,7 @@ def get_resolver_health() -> dict:
 
     return {
         "pending_total":        len(pending),
+        "maturing_pending":     len(maturing),
         "overdue_pending":      len(overdue),
         "last_resolved_date":   last_resolved_date,
         "recently_resolved_7d": len(recently_resolved),

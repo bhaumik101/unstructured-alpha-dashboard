@@ -680,34 +680,39 @@ if _track_section == "Signal Track Record":
     try:
         _rh = get_resolver_health()
         _overdue   = _rh["overdue_pending"]
+        _maturing  = _rh.get("maturing_pending", 0)
         _last_date = _rh["last_resolved_date"]
         _recent7d  = _rh["recently_resolved_7d"]
         _overdue_label = (
-            " None overdue" if _overdue == 0
-            else f"{_overdue} overdue"
+            "None stuck" if _overdue == 0
+            else f"{_overdue} stuck"
         )
         _last_label = _last_date if _last_date else "—"
         with st.expander("Resolver pipeline health"):
             st.caption(
-                "The nightly cron (`cron/resolve_predictions.py`) runs at 02:00 UTC to fill in "
-                "forward returns for predictions whose 4w/8w/12w windows have expired. "
-                "This page also runs a lightweight on-demand pass (`resolve_pending(max_resolve=10)`) "
-                "each time it loads, as a fallback. The table below shows current pipeline state."
+                "The resolver cron (`cron/resolve_predictions.py`) runs 02:00 UTC on Mondays and "
+                "Thursdays, filling in forward returns as each 4w/8w/12w window expires. A call "
+                "only leaves the pending pool once **all three** windows have closed, so twelve "
+                "weeks is the earliest anything can resolve. This page also runs a lightweight "
+                "on-demand pass each time it loads, as a fallback."
             )
-            _h1, _h2, _h3 = st.columns(3)
+            _h1, _h2, _h3, _h4 = st.columns(4)
             with _h1:
                 st.metric("Pending total", _rh["pending_total"])
             with _h2:
-                st.metric("Overdue (≥4w old, still pending)", _overdue_label)
+                st.metric("Maturing (<12w)", _maturing)
             with _h3:
+                st.metric("Stuck (>13w, unresolved)", _overdue_label)
+            with _h4:
                 st.metric("Resolved in last 7 days", _recent7d)
             st.caption(
                 f"Most recent resolved prediction event date: **{_last_label}**. "
                 "Note: 'event date' is when the prediction was logged, not when it was resolved — "
                 "there's no separate `resolved_at` timestamp in the current schema. "
-                "Overdue = 0 means the resolver is keeping up; overdue > 0 means some predictions "
-                "passed their 4-week window without being resolved (typically a cron failure or "
-                "a ticker with no yfinance data)."
+                "**Maturing is not a backlog** — those calls are inside their 12-week window and "
+                "resolving them early would mean inventing outcomes for windows that have not "
+                "closed. Only **Stuck** indicates a problem: a call past the full horizon plus a "
+                "week of slack, which usually means a ticker yfinance returns no data for."
             )
     except Exception:
         pass

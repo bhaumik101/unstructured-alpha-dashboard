@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 # cron/resolve_predictions.py
-# Unstructured Alpha — Nightly Prediction Auto-Resolution Cron
+# Unstructured Alpha — Prediction Auto-Resolution Cron
 #
-# Designed to run as a Render Cron Job at 02:00 UTC daily.
+# Runs as a Render Cron Job at 02:00 UTC on Mondays and Thursdays
+# (render.yaml: "0 2 * * 1,4"). This header said "daily" while the blueprint
+# said twice a week, which matters: the resolver's grace period is sized to the
+# real cadence, not the documented one.
+#
 # Finds pending predictions whose forward windows (4w/8w/12w) have expired,
-# fetches realized prices via yfinance, and marks them correct/incorrect.
+# fetches realized prices via yfinance, and marks them correct/incorrect. A
+# prediction only leaves the pending pool once ALL THREE windows have closed,
+# so nothing can resolve before it is twelve weeks old -- see
+# utils.prediction_log.RESOLUTION_HORIZON_WEEKS.
 #
 # Run manually (from the dashboard/ directory):
 #   python -m cron.resolve_predictions
