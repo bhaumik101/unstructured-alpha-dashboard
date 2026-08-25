@@ -43,6 +43,7 @@ from utils.prediction_log import (
     get_predictions_feed,
     get_signal_accuracy_stats,
     get_horizon_comparison,
+    normalize_direction as _norm_dir,
     get_resolver_health,
     resolve_pending,
 )
@@ -91,12 +92,16 @@ if _track_section == "Signal Track Record":
     }
 
 
+    # Rows written before the direction fix carry "bullish"/"bearish". Comparing
+    # the raw value with == rendered every one of them as BEAR -- which is how
+    # six bullish uranium calls appeared as bear calls on this page. Normalise
+    # here as well as in the feed, so no display path can reintroduce it.
     def _dir_color(direction: str) -> str:
-        return BULL_COLOR if direction == "bull" else BEAR_COLOR
+        return BULL_COLOR if _norm_dir(direction) == "bull" else BEAR_COLOR
 
 
     def _dir_sym(direction: str) -> str:
-        return "▲ BULL" if direction == "bull" else "▼ BEAR"
+        return "▲ BULL" if _norm_dir(direction) == "bull" else "▼ BEAR"
 
 
     def _hit_html(correct: int | None, ret: float | None, label: str) -> str:

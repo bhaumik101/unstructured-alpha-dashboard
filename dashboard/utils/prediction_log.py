@@ -652,12 +652,24 @@ def get_predictions_feed(
             .limit(limit)
         )
         if direction_filter != "all":
-            q = q.where(prediction_log.c.direction == direction_filter)
+            # Match legacy "bullish"/"bearish" rows too. Filtering on the
+            # canonical value alone made a bull filter silently drop every row
+            # written by the scheduled convergence logger.
+            wanted = normalize_direction(direction_filter) or direction_filter
+            aliases = [d for d in (_BULL_LABELS if wanted == "bull" else _BEAR_LABELS)]
+            q = q.where(prediction_log.c.direction.in_(aliases))
         if status_filter != "all":
             q = q.where(prediction_log.c.status == status_filter)
         with db.engine.begin() as conn:
             rows = conn.execute(q).mappings().all()
-        return [dict(r) for r in rows]
+        # Normalise on the way out so every consumer -- cards, tables, exports --
+        # sees the canonical value even before the stored rows are repaired.
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["direction"] = normalize_direction(d.get("direction")) or d.get("direction")
+            out.append(d)
+        return out
     except Exception:
         return []
 

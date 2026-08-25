@@ -165,3 +165,53 @@ def test_the_resolver_cron_repairs_before_it_resolves():
         "the repair must run before resolution, or mislabelled rows are scored "
         "incorrect before they are fixed"
     )
+
+
+# ── the display path, which is what the user actually sees ───────────────────
+# The first fix normalised resolve_pending and _signed_return but NOT the page's
+# _dir_sym/_dir_color, so a "bullish" row still rendered as BEAR on the live
+# Signal Call Log. Fixing the readers that score a call while leaving the reader
+# that DISPLAYS it is the worst split: the number is right and the label is not.
+
+def test_the_feed_normalises_direction_on_the_way_out(monkeypatch):
+    rows = [
+        {"id": 1, "direction": "bullish", "status": "pending", "ticker": "URA"},
+        {"id": 2, "direction": "bear", "status": "pending", "ticker": "HD"},
+    ]
+
+    class _Res:
+        def mappings(self): return self
+        def all(self): return rows
+    class _Conn:
+        def execute(self, *a, **k): return _Res()
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    class _Engine:
+        def begin(self): return _Conn()
+
+    monkeypatch.setattr(pl.db, "engine", _Engine())
+    feed = pl.get_predictions_feed()
+    assert [r["direction"] for r in feed] == ["bull", "bear"], (
+        "the feed handed a raw 'bullish' to the page, which renders anything "
+        "that is not exactly 'bull' as BEAR"
+    )
+
+
+def test_the_page_normalises_before_choosing_a_label():
+    """A source guard: the display helpers must not compare the raw value."""
+    page = (_ROOT / "pages" / "30_Track_Record_Live.py").read_text(encoding="utf-8")
+    assert 'return "▲ BULL" if direction == "bull" else "▼ BEAR"' not in page, (
+        "_dir_sym is comparing the raw direction again; legacy 'bullish' rows "
+        "will render as BEAR"
+    )
+    assert "_norm_dir(direction)" in page
+
+
+def test_a_bull_filter_still_matches_legacy_rows():
+    """Filtering on the canonical value alone dropped every legacy bull row."""
+    src = (_ROOT / "utils" / "prediction_log.py").read_text(encoding="utf-8")
+    feed = src[src.index("def get_predictions_feed("):]
+    assert "_BULL_LABELS" in feed and "in_(aliases)" in feed, (
+        "the direction filter matches only the canonical label, so a 'Bull' "
+        "filter hides every row written before the repair"
+    )
