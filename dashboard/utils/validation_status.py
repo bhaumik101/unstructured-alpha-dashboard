@@ -67,7 +67,8 @@ def backtest_all_macro_signals(_v: int = 2) -> Dict[str, dict]:
             )
         except Exception:
             out[sig_id] = {"pcs": None, "backtested": False, "n_tested": 0,
-                            "significance_rate": 0.0, "avg_abs_r": 0.0, "details": []}
+                            "significance_rate": 0.0, "avg_abs_r": 0.0,
+                            "evidence_rate": 0.0, "avg_r_lower": 0.0, "details": []}
     return out
 
 

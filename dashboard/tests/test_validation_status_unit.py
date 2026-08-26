@@ -139,7 +139,8 @@ def test_backtest_result_shape_is_consistent_on_failure(monkeypatch):
     results = backtest_all_macro_signals()
 
     first = next(iter(results.values()))
-    expected_keys = {"pcs", "backtested", "n_tested", "significance_rate", "avg_abs_r", "details"}
+    expected_keys = {"pcs", "backtested", "n_tested", "significance_rate", "avg_abs_r",
+                     "evidence_rate", "avg_r_lower", "details"}
     assert set(first.keys()) == expected_keys
 
 
