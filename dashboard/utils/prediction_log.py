@@ -307,15 +307,32 @@ def repair_direction_labels(limit: int = 500) -> int:
     to normalise is not silently broken again.
 
     Safe to run repeatedly: rows already canonical are skipped.
+
+    Deliberately SILENT on success -- the caller reports the count, and it must
+    report it unconditionally. A repair that fixed nothing and a repair that
+    never ran used to produce identical logs (both printed nothing), which made
+    "check the resolver log" an unfalsifiable way to verify this ever executed.
+
+    `limit` caps how many rows are examined, so the selection is ordered by id
+    to make it deterministic, and hitting the cap is reported loudly: rows past
+    it are NOT examined and would stay mislabelled without any sign of it.
     """
     try:
         with db.engine.begin() as conn:
             rows = conn.execute(
-                select(prediction_log.c.id, prediction_log.c.direction).limit(limit)
+                select(prediction_log.c.id, prediction_log.c.direction)
+                .order_by(prediction_log.c.id)
+                .limit(limit)
             ).mappings().all()
     except Exception as exc:
         print(f"[predict] could not read direction labels: {exc}", flush=True)
         return 0
+
+    if len(rows) >= limit:
+        print(
+            f"[predict] WARNING: direction repair examined only the first {limit} "
+            f"row(s) by id; any beyond the cap were not checked", flush=True,
+        )
 
     fixed = 0
     for row in rows:
@@ -333,8 +350,6 @@ def repair_direction_labels(limit: int = 500) -> int:
             fixed += 1
         except Exception as exc:
             print(f"[predict] could not repair id={row['id']}: {exc}", flush=True)
-    if fixed:
-        print(f"[predict] normalised {fixed} direction label(s)", flush=True)
     return fixed
 
 

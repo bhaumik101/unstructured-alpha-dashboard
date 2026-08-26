@@ -41,9 +41,14 @@ def main() -> None:
     # through, and resolve_pending scores direction with ==, so those rows would
     # be marked incorrect no matter what the price did. Runs first so the repair
     # lands before the outcomes it would corrupt. No-op once the table is clean.
+    #
+    # Logged UNCONDITIONALLY, including the zero. This used to print only when
+    # repaired was truthy, which meant a clean table and a repair that never ran
+    # were indistinguishable in the log -- both silent. That made the one
+    # available way to verify this step useless, since the expected output of a
+    # healthy run and of a broken one were the same empty string.
     repaired = repair_direction_labels()
-    if repaired:
-        print(f"[resolve] repaired {repaired} direction label(s)", flush=True)
+    print(f"[resolve] repaired {repaired} direction label(s)", flush=True)
 
     # Resolve up to 200 predictions per run — generous cap for a nightly cron.
     # In steady state this processes only a handful of rows (one convergence
