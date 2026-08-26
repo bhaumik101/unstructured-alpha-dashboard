@@ -215,3 +215,70 @@ def test_a_bull_filter_still_matches_legacy_rows():
         "the direction filter matches only the canonical label, so a 'Bull' "
         "filter hides every row written before the repair"
     )
+
+
+# ── the repair has to be observable, or "check the log" verifies nothing ─────
+# 2026-08-26. repair_direction_labels() printed only when it changed a row, and
+# so did its caller. A clean table and a repair that never executed therefore
+# produced byte-identical logs: silence. #209 shipped 2026-08-25 12:58 UTC, after
+# that week's Monday 02:00 UTC resolver run, so the first scheduled run to carry
+# the repair had not happened yet -- and would have been unverifiable when it did.
+
+def test_the_resolver_reports_the_repair_count_even_when_it_is_zero():
+    source = (_ROOT / "cron" / "resolve_predictions.py").read_text(encoding="utf-8")
+    call = source.index("repaired = repair_direction_labels()")
+    tail = source[call:call + 400]
+    assert 'print(f"[resolve] repaired {repaired}' in tail, (
+        "the resolver must report the repair count unconditionally"
+    )
+    guarded = tail.index("print(") > tail.index("if repaired:") if "if repaired:" in tail else False
+    assert not guarded, (
+        "the repair count print must not sit behind `if repaired:` -- a zero has "
+        "to be distinguishable from the step never running"
+    )
+
+
+def _fake_engine(monkeypatch, rows, updated):
+    class _Res:
+        def mappings(self): return self
+        def all(self): return rows
+    class _Conn:
+        def execute(self, stmt, *a, **k):
+            if "Update" in type(stmt).__name__:
+                updated.append(stmt.compile().params.get("direction"))
+                return None
+            return _Res()
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    class _Engine:
+        def begin(self): return _Conn()
+    monkeypatch.setattr(pl.db, "engine", _Engine())
+
+
+def test_repair_warns_loudly_when_the_row_cap_truncates_the_scan(monkeypatch, capsys):
+    """Rows past `limit` are never examined -- that must not happen silently."""
+    rows = [{"id": i, "direction": "bull"} for i in range(5)]
+    _fake_engine(monkeypatch, rows, [])
+    pl.repair_direction_labels(limit=5)
+    out = capsys.readouterr().out
+    assert "WARNING" in out and "not checked" in out, (
+        f"hitting the cap must warn that rows were skipped; got {out!r}"
+    )
+
+
+def test_repair_is_quiet_when_the_scan_is_complete(monkeypatch, capsys):
+    rows = [{"id": i, "direction": "bull"} for i in range(3)]
+    _fake_engine(monkeypatch, rows, [])
+    assert pl.repair_direction_labels(limit=500) == 0
+    assert capsys.readouterr().out == "", "a complete, clean scan should not warn"
+
+
+def test_repair_scans_in_a_deterministic_order():
+    """Without ORDER BY, which rows the cap keeps is up to the database."""
+    source = (_ROOT / "utils" / "prediction_log.py").read_text(encoding="utf-8")
+    body = source[source.index("def repair_direction_labels"):]
+    body = body[:body.index("def resolve_pending")]
+    assert "order_by" in body, (
+        "the capped select must be ordered, or the rows it examines are "
+        "nondeterministic and a mislabelled row can hide behind the cap"
+    )
