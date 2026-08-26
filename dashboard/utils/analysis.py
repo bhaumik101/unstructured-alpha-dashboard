@@ -339,17 +339,66 @@ def compute_backtested_pcs(
     histories (passed in by the caller — callers should pass a representative
     sample, e.g. up to 5, not just the first one: a signal that correlates
     well with one ticker and poorly with the rest should NOT score as if it
-    were broadly validated). Derives PCS from:
-      - significance_rate : fraction of tested tickers where p < 0.05
-      - avg_abs_r          : average |correlation| across tested tickers
-      PCS = clip(1 + significance_rate*5 + avg_abs_r*4, 1, 10), rounded.
+    were broadly validated).
+
+    WHY THIS IS NOT WEIGHTED ON |r| AND RAW SIGNIFICANCE ANY MORE
+    -------------------------------------------------------------
+    Until 2026-08-26 the formula was
+
+        PCS = clip(1 + significance_rate*5 + avg_abs_r*4, 1, 10)
+
+    where significance_rate counted tickers with an UNCORRECTED p < 0.05 and
+    avg_abs_r averaged raw |r|. Both inputs are the exact quantities PR #211
+    removed from live weighting, for the same reason they are wrong here:
+    raw |r| does not distinguish r=0.30 over 8 observations from r=0.30 over
+    100, and testing a signal against 5 tickers at an uncorrected alpha=0.05
+    is a 5-test family with no correction applied.
+
+    Measured, not asserted -- scripts/measure_pcs_calibration.py, 3000 trials
+    per row, 101 weekly observations, 5 tickers per signal:
+
+        true rho    OLD mean PCS / P(PCS>=3)    NEW mean PCS / P(PCS>=3)
+          0.00          1.32 /   5.7%               1.06 /   0.4%
+          0.10          2.26 /  38.2%               1.37 /   7.7%
+          0.19          4.35 /  92.4%               2.85 /  56.2%
+          0.50          8.00 / 100.0%               7.23 / 100.0%
+
+    rho=0.19 is the STRONGEST correlation PR #211 found anywhere across 47
+    signals x 3 tickers, so the middle rows are the regime this product
+    actually operates in -- and there the old formula handed out a mean PCS
+    of 4.35 for a relationship that does not survive its own confidence
+    interval. Because weight is proportional to PCS, the old formula's null
+    p95 of 3 against a p5 of 1 is a 3.0x weight spread manufactured purely
+    from noise, WIDER than the 1.8x spread the static config produces on
+    purpose (its PCS values span 5..9). Wiring the old formula into live
+    weighting would therefore have made the score noisier, not more measured.
+
+    The new formula is calibrated, not merely less sensitive: it reads lower
+    at every rho, but the drop is steep where evidence is weak (P(PCS>=3)
+    38.2% -> 7.7% at rho=0.10) and absent where it is strong (100% -> 100% at
+    rho=0.50). It is NOT immune -- 56% of rho=0.19 signals still reach PCS>=3
+    -- it just no longer becomes confident on noise alone.
+
+    The formula now uses the evidence-bearing forms of both inputs:
+      - evidence_rate : fraction of tested tickers surviving Benjamini-Hochberg
+                        correction across the ticker family (one family: this
+                        signal against each of its relevant tickers)
+      - avg_r_lower   : average LOWER 95% confidence bound on |r| (Fisher z),
+                        which is 0 whenever the correlation cannot be told
+                        apart from zero at that ticker's sample size
+      PCS = clip(1 + evidence_rate*5 + avg_r_lower*4, 1, 10), rounded.
+
+    `significance_rate` and `avg_abs_r` are still returned, unchanged, as the
+    honest raw per-test read -- they are simply no longer what PCS is built
+    from.
 
     `tickers`, if provided, must be parallel to price_series_list — each
     result in "details" is tagged with its ticker symbol so callers can show
     exactly which tickers passed/failed, not just an aggregate number.
 
     Returns {"pcs": int|None, "backtested": bool, "n_tested": int,
-             "significance_rate": float, "avg_abs_r": float, "details": [...]}.
+             "significance_rate": float, "avg_abs_r": float,
+             "evidence_rate": float, "avg_r_lower": float, "details": [...]}.
     pcs is None and backtested=False when there isn't enough overlapping data
     to run the test at all — callers should fall back to a static default in
     that case, and label it clearly as unvalidated rather than presenting it
@@ -367,21 +416,32 @@ def compute_backtested_pcs(
     if not results:
         return {
             "pcs": None, "backtested": False, "n_tested": 0,
-            "significance_rate": 0.0, "avg_abs_r": 0.0, "details": [],
+            "significance_rate": 0.0, "avg_abs_r": 0.0,
+            "evidence_rate": 0.0, "avg_r_lower": 0.0, "details": [],
         }
 
-    sig_rate  = sum(1 for r in results if r["significant"]) / len(results)
-    avg_abs_r = sum(abs(r["r"]) for r in results) / len(results)
-    pcs_raw   = 1 + sig_rate * 5 + avg_abs_r * 4
-    pcs       = int(round(max(1.0, min(10.0, pcs_raw))))
+    # This signal against each of its relevant tickers is ONE family of tests.
+    # Correct across it once, exactly as utils/ticker_score.py corrects across
+    # the 47-signal family it tests against a single ticker.
+    rejected, q_values = benjamini_hochberg([r["p_value"] for r in results], alpha=0.05)
+    for position, stat in enumerate(results):
+        stat["q_value"] = round(q_values[position], 6) if q_values else 1.0
+        stat["significant_fdr"] = bool(rejected[position]) if rejected else False
+
+    sig_rate    = sum(1 for r in results if r["significant"]) / len(results)
+    avg_abs_r   = sum(abs(r["r"]) for r in results) / len(results)
+    ev_rate     = sum(1 for r in results if r["significant_fdr"]) / len(results)
+    avg_r_lower = sum(r.get("r_lower", 0.0) for r in results) / len(results)
+
+    pcs_raw = 1 + ev_rate * 5 + avg_r_lower * 4
+    pcs     = int(round(max(1.0, min(10.0, pcs_raw))))
 
     return {
         "pcs": pcs, "backtested": True, "n_tested": len(results),
         "significance_rate": round(sig_rate, 2), "avg_abs_r": round(avg_abs_r, 3),
+        "evidence_rate": round(ev_rate, 2), "avg_r_lower": round(avg_r_lower, 4),
         "details": results,
     }
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # BASIC TECHNICAL INDICATORS (Ticker Deep Dive, 2026-06-22 per explicit
 # user request for "volume, RSI and other basic indicators")

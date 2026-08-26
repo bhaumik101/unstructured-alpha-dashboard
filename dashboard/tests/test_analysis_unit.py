@@ -346,3 +346,108 @@ def test_backtested_pcs_in_valid_range():
     result = compute_backtested_pcs(signal, prices)
     if result["backtested"]:
         assert 1 <= result["pcs"] <= 10
+
+
+# ── compute_backtested_pcs: PCS is built on evidence, not raw |r| ────────────
+# 2026-08-26. PCS used to be 1 + significance_rate*5 + avg_abs_r*4, where
+# significance_rate counted UNCORRECTED p < 0.05 across the ticker family and
+# avg_abs_r averaged raw |r|. PR #211 had already removed both quantities from
+# live weighting for being unsound; these tests lock in that PCS no longer
+# depends on either. Each one is written so it FAILS against the old formula.
+
+def _scripted_stats(monkeypatch, per_ticker):
+    """Drive compute_backtested_pcs with exact per-ticker correlation results.
+
+    r_lower is computed by the real correlation_lower_bound(), so these tests
+    exercise genuine Fisher-z behaviour rather than hand-waved constants.
+    """
+    from utils.analysis import correlation_lower_bound
+
+    calls = iter(per_ticker)
+    def fake(signal, price, lag_weeks=0):
+        r, p, n = next(calls)
+        return {"r": float(r), "p_value": float(p), "significant": bool(p < 0.05),
+                "n": int(n), "r_lower": correlation_lower_bound(r, n)}
+    monkeypatch.setattr("utils.analysis.compute_quick_correlation_stats", fake)
+
+
+def _old_formula(result):
+    """PCS exactly as it was computed before this change."""
+    raw = 1 + result["significance_rate"] * 5 + result["avg_abs_r"] * 4
+    return int(round(max(1.0, min(10.0, raw))))
+
+
+def _dummy_inputs(k):
+    dates = pd.date_range("2024-01-01", periods=120, freq="W")
+    sig = pd.Series(np.arange(120, dtype=float), index=dates)
+    return sig, [pd.Series(np.arange(120, dtype=float), index=dates) for _ in range(k)]
+
+
+def test_backtested_pcs_ignores_a_single_uncorrected_significant_ticker(monkeypatch):
+    """
+    One ticker at p=0.03 out of five is what an uncorrected alpha=0.05 family
+    produces by chance. BH's rank-1 threshold here is 0.05/5 = 0.01, so it
+    survives nothing -- and PCS must not move for it.
+    """
+    _scripted_stats(monkeypatch, [(0.25, 0.03, 101)] + [(0.02, 0.80, 101)] * 4)
+    sig, prices = _dummy_inputs(5)
+    result = compute_backtested_pcs(sig, prices)
+
+    assert result["evidence_rate"] == 0.0, "BH must reject nothing at p=0.03 of 5 tests"
+    assert result["significance_rate"] == 0.2, "the raw read is still reported honestly"
+    assert result["pcs"] == 1
+    assert result["pcs"] < _old_formula(result), (
+        "the old formula inflated PCS on an uncorrected single hit; this test "
+        "exists to fail if that behaviour ever comes back"
+    )
+
+
+def test_backtested_pcs_separates_same_effect_size_by_sample_size(monkeypatch):
+    """
+    r=0.30 over 20 observations and r=0.30 over 400 are the SAME |r| and must
+    not score the same. The old formula's avg_abs_r term could not tell them
+    apart at all -- this asserts avg_abs_r is identical while PCS is not.
+    """
+    sig, prices = _dummy_inputs(5)
+
+    _scripted_stats(monkeypatch, [(0.30, 0.199, 20)] * 5)
+    thin = compute_backtested_pcs(sig, prices)
+
+    _scripted_stats(monkeypatch, [(0.30, 1e-9, 400)] * 5)
+    thick = compute_backtested_pcs(sig, prices)
+
+    assert thin["avg_abs_r"] == thick["avg_abs_r"] == 0.3, "effect size is identical by construction"
+    assert thin["pcs"] < thick["pcs"], "more evidence for the same effect must score higher"
+    assert thin["pcs"] == 1, "r=0.30 over 20 obs cannot be told apart from zero"
+    assert thick["evidence_rate"] == 1.0 and thin["evidence_rate"] == 0.0
+
+
+def test_backtested_pcs_sits_at_the_floor_under_the_null(monkeypatch):
+    """A signal with no relationship to any of its tickers scores the minimum."""
+    _scripted_stats(monkeypatch, [(0.03, 0.76, 101), (-0.05, 0.62, 101), (0.01, 0.92, 101),
+                                  (0.04, 0.69, 101), (-0.02, 0.84, 101)])
+    sig, prices = _dummy_inputs(5)
+    result = compute_backtested_pcs(sig, prices)
+    assert result["pcs"] == 1
+    assert result["avg_r_lower"] == 0.0
+    assert result["backtested"] is True and result["n_tested"] == 5
+
+
+def test_backtested_pcs_still_rewards_a_genuinely_predictive_signal(monkeypatch):
+    """The floor is not the only outcome -- real, well-evidenced signals score high."""
+    _scripted_stats(monkeypatch, [(0.60, 1e-11, 101)] * 5)
+    sig, prices = _dummy_inputs(5)
+    result = compute_backtested_pcs(sig, prices)
+    assert result["evidence_rate"] == 1.0
+    # Pinned exactly, so the 1 + rate*5 + bound*4 coefficients cannot drift
+    # unnoticed: r_lower(0.60, 101) = 0.4583 -> 1 + 5 + 1.833 = 7.83 -> 8.
+    assert round(result["avg_r_lower"], 4) == 0.4583
+    assert result["pcs"] == 8, f"a real relationship should score high, got {result['pcs']}"
+
+
+def test_backtested_pcs_reports_evidence_keys_on_the_no_data_path():
+    """The insufficient-data fallback must carry every key the success path does."""
+    empty = compute_backtested_pcs(pd.Series(dtype=float), [pd.Series(dtype=float)])
+    assert empty["evidence_rate"] == 0.0
+    assert empty["avg_r_lower"] == 0.0
+    assert empty["pcs"] is None and empty["backtested"] is False
