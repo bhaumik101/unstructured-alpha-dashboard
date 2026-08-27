@@ -229,7 +229,8 @@ def _compute_full_ticker_score(
                 else:
                     stats_by_sig[sig_id] = {
                         "r": 0.0, "p_value": 1.0, "significant": False,
-                        "n": 0, "r_lower": 0.0,
+                        "n": 0, "r_lower": 0.0, "min_detectable_r": 1.0,
+                        "underpowered": True,
                     }
 
             ordered = list(relevant_sig_ids)
@@ -258,6 +259,12 @@ def _compute_full_ticker_score(
                     "q_value": round(q_values[position], 6) if q_values else 1.0,
                     "significant_fdr": bool(rejected[position]) if rejected else False,
                     "n": stat["n"],
+                    # What this sample size COULD have detected, and whether it
+                    # could have detected anything believable at all. Surfaced
+                    # so an underpowered signal reads as underpowered instead of
+                    # as a signal that was tested and found nothing.
+                    "min_detectable_r": stat.get("min_detectable_r", 1.0),
+                    "underpowered": bool(stat.get("underpowered", True)),
                 }
         else:
             for sig_id in relevant_sig_ids:
@@ -267,6 +274,7 @@ def _compute_full_ticker_score(
                     "r": 0.0, "r_lower": 0.0, "weight": round(WEIGHT_FLOOR * (pcs / 10.0), 4),
                     "p_value": 1.0, "significant": False, "q_value": 1.0,
                     "significant_fdr": False, "n": 0,
+                    "min_detectable_r": 1.0, "underpowered": True,
                 }
 
         corr_weights_flat = {sid: ci["weight"] for sid, ci in corr_info.items()}
