@@ -165,6 +165,7 @@ elif _section == "Validation":
                 "Lead (wks)": row["lag_weeks"] if row["lag_weeks"] is not None else "—",
                 "Confidence": row["confidence"],
                 "Validation status": row["validation_status"],
+                "Forward evidence": row["forward_evidence"],
                 "Known limitation": row["known_limitation"],
             }
             for row in _records

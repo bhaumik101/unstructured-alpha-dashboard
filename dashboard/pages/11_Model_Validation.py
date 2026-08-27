@@ -93,6 +93,7 @@ _df = pd.DataFrame([{
     "Lead (wks)": r["lag_weeks"] if r["lag_weeks"] is not None else "—",
     "Confidence": r["confidence"],
     "Validation status": r["validation_status"],
+    "Forward evidence": r["forward_evidence"],
     "Known limitation": r["known_limitation"],
     "Experimental": "Yes" if r["experimental"] else "—",
 } for r in records])
@@ -102,6 +103,12 @@ st.dataframe(
     column_config={
         "Signal": st.column_config.TextColumn("Signal", width="medium"),
         "Validation status": st.column_config.TextColumn("Validation status", width="large"),
+        "Forward evidence": st.column_config.TextColumn(
+            "Forward evidence", width="large",
+            help="Beta-adjusted correlation against forward 4/8/12-week returns, "
+                 "Benjamini-Hochberg corrected across the three horizons. Shows the "
+                 "effective sample size after correcting for overlapping windows.",
+        ),
         "Known limitation": st.column_config.TextColumn("Known limitation", width="large"),
     },
 )

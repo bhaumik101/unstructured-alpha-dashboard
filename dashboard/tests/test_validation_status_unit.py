@@ -212,7 +212,10 @@ def test_validate_all_macro_signals_returns_entry_for_every_signal(monkeypatch):
     results = validate_all_macro_signals()
     assert set(results.keys()) == set(_FAKE_SIGNALS.keys())
     for sig_id, r in results.items():
-        assert set(r.keys()) == {"validation", "pooled", "reliability"}
+        # "forward" joined the contract with the beta-adjusted forward-return
+        # scan. Every branch carries it, including the no-relevant-tickers
+        # early return, so callers never have to guess whether it is there.
+        assert set(r.keys()) == {"validation", "pooled", "reliability", "forward"}
 
 
 def test_validate_all_macro_signals_handles_no_relevant_tickers_gracefully():
@@ -269,3 +272,71 @@ def test_validate_all_macro_signals_reliability_score_has_full_component_breakdo
     assert set(components.keys()) == {
         "corrected_significance", "out_of_sample_validation", "sample_size", "pooled_confirmation",
     }
+
+
+# ── the forward scan must actually run, not silently degrade to None ─────────
+# The scan is wrapped in try/except for production robustness, which means a
+# programming error inside it would leave `forward` empty while every
+# key-shape test in this file still passed. This asserts the feature produces
+# real output end to end, and that a genuine failure is reported as a failure
+# rather than as "not run".
+
+def _forward_universe(monkeypatch):
+    import numpy as np
+    n = 520
+    idx = pd.date_range("2016-01-01", periods=n, freq="W")
+    rng = np.random.default_rng(3)
+    steps = np.zeros(n)
+    for i in range(1, n):
+        steps[i] = 0.6 * steps[i - 1] + rng.normal(0, 0.02)
+    signal = pd.Series(np.exp(np.cumsum(steps)), index=idx)
+    mkt = rng.normal(0, 0.02, n)
+    drive = pd.Series(steps).rolling(4).mean().shift(1).fillna(0.0).to_numpy()
+    price = pd.Series(np.exp(np.cumsum(1.1 * mkt + 0.5 * drive + rng.normal(0, 0.015, n))), index=idx)
+    spy = pd.Series(np.exp(np.cumsum(mkt)), index=idx)
+
+    fake = {"fake": {"name": "Fake", "relevant_tickers": ["AAA", "BBB"],
+                     "lag_weeks": 0, "tier": 1, "pcs": 8}}
+    monkeypatch.setattr("utils.validation_status.SIGNALS", fake)
+    monkeypatch.setattr("utils.validation_status.fetch_signal_series",
+                        lambda cfg, s, e, point_in_time=False: signal)
+    monkeypatch.setattr("utils.validation_status.fetch_price",
+                        lambda t, s, e: spy if t == "SPY" else price)
+    validate_all_macro_signals.clear()
+    import utils.validation_status as vs
+    vs._forward_benchmark.clear()
+
+
+def test_the_forward_scan_actually_produces_a_beta_adjusted_result(monkeypatch):
+    _forward_universe(monkeypatch)
+    forward = validate_all_macro_signals()["fake"]["forward"]
+
+    assert forward is not None and not forward.get("error"), (
+        f"the forward scan degraded instead of running: {forward}"
+    )
+    assert forward["benchmark"] == "SPY"
+    assert len(forward["scans"]) == 3, "one scan per 4/8/12w horizon"
+    assert {sc["horizon_weeks"] for sc in forward["scans"]} == {4, 8, 12}
+    for sc in forward["scans"]:
+        assert sc["beta_adjusted"] is True, "the market must be regressed out"
+        assert "q_value" in sc and "survives_fdr" in sc, "BH must be applied"
+        assert sc["n_effective"] <= sc["n"]
+    assert forward["any_survives"] is True, (
+        "a signal genuinely driving forward idiosyncratic returns must be detected"
+    )
+    assert forward["best"] is not None and abs(forward["best"]["r"]) > 0.2
+
+
+def test_a_crashing_forward_scan_is_reported_not_hidden(monkeypatch):
+    _forward_universe(monkeypatch)
+    import utils.validation_status as vs
+    monkeypatch.setattr(vs, "compute_forward_return_correlation",
+                        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    validate_all_macro_signals.clear()
+    forward = validate_all_macro_signals()["fake"]["forward"]
+
+    assert forward is not None, "a crash must not look like 'never attempted'"
+    assert "boom" in forward.get("error", "")
+
+    from utils.model_validation import forward_evidence_label
+    assert forward_evidence_label(forward).startswith("Scan failed")

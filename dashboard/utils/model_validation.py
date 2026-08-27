@@ -81,7 +81,30 @@ def known_limitation(cfg: dict, tier) -> str:
     return "; ".join(bits)
 
 
-def signal_validation_record(sig_id: str, cfg: dict, reliability: Optional[dict] = None) -> dict:
+def forward_evidence_label(forward: Optional[dict]) -> str:
+    """One-line read of the beta-adjusted forward-return scan.
+
+    Says which of "not run", "too little data to tell" and "tested, nothing
+    survived" applies -- collapsing those three into one blank is exactly how a
+    signal that was never measured comes to look like one that was cleared.
+    """
+    if not forward:
+        return "Not run"
+    if forward.get("error"):
+        return f"Scan failed — {forward['error'][:60]}"
+    if not forward.get("scans"):
+        return "Not run"
+    if all(sc.get("underpowered") for sc in forward["scans"]):
+        return "Underpowered — too little history to tell"
+    best = forward.get("best")
+    if not best:
+        return "Tested — no horizon survived correction"
+    return (f"{best['horizon_weeks']}w: r={best['r']:+.2f} "
+            f"(q={best.get('q_value', 1.0):.3f}, n={best['n_effective']} eff.)")
+
+
+def signal_validation_record(sig_id: str, cfg: dict, reliability: Optional[dict] = None,
+                             forward: Optional[dict] = None) -> dict:
     """Assemble one signal's full transparency record (grounded in config)."""
     tier = cfg.get("tier", 2)
     pcs = cfg.get("pcs", 5)
@@ -106,6 +129,8 @@ def signal_validation_record(sig_id: str, cfg: dict, reliability: Optional[dict]
         "experimental": (tier == 3) or (conf == "Limited"),
         "known_limitation": known_limitation(cfg, tier),
         "reliability_score": (reliability or {}).get("score"),
+        "forward_evidence": forward_evidence_label(forward),
+        "forward_survives": bool((forward or {}).get("any_survives")),
     }
 
 
@@ -122,11 +147,12 @@ def build_validation_table(signals: Optional[dict] = None,
     reliabilities = reliabilities or {}
     recs = []
     for sid, cfg in signals.items():
-        rel = None
+        rel = fwd = None
         entry = reliabilities.get(sid)
         if isinstance(entry, dict):
             rel = entry.get("reliability") if "reliability" in entry else entry
-        recs.append(signal_validation_record(sid, cfg, rel))
+            fwd = entry.get("forward")
+        recs.append(signal_validation_record(sid, cfg, rel, fwd))
     recs.sort(key=lambda r: (_tier_info(r["tier"])["rank"], -(r["pcs"] or 0), r["name"]))
     return recs
 

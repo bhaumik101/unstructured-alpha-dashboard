@@ -338,3 +338,207 @@ def test_the_research_window_is_long_enough_to_find_anything():
         f"a {RESEARCH_WINDOW_DAYS}-day window only reaches "
         f"|r| >= {min_detectable_r(int(weekly_n))}"
     )
+
+
+# ── forward-return, market-adjusted scanning ────────────────────────────────
+# 2026-08-26. Two changes aimed at effect size rather than sample size: test
+# against forward CUMULATIVE returns over the product's own 4/8/12w horizons,
+# and regress out the market first so a macro signal is not largely being
+# tested against SPY.
+#
+# The trap is that overlapping forward windows are autocorrelated. Measured over
+# 1200 trials on an AR(0.6) signal, a p-value computed on the raw row count
+# rejects a true null at 19.9% / 26.4% / 27.7% for H=4/8/12 -- four to five times
+# the nominal 5%. Bartlett's effective n brings that to 4.6% / 5.1% / 4.2%.
+#
+# n // H was tried first and rejected by measurement: overlap inflates a
+# correlation's variance only when BOTH series are autocorrelated, so against a
+# white-noise signal n // H gave 0% false positives AND 0% power -- a dead test.
+
+def _ar1_signal(n, rho, seed, scale=0.02):
+    import numpy as np, pandas as pd
+    rng = np.random.default_rng(seed)
+    steps = np.zeros(n)
+    for i in range(1, n):
+        steps[i] = rho * steps[i - 1] + rng.normal(0, scale)
+    idx = pd.date_range("2016-01-01", periods=n, freq="W")
+    return pd.Series(np.exp(np.cumsum(steps)), index=idx), steps, idx
+
+
+def test_bartlett_keeps_full_n_when_either_series_is_white_noise():
+    """The reason n // H was wrong: one-sided persistence costs nothing."""
+    import numpy as np
+    from utils.analysis import bartlett_effective_n
+    rng = np.random.default_rng(0)
+    n = 400
+    white = rng.normal(size=n)
+    persistent = np.zeros(n)
+    for i in range(1, n):
+        persistent[i] = 0.9 * persistent[i - 1] + rng.normal()
+
+    assert bartlett_effective_n(white, rng.normal(size=n)) > 0.9 * n
+    # BOTH argument orders: the formula multiplies the two autocorrelations, so
+    # summing only one series' ACF passes one order and fails the other.
+    assert bartlett_effective_n(white, persistent) > 0.9 * n, (
+        "persistence on only one side must not shrink the effective sample"
+    )
+    assert bartlett_effective_n(persistent, white) > 0.9 * n, (
+        "the correction must use the PRODUCT of both series' autocorrelations, "
+        "not either one alone"
+    )
+    assert bartlett_effective_n(persistent, persistent.copy()) < 0.5 * n, (
+        "shared persistence must shrink it substantially"
+    )
+
+
+def test_bartlett_never_claims_more_independence_than_rows():
+    """One persistent and one anti-persistent series make the correction sum
+    NEGATIVE, which would otherwise report more independent observations than
+    there are rows. Two copies of the same series cannot test this: the
+    cross-term is then rho(k)^2, which is never negative."""
+    import numpy as np
+    from utils.analysis import bartlett_effective_n
+    rng = np.random.default_rng(4)
+    n = 300
+    persistent = np.zeros(n)
+    for i in range(1, n):
+        persistent[i] = 0.85 * persistent[i - 1] + rng.normal()
+    alternating = np.array([(-1.0) ** i for i in range(n)]) + rng.normal(0, 0.01, n)
+
+    assert bartlett_effective_n(persistent, alternating) <= n, (
+        "effective sample size must never exceed the number of rows"
+    )
+
+
+def test_overlapping_windows_do_not_manufacture_significance():
+    """The headline guard: a true null at H=8 must not read as significant.
+
+    Deterministic sweep rather than a single draw -- one seed passing proves
+    nothing about a false-positive rate.
+    """
+    import numpy as np, pandas as pd
+    from utils.analysis import compute_forward_return_correlation
+
+    hits = 0
+    for seed in range(60):
+        sig, _, idx = _ar1_signal(400, 0.6, seed)
+        rng = np.random.default_rng(10_000 + seed)
+        prc = pd.Series(np.exp(np.cumsum(rng.normal(0, 0.03, 400))), index=idx)
+        out = compute_forward_return_correlation(sig, prc, horizon_weeks=8)
+        assert out["n_effective"] <= out["n"]
+        if out["p_value"] < 0.05:
+            hits += 1
+    assert hits <= 9, (
+        f"{hits}/60 null draws called significant at H=8; the overlap correction "
+        f"is not holding (naive row-count inference gives ~26%)"
+    )
+
+
+def test_the_effective_sample_shrinks_once_windows_overlap():
+    import numpy as np, pandas as pd
+    from utils.analysis import compute_forward_return_correlation
+    sig, _, idx = _ar1_signal(400, 0.6, 3)
+    rng = np.random.default_rng(77)
+    prc = pd.Series(np.exp(np.cumsum(rng.normal(0, 0.03, 400))), index=idx)
+
+    h1 = compute_forward_return_correlation(sig, prc, horizon_weeks=1)
+    h12 = compute_forward_return_correlation(sig, prc, horizon_weeks=12)
+    assert h12["n_effective"] < h1["n_effective"], (
+        "twelve-week overlapping windows carry less independent information "
+        "than one-week ones and must report so"
+    )
+    # ...but the shrink must be adaptive, not a flat n // H division. A
+    # WHITE-NOISE signal costs nothing even at a long horizon, which is the
+    # whole reason n // H was rejected: it would report n/12 here.
+    white_sig = pd.Series(
+        np.exp(np.cumsum(np.random.default_rng(5).normal(0, 0.02, 400))), index=idx
+    )
+    wh12 = compute_forward_return_correlation(white_sig, prc, horizon_weeks=12)
+    assert wh12["n_effective"] > wh12["n"] / 3, (
+        f"a white-noise signal must keep most of its sample even at H=12; got "
+        f"n_eff={wh12['n_effective']} of n={wh12['n']} (n // H would give "
+        f"{wh12['n'] // 12})"
+    )
+
+
+def test_removing_the_market_recovers_effect_size_it_was_masking():
+    """A macro signal driving only idiosyncratic return, inside a high-beta stock."""
+    import numpy as np, pandas as pd
+    from utils.analysis import compute_forward_return_correlation
+
+    n, H, beta = 400, 4, 1.3
+    sig, steps, idx = _ar1_signal(n, 0.6, 21)
+    rng = np.random.default_rng(21)
+    mkt_inc = rng.normal(0, 0.02, n)
+    bmk = pd.Series(np.exp(np.cumsum(mkt_inc)), index=idx)
+    drive = pd.Series(steps).rolling(H).mean().shift(1).fillna(0.0).to_numpy()
+    idio = 0.4 * drive + rng.normal(0, 0.015, n)
+    prc = pd.Series(np.exp(np.cumsum(beta * mkt_inc + idio)), index=idx)
+
+    raw = compute_forward_return_correlation(sig, prc, horizon_weeks=H)
+    adj = compute_forward_return_correlation(sig, prc, bmk, horizon_weeks=H)
+
+    assert adj["beta_adjusted"] is True and raw["beta_adjusted"] is False
+    assert abs(adj["r"]) > abs(raw["r"]), (
+        f"regressing out the market should expose the idiosyncratic relationship: "
+        f"raw |r|={abs(raw['r']):.3f} vs adjusted |r|={abs(adj['r']):.3f}"
+    )
+
+
+def test_market_adjustment_does_not_invent_a_relationship():
+    """It must raise real effects, not conjure them out of a null."""
+    import numpy as np, pandas as pd
+    from utils.analysis import compute_forward_return_correlation
+    hits = 0
+    for seed in range(40):
+        sig, _, idx = _ar1_signal(400, 0.6, seed)
+        rng = np.random.default_rng(31_000 + seed)
+        mkt_inc = rng.normal(0, 0.02, 400)
+        bmk = pd.Series(np.exp(np.cumsum(mkt_inc)), index=idx)
+        prc = pd.Series(np.exp(np.cumsum(1.1 * mkt_inc + rng.normal(0, 0.015, 400))), index=idx)
+        if compute_forward_return_correlation(sig, prc, bmk, horizon_weeks=4)["p_value"] < 0.05:
+            hits += 1
+    assert hits <= 6, f"{hits}/40 beta-adjusted null draws called significant"
+
+
+def test_forward_scan_carries_the_full_contract_on_every_guard_path():
+    import pandas as pd
+    from utils.analysis import compute_forward_return_correlation
+    expected = {"r", "p_value", "significant", "n", "n_effective", "r_lower",
+                "min_detectable_r", "underpowered", "horizon_weeks", "beta_adjusted"}
+    tiny = pd.Series([1.0, 2.0, 3.0], index=pd.date_range("2024-01-01", periods=3, freq="W"))
+    assert set(compute_forward_return_correlation(tiny, tiny).keys()) == expected
+    empty = pd.Series(dtype=float)
+    assert set(compute_forward_return_correlation(empty, empty).keys()) == expected
+    assert compute_forward_return_correlation(tiny, tiny, horizon_weeks=0)["underpowered"] is True
+
+
+def test_the_three_horizons_are_corrected_as_one_family():
+    """Best-of-three uncorrected is the same inflation lag scanning guards against."""
+    source = (_ROOT / "utils" / "validation_status.py").read_text(encoding="utf-8")
+    block = source[source.index("forward = None"):]
+    block = block[:block.index('out[sig_id] =')]
+    assert "benjamini_hochberg" in block, (
+        "the 4/8/12w scans form one family per signal and must be BH-corrected"
+    )
+    assert "survives_fdr" in block
+    # Surviving BH is necessary but not sufficient: a scan whose sample could
+    # not have detected a believable correlation must not be promoted to "best"
+    # on the strength of a q-value alone.
+    assert 'not sc["underpowered"]' in block, (
+        "an underpowered scan must be excluded from survivors even if BH rejects"
+    )
+
+
+def test_forward_evidence_distinguishes_not_run_from_nothing_found():
+    from utils.model_validation import forward_evidence_label
+    assert forward_evidence_label(None) == "Not run"
+    assert "Underpowered" in forward_evidence_label(
+        {"scans": [{"underpowered": True}, {"underpowered": True}], "best": None})
+    assert "no horizon survived" in forward_evidence_label(
+        {"scans": [{"underpowered": False}], "best": None})
+    label = forward_evidence_label({
+        "scans": [{"underpowered": False}],
+        "best": {"horizon_weeks": 8, "r": 0.31, "q_value": 0.012, "n_effective": 91},
+    })
+    assert "8w" in label and "0.31" in label and "91" in label
