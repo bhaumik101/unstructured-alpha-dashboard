@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -388,6 +390,174 @@ def compute_quick_correlation_stats(
         }
     except Exception:
         return _empty(0)
+
+
+def bartlett_effective_n(x, y, max_lag: Optional[int] = None) -> int:
+    """Effective sample size for a correlation between two autocorrelated series.
+
+        n_eff = n / (1 + 2 * sum_k rho_x(k) * rho_y(k))
+
+    Bartlett's variance formula. The product rho_x(k)*rho_y(k) is what matters:
+    if EITHER series is white noise the sum vanishes and n_eff == n, which is
+    the correct answer -- overlapping windows on one side alone do not inflate
+    the variance of a correlation. Persistence on both sides shrinks it.
+
+    Clipped to [1, n]: a negative sum (anti-persistence) would otherwise claim
+    more independent observations than rows actually exist.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = int(min(len(x), len(y)))
+    if n < 8:
+        return max(n, 0)
+
+    if max_lag is None:
+        max_lag = max(1, min(n // 4, 26))
+
+    def _acf(v, k):
+        v = v - v.mean()
+        denom = float(np.dot(v, v))
+        if denom <= 0:
+            return 0.0
+        return float(np.dot(v[:-k], v[k:]) / denom)
+
+    total = 0.0
+    for k in range(1, int(max_lag) + 1):
+        if k >= n:
+            break
+        total += _acf(x, k) * _acf(y, k)
+
+    inflation = 1.0 + 2.0 * total
+    if inflation <= 0:
+        return n
+    return int(max(1, min(n, round(n / inflation))))
+
+
+def compute_forward_return_correlation(
+    signal: pd.Series,
+    price: pd.Series,
+    benchmark: Optional[pd.Series] = None,
+    horizon_weeks: int = 4,
+    lag_weeks: int = 0,
+) -> dict:
+    """Correlate a signal against FORWARD CUMULATIVE, market-adjusted returns.
+
+    Two changes from compute_quick_correlation_stats, both aimed at raising the
+    effect size rather than chasing sample size:
+
+    1. THE TARGET IS A HORIZON, NOT A WEEK. That function correlates a signal
+       change against a SINGLE week's return. One week of a single stock is
+       mostly noise. Over H weeks a persistent drift accumulates ~H while its
+       noise accumulates ~sqrt(H), so the detectable signal-to-noise improves
+       ~sqrt(H) -- about 2x at H=4, 3.5x at H=12. 4/8/12 weeks are also the
+       horizons this product already resolves its own predictions at.
+
+    2. THE MARKET IS REGRESSED OUT. Weekly single-stock returns are dominated
+       by the market factor. Testing a macro signal against a raw stock return
+       largely tests it against SPY. When `benchmark` is given, the stock's
+       forward return is regressed on the benchmark's forward return over the
+       same window and the RESIDUAL is what gets correlated -- so the question
+       becomes "does this signal explain what the market does not."
+
+    THE OVERLAP TRAP. Forward windows at consecutive weeks share H-1 weeks of
+    returns, so rows are not independent and a p-value on the raw row count can
+    be badly anti-conservative. The fix is NOT n // H: overlap inflates the
+    variance of a correlation only when BOTH series are autocorrelated, so
+    n // H is wildly over-conservative against a white-noise signal (measured:
+    0% false positives AND 0% power at H=4, i.e. a dead test) and is not
+    adaptive to how autocorrelated a given signal actually is.
+
+    n_effective uses Bartlett's formula instead,
+
+        n_eff = n / (1 + 2 * sum_k rho_x(k) * rho_y(k))
+
+    which is the standard effective sample size for a correlation between two
+    autocorrelated series. It reduces to n when either side is white noise --
+    so a signal whose changes carry no memory keeps its full power -- and it
+    shrinks exactly as far as the two series' shared persistence demands. Every
+    inference (p_value, r_lower, min_detectable_r, the power gate) runs on
+    n_effective; the point estimate of r still uses every row.
+
+    Returns the compute_quick_correlation_stats contract plus "n_effective",
+    "horizon_weeks" and "beta_adjusted". `n` is the raw overlapping row count,
+    reported so the difference is visible rather than hidden.
+    """
+    def _empty(n: int = 0, n_eff: int = 0) -> dict:
+        return {"r": 0.0, "p_value": 1.0, "significant": False, "n": n,
+                "n_effective": n_eff, "r_lower": 0.0,
+                "min_detectable_r": min_detectable_r(n_eff),
+                "underpowered": True, "horizon_weeks": int(horizon_weeks),
+                "beta_adjusted": benchmark is not None}
+
+    try:
+        H = int(horizon_weeks)
+        if H < 1:
+            return _empty()
+
+        prc_w = _strip_tz(price).resample("W").last().dropna()
+        sig_w = _strip_tz(signal).resample("W").mean().dropna()
+        if prc_w.empty or sig_w.empty:
+            return _empty()
+
+        # Forward cumulative return over the next H weeks, dated at its START.
+        fwd = (prc_w.shift(-H) / prc_w - 1.0).dropna()
+
+        if benchmark is not None and not benchmark.empty:
+            bench_w = _strip_tz(benchmark).resample("W").last().dropna()
+            bench_fwd = (bench_w.shift(-H) / bench_w - 1.0).dropna()
+            paired = pd.DataFrame({"y": fwd, "x": bench_fwd}).dropna()
+            if len(paired) < 8:
+                return _empty(len(paired))
+            var_x = float(paired["x"].var())
+            if var_x > 0:
+                beta = float(paired["y"].cov(paired["x"])) / var_x
+                intercept = float(paired["y"].mean()) - beta * float(paired["x"].mean())
+                fwd = paired["y"] - (intercept + beta * paired["x"])
+            else:
+                fwd = paired["y"]
+
+        sig_chg = sig_w.pct_change()
+        if lag_weeks > 0:
+            sig_chg = sig_chg.shift(lag_weeks)
+
+        cb = pd.DataFrame({"s": sig_chg, "p": fwd}).dropna()
+        cb = cb.replace([np.inf, -np.inf], np.nan).dropna()
+        n = len(cb)
+        n_eff = bartlett_effective_n(cb["s"].to_numpy(), cb["p"].to_numpy())
+        if n < 8 or n_eff < 4:
+            return _empty(n, n_eff)
+        if float(cb["s"].std()) == 0.0 or float(cb["p"].std()) == 0.0:
+            return _empty(n, n_eff)
+
+        r = float(np.corrcoef(cb["s"], cb["p"])[0, 1])
+        if not np.isfinite(r):
+            return _empty(n, n_eff)
+
+        # p-value on the NON-overlapping count, not the row count.
+        if abs(r) >= 1.0:
+            p = 0.0
+        else:
+            t_stat = r * math.sqrt(max(n_eff - 2, 1) / max(1.0 - r * r, 1e-12))
+            p = float(2.0 * (1.0 - stats.t.cdf(abs(t_stat), max(n_eff - 2, 1))))
+
+        floor_r = min_detectable_r(n_eff)
+        underpowered = floor_r > MIN_DETECTABLE_R_CEILING
+        bound = 0.0 if underpowered else correlation_lower_bound(r, n_eff)
+
+        return {
+            "r":                float(round(r, 4)),
+            "p_value":          float(round(p, 6)),
+            "significant":      bool(p < 0.05),
+            "n":                n,
+            "n_effective":      n_eff,
+            "r_lower":          bound,
+            "min_detectable_r": floor_r,
+            "underpowered":     bool(underpowered),
+            "horizon_weeks":    H,
+            "beta_adjusted":    benchmark is not None,
+        }
+    except Exception:
+        return _empty()
 
 
 def compute_backtested_pcs(

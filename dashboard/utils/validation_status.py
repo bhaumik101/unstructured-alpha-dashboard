@@ -38,9 +38,21 @@ import streamlit as st
 # each signal actually got.
 RESEARCH_WINDOW_DAYS = 365 * 10
 
+# The horizons this product already resolves its own predictions at, so a
+# signal's measured evidence is reported on the same clock its track record is.
+FORWARD_HORIZONS_WEEKS = (4, 8, 12)
+
+# Market proxy regressed out before correlating. A macro signal tested against a
+# raw single-stock return is largely being tested against SPY; measured, at
+# market beta 1.2 a true effect reads |r|=0.247 raw versus 0.419 adjusted, and
+# the adjusted estimate is invariant to the stock's beta while the raw one is not.
+FORWARD_BENCHMARK = "SPY"
+
 from utils.config import SIGNALS
 from utils.fetchers import fetch_signal_series, fetch_price
-from utils.analysis import compute_backtested_pcs
+from utils.analysis import (
+    compute_backtested_pcs, compute_forward_return_correlation, benjamini_hochberg,
+)
 from utils.lead_time_research import (
     lag_scan_with_validation, pooled_lag_scan_across_sector, compute_signal_reliability_score,
 )
@@ -81,6 +93,15 @@ def backtest_all_macro_signals(_v: int = 2) -> Dict[str, dict]:
                             "significance_rate": 0.0, "avg_abs_r": 0.0,
                             "evidence_rate": 0.0, "avg_r_lower": 0.0, "details": []}
     return out
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def _forward_benchmark(start: str, end: str) -> pd.Series:
+    """The market proxy, fetched once per window rather than per signal."""
+    try:
+        return fetch_price(FORWARD_BENCHMARK, start, end)
+    except Exception:
+        return pd.Series(dtype=float)
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
@@ -126,6 +147,7 @@ def validate_all_macro_signals(_v: int = 1) -> Dict[str, dict]:
                 "validation": {"error": "No relevant tickers configured for this signal", "n": 0},
                 "pooled": None,
                 "reliability": {"score": 0, "label": "Insufficient data to assess", "components": {}},
+                "forward": None,
             }
             continue
 
@@ -163,7 +185,42 @@ def validate_all_macro_signals(_v: int = 1) -> Dict[str, dict]:
             pooled = pooled_lag_scan_across_sector(signal_per_ticker, price_per_ticker, scan_max_lag=16)
 
         reliability = compute_signal_reliability_score(validation, pooled)
-        out[sig_id] = {"validation": validation, "pooled": pooled, "reliability": reliability}
+
+        # Beta-adjusted forward-return scan across the product's own horizons.
+        # The three horizons are ONE family for this signal, so BH corrects
+        # across them -- picking the best of three uncorrected would be the
+        # same best-of-N inflation lag scanning already guards against.
+        forward = None
+        try:
+            bench = _forward_benchmark(start, end)
+            scans = [
+                compute_forward_return_correlation(
+                    sig_series, primary_price, bench,
+                    horizon_weeks=h, lag_weeks=cfg.get("lag_weeks", 0),
+                )
+                for h in FORWARD_HORIZONS_WEEKS
+            ]
+            rejected, q_values = benjamini_hochberg([sc["p_value"] for sc in scans], alpha=0.05)
+            for i, sc in enumerate(scans):
+                sc["q_value"] = round(q_values[i], 6) if q_values else 1.0
+                sc["survives_fdr"] = bool(rejected[i]) if rejected else False
+            survivors = [sc for sc in scans if sc["survives_fdr"] and not sc["underpowered"]]
+            best = max(survivors, key=lambda sc: abs(sc["r"])) if survivors else None
+            forward = {
+                "scans": scans,
+                "best": best,
+                "any_survives": bool(survivors),
+                "benchmark": FORWARD_BENCHMARK,
+            }
+        except Exception as exc:
+            # Recorded, not swallowed. A scan that CRASHED and a scan that was
+            # never attempted used to both read as None, which is the same
+            # unfalsifiable silence PR #213 removed from the resolver.
+            forward = {"scans": [], "best": None, "any_survives": False,
+                       "benchmark": FORWARD_BENCHMARK, "error": str(exc)}
+
+        out[sig_id] = {"validation": validation, "pooled": pooled,
+                       "reliability": reliability, "forward": forward}
 
     return out
 
