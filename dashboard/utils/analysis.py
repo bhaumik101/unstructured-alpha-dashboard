@@ -282,6 +282,40 @@ def correlation_lower_bound(r: float, n: int, z_crit: float = _Z_CRIT_95) -> flo
     return float(round(_math.tanh(lower), 4))
 
 
+# The largest |r| that is still a believable TRUE macro-signal-to-equity-return
+# correlation. Published cross-sectional return predictors live far below this;
+# PR #211's scan of 47 signals x 3 tickers peaked at r=0.19. A sample so small
+# that it could only ever flag something above this ceiling is not a weak test,
+# it is a test that cannot produce a believable positive -- whatever it does
+# flag is noise, by construction.
+MIN_DETECTABLE_R_CEILING = 0.35
+
+
+def min_detectable_r(n: int, alpha: float = 0.05) -> float:
+    """Smallest |r| this sample size could distinguish from zero at `alpha`.
+
+    This is the critical value of the Pearson test, so it says what the sample
+    is CAPABLE of detecting, independent of what it happened to observe:
+
+        n=  7  ->  0.754      n= 32  ->  0.349
+        n= 23  ->  0.413      n=103  ->  0.194
+        n= 519 ->  0.086
+
+    Returns 1.0 for n <= 3, where the test is undefined.
+    """
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return 1.0
+    if n <= 3:
+        return 1.0
+
+    import math as _math
+
+    t = float(stats.t.ppf(1 - alpha / 2, n - 2))
+    return float(round(t / _math.sqrt(t * t + n - 2), 4))
+
+
 def compute_quick_correlation_stats(
     signal: pd.Series,
     price: pd.Series,
@@ -295,34 +329,65 @@ def compute_quick_correlation_stats(
     can filter signals by genuine statistical significance (p < 0.05) for
     a specific ticker, rather than relying on PCS alone.
 
-    Returns: {"r": float, "p_value": float, "significant": bool, "n": int}
-    n = number of overlapping return observations used in the test.
+    Returns {"r", "p_value", "significant", "n", "r_lower", "min_detectable_r",
+    "underpowered"}. n = number of overlapping return observations used.
     A p_value of 1.0 / significant=False is returned whenever there isn't
     enough overlapping data to run the test at all.
+
+    THE POWER GATE (2026-08-26). r_lower is forced to 0.0 whenever the sample
+    could not have detected a believable correlation in the first place, i.e.
+    when min_detectable_r(n) > MIN_DETECTABLE_R_CEILING. Without this, small
+    samples were the ones MOST able to produce an outsized weight, which
+    inverts what weighting on a confidence bound was supposed to achieve:
+
+        sample                needs |r| >=   P(pure noise clears the 0.15 floor)
+        quarterly (n~7)          0.815                  2.63%
+        monthly   (n~23)         0.530                  1.04%
+        weekly    (n~103)        0.335                  0.05%
+
+    A monthly signal is ~20x likelier than a weekly one to be handed an
+    above-floor weight by chance alone -- and utils/ticker_score.py's raw
+    >= 20 observation gate lets monthly signals through, so this was live.
+    The gate only ever REMOVES weight; it can never add any.
     """
+    def _empty(n: int) -> dict:
+        return {"r": 0.0, "p_value": 1.0, "significant": False, "n": n,
+                "r_lower": 0.0, "min_detectable_r": min_detectable_r(n),
+                "underpowered": True}
+
     try:
         aligned = align_series(signal, price, lag_weeks)
         if len(aligned) < 12:
-            return {"r": 0.0, "p_value": 1.0, "significant": False, "n": len(aligned), "r_lower": 0.0}
+            return _empty(len(aligned))
         sr = aligned["signal"].pct_change().dropna()
         pr = aligned["price"].pct_change().dropna()
         cb = pd.DataFrame({"s": sr, "p": pr}).dropna()
         if len(cb) < 8:
-            return {"r": 0.0, "p_value": 1.0, "significant": False, "n": len(cb), "r_lower": 0.0}
+            return _empty(len(cb))
         r, p = stats.pearsonr(cb["s"], cb["p"])
         n = len(cb)
+
+        floor_r = min_detectable_r(n)
+        underpowered = floor_r > MIN_DETECTABLE_R_CEILING
+
+        # Lower 95% bound on |r|. This is what should be weighted on: it is
+        # zero whenever the correlation cannot be told apart from noise at
+        # this sample size, so it encodes effect size and evidence together.
+        # Zeroed outright when the sample could not have found a believable
+        # correlation at all -- see THE POWER GATE above.
+        bound = 0.0 if underpowered else correlation_lower_bound(r, n)
+
         return {
-            "r":           float(round(r, 4)),
-            "p_value":     float(round(p, 6)),
-            "significant": bool(p < 0.05),
-            "n":           n,
-            # Lower 95% bound on |r|. This is what should be weighted on: it is
-            # zero whenever the correlation cannot be told apart from noise at
-            # this sample size, so it encodes effect size and evidence together.
-            "r_lower":     correlation_lower_bound(r, n),
+            "r":                float(round(r, 4)),
+            "p_value":          float(round(p, 6)),
+            "significant":      bool(p < 0.05),
+            "n":                n,
+            "r_lower":          bound,
+            "min_detectable_r": floor_r,
+            "underpowered":     bool(underpowered),
         }
     except Exception:
-        return {"r": 0.0, "p_value": 1.0, "significant": False, "n": 0, "r_lower": 0.0}
+        return _empty(0)
 
 
 def compute_backtested_pcs(

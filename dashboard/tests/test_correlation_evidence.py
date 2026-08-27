@@ -198,3 +198,143 @@ def test_the_floor_is_a_named_decision():
     assert 0 < WEIGHT_FLOOR < 1
     source = (_ROOT / "utils" / "ticker_score.py").read_text(encoding="utf-8")
     assert "WEIGHT_FLOOR" in source
+
+
+# ── the power gate: a sample too small to find anything must not weight ──────
+# 2026-08-26. Weighting on the lower confidence bound fixed the case where a
+# large |r| over few observations scored like a large |r| over many. It did NOT
+# fix the inverse: at very small n the sampling distribution of r is so wide
+# that a spuriously huge |r| still clears the bound AND the 0.15 weight floor.
+# Measured under the null, P(pure noise produces an above-floor weight):
+#     quarterly (n~7)   2.63%      monthly (n~23)  1.04%      weekly (n~103)  0.05%
+# So the signals with the LEAST evidence were the likeliest to be handed an
+# outsized weight -- exactly backwards. utils/ticker_score.py's raw ">= 20
+# observations" gate excludes quarterly signals but lets all 19 monthly ones in.
+
+def _weekly(values, start="2024-01-01"):
+    import pandas as pd
+    return pd.Series(values, index=pd.date_range(start, periods=len(values), freq="W"))
+
+
+def _strongly_related(n_points, seed=11):
+    """A signal and price that genuinely move together, at a chosen length."""
+    import numpy as np
+    rng = np.random.default_rng(seed)
+    steps = rng.normal(0, 0.02, n_points)
+    sig = np.exp(np.cumsum(steps))
+    prc = np.exp(np.cumsum(steps * 1.8 + rng.normal(0, 0.002, n_points)))
+    return _weekly(sig), _weekly(prc)
+
+
+def test_min_detectable_r_is_the_pearson_critical_value():
+    from utils.analysis import min_detectable_r
+    # Pinned against the t-distribution critical values, so the gate's threshold
+    # cannot drift silently.
+    assert min_detectable_r(7) == 0.7545
+    assert min_detectable_r(23) == 0.4132
+    assert min_detectable_r(103) == 0.1937
+    assert min_detectable_r(519) == 0.0861
+    assert min_detectable_r(3) == 1.0, "undefined below n=4, must not claim power"
+
+
+def test_an_underpowered_sample_earns_no_weight_however_strong_the_correlation():
+    """The headline: same real relationship, two sample sizes, opposite outcome."""
+    from utils.analysis import compute_quick_correlation_stats
+
+    thin_sig, thin_prc = _strongly_related(24)
+    thin = compute_quick_correlation_stats(thin_sig, thin_prc)
+
+    assert abs(thin["r"]) > 0.8, f"the relationship really is strong: r={thin['r']}"
+    assert thin["underpowered"] is True
+    assert thin["r_lower"] == 0.0, (
+        "a correlation found in ~23 observations cannot be distinguished from "
+        "the noise a 23-observation sample generates; it must not earn weight"
+    )
+
+
+def test_the_same_relationship_does_earn_weight_once_the_sample_supports_it():
+    from utils.analysis import compute_quick_correlation_stats
+
+    thick_sig, thick_prc = _strongly_related(160)
+    thick = compute_quick_correlation_stats(thick_sig, thick_prc)
+
+    assert thick["underpowered"] is False
+    assert thick["r_lower"] > 0.15, (
+        "a well-sampled strong correlation must still clear the weight floor -- "
+        "the gate is there to remove noise, not to mute everything"
+    )
+
+
+def test_the_gate_never_invents_weight_it_only_removes_it():
+    """A powered sample's bound must be exactly correlation_lower_bound()."""
+    from utils.analysis import compute_quick_correlation_stats, correlation_lower_bound
+
+    sig, prc = _strongly_related(160, seed=3)
+    out = compute_quick_correlation_stats(sig, prc)
+    assert out["r_lower"] == correlation_lower_bound(out["r"], out["n"]), (
+        "when the sample is adequate the gate must be a no-op, not a rescale"
+    )
+
+
+def test_the_gate_boundary_sits_where_the_ceiling_says_it_does():
+    from utils.analysis import min_detectable_r, MIN_DETECTABLE_R_CEILING
+    assert min_detectable_r(31) > MIN_DETECTABLE_R_CEILING, "n=31 is underpowered"
+    assert min_detectable_r(32) <= MIN_DETECTABLE_R_CEILING, "n=32 is the first powered size"
+
+
+def test_pure_noise_at_monthly_cadence_no_longer_buys_an_above_floor_weight():
+    """The defect, reproduced: 40k null draws at n=23 used to clear the floor ~1%
+    of the time. With the gate it must be exactly zero, not merely rarer."""
+    import numpy as np
+    from utils.analysis import compute_quick_correlation_stats, WEIGHT_FLOOR
+
+    rng = np.random.default_rng(2026)
+    cleared = 0
+    for _ in range(400):
+        sig = _weekly(np.exp(np.cumsum(rng.normal(0, 0.02, 24))))
+        prc = _weekly(np.exp(np.cumsum(rng.normal(0, 0.02, 24))))
+        out = compute_quick_correlation_stats(sig, prc)
+        if out["r_lower"] > WEIGHT_FLOOR:
+            cleared += 1
+    assert cleared == 0, f"{cleared}/400 noise draws still bought a weight"
+
+
+def test_every_corr_info_site_reports_what_the_sample_could_have_detected():
+    """An underpowered signal must read as underpowered, not as 'tested, nothing found'.
+
+    Checked per construction site rather than as a file-wide grep: ticker_score
+    builds corr_info in more than one branch, and a whole-file search passes
+    while a branch is silently missing the keys.
+    """
+    source = (_ROOT / "utils" / "ticker_score.py").read_text(encoding="utf-8")
+
+    sites, cursor = [], 0
+    while (i := source.find("corr_info[sig_id] = {", cursor)) != -1:
+        depth, j = 0, source.index("{", i)
+        for j in range(j, len(source)):
+            if source[j] == "{": depth += 1
+            elif source[j] == "}":
+                depth -= 1
+                if depth == 0: break
+        sites.append(source[i:j + 1])
+        cursor = j
+
+    assert len(sites) >= 2, f"expected several corr_info branches, found {len(sites)}"
+    for k, block in enumerate(sites):
+        assert '"min_detectable_r"' in block and '"underpowered"' in block, (
+            f"corr_info branch {k} omits the power numbers; the UI cannot then "
+            f"distinguish a signal that was tested and failed from one that "
+            f"could never have passed:\n{block}"
+        )
+
+
+def test_the_research_window_is_long_enough_to_find_anything():
+    """730 days leaves a weekly signal able to detect only |r| >= 0.194."""
+    from utils.validation_status import RESEARCH_WINDOW_DAYS
+    from utils.analysis import min_detectable_r
+    weekly_n = RESEARCH_WINDOW_DAYS / 7
+    assert RESEARCH_WINDOW_DAYS >= 365 * 5, "discovery needs more than a couple of years"
+    assert min_detectable_r(int(weekly_n)) < 0.10, (
+        f"a {RESEARCH_WINDOW_DAYS}-day window only reaches "
+        f"|r| >= {min_detectable_r(int(weekly_n))}"
+    )

@@ -279,9 +279,13 @@ def test_quick_correlation_stats_returns_all_keys_on_insufficient_data():
     # r_lower joined the contract when weighting moved onto the lower confidence
     # bound of |r| instead of |r| itself; callers index it unconditionally, so
     # every guard path has to carry it too.
-    assert set(result.keys()) == {"r", "p_value", "significant", "n", "r_lower"}
+    # min_detectable_r/underpowered joined the contract with the power gate:
+    # callers index them unconditionally, so every guard path carries them too.
+    assert set(result.keys()) == {"r", "p_value", "significant", "n", "r_lower",
+                                  "min_detectable_r", "underpowered"}
     assert result["significant"] is False
     assert result["r_lower"] == 0.0
+    assert result["underpowered"] is True
 
 
 def test_quick_correlation_stats_detects_strong_correlation():

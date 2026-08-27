@@ -27,6 +27,17 @@ from typing import Dict
 import pandas as pd
 import streamlit as st
 
+# Lever 1 on discovery power. The research window was 730 days, which leaves a
+# weekly signal n~103 -- able to detect only |r| >= 0.194, at 17% power against
+# a true r=0.10. Ten years takes that to n~519 and |r| >= 0.086 at 63% power.
+# This is the DISCOVERY path only (cached 24h, off the live scoring path);
+# utils/ticker_score.py's live window is deliberately unchanged -- see the PR.
+#
+# Signals whose history is shorter simply return what they have: nothing here
+# assumes ten years exists, and the power gate in utils.analysis reports what
+# each signal actually got.
+RESEARCH_WINDOW_DAYS = 365 * 10
+
 from utils.config import SIGNALS
 from utils.fetchers import fetch_signal_series, fetch_price
 from utils.analysis import compute_backtested_pcs
@@ -50,7 +61,7 @@ def backtest_all_macro_signals(_v: int = 2) -> Dict[str, dict]:
     validated," never silently substitute a default.
     """
     end = datetime.now().strftime("%Y-%m-%d")
-    start = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
+    start = (datetime.now() - timedelta(days=RESEARCH_WINDOW_DAYS)).strftime("%Y-%m-%d")
 
     out = {}
     for sig_id, cfg in SIGNALS.items():
@@ -105,7 +116,7 @@ def validate_all_macro_signals(_v: int = 1) -> Dict[str, dict]:
     count is never quietly wrong.
     """
     end = datetime.now().strftime("%Y-%m-%d")
-    start = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
+    start = (datetime.now() - timedelta(days=RESEARCH_WINDOW_DAYS)).strftime("%Y-%m-%d")
 
     out: Dict[str, dict] = {}
     for sig_id, cfg in SIGNALS.items():
