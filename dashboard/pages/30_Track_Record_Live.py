@@ -122,6 +122,18 @@ if _track_section == "Signal Track Record":
     _resolved = _tr["resolved"]
     _pending  = _tr["pending"]
     _acc_4w   = _tr["accuracy_4w"]
+    # A missing accuracy has two very different causes and the page used to
+    # assert the reassuring one unconditionally. It read "no call has reached 4
+    # weeks yet" on 2026-09-01 while holding calls from 2026-07-09 whose cards,
+    # directly below, said "4w window passed". Say which it actually is.
+    try:
+        _await_4w_n = get_resolver_health().get("awaiting_4w_outcome", 0)
+    except Exception:
+        _await_4w_n = 0
+    _acc_4w_note = (
+        "no call has reached 4 weeks yet" if _await_4w_n == 0
+        else f"{_await_4w_n} call{'' if _await_4w_n == 1 else 's'} past 4w with no result"
+    )
     _acc_12w  = _tr["accuracy_12w"]
     _n_4w     = _tr["n_4w"]
 
@@ -159,7 +171,7 @@ if _track_section == "Signal Track Record":
             {"—" if _acc_4w is None else f"{_acc_4w:.0f}%"}
           </div>
           <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">
-            {"no call has reached 4 weeks yet" if _acc_4w is None
+            {_acc_4w_note if _acc_4w is None
              else f"direction correct · {_n_4w} call{'' if _n_4w == 1 else 's'}"}
           </div>
         </div>
@@ -768,6 +780,7 @@ if _track_section == "Signal Track Record":
         _maturing  = _rh.get("maturing_pending", 0)
         _last_date = _rh["last_resolved_date"]
         _recent7d  = _rh["recently_resolved_7d"]
+        _await4w   = _rh.get("awaiting_4w_outcome", 0)
         _overdue_label = (
             "None stuck" if _overdue == 0
             else f"{_overdue} stuck"
@@ -781,14 +794,23 @@ if _track_section == "Signal Track Record":
                 "weeks is the earliest anything can resolve. This page also runs a lightweight "
                 "on-demand pass each time it loads, as a fallback."
             )
-            _h1, _h2, _h3, _h4 = st.columns(4)
+            _h1, _h2, _h3, _h4, _h5 = st.columns(5)
             with _h1:
                 st.metric("Pending total", _rh["pending_total"])
             with _h2:
                 st.metric("Maturing (<12w)", _maturing)
             with _h3:
-                st.metric("Stuck (>13w, unresolved)", _overdue_label)
+                st.metric(
+                    "Missing 4w outcome",
+                    "None" if _await4w == 0 else f"{_await4w} unwritten",
+                    help="Calls whose 4-week window has closed but which still have no "
+                         "4-week result. A call stays pending until 12 weeks by design, "
+                         "but its 4-week outcome is written as soon as that window "
+                         "closes — so anything here means the resolver is not writing.",
+                )
             with _h4:
+                st.metric("Stuck (>13w, unresolved)", _overdue_label)
+            with _h5:
                 st.metric("Resolved in last 7 days", _recent7d)
             st.caption(
                 f"Most recent resolved prediction event date: **{_last_label}**. "
@@ -796,8 +818,11 @@ if _track_section == "Signal Track Record":
                 "there's no separate `resolved_at` timestamp in the current schema. "
                 "**Maturing is not a backlog** — those calls are inside their 12-week window and "
                 "resolving them early would mean inventing outcomes for windows that have not "
-                "closed. Only **Stuck** indicates a problem: a call past the full horizon plus a "
-                "week of slack, which usually means a ticker yfinance returns no data for."
+                "closed. **Missing 4w outcome** and **Stuck** are the two that indicate a "
+                "problem. Missing 4w outcome is the earlier warning: it fires within a cron "
+                "cycle of the resolver failing to write, whereas Stuck cannot fire until a "
+                "call is thirteen weeks old — which is how a resolver raising on every row "
+                "went unnoticed from 2026-07-09 while the panel read \"None stuck\"."
             )
     except Exception:
         pass

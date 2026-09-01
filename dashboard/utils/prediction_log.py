@@ -195,6 +195,55 @@ def _post_notification(
 
 # ── Resolution ────────────────────────────────────────────────────────────────
 
+def close_series_for(frame, ticker: str):
+    """The Close series for one ticker out of a yf.download(group_by="ticker") frame.
+
+    THE BUG THIS EXISTS TO PREVENT (2026-09-01). Both callers in this module
+    indexed `frame["Close"][ticker]`, which has the two levels the wrong way
+    round: group_by="ticker" produces columns (ticker, field), so "Close" is the
+    INNER key and `frame["Close"]` raises KeyError. utils/quotes.py had it right
+    all along and even documents the layout.
+
+    It went unnoticed because on yfinance 0.2.x -- the pinned range -- a
+    single-ticker download drops the ticker level, so the len==1 branch worked
+    and anything tested with one ticker passed. resolve_pending() batches every
+    distinct pending ticker, so in production it always took the multi-ticker
+    path and raised on EVERY row. The per-row handler recorded the KeyError and
+    moved on, so the table simply never gained an outcome: 202 calls logged
+    since 2026-07-09, zero resolved, while the page reported "no call has
+    reached 4 weeks yet".
+
+    Handles all three shapes rather than branching on len(tickers): MultiIndex
+    (ticker, field), MultiIndex (field, ticker) in case a future version flips
+    it back, and flat columns for the level-dropped single-ticker case.
+    Returns an empty Series when the ticker is absent, never raises.
+    """
+    import pandas as pd
+
+    if frame is None or getattr(frame, "empty", True):
+        return pd.Series(dtype=float)
+
+    cols = frame.columns
+    try:
+        if isinstance(cols, pd.MultiIndex):
+            if ticker in cols.get_level_values(0):
+                out = frame[ticker].get("Close")
+            elif "Close" in cols.get_level_values(0) and ticker in cols.get_level_values(1):
+                out = frame["Close"].get(ticker)
+            else:
+                return pd.Series(dtype=float)
+        else:
+            out = frame.get("Close")
+        if out is None:
+            return pd.Series(dtype=float)
+        out = out.squeeze()
+        if not isinstance(out, pd.Series):
+            return pd.Series(dtype=float)
+        return out.dropna()
+    except Exception:
+        return pd.Series(dtype=float)
+
+
 def backfill_missing_entry_prices(limit: int = 50) -> int:
     """Fill price_at_event for calls whose live price fetch failed. Returns count.
 
@@ -247,9 +296,9 @@ def backfill_missing_entry_prices(limit: int = 50) -> int:
     for row in rows:
         ticker = row["ticker"]
         try:
-            closes = (px["Close"] if len(tickers) == 1 else px["Close"][ticker]).squeeze()
-            closes = closes.dropna()
+            closes = close_series_for(px, ticker)
             if closes.empty:
+                print(f"[backfill] {ticker} returned no Close series — skipping", flush=True)
                 continue
 
             # The close ON event_date, or the last close before it. Never after:
@@ -399,7 +448,11 @@ def resolve_pending(max_resolve: int = 20) -> int:
         px_data = yf.download(
             tickers_needed, period="2y", auto_adjust=True, progress=False, group_by="ticker"
         )
-    except Exception:
+    except Exception as exc:
+        # The one path here that used to return silently. Every other failure in
+        # this function names itself; a dead price download must too.
+        print(f"[resolve] price download failed for {len(tickers_needed)} ticker(s): "
+              f"{type(exc).__name__}: {exc}", flush=True)
         return 0
 
     resolved_count = 0
@@ -414,13 +467,10 @@ def resolve_pending(max_resolve: int = 20) -> int:
         direction = normalize_direction(row["direction"])
 
         try:
-            # Extract price series for this ticker
-            if len(tickers_needed) == 1:
-                closes = px_data["Close"].squeeze()
-            else:
-                closes = px_data["Close"][ticker].squeeze()
-
-            closes = closes.dropna()
+            closes = close_series_for(px_data, ticker)
+            if closes.empty:
+                failures["no Close series returned"] = failures.get("no Close series returned", 0) + 1
+                continue
 
             updates: dict = {}
             all_resolved = True
@@ -960,6 +1010,8 @@ def get_resolver_health() -> dict:
                                                       since there's no resolved_at col)
             "recently_resolved_7d":   int,   -- resolved rows with event_date in last 7 days
                                                (quick proxy for resolver activity)
+            "awaiting_4w_outcome":    int,   -- past their 4-WEEK window and still
+                                               missing correct_4w. Never healthy.
         }
 
     WHY "OVERDUE" IS NOT MEASURED FROM FOUR WEEKS
@@ -980,6 +1032,21 @@ def get_resolver_health() -> dict:
     which used to require full resolution before counting a realized 4-week
     outcome. See tests/test_track_record_counts_partial_outcomes.py.
 
+    WHAT "OVERDUE" LEFT UNWATCHED, AND WHY awaiting_4w_outcome EXISTS
+    -----------------------------------------------------------------
+    Dropping the four-week overdue count was right, but it left NO signal that
+    could fire before thirteen weeks. On 2026-09-01 the pipeline reported
+    "None stuck" while holding 202 calls dating back to 2026-07-09 of which not
+    one had ever resolved -- resolve_pending() was raising KeyError on every
+    row (see close_series_for) and the oldest call was only 7.7 weeks old, so
+    the sole alarm could not fire for another five weeks.
+
+    awaiting_4w_outcome counts rows whose FOUR-week window has closed and which
+    still have no correct_4w. That is different from the metric #207 removed:
+    a call legitimately stays *pending* until twelve weeks, but its four-week
+    OUTCOME is written the moment that window closes. Non-zero for more than a
+    cron cycle or two means the resolver is not writing.
+
     Never raises. Returns zero-filled dict on any DB error.
     """
     # The longest window a prediction must fill before it can be called resolved.
@@ -989,6 +1056,7 @@ def get_resolver_health() -> dict:
     overdue_cutoff = (horizon - timedelta(weeks=RESOLVER_GRACE_WEEKS)).strftime("%Y-%m-%d")
     horizon_cutoff = horizon.strftime("%Y-%m-%d")
     seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+    four_weeks_cutoff = (datetime.now(timezone.utc) - timedelta(weeks=4)).strftime("%Y-%m-%d")
 
     try:
         with db.engine.begin() as conn:
@@ -996,7 +1064,8 @@ def get_resolver_health() -> dict:
         rows = [dict(r) for r in rows]
     except Exception:
         return {"pending_total": 0, "maturing_pending": 0, "overdue_pending": 0,
-                "last_resolved_date": None, "recently_resolved_7d": 0}
+                "last_resolved_date": None, "recently_resolved_7d": 0,
+                "awaiting_4w_outcome": 0}
 
     pending  = [r for r in rows if r["status"] == "pending"]
     resolved = [r for r in rows if r["status"] == "resolved"]
@@ -1010,10 +1079,16 @@ def get_resolver_health() -> dict:
 
     recently_resolved = [r for r in resolved if r["event_date"] >= seven_days_ago]
 
+    # Status-independent: a four-week outcome is written as soon as that window
+    # closes, whatever the row's overall status.
+    awaiting_4w = [r for r in rows
+                   if r["event_date"] <= four_weeks_cutoff and r.get("correct_4w") is None]
+
     return {
         "pending_total":        len(pending),
         "maturing_pending":     len(maturing),
         "overdue_pending":      len(overdue),
         "last_resolved_date":   last_resolved_date,
         "recently_resolved_7d": len(recently_resolved),
+        "awaiting_4w_outcome":  len(awaiting_4w),
     }
