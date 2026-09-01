@@ -136,6 +136,7 @@ if _track_section == "Signal Track Record":
     )
     _acc_12w  = _tr["accuracy_12w"]
     _n_4w     = _tr["n_4w"]
+    _episodes = _tr.get("total_episodes", _tr["total"])
 
     # Report the longest horizon that has actually produced outcomes. Fixing the
     # headline to 12w meant the page read empty for the first twelve weeks of a
@@ -154,11 +155,11 @@ if _track_section == "Signal Track Record":
         <div class="ua-spotlight ua-kpi-animate" style="--ua-spotlight-accent:{CYAN};
              flex:1;min-width:130px;text-align:center;padding:18px 16px;">
           <div style="font-size:0.58rem;font-weight:700;color:var(--ua-ink-mut);text-transform:uppercase;
-                      letter-spacing:0.12em;margin-bottom:6px;">Calls Logged</div>
+                      letter-spacing:0.12em;margin-bottom:6px;">Distinct Calls</div>
           <div style="font-size:2.2rem;font-weight:900;color:{CYAN};
-                      text-shadow:0 0 24px {CYAN}45;line-height:1;">{_total}</div>
+                      text-shadow:0 0 24px {CYAN}45;line-height:1;">{_episodes}</div>
           <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">
-            {_resolved} fully resolved · {_pending} still maturing
+            from {_total} daily log row{'' if _total == 1 else 's'} · {_pending} still maturing
           </div>
         </div>
 
@@ -172,7 +173,7 @@ if _track_section == "Signal Track Record":
           </div>
           <div style="font-size:0.68rem;color:var(--ua-ink-mut);margin-top:4px;">
             {_acc_4w_note if _acc_4w is None
-             else f"direction correct · {_n_4w} call{'' if _n_4w == 1 else 's'}"}
+             else f"direction correct · {_n_4w} distinct call{'' if _n_4w == 1 else 's'}"}
           </div>
         </div>
 

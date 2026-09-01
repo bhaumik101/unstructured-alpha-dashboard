@@ -602,18 +602,30 @@ def get_track_record() -> dict:
     resolved = [r for r in rows if r["status"] == "resolved"]
     pending  = [r for r in rows if r["status"] == "pending"]
 
+    # EVERY HORIZON STAT IS PER EPISODE, NOT PER ROW.
+    # A convergence that persists is re-logged daily, so the same position can
+    # contribute four or five rows. Averaging over rows would weight a call by
+    # how long it happened to persist and would claim a sample several times
+    # larger than the number of independent bets actually taken.
+    episodes = group_into_episodes(rows)
+
     out: dict = {
-        "total":    total,
-        "resolved": len(resolved),
-        "pending":  len(pending),
+        "total":          total,
+        "resolved":       len(resolved),
+        "pending":        len(pending),
+        "total_calls":    total,
+        "total_episodes": len(episodes),
     }
 
     for h in ("4w", "8w", "12w"):
         # Presence of the outcome column, not the row's overall status.
-        have = [r for r in rows if r.get(f"correct_{h}") is not None]
-        rets = [r for r in rows if r.get(f"return_{h}") is not None]
+        have = [r for r in episodes if r.get(f"correct_{h}") is not None]
+        rets = [r for r in episodes if r.get(f"return_{h}") is not None]
         pnls = [v for v in (_signed_return(r, f"return_{h}") for r in rets) if v is not None]
 
+        # The raw row count, kept so the difference is visible rather than
+        # quietly absorbed -- this is the number that used to be reported.
+        out[f"n_calls_{h}"]    = len([r for r in rows if r.get(f"correct_{h}") is not None])
         out[f"n_{h}"]          = len(have)
         out[f"accuracy_{h}"]   = (
             round(100 * sum(int(r[f"correct_{h}"]) for r in have) / len(have), 1)
@@ -645,10 +657,94 @@ def get_track_record() -> dict:
     return out
 
 
+# A convergence that persists is re-logged every day it persists: log_prediction
+# is idempotent per (ticker, event_date, event_type), which means one row PER DAY,
+# not one row per call. On 2026-09-01 the 25 most recent rows covered just 10
+# distinct tickers -- TDG and TMO logged four days running, CSX/F/IWM three.
+# Those are one position each, not four independent bets, and scoring them as
+# four inflates the sample a track record's confidence rests on.
+#
+# A run broken by more than this many days is treated as a genuinely new call.
+# Calls are logged on weekends too, so within-run gaps are 1 day; five days
+# tolerates a cron outage or a long holiday weekend without welding two
+# separate episodes together.
+EPISODE_GAP_DAYS = 5
+
+
+def group_into_episodes(rows: list[dict], gap_days: int = EPISODE_GAP_DAYS) -> list[dict]:
+    """Collapse consecutive daily re-logs of the same call into single episodes.
+
+    Groups by (ticker, event_type, canonical direction) and splits a group
+    wherever more than `gap_days` separate two consecutive calls.
+
+    Each episode is represented by its FIRST row -- the day the signal actually
+    fired. Taking a later row would mean choosing an entry after part of the
+    outcome was already observable, which is exactly the kind of look-ahead this
+    product's whole design avoids. The returned dict is the first row plus:
+
+        "call_count"        how many daily rows the episode spans
+        "episode_last_date" the last date it was still being logged
+
+    Direction is normalised before grouping, so a "bullish" row and a "bull" row
+    on consecutive days are one episode rather than two (see the #209 label bug).
+
+    Rows without a ticker or event_date cannot be grouped and are each returned
+    as their own episode rather than dropped -- silently discarding a logged call
+    would be worse than over-counting it.
+    """
+    from datetime import date as _date
+
+    def _parse(value):
+        try:
+            y, m, d = str(value)[:10].split("-")
+            return _date(int(y), int(m), int(d))
+        except Exception:
+            return None
+
+    groups: dict[tuple, list[dict]] = {}
+    loners: list[dict] = []
+    for r in rows or []:
+        key_date = _parse(r.get("event_date"))
+        if not r.get("ticker") or key_date is None:
+            loners.append({**r, "call_count": 1,
+                           "episode_last_date": r.get("event_date")})
+            continue
+        key = (
+            str(r.get("ticker")).upper(),
+            r.get("event_type"),
+            normalize_direction(r.get("direction")),
+        )
+        groups.setdefault(key, []).append((key_date, r))
+
+    episodes: list[dict] = []
+    for _key, dated in groups.items():
+        dated.sort(key=lambda pair: pair[0])
+        run_first, run_last, run_n = None, None, 0
+        for day, row in dated:
+            if run_first is None:
+                run_first, run_last, run_n = row, day, 1
+                continue
+            if (day - run_last).days > gap_days:
+                episodes.append({**run_first, "call_count": run_n,
+                                 "episode_last_date": run_last.isoformat()})
+                run_first, run_last, run_n = row, day, 1
+            else:
+                run_last, run_n = day, run_n + 1
+        if run_first is not None:
+            episodes.append({**run_first, "call_count": run_n,
+                             "episode_last_date": run_last.isoformat()})
+
+    episodes.extend(loners)
+    episodes.sort(key=lambda r: str(r.get("event_date") or ""), reverse=True)
+    return episodes
+
+
 def _empty_track_record() -> dict:
-    out: dict = {"total": 0, "resolved": 0, "pending": 0, "by_type": {}, "recent": []}
+    out: dict = {"total": 0, "resolved": 0, "pending": 0, "by_type": {}, "recent": [],
+                 "total_calls": 0, "total_episodes": 0}
     for h in ("4w", "8w", "12w"):
         out[f"n_{h}"] = 0
+        out[f"n_calls_{h}"] = 0
         out[f"accuracy_{h}"] = None
         out[f"median_ret_{h}"] = None
         out[f"median_pnl_{h}"] = None
