@@ -39,11 +39,19 @@ if str(_ROOT) not in sys.path:
 import utils.prediction_log as pl  # noqa: E402
 
 
+# Each row is a DIFFERENT ticker. These four are meant to be four independent
+# calls, which is what this file tests; they were all "NVDA" on consecutive days
+# only incidentally, and once horizon stats became per-episode (2026-09-01) that
+# made them one or two episodes rather than four. Distinct tickers keep the
+# intended meaning -- four separate calls, partial outcomes, mixed directions.
+_TICKERS = {1: "NVDA", 2: "CAT", 3: "MU", 4: "AMD"}
+
+
 def _row(id_, direction, ret_4w, correct_4w, **extra):
     base = {
         "id": id_, "status": "pending", "event_type": "convergence",
         "direction": direction, "event_date": f"2026-07-{id_:02d}",
-        "ticker": "NVDA", "signals_triggered": None,
+        "ticker": _TICKERS.get(id_, f"T{id_}"), "signals_triggered": None,
         "correct_4w": correct_4w, "return_4w": ret_4w,
         "correct_8w": None, "return_8w": None,
         "correct_12w": None, "return_12w": None,

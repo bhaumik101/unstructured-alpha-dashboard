@@ -202,7 +202,12 @@ elif _section == "Track Record":
         "only after each window expires and real price data is available."
     )
     _track_metrics = st.columns(6)
-    _track_metrics[0].metric("Logged", _track["total"])
+    _track_metrics[0].metric(
+        "Distinct calls", _track.get("total_episodes", _track["total"]),
+        help=f'From {_track["total"]} daily log rows. A convergence that persists is '
+             "re-logged every day it persists, so rows overstate how many "
+             "independent calls were actually made. Accuracy is per distinct call.",
+    )
     _track_metrics[1].metric("Resolved", _track["resolved"])
     _track_metrics[2].metric("Pending", _track["pending"])
     _track_metrics[3].metric("4-week accuracy", _fmt_percent(_track["accuracy_4w"]))
