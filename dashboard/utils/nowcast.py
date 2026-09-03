@@ -221,6 +221,7 @@ class NowcastScore:
     n_train_initial: int = 0
     n_scored: int = 0
     feature_lag_months: int = 1
+    estimator: str = "ridge"
     rmse_model: Optional[float] = None
     rmse_naive: Optional[float] = None
     mae_model: Optional[float] = None
@@ -359,11 +360,53 @@ def ridge_coefficients(X: np.ndarray, y: np.ndarray, alpha: float = RIDGE_ALPHA)
         return np.linalg.pinv(gram) @ (X.T @ y)
 
 
+# Number of common factors extracted from the predictor block.
+#
+# FIXED A PRIORI at three, not selected against the evaluation window. Stock &
+# Watson's work on large macro panels repeatedly finds a small number of factors
+# — typically two to four — carrying most of the comovement, and the twelve
+# predictors here span four blocks (surveys, labour, financial conditions,
+# physical activity) that plausibly load on fewer common drivers than that.
+#
+# Choosing k by a variance rule computed INSIDE each training window is the
+# natural refinement and would still be leak-free. Choosing it by which value
+# scored best would not be, and is why this is a constant.
+N_FACTORS = 3
+
+
+def extract_factors(X_std: np.ndarray, n_factors: int = N_FACTORS) -> np.ndarray:
+    """Loadings for the leading `n_factors` principal components of X_std.
+
+    X_std must already be standardised on the TRAINING window alone. Returns a
+    (features x factors) matrix; project with `X_std @ loadings`.
+
+    WHY FACTORS RATHER THAN MORE REGULARISATION. Twelve macro predictors are
+    not twelve independent pieces of information — regional surveys, claims and
+    financial conditions all move with the same cycle. Ridge handles that
+    collinearity by shrinking every coefficient; a factor model handles it by
+    admitting there are only a few underlying drivers, which both denoises the
+    inputs and cuts the effective parameter count from twelve to three. On ~100
+    training months that difference is the whole ballgame.
+
+    Sign indeterminacy of the SVD is irrelevant here: the regression is refitted
+    on the factors inside every window, so a flipped component flips its
+    coefficient too.
+    """
+    n_factors = max(1, min(int(n_factors), X_std.shape[1]))
+    try:
+        _u, _s, vt = np.linalg.svd(X_std, full_matrices=False)
+    except np.linalg.LinAlgError:
+        return np.eye(X_std.shape[1])[:, :n_factors]
+    return vt[:n_factors].T
+
+
 def walk_forward(
     X: pd.DataFrame,
     y: pd.Series,
     min_train: int = MIN_TRAIN_MONTHS,
     alpha: float = RIDGE_ALPHA,
+    estimator: str = "ridge",
+    n_factors: int = N_FACTORS,
 ) -> pd.DataFrame:
     """Expanding-window out-of-sample predictions, one month at a time.
 
@@ -405,10 +448,20 @@ def walk_forward(
 
         Xs = (X_train_for_change - mu) / sigma
         y_centre = y_train_change.mean()
-        beta = ridge_coefficients(Xs, y_train_change - y_centre, alpha=alpha)
-
         x_test = (X_all[t] - mu) / sigma
-        predicted_change = float(x_test @ beta + y_centre)
+
+        if estimator == "factor":
+            # Loadings come from the TRAINING window only, like mu and sigma.
+            # Fitting them on the full panel would leak the test month's
+            # covariance into the projection — the same standardisation leak in
+            # a less obvious costume.
+            loadings = extract_factors(Xs, n_factors=n_factors)
+            factors_train = Xs @ loadings
+            beta = ridge_coefficients(factors_train, y_train_change - y_centre, alpha=alpha)
+            predicted_change = float((x_test @ loadings) @ beta + y_centre)
+        else:
+            beta = ridge_coefficients(Xs, y_train_change - y_centre, alpha=alpha)
+            predicted_change = float(x_test @ beta + y_centre)
 
         # SANITY CLAMP, specified a priori and not because it improved a score.
         #
@@ -505,6 +558,8 @@ def run_nowcast_backtest(
     min_train: int = MIN_TRAIN_MONTHS,
     alpha: float = RIDGE_ALPHA,
     min_coverage: float = MIN_FEATURE_COVERAGE,
+    estimator: str = "ridge",  # scripts default to "factor"; see N_FACTORS
+    n_factors: int = N_FACTORS,
 ) -> NowcastScore:
     """End-to-end: align, walk forward, score. Never raises on thin data."""
     try:
@@ -528,7 +583,8 @@ def run_nowcast_backtest(
             features_used=list(X.columns), features_dropped=dropped,
         )
 
-    frame = walk_forward(X, y, min_train=min_train, alpha=alpha)
+    frame = walk_forward(X, y, min_train=min_train, alpha=alpha,
+                         estimator=estimator, n_factors=n_factors)
     scored = score_predictions(frame)
     if not scored["n_scored"]:
         return _unavailable(
@@ -545,5 +601,6 @@ def run_nowcast_backtest(
         reason="",
         features_used=list(X.columns),
         features_dropped=dropped,
+        estimator=estimator,
         **scored,
     )

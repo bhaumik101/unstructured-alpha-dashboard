@@ -229,3 +229,68 @@ cadence the pivot was chosen for.
 - 2020 was not excluded.
 - `RIDGE_ALPHA` was still not tuned.
 - No fourth feature set was tried after seeing these numbers.
+
+---
+
+## 2026-09-03 — fourth run — **factor model: best yet, still not evidence**
+
+A different *model*, not another feature set: principal-components regression
+over the same twelve predictors, three factors, fixed a priori.
+
+The argument was made before the run. Twelve macro predictors are not twelve
+pieces of information — regional surveys, claims and financial conditions all
+move with the same cycle. Ridge handles that collinearity by shrinking every
+coefficient; a factor model admits there are only a few underlying drivers,
+which denoises the inputs and cuts effective parameters from twelve to three.
+On ~100 training months that is the difference that matters.
+
+Not a full Bańbura-Modugno dynamic factor model: no Kalman filter, no ragged
+edges, no mixed frequencies. Everything is aggregated to monthly complete cases
+first, so PCA is the right-sized tool. Named accordingly.
+
+### Result — both estimators, identical data
+
+| | ridge | factor |
+|---|---|---|
+| skill | +0.338 | **+0.370** |
+| RMSE model / naive | 1.255 / 1.894 | **1.192** / 1.894 |
+| Diebold-Mariano p | 0.140 | **0.113** |
+| significant | no | **no** |
+| months the model was closer | 49% | **51%** |
+| **skill excluding 2020** | −0.015 | **+0.051** |
+| years the model won | 3 of 9 | **5 of 9** (2018, 2019, 2020, 2021, 2022) |
+
+**The first configuration whose skill survives removing 2020.** Also the first
+to win a majority of months and a majority of years. The prediction made before
+running it — that collinearity was hurting ridge — held.
+
+### And it is still not evidence
+
+p = 0.113 uncorrected. With roughly ten configurations now run against this
+sample, a Bonferroni correction needs p < 0.005. A 51% hit rate is a coin flip
+with a lean. +0.051 excluding 2020 is a 5% RMSE improvement over a random walk.
+
+**Best specification tested. Still no evidence it beats persistence.**
+
+### What that changes
+
+This is no longer a question about this history — it is a hypothesis about
+future months. The specification is now fixed:
+
+    target      IPMANSICS (Industrial Production: Manufacturing)
+    predictors  the twelve in NOWCAST_PREDICTORS, mechanism-documented
+    lag         0 (leak-free: IP for month M prints mid-M+1)
+    model       factor, 3 components, RIDGE_ALPHA = 10.0
+    baseline    last month's level
+
+Nothing above may be changed while the forward record accumulates without
+starting the record over. Twelve monthly observations produce a clean,
+uncontaminated answer — which is worth more than anything further that can be
+extracted from 2011-2026.
+
+### What was NOT done
+
+- The factor count was not searched; three is a constant with a stated reason.
+- `RIDGE_ALPHA` was still not tuned.
+- 2020 was still not excluded.
+- No fifth model was tried after seeing these numbers.

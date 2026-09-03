@@ -36,6 +36,7 @@ if str(_ROOT) not in sys.path:
 
 from utils.nowcast import (  # noqa: E402
     MIN_TRAIN_MONTHS,
+    extract_factors,
     NOWCAST_TARGET_SERIES,
     build_design,
     monthly_aggregate,
@@ -503,3 +504,85 @@ def test_the_scorecard_never_reports_skill_without_significance():
     fields = NowcastScore().as_dict()
     for key in ("skill", "dm_p_value", "significant", "months_model_closer"):
         assert key in fields, f"{key} missing from the scorecard contract"
+
+
+# ── factor model ────────────────────────────────────────────────────────────
+# Twelve correlated predictors are not twelve pieces of information. Factors
+# admit that and cut the effective parameter count from twelve to three, which
+# on ~100 training months is the difference that matters. The leak surface is
+# new though: loadings must come from the training window, exactly like mu and
+# sigma, or the test month's covariance is baked into the projection.
+
+def test_factor_loadings_are_fitted_on_the_training_window_only():
+    """Same invariant as the standardisation leak, one level deeper: a past
+    prediction must not move when future rows appear."""
+    n = 110
+    rng = np.random.default_rng(31)
+    driver = rng.normal(0, 1, n)
+    target = _target_driven_by(driver, beta=1.4, seed=5)
+    feats = {
+        f"f{i}": pd.Series(np.cumsum(driver * (0.6 + 0.1 * i) + rng.normal(0, 0.5, n)),
+                           index=_months(n))
+        for i in range(6)
+    }
+    X, y, _d = build_design(target, feats)
+
+    full = walk_forward(X, y, estimator="factor")
+    trunc = walk_forward(X.iloc[:70], y.iloc[:70], estimator="factor")
+    overlap = trunc.index.intersection(full.index)
+    assert len(overlap) >= 10
+
+    np.testing.assert_allclose(
+        full.loc[overlap, "predicted"].to_numpy(),
+        trunc.loc[overlap, "predicted"].to_numpy(),
+        rtol=1e-9, atol=1e-9,
+        err_msg="a factor-model prediction moved when future rows were appended — "
+                "the loadings are being fitted on the whole panel",
+    )
+
+
+def test_factors_compress_correlated_predictors():
+    """Six predictors driven by one common factor should project onto
+    essentially one component."""
+    rng = np.random.default_rng(12)
+    n = 200
+    common = rng.normal(0, 1, n)
+    X = np.column_stack([common * (1 + 0.1 * i) + rng.normal(0, 0.15, n) for i in range(6)])
+    Xs = (X - X.mean(0)) / X.std(0, ddof=0)
+
+    loadings = extract_factors(Xs, n_factors=3)
+    assert loadings.shape == (6, 3)
+
+    factors = Xs @ loadings
+    var = factors.var(axis=0, ddof=0)
+    assert var[0] / var.sum() > 0.85, (
+        f"one common driver should dominate; got {var[0] / var.sum():.2f}"
+    )
+
+
+def test_the_factor_count_is_a_constant_not_a_search():
+    """Selecting k by which value scored best would invalidate the result the
+    way tuning alpha would."""
+    source = (_ROOT / "utils" / "nowcast.py").read_text(encoding="utf-8")
+    assert "N_FACTORS = 3" in source
+    for banned in ("best_k", "for n_factors in", "for k in range", "argmax(scores"):
+        assert banned not in source, (
+            f"{banned!r} suggests the factor count is being searched against the "
+            f"evaluation window"
+        )
+
+
+def test_the_estimator_used_is_recorded_on_the_scorecard():
+    """Two estimators against one sample is two configurations. The scorecard
+    has to say which produced a number."""
+    n = 120
+    rng = np.random.default_rng(44)
+    driver = rng.normal(0, 1, n)
+    target = _target_driven_by(driver, beta=1.5, seed=2)
+    feats = {"a": pd.Series(np.cumsum(driver), index=_months(n)),
+             "b": pd.Series(np.cumsum(driver + rng.normal(0, 0.4, n)), index=_months(n))}
+
+    ridge = run_nowcast_backtest(target, feats, estimator="ridge")
+    factor = run_nowcast_backtest(target, feats, estimator="factor")
+    assert ridge.estimator == "ridge" and factor.estimator == "factor"
+    assert ridge.available and factor.available
