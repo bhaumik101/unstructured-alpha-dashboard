@@ -28,7 +28,14 @@ MIN_ACTIVE_ROUTES = 25
 # slot: score_snapshots once stopped advancing for ten days while the site looked
 # healthy. It reads max(date) only, writes nothing, and exits non-zero so a
 # stalled pipeline surfaces as a failed cron instead of decaying unnoticed.
-MAX_CRON_SERVICES = 14
+# 14 -> 15 on 2026-09-03 for unstructured-alpha-nowcast. It runs ONCE A MONTH,
+# the cheapest cadence on the board — Render bills crons per run-minute, so a
+# single monthly run costs pennies against the ~$9/mo the daily and hourly jobs
+# spend between them. It earns the slot because it is the only uncontaminated
+# evidence the product can generate: ten configurations were searched against
+# 2011-2026 (docs/NOWCAST_RESULTS.md), so the backtest is spent, and a forward
+# record cannot be started retroactively.
+MAX_CRON_SERVICES = 15
 MAX_SCORE_RSS_MB = 512
 MAX_EXTERNAL_TIMEOUT_SECONDS = 30
 

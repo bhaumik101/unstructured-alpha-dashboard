@@ -53,7 +53,13 @@ def test_low_frequency_jobs_are_grouped():
     # slot because score_snapshots once stopped advancing for ten days while
     # the site looked healthy; it reads only max(date), writes nothing, and
     # exits non-zero so a stalled pipeline surfaces as a failed cron.
-    assert len(crons) == 14
+    # 14 -> 15 on 2026-09-03: unstructured-alpha-nowcast. Monthly, the cheapest
+    # cadence on the board — Render bills crons per run-minute, so one run a
+    # month costs pennies beside the daily and hourly jobs. It is deliberately
+    # NOT grouped: it is the only job whose value depends on running at a
+    # specific point in the release calendar (after the Employment Situation,
+    # before Industrial Production), which no shared group schedule can honour.
+    assert len(crons) == 15
 
 
 def test_rest_scorer_has_safe_memory_headroom_and_reduced_cadence():
