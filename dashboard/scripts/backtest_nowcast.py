@@ -48,7 +48,7 @@ import pandas as pd  # noqa: E402
 from utils.config import SIGNALS  # noqa: E402
 from utils.fetchers import fetch_signal_series  # noqa: E402
 from utils.nowcast import (  # noqa: E402
-    NOWCAST_FEATURE_SIGNALS,
+    NOWCAST_PREDICTORS,
     NOWCAST_TARGET_NAME,
     NOWCAST_TARGET_SERIES,
     run_nowcast_backtest,
@@ -103,23 +103,30 @@ def main() -> int:
 
     features: dict[str, pd.Series] = {}
     missing: list[str] = []
-    for sig_id in NOWCAST_FEATURE_SIGNALS:
-        cfg = SIGNALS.get(sig_id)
+    for pred in NOWCAST_PREDICTORS:
+        # Explicit FRED series where config cannot supply one; see the
+        # Predictor block in utils/nowcast.py for why credit_spread is not
+        # the config's hy_spread.
+        cfg = SIGNALS.get(pred.signal) if pred.signal else {
+            "source": "fred", "series_id": pred.fred, "name": pred.key,
+        }
         if not cfg:
-            missing.append(f"{sig_id} (not in SIGNALS)")
+            missing.append(f"{pred.key} (not in SIGNALS)")
             continue
         try:
-            series = fetch_signal_series(cfg, start, end, point_in_time=True)
+            # first_print PER PREDICTOR: market-derived series are never
+            # revised, so a vintage request buys nothing and can cost history.
+            series = fetch_signal_series(cfg, start, end, point_in_time=pred.first_print)
         except Exception as exc:
-            missing.append(f"{sig_id} ({type(exc).__name__})")
+            missing.append(f"{pred.key} ({type(exc).__name__})")
             continue
         if series is None or series.empty:
-            missing.append(f"{sig_id} (empty)")
+            missing.append(f"{pred.key} (empty)")
             continue
-        features[sig_id] = series
+        features[pred.key] = series
 
     if not args.json:
-        print(f"[nowcast] fetched: {len(features)} of {len(NOWCAST_FEATURE_SIGNALS)} predictors"
+        print(f"[nowcast] fetched: {len(features)} of {len(NOWCAST_PREDICTORS)} predictors"
               + (f"   missing: {', '.join(missing)}" if missing else ""))
 
     result = run_nowcast_backtest(target, features, feature_lag_months=args.lag)
@@ -138,7 +145,9 @@ def main() -> int:
     verdict = "BEATS naive" if result.beats_naive else "does NOT beat naive"
     print()
     print(f"  months scored out-of-sample : {result.n_scored}")
-    print(f"  predictors used             : {result.n_features}")
+    print(f"  predictors used             : {result.n_features}  ({', '.join(result.features_used)})")
+    if result.features_dropped:
+        print(f"  dropped, too little history : {'; '.join(result.features_dropped)}")
     print(f"  RMSE  model / naive         : {result.rmse_model} / {result.rmse_naive}")
     print(f"  MAE   model / naive         : {result.mae_model} / {result.mae_naive}")
     print(f"  skill (1 - model/naive)     : {result.skill}")
