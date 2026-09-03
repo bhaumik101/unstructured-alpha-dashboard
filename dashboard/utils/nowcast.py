@@ -64,33 +64,73 @@ NOWCAST_TARGET_NAME = "Philadelphia Fed Manufacturing Index"
 # repeat that mistake in a new coat — with that many free parameters something
 # always fits.
 #
-# These nine are the standard inputs to a manufacturing-activity nowcast, and
-# each is here because of what it measures, not because it tested well:
+# Specified here rather than by SIGNALS key alone, because two of them cannot
+# come from utils/config.py:
 #
-#   rail_traffic        intermodal freight volume — physical goods movement
-#   shipping_index      dry-bulk rates — raw material demand
-#   jobless_claims      weekly labour-market deterioration, fastest hard series
-#   hy_spread           credit conditions facing industrial borrowers
-#   yield_curve         financial conditions / expected activity
-#   copper              the classic industrial-demand metal
-#   lumber_futures      construction and durable-goods input
-#   crude_oil           energy input cost and demand proxy
-#   semiconductor_etf   manufacturing cycle for the sector that leads it
+#   * credit_spread uses BAA10Y, not the config's hy_spread (BAMLH0A0HYM2).
+#     FRED's own note on that series reads "Starting in April 2026, this series
+#     will only include 3 years of observations" — ICE BofA changed the licence,
+#     so it now returns 37 months however wide a window you ask for, and one
+#     short series silently caps the whole design matrix through the inner join.
+#     BAA10Y is Moody's Baa yield over the 10-year Treasury: the same mechanism
+#     (credit conditions facing corporate borrowers), daily back to 1986, no cap.
 #
-# Adding a signal here because it improved the backtest is exactly the failure
-# this list exists to prevent. If the set changes, the mechanism goes in the
-# comment first.
-NOWCAST_FEATURE_SIGNALS: tuple[str, ...] = (
-    "rail_traffic",
-    "shipping_index",
-    "jobless_claims",
-    "hy_spread",
-    "yield_curve",
-    "copper",
-    "lumber_futures",
-    "crude_oil",
-    "semiconductor_etf",
+#   * first_print is per-predictor. Market-derived series — yields, spreads,
+#     futures, ETF prices — are never revised, so requesting a vintage buys
+#     nothing. Statistical series are revised and must be read first-print or
+#     the backtest scores itself against numbers nobody could have known.
+#     rail_traffic pays 41 months of history for that and it is worth it.
+#
+# Adding a predictor because it improved the backtest is exactly the failure
+# this list exists to prevent. If the set changes, the mechanism goes in `why`.
+
+
+@dataclass(frozen=True)
+class Predictor:
+    key: str
+    why: str
+    signal: Optional[str] = None      # utils/config.py SIGNALS key
+    fred: Optional[str] = None        # explicit FRED series id
+    first_print: bool = False         # True only for genuinely revised series
+
+
+NOWCAST_PREDICTORS: tuple[Predictor, ...] = (
+    Predictor("rail_traffic", "intermodal freight volume — physical goods movement",
+              signal="rail_traffic", first_print=True),
+    Predictor("jobless_claims", "weekly labour-market deterioration, fastest hard series",
+              signal="jobless_claims", first_print=True),
+    Predictor("credit_spread", "credit conditions facing industrial borrowers",
+              fred="BAA10Y", first_print=False),
+    Predictor("yield_curve", "financial conditions and expected activity",
+              signal="yield_curve", first_print=False),
+    Predictor("copper", "the classic industrial-demand metal",
+              signal="copper", first_print=False),
+    Predictor("crude_oil", "energy input cost and demand proxy",
+              signal="crude_oil", first_print=False),
+    Predictor("semiconductor_etf", "manufacturing cycle for the sector that leads it",
+              signal="semiconductor_etf", first_print=False),
+    Predictor("shipping_index", "dry-bulk rates — raw material demand",
+              signal="shipping_index", first_print=False),
+    Predictor("lumber_futures", "construction and durable-goods input",
+              signal="lumber_futures", first_print=False),
 )
+
+# Backwards-compatible view for callers that only want the ids.
+NOWCAST_FEATURE_SIGNALS: tuple[str, ...] = tuple(p.key for p in NOWCAST_PREDICTORS)
+
+# A predictor must overlap this fraction of the target's months to be used.
+#
+# THE BUG THIS EXISTS TO PREVENT. build_design inner-joins every feature, so the
+# SHORTEST one sets the sample for all of them. Run against real data on
+# 2026-09-03, a 136-month target collapsed to 32 aligned months because
+# hy_spread returned 37 (licence cap) and lumber_futures 50 (the CME relaunched
+# lumber as LBR in 2022). Seven predictors with a decade of history were thrown
+# away by two that did not have one, and the harness could only report that it
+# had too little data — not that two features had eaten the rest.
+#
+# Short predictors are now dropped and NAMED, so the trade is visible instead of
+# silent. 0.8 keeps anything covering four fifths of the target.
+MIN_FEATURE_COVERAGE = 0.8
 
 # Ridge penalty. FIXED, not tuned. With ~120 monthly observations and 20-odd
 # candidate features, selecting alpha against the evaluation window is the
@@ -124,6 +164,7 @@ class NowcastScore:
     available: bool = False
     reason: str = ""
     features_used: List[str] = field(default_factory=list)
+    features_dropped: List[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -170,7 +211,8 @@ def build_design(
     target: pd.Series,
     features: Dict[str, pd.Series],
     feature_lag_months: int = 1,
-) -> tuple[pd.DataFrame, pd.Series]:
+    min_coverage: float = MIN_FEATURE_COVERAGE,
+) -> tuple[pd.DataFrame, pd.Series, List[str]]:
     """Assemble the aligned (X, y) for a one-month-ahead forecast of `target`.
 
     y is the target's monthly LEVEL. X is each feature's monthly change, shifted
@@ -182,6 +224,9 @@ def build_design(
     common trend and reports a flattering in-sample fit that does not survive
     differencing. The target stays in levels because the scorecard compares
     against the naive level forecast, which is what a reader cares about.
+
+    Returns (X, y, dropped) — `dropped` names every predictor excluded for
+    insufficient overlap, so a shrunken model is never silent.
 
     Raises ValueError on feature_lag_months < 1 — see the module docstring on
     why lag 0 is refused rather than approximated.
@@ -195,26 +240,33 @@ def build_design(
 
     y = monthly_aggregate(target, how="last")
     if y.empty:
-        return pd.DataFrame(), pd.Series(dtype=float)
+        return pd.DataFrame(), pd.Series(dtype=float), []
 
+    # Coverage is measured against the target's own span, then short predictors
+    # are dropped BEFORE the join. Doing it after would be too late: the inner
+    # join has already truncated everything to the shortest series by then.
+    needed = max(1, int(round(len(y) * min_coverage)))
     cols: Dict[str, pd.Series] = {}
+    dropped: List[str] = []
     for name, raw in (features or {}).items():
         monthly = monthly_aggregate(raw, how="mean")
-        if monthly.empty or len(monthly) < 3:
+        overlap = int(monthly.index.isin(y.index).sum()) if not monthly.empty else 0
+        if overlap < needed:
+            dropped.append(f"{name} ({overlap}/{len(y)} months, needs {needed})")
             continue
         # Change, then shift into the future so month M sees month M-lag.
         cols[name] = monthly.diff().shift(feature_lag_months)
 
     if not cols:
-        return pd.DataFrame(), pd.Series(dtype=float)
+        return pd.DataFrame(), pd.Series(dtype=float), dropped
 
     X = pd.DataFrame(cols).sort_index()
     frame = X.join(y.rename("__y__"), how="inner").dropna()
     if frame.empty:
-        return pd.DataFrame(), pd.Series(dtype=float)
+        return pd.DataFrame(), pd.Series(dtype=float), dropped
 
     y_aligned = frame.pop("__y__")
-    return frame, y_aligned
+    return frame, y_aligned, dropped
 
 
 def ridge_coefficients(X: np.ndarray, y: np.ndarray, alpha: float = RIDGE_ALPHA) -> np.ndarray:
@@ -284,6 +336,22 @@ def walk_forward(
         x_test = (X_all[t] - mu) / sigma
         predicted_change = float(x_test @ beta + y_centre)
 
+        # SANITY CLAMP, specified a priori and not because it improved a score.
+        #
+        # A linear model handed inputs far outside their training range
+        # extrapolates without limit. Measured on real data 2026-09-03: for
+        # April 2020 this predicted a change of +182 on a diffusion index whose
+        # month-over-month change had never exceeded +71 in the sample, giving a
+        # level of +169.6 against an actual of -56.6. That is not a forecast, it
+        # is the model leaving the region where it has any evidence at all.
+        #
+        # A change larger than anything ever observed in training is therefore
+        # clipped back to the observed envelope. This constrains only the
+        # pathological tail; ordinary months are untouched. It is reported both
+        # ways in the PR so the effect is visible rather than absorbed.
+        lo, hi = float(y_train_change.min()), float(y_train_change.max())
+        predicted_change = min(max(predicted_change, lo), hi)
+
         rows.append({
             "date": y.index[t],
             "actual": float(y_all[t]),
@@ -331,24 +399,28 @@ def run_nowcast_backtest(
     feature_lag_months: int = 1,
     min_train: int = MIN_TRAIN_MONTHS,
     alpha: float = RIDGE_ALPHA,
+    min_coverage: float = MIN_FEATURE_COVERAGE,
 ) -> NowcastScore:
     """End-to-end: align, walk forward, score. Never raises on thin data."""
     try:
-        X, y = build_design(target, features, feature_lag_months=feature_lag_months)
+        X, y, dropped = build_design(
+            target, features, feature_lag_months=feature_lag_months,
+            min_coverage=min_coverage,
+        )
     except ValueError as exc:
         return _unavailable(str(exc), feature_lag_months=feature_lag_months)
 
     if X.empty:
         return _unavailable(
-            "no overlapping monthly observations between the target and any feature",
-            feature_lag_months=feature_lag_months,
+            "no predictor covered enough of the target's span",
+            feature_lag_months=feature_lag_months, features_dropped=dropped,
         )
     if len(y) <= min_train:
         return _unavailable(
             f"only {len(y)} aligned months; {min_train + 1} needed before the first "
             f"out-of-sample month",
             n_features=X.shape[1], feature_lag_months=feature_lag_months,
-            features_used=list(X.columns),
+            features_used=list(X.columns), features_dropped=dropped,
         )
 
     frame = walk_forward(X, y, min_train=min_train, alpha=alpha)
@@ -357,7 +429,7 @@ def run_nowcast_backtest(
         return _unavailable(
             "walk-forward produced no scored months",
             n_features=X.shape[1], feature_lag_months=feature_lag_months,
-            features_used=list(X.columns),
+            features_used=list(X.columns), features_dropped=dropped,
         )
 
     return NowcastScore(
@@ -367,5 +439,6 @@ def run_nowcast_backtest(
         available=True,
         reason="",
         features_used=list(X.columns),
+        features_dropped=dropped,
         **scored,
     )

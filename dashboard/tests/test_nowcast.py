@@ -73,7 +73,7 @@ def test_a_feature_cannot_appear_in_its_own_month():
     spike.iloc[10] = 100.0                       # a single, unmistakable month
     target = pd.Series(np.arange(24, dtype=float) + 50.0, index=idx)
 
-    X, y = build_design(target, {"spike": spike}, feature_lag_months=1)
+    X, y, _dropped = build_design(target, {"spike": spike}, feature_lag_months=1)
 
     assert X.loc[idx[10], "spike"] == 0.0, (
         "month 10's row saw month 10's own spike — that is look-ahead"
@@ -96,7 +96,7 @@ def test_predictions_do_not_change_when_future_data_arrives():
     target = _target_driven_by(driver, beta=0.9, seed=3)
     feat = pd.Series(np.cumsum(driver), index=_months(n))
 
-    X, y = build_design(target, {"driver": feat}, feature_lag_months=1)
+    X, y, _dropped = build_design(target, {"driver": feat}, feature_lag_months=1)
 
     full = walk_forward(X, y, min_train=MIN_TRAIN_MONTHS)
     truncated = walk_forward(X.iloc[:60], y.iloc[:60], min_train=MIN_TRAIN_MONTHS)
@@ -134,7 +134,7 @@ def test_the_naive_forecast_is_last_months_level():
     driver = rng.normal(0, 1, n)
     target = _target_driven_by(driver, beta=0.8, seed=9)
     feat = pd.Series(np.cumsum(driver), index=_months(n))
-    X, y = build_design(target, {"driver": feat}, feature_lag_months=1)
+    X, y, _dropped = build_design(target, {"driver": feat}, feature_lag_months=1)
 
     frame = walk_forward(X, y, min_train=MIN_TRAIN_MONTHS)
     assert not frame.empty
@@ -278,7 +278,7 @@ def test_the_feature_set_is_pre_specified_and_documented():
     from utils.nowcast import NOWCAST_FEATURE_SIGNALS
 
     source = (_ROOT / "utils" / "nowcast.py").read_text(encoding="utf-8")
-    spec = source[source.index("PRE-SPECIFIED PREDICTORS"):source.index("NOWCAST_FEATURE_SIGNALS: tuple")]
+    spec = source[source.index("PRE-SPECIFIED PREDICTORS"):source.index("MIN_FEATURE_COVERAGE =")]
 
     assert 5 <= len(NOWCAST_FEATURE_SIGNALS) <= 12, (
         f"{len(NOWCAST_FEATURE_SIGNALS)} predictors against ~120 monthly observations "
@@ -287,7 +287,7 @@ def test_the_feature_set_is_pre_specified_and_documented():
     for sig_id in NOWCAST_FEATURE_SIGNALS:
         assert sig_id in spec, (
             f"{sig_id} is used as a predictor but has no stated mechanism in the "
-            f"pre-specification comment"
+            f"pre-specification block"
         )
 
 
@@ -296,8 +296,15 @@ def test_every_predictor_actually_exists_in_the_signal_config():
     from utils.config import SIGNALS
     from utils.nowcast import NOWCAST_FEATURE_SIGNALS
 
-    unknown = [s for s in NOWCAST_FEATURE_SIGNALS if s not in SIGNALS]
-    assert not unknown, f"predictors not present in SIGNALS: {unknown}"
+    from utils.nowcast import NOWCAST_PREDICTORS
+    unknown = [p.signal for p in NOWCAST_PREDICTORS
+               if p.signal is not None and p.signal not in SIGNALS]
+    assert not unknown, f"predictors naming a SIGNALS key that does not exist: {unknown}"
+    # A predictor must resolve to exactly one source.
+    for p in NOWCAST_PREDICTORS:
+        assert bool(p.signal) != bool(p.fred), (
+            f"{p.key} must name either a SIGNALS key or a FRED series, not both/neither"
+        )
 
 
 def test_the_target_is_not_also_a_predictor():
@@ -306,9 +313,11 @@ def test_the_target_is_not_also_a_predictor():
     from utils.config import SIGNALS
     from utils.nowcast import NOWCAST_FEATURE_SIGNALS, NOWCAST_TARGET_SERIES
 
-    for sig_id in NOWCAST_FEATURE_SIGNALS:
-        assert SIGNALS[sig_id].get("series_id") != NOWCAST_TARGET_SERIES, (
-            f"{sig_id} carries the target series — that is the target leaking in "
+    from utils.nowcast import NOWCAST_PREDICTORS
+    for p in NOWCAST_PREDICTORS:
+        series = SIGNALS[p.signal].get("series_id") if p.signal else p.fred
+        assert series != NOWCAST_TARGET_SERIES, (
+            f"{p.key} carries the target series — that is the target leaking in "
             f"as a feature"
         )
 
@@ -321,3 +330,87 @@ def test_the_backtest_script_refuses_to_run_without_a_key():
         "the backtest must read first-print history; revised values would score "
         "the model against numbers nobody could have known at the time"
     )
+
+
+# ── the model must not forecast outside anything ever observed ──────────────
+
+def test_a_prediction_cannot_leave_the_observed_change_envelope():
+    """April 2020 measured: an unclamped fit predicted a +182 change on an index
+    whose largest training change was +71. A forecast outside the range of
+    anything ever seen is extrapolation failure, not a forecast."""
+    n = 120
+    rng = np.random.default_rng(404)
+    driver = rng.normal(0, 1, n)
+    target = _target_driven_by(driver, beta=1.2, seed=6)
+    feat = pd.Series(np.cumsum(driver), index=_months(n))
+
+    # A single month whose feature value is orders of magnitude outside history,
+    # the shape of a COVID-style break.
+    feat.iloc[-2] = feat.iloc[-2] + 5000.0
+
+    X, y, _dropped = build_design(target, {"driver": feat}, feature_lag_months=1)
+    frame = walk_forward(X, y, min_train=MIN_TRAIN_MONTHS)
+    assert not frame.empty
+
+    changes = y.diff().dropna()
+    head, foot = float(changes.max()), float(changes.min())
+    implied = frame["predicted"] - frame["naive"]
+    assert implied.max() <= head + 1e-6, (
+        f"predicted a change of {implied.max():.1f} against a largest observed "
+        f"{head:.1f} — the model left the region where it has evidence"
+    )
+    assert implied.min() >= foot - 1e-6
+
+
+# ── one short predictor must not cap the whole design ───────────────────────
+# Measured on real data 2026-09-03: a 136-month target collapsed to 32 aligned
+# months because hy_spread returned 37 (ICE BofA put a rolling 3-year licence
+# cap on BAMLH0A0HYM2 in April 2026) and lumber_futures 49. Seven predictors
+# with a decade of history were discarded by two that had none, and the harness
+# could only report "not enough data" — not which features had eaten it.
+
+def test_a_short_predictor_is_dropped_instead_of_capping_the_sample():
+    n = 100
+    rng = np.random.default_rng(88)
+    target = _target_driven_by(rng.normal(0, 1, n), beta=1.0, seed=2)
+    idx = _months(n)
+
+    deep = pd.Series(np.cumsum(rng.normal(0, 1, n)), index=idx)
+    shallow = pd.Series(np.cumsum(rng.normal(0, 1, 20)), index=idx[-20:])
+
+    X, y, dropped = build_design(target, {"deep": deep, "shallow": shallow})
+
+    assert "deep" in X.columns
+    assert "shallow" not in X.columns, (
+        "a 20-month predictor must be dropped, not allowed to truncate a "
+        "100-month sample through the inner join"
+    )
+    assert len(y) > 80, (
+        f"the design kept only {len(y)} months; the short predictor capped it"
+    )
+
+
+def test_dropped_predictors_are_named_with_their_coverage():
+    """A silently shrunken model is the failure mode being fixed. The reason
+    has to reach the caller."""
+    n = 100
+    rng = np.random.default_rng(89)
+    target = _target_driven_by(rng.normal(0, 1, n), beta=1.0, seed=3)
+    idx = _months(n)
+    features = {
+        "deep": pd.Series(np.cumsum(rng.normal(0, 1, n)), index=idx),
+        "shallow": pd.Series(np.cumsum(rng.normal(0, 1, 20)), index=idx[-20:]),
+    }
+
+    _X, _y, dropped = build_design(target, features)
+    assert any("shallow" in entry for entry in dropped), dropped
+    assert any("20" in entry for entry in dropped), (
+        f"the drop reason must carry the actual coverage counts; got {dropped}"
+    )
+
+    result = run_nowcast_backtest(target, features)
+    assert any("shallow" in entry for entry in result.features_dropped), (
+        "the scorecard must surface dropped predictors, or a shrunken model "
+        "looks identical to a full one"
+    )
+    assert "shallow" not in result.features_used
