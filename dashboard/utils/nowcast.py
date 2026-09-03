@@ -48,12 +48,25 @@ import numpy as np
 import pandas as pd
 
 
-# The target. NOT ISM: the ISM Manufacturing PMI is licensed and is not
+# The target: Industrial Production, Manufacturing.
+#
+# It was the Philadelphia Fed index until 2026-09-03. Two measured reasons for
+# moving, both recorded in docs/NOWCAST_RESULTS.md:
+#
+#   1. TIMING. The Philadelphia Fed index publishes inside its own month, so a
+#      true nowcast of it (lag 0) is not leak-free. Industrial Production for
+#      month M does not print until mid-M+1, which makes every input from month
+#      M legitimately available — the whole task the pivot proposed.
+#   2. IT IS BETTER USED AS A PREDICTOR. Regional Fed surveys ask firms the
+#      same question the IP index later answers, roughly four weeks earlier.
+#      Philadelphia and Empire State are now predictors, which they cannot be
+#      while one of them is also the target.
+#
+# NOT ISM either way: the ISM Manufacturing PMI is licensed and is not
 # redistributed on FRED, which is why utils/config.py's signal keyed "ism_pmi"
-# actually carries GACDFSA066MSFRBPHI — the Philadelphia Fed Manufacturing
-# Index. Naming it correctly here so the nowcast cannot inherit that confusion.
-NOWCAST_TARGET_SERIES = "GACDFSA066MSFRBPHI"
-NOWCAST_TARGET_NAME = "Philadelphia Fed Manufacturing Index"
+# actually carries the Philadelphia Fed series. The nowcast names what it uses.
+NOWCAST_TARGET_SERIES = "IPMANSICS"
+NOWCAST_TARGET_NAME = "Industrial Production: Manufacturing"
 
 # PRE-SPECIFIED PREDICTORS, each with a mechanism, chosen before seeing a score.
 #
@@ -92,28 +105,81 @@ class Predictor:
     signal: Optional[str] = None      # utils/config.py SIGNALS key
     fred: Optional[str] = None        # explicit FRED series id
     first_print: bool = False         # True only for genuinely revised series
+    # RELEASE TIMING. A predictor is usable at lag 0 only if its month-M value
+    # is published BEFORE the target's month-M value. Weekly and daily series
+    # always qualify. Monthly ones must be checked against the calendar:
+    # Industrial Production for month M prints mid-M+1, so anything landing
+    # after that is look-ahead however innocent it looks.
+    safe_at_lag0: bool = True
 
 
 NOWCAST_PREDICTORS: tuple[Predictor, ...] = (
-    Predictor("rail_traffic", "intermodal freight volume — physical goods movement",
-              signal="rail_traffic", first_print=True),
-    Predictor("jobless_claims", "weekly labour-market deterioration, fastest hard series",
-              signal="jobless_claims", first_print=True),
+    # ── same construct, measured earlier ────────────────────────────────────
+    # The strongest mechanism available and the practitioner standard: regional
+    # Fed manufacturing surveys ask firms the same question the IP index later
+    # answers, and publish around the 15th-20th of month M while national IP
+    # for month M does not print until mid-M+1. This is not a discovered
+    # correlation, it is the same measurement arriving sooner. It is also not
+    # proprietary insight — everyone who nowcasts IP uses these.
+    Predictor("empire_state", "NY Fed manufacturing survey — same construct, ~4 weeks earlier",
+              fred="GACDISA066MSFRBNY", first_print=True, safe_at_lag0=True),
+    Predictor("philly_fed", "Philadelphia Fed manufacturing survey — same construct, ~4 weeks earlier",
+              fred="GACDFSA066MSFRBPHI", first_print=True, safe_at_lag0=True),
+
+    # ── financial conditions lead real activity ─────────────────────────────
+    # Adrian, Boyarchenko & Giannone (2019) on financial conditions and the
+    # downside of the growth distribution; Gilchrist & Zakrajsek (2012) on
+    # credit spreads predicting activity. NFCI is a weekly composite, so it is
+    # available continuously rather than only at month end.
+    Predictor("financial_conditions", "Chicago Fed NFCI — credit, leverage and risk conditions",
+              fred="NFCI", first_print=False, safe_at_lag0=True),
     Predictor("credit_spread", "credit conditions facing industrial borrowers",
-              fred="BAA10Y", first_print=False),
+              fred="BAA10Y", first_print=False, safe_at_lag0=True),
+
+    # ── labour adjusts before output is measured ────────────────────────────
+    # Claims are the fastest hard labour series in existence. Hours are the
+    # margin firms flex before headcount, and AWHMAN ships with the Employment
+    # Situation on the first Friday of M+1 — ahead of IP's mid-month release.
+    Predictor("initial_claims", "weekly initial claims — fastest hard labour series",
+              fred="ICSA", first_print=True, safe_at_lag0=True),
+    Predictor("continued_claims", "weekly continued claims — persistence of layoffs",
+              fred="CCSA", first_print=True, safe_at_lag0=True),
+    Predictor("mfg_hours", "manufacturing weekly hours — firms flex hours before headcount",
+              fred="AWHMAN", first_print=True, safe_at_lag0=True),
+
+    # ── physical movement of goods ──────────────────────────────────────────
+    Predictor("rail_traffic", "intermodal freight volume — physical goods movement",
+              signal="rail_traffic", first_print=True, safe_at_lag0=True),
+
+    # ── market-derived, forward-looking but noisy ───────────────────────────
     Predictor("yield_curve", "financial conditions and expected activity",
-              signal="yield_curve", first_print=False),
+              signal="yield_curve", first_print=False, safe_at_lag0=True),
     Predictor("copper", "the classic industrial-demand metal",
-              signal="copper", first_print=False),
+              signal="copper", first_print=False, safe_at_lag0=True),
     Predictor("crude_oil", "energy input cost and demand proxy",
-              signal="crude_oil", first_print=False),
+              signal="crude_oil", first_print=False, safe_at_lag0=True),
     Predictor("semiconductor_etf", "manufacturing cycle for the sector that leads it",
-              signal="semiconductor_etf", first_print=False),
-    Predictor("shipping_index", "dry-bulk rates — raw material demand",
-              signal="shipping_index", first_print=False),
-    Predictor("lumber_futures", "construction and durable-goods input",
-              signal="lumber_futures", first_print=False),
+              signal="semiconductor_etf", first_print=False, safe_at_lag0=True),
 )
+
+# DELIBERATELY EXCLUDED, and why — each of these looks helpful and is not.
+#
+#   NEWORDER, AMTMNO, ISRATIO
+#       Census orders and inventories. Advance Durable Goods for month M
+#       releases ~26 days after month end, i.e. AFTER Industrial Production for
+#       month M. Using them at lag 0 is look-ahead, however mechanically sound
+#       "orders lead production" sounds.
+#
+#   IPG2211S (IP: Utilities), IPMANSICS when the target is INDPRO
+#       Components of the target index. Regressing a total on part of itself.
+#
+#   WEI (NY Fed Weekly Economic Index)
+#       Itself a nowcast. Including it would mean re-serving the New York Fed's
+#       model and calling the output ours.
+#
+#   hy_spread / BAMLH0A0HYM2
+#       ICE BofA capped it to a rolling 3 years in April 2026. Replaced by
+#       BAA10Y, which carries the same mechanism without the cap.
 
 # Backwards-compatible view for callers that only want the ids.
 NOWCAST_FEATURE_SIGNALS: tuple[str, ...] = tuple(p.key for p in NOWCAST_PREDICTORS)

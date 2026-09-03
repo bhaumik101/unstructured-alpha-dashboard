@@ -252,9 +252,26 @@ def test_the_target_is_named_for_the_series_it_actually_uses():
     is licensed and is not on FRED. This module must not inherit that."""
     from utils import nowcast
 
-    assert NOWCAST_TARGET_SERIES == "GACDFSA066MSFRBPHI"
-    assert "Philadelphia" in nowcast.NOWCAST_TARGET_NAME
+    assert NOWCAST_TARGET_SERIES == "IPMANSICS"
+    assert "Industrial Production" in nowcast.NOWCAST_TARGET_NAME
     assert "ISM" not in nowcast.NOWCAST_TARGET_NAME
+
+
+def test_the_target_publishes_after_its_predictors():
+    """lag 0 is only leak-free when the target prints AFTER the month it
+    describes. The Philadelphia Fed index publishes inside its own month, which
+    is why it is a predictor here and not the target."""
+    from utils.nowcast import NOWCAST_PREDICTORS, NOWCAST_TARGET_SERIES
+
+    assert NOWCAST_TARGET_SERIES != "GACDFSA066MSFRBPHI", (
+        "a target that publishes within its own month cannot be nowcast at lag 0"
+    )
+    for p in NOWCAST_PREDICTORS:
+        assert p.safe_at_lag0, (
+            f"{p.key} is not marked safe at lag 0 but is in the active set; "
+            f"Census orders and inventories release AFTER Industrial Production "
+            f"and must not be used at lag 0"
+        )
 
 
 def test_the_ridge_penalty_is_not_tuned_against_the_evaluation_window():

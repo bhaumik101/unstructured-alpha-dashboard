@@ -161,3 +161,71 @@ A scorecard that can do that is not a scorecard.
 - The best of six configurations was not reported as the result.
 - 2020 was not excluded to rescue the number.
 - `RIDGE_ALPHA` was still not tuned.
+
+---
+
+## 2026-09-03 — third run — **the best available theory does not rescue it**
+
+Twelve predictors, expanded from seven on mechanism grounds, not on results.
+Target moved to **Industrial Production: Manufacturing** (`IPMANSICS`) because
+the Philadelphia Fed index publishes inside its own month — a true nowcast of
+it is not leak-free — and because regional Fed surveys are far more useful as
+inputs than as the thing being predicted.
+
+### What was added, and the theory behind each
+
+| added | mechanism |
+|---|---|
+| `empire_state`, `philly_fed` | Regional Fed surveys ask firms the same question the IP index later answers, ~4 weeks earlier. The strongest mechanism available and the practitioner standard. |
+| `financial_conditions` (NFCI) | Adrian, Boyarchenko & Giannone (2019): financial conditions shape the downside of the growth distribution. Weekly, so continuously available. |
+| `initial_claims`, `continued_claims` | The fastest hard labour series that exist. |
+| `mfg_hours` (AWHMAN) | Firms flex hours before headcount. Ships with the Employment Situation on the first Friday of M+1 — ahead of IP's mid-month print. |
+
+### What was excluded, and why each looked helpful
+
+- **`NEWORDER`, `AMTMNO`, `ISRATIO`** — Advance Durable Goods for month M
+  releases ~26 days after month end, *after* Industrial Production for month M.
+  "Orders lead production" is mechanically true and using them at lag 0 is
+  still look-ahead.
+- **`IPG2211S`** — a component of the target index.
+- **`WEI`** — itself a nowcast. Including it means re-serving the NY Fed's model.
+
+### Result
+
+| | IP: Manufacturing (12) | Industrial Production (10) |
+|---|---|---|
+| skill | **+0.338** | +0.252 |
+| Diebold-Mariano p | **0.140 — not significant** | 0.205 |
+| months the model was closer | **49%** | 49% |
+| **skill excluding 2020** | **−0.015** | −0.082 |
+| years the model won | 3 of 9 | 3 of 10 |
+
+**The answer did not change.** The best theoretically-motivated predictors
+available moved headline skill from +0.280 to +0.338 and left every honest
+metric where it was: a coin flip month to month, and approximately zero once
+2020 is removed.
+
+One real thing did improve: skill excluding 2020 went from **−0.105 to −0.015**.
+The theory-grounded predictors genuinely are better than the market-heavy set.
+"Less bad than a random walk" is not a product, but it is a signal about which
+direction is worth anything.
+
+### The search is now spent
+
+Counting honestly: 3 targets × 2 lags, then a second feature set on 2 targets —
+**at least eight configurations against the same sample.** Every additional one
+makes an eventual "win" less believable, and a Bonferroni correction over eight
+would require p < 0.006 where the best observed is 0.140.
+
+**Further exploration on this history is worth nothing.** The only clean test
+left is out-of-time: publish a nowcast each month before the print, score it,
+and in twelve months there is an uncontaminated record. That is exactly the
+cadence the pivot was chosen for.
+
+### What was NOT done
+
+- Predictors were not added because they improved the score; every one has a
+  mechanism recorded above, written before the run.
+- 2020 was not excluded.
+- `RIDGE_ALPHA` was still not tuned.
+- No fourth feature set was tried after seeing these numbers.
