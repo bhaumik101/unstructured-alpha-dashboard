@@ -414,3 +414,75 @@ def test_dropped_predictors_are_named_with_their_coverage():
         "looks identical to a full one"
     )
     assert "shallow" not in result.features_used
+
+
+# ── skill alone is not a result ─────────────────────────────────────────────
+# Measured 2026-09-03: IP: Manufacturing at lag 0 reported skill +0.280 across
+# 100 months, which reads as a 28% error reduction over a random walk. It was
+# three crisis months. DM p = 0.20, the model was closer in only 45% of months,
+# and excluding 2020 the skill inverted to -0.105. RMSE squares errors, so a
+# handful of outliers own it. The scorecard now has to say so.
+
+def test_a_few_crisis_months_cannot_pass_as_skill():
+    """Model is slightly WORSE almost everywhere and much better in two months.
+    RMSE rewards it; significance and the hit-rate must not."""
+    n = 60
+    rng = np.random.default_rng(2020)
+    actual = pd.Series(rng.normal(0, 1, n), index=_months(n))
+    naive = actual + rng.normal(0, 1.0, n)          # ordinary error
+    predicted = actual + rng.normal(0, 1.3, n)      # slightly worse, usually
+    naive.iloc[20] += 60.0                          # the crisis the model saw
+    naive.iloc[21] -= 55.0
+    frame = pd.DataFrame({"actual": actual, "predicted": predicted, "naive": naive})
+
+    scored = score_predictions(frame)
+    assert scored["skill"] > 0, "RMSE should be flattered by the two outliers"
+    assert scored["months_model_closer"] < 0.5, (
+        "the model is closer in a minority of months — the scorecard must expose "
+        "that even while RMSE looks good"
+    )
+    assert scored["significant"] is False, (
+        f"two outlier months are not a significant result; got p={scored['dm_p_value']}"
+    )
+
+
+def test_a_consistently_better_model_is_reported_as_significant():
+    """The other direction: if the harness could never call anything real, its
+    negatives would be worthless."""
+    n = 120
+    rng = np.random.default_rng(7)
+    actual = pd.Series(rng.normal(0, 1, n), index=_months(n))
+    frame = pd.DataFrame({
+        "actual": actual,
+        "predicted": actual + rng.normal(0, 0.30, n),
+        "naive": actual + rng.normal(0, 1.30, n),
+    })
+    scored = score_predictions(frame)
+    assert scored["skill"] > 0.5
+    assert scored["significant"] is True, scored["dm_p_value"]
+    assert scored["months_model_closer"] > 0.7
+
+
+def test_significance_requires_actually_being_better_not_just_different():
+    """A model significantly WORSE than naive must never read as significant."""
+    n = 120
+    rng = np.random.default_rng(19)
+    actual = pd.Series(rng.normal(0, 1, n), index=_months(n))
+    frame = pd.DataFrame({
+        "actual": actual,
+        "predicted": actual + rng.normal(0, 1.6, n),   # clearly worse
+        "naive": actual + rng.normal(0, 0.4, n),
+    })
+    scored = score_predictions(frame)
+    assert scored["skill"] < 0
+    assert scored["significant"] is False, (
+        "a significantly worse model is not a significant result"
+    )
+
+
+def test_the_scorecard_never_reports_skill_without_significance():
+    """Skill on its own is what misled this project once already."""
+    from utils.nowcast import NowcastScore
+    fields = NowcastScore().as_dict()
+    for key in ("skill", "dm_p_value", "significant", "months_model_closer"):
+        assert key in fields, f"{key} missing from the scorecard contract"

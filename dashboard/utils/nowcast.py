@@ -161,6 +161,14 @@ class NowcastScore:
     mae_naive: Optional[float] = None
     skill: Optional[float] = None          # 1 - rmse_model/rmse_naive; >0 beats naive
     beats_naive: Optional[bool] = None
+    # Diebold-Mariano on the squared-error differential. Skill alone is
+    # dominated by a handful of crisis months and will report a confident
+    # positive off three observations; this says whether the difference is
+    # distinguishable from noise at all.
+    dm_stat: Optional[float] = None
+    dm_p_value: Optional[float] = None
+    significant: Optional[bool] = None
+    months_model_closer: Optional[float] = None
     available: bool = False
     reason: str = ""
     features_used: List[str] = field(default_factory=list)
@@ -374,15 +382,46 @@ def score_predictions(frame: pd.DataFrame) -> dict:
     """
     if frame is None or frame.empty:
         return {"rmse_model": None, "rmse_naive": None, "mae_model": None,
-                "mae_naive": None, "skill": None, "beats_naive": None, "n_scored": 0}
+                "mae_naive": None, "skill": None, "beats_naive": None, "n_scored": 0,
+                "dm_stat": None, "dm_p_value": None, "significant": None,
+                "months_model_closer": None}
 
-    err_m = frame["predicted"] - frame["actual"]
-    err_n = frame["naive"] - frame["actual"]
+    err_m = (frame["predicted"] - frame["actual"]).to_numpy(dtype=float)
+    err_n = (frame["naive"] - frame["actual"]).to_numpy(dtype=float)
     rmse_m = float(np.sqrt(np.mean(err_m ** 2)))
     rmse_n = float(np.sqrt(np.mean(err_n ** 2)))
     skill = None if rmse_n == 0 else float(1.0 - rmse_m / rmse_n)
 
+    # DIEBOLD-MARIANO, and why the scorecard refuses to report skill without it.
+    #
+    # Measured 2026-09-03 on IP: Manufacturing at lag 0: skill read +0.280,
+    # which looks like a 28% error reduction over a random walk across 100
+    # months. It was not. DM p = 0.20, it did not survive correction for the
+    # six configurations searched, the model was closer to the truth in only
+    # 45% of months, and excluding 2020 the skill inverted to -0.105. The whole
+    # figure came from three crisis months where the naive forecast was
+    # catastrophically wrong and the model was merely very wrong — RMSE squares
+    # errors, so a handful of outliers own the result.
+    #
+    # months_model_closer is reported alongside for the same reason: it is the
+    # median-flavoured companion to an RMSE that only reports the mean.
+    with np.errstate(invalid="ignore", divide="ignore"):
+        loss_diff = err_m ** 2 - err_n ** 2
+        denom = float(np.std(loss_diff, ddof=1)) / np.sqrt(len(loss_diff)) if len(loss_diff) > 1 else 0.0
+        dm = float(np.mean(loss_diff) / denom) if denom > 0 else None
+    if dm is None or not np.isfinite(dm):
+        dm, dm_p = None, None
+    else:
+        from scipy import stats as _st
+        dm_p = float(2.0 * (1.0 - _st.norm.cdf(abs(dm))))
+
+    closer = float(np.mean(np.abs(err_m) < np.abs(err_n)))
+
     return {
+        "dm_stat": None if dm is None else round(dm, 4),
+        "dm_p_value": None if dm_p is None else round(dm_p, 6),
+        "significant": None if dm_p is None else bool(dm_p < 0.05 and rmse_m < rmse_n),
+        "months_model_closer": round(closer, 4),
         "rmse_model": round(rmse_m, 4),
         "rmse_naive": round(rmse_n, 4),
         "mae_model": round(float(np.mean(np.abs(err_m))), 4),
