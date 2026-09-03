@@ -71,6 +71,9 @@ def main() -> int:
                     help="history window to request (default 15)")
     ap.add_argument("--lag", type=int, default=1,
                     help="feature lag in months; 1 = one-month-ahead forecast (default)")
+    ap.add_argument("--estimator", choices=("factor", "ridge"), default="factor",
+                    help="factor (default) extracts common components before "
+                         "regressing; ridge regresses on the predictors directly")
     ap.add_argument("--json", action="store_true", help="emit JSON only")
     args = ap.parse_args()
 
@@ -91,6 +94,7 @@ def main() -> int:
         print(f"[nowcast] target : {NOWCAST_TARGET_NAME} ({NOWCAST_TARGET_SERIES})")
         print(f"[nowcast] window : {start} -> {end}   (first-print)")
         print(f"[nowcast] lag    : {args.lag} month(s)")
+        print(f"[nowcast] model  : {args.estimator}")
 
     # POINT-IN-TIME. Revised values would let the backtest score itself against
     # numbers that did not exist at the time.
@@ -129,7 +133,8 @@ def main() -> int:
         print(f"[nowcast] fetched: {len(features)} of {len(NOWCAST_PREDICTORS)} predictors"
               + (f"   missing: {', '.join(missing)}" if missing else ""))
 
-    result = run_nowcast_backtest(target, features, feature_lag_months=args.lag)
+    result = run_nowcast_backtest(target, features, feature_lag_months=args.lag,
+                                  estimator=args.estimator)
     payload = result.as_dict()
     payload["missing_features"] = missing
     payload["target_observations"] = int(len(target.dropna()))
@@ -151,6 +156,9 @@ def main() -> int:
     print(f"  RMSE  model / naive         : {result.rmse_model} / {result.rmse_naive}")
     print(f"  MAE   model / naive         : {result.mae_model} / {result.mae_naive}")
     print(f"  skill (1 - model/naive)     : {result.skill}")
+    print(f"  Diebold-Mariano p           : {result.dm_p_value}   "
+          f"({'significant' if result.significant else 'NOT significant'})")
+    print(f"  months model closer         : {result.months_model_closer}")
     print()
     print(f"  VERDICT: {verdict}")
     if not result.beats_naive:
