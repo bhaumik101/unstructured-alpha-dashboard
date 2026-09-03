@@ -629,3 +629,67 @@ services:
         value: "https://www.unstructuredalpha.com"
       - key: APP_URL
         value: "https://unstructuredalpha.com"
+
+  # ── Marketing site / landing page ────────────────────────────────────────────
+  #
+  # Moved off Vercel 2026-09-01 to consolidate hosting on Render. This is the
+  # canonical brand host: www serves the landing page AND proxies the SEO
+  # service's 329 crawlable pages (see unstructured-alpha-web/next.config.ts),
+  # which is why it cannot simply be switched off — the SEO service's
+  # SEO_BASE_URL, its canonical tags and its sitemap all point here.
+  #
+  # NOT a Render static site, deliberately: this app has three real server
+  # routes (/api/track, /api/subscribe, /sitemap.xml) plus the rewrites above,
+  # so `output: "export"` is impossible. It needs a Node server.
+  #
+  # --port $PORT --hostname 0.0.0.0 for the same reason the Streamlit service
+  # needs it: Render assigns the listen port dynamically and proxies external
+  # traffic to it. Next's default (localhost:3000) would never receive that.
+  - type: web
+    name: unstructured-alpha-web
+    runtime: node
+    plan: starter
+    rootDir: dashboard/unstructured-alpha-web
+    # Same poisoned-cache recovery the Python services carry, in npm's dialect:
+    # a corrupt npm cache entry is replayed on every Render build exactly the
+    # way a corrupt pip one is, and only a manual "Clear build cache" ends it.
+    # Parenthesised because `a || b && c` binds left to right -- without the
+    # group, `npm run build` would be tied to whichever install ran.
+    buildCommand: "(npm ci || (npm cache clean --force && npm ci)) && npm run build"
+    startCommand: npm run start -- --port $PORT --hostname 0.0.0.0
+    healthCheckPath: /
+    envVars:
+      # Next 16 requires Node >= 20.9. Pinned rather than left to Render's
+      # default so a change in that default cannot break the build silently --
+      # and pinned to the version the build was actually verified on (24.11.1
+      # locally, `npm ci && npm run build`, clean), not to a nearby LTS nobody
+      # ran it against.
+      - key: NODE_VERSION
+        value: "24"
+      # THE INTERNAL ADDRESS, not https://seo.unstructuredalpha.com.
+      #
+      # The rewrites are executed server-side by this Next process, so they can
+      # reach the SEO service over Render's private network — both are in
+      # oregon. Going over the public subdomain instead would add a round trip
+      # through Cloudflare and the public internet for every proxied page, and
+      # would keep www's availability tied to a public DNS name that exists
+      # only to serve this proxy.
+      #
+      # It also frees the seo.unstructuredalpha.com custom domain, which
+      # matters: the Hobby plan includes 2 and app.* + seo.* already used both.
+      # Removing that domain is a separate dashboard step, deliberately NOT
+      # coupled to this deploy -- verify www serves the proxied routes from the
+      # internal origin FIRST, because dropping it is the harder thing to undo.
+      - key: SEO_ORIGIN
+        value: http://unstructured-alpha-seo:10000
+      # Shared secret with the SEO service's own TRACK_INGEST_TOKEN. The values
+      # must MATCH or the analytics beacon fails closed and the top of the
+      # funnel goes silently invisible -- see that service's block above.
+      - key: TRACK_INGEST_TOKEN
+        sync: false
+      # Newsletter signup (/api/subscribe). Without these the endpoint errors
+      # and the form appears to work while capturing nobody.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_AUDIENCE_ID
+        sync: false
