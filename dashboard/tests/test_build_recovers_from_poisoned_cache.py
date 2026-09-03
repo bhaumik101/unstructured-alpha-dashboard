@@ -41,8 +41,25 @@ def test_services_are_parsed():
     assert len(_SERVICES) >= 15, f"only {len(_SERVICES)} build commands found"
 
 
+# The hazard is the package manager's cache, not pip specifically: npm replays a
+# corrupt cache entry on Render the same way, and the same manual "Clear build
+# cache" is the only thing that ends it. Each runtime spells the escape hatch
+# differently, so the invariant is expressed per runtime rather than dropped for
+# the one service that is not Python.
+_NO_CACHE_MARKER = {"python": "--no-cache-dir", "node": "npm cache clean"}
+
+
+def _marker(svc: dict) -> str:
+    runtime = svc.get("runtime", "python")
+    assert runtime in _NO_CACHE_MARKER, (
+        f"{svc['name']}: runtime {runtime!r} has no known cache-bypass form — "
+        f"add one here rather than letting the service skip this invariant"
+    )
+    return _NO_CACHE_MARKER[runtime]
+
+
 def test_every_build_retries_without_the_cache():
-    missing = [s["name"] for s in _SERVICES if "--no-cache-dir" not in s["buildCommand"]]
+    missing = [s["name"] for s in _SERVICES if _marker(s) not in s["buildCommand"]]
     assert not missing, (
         "a poisoned cache entry is permanent for these services — every build "
         f"replays it until someone clears the cache by hand: {missing}"
@@ -50,7 +67,7 @@ def test_every_build_retries_without_the_cache():
 
 
 def test_the_retry_is_a_fallback_not_the_default():
-    """Always skipping the cache would slow all 16 services on every build."""
+    """Always skipping the cache would slow every service on every build."""
     for s in _SERVICES:
         cmd = s["buildCommand"]
         assert "||" in cmd, (
@@ -58,7 +75,7 @@ def test_the_retry_is_a_fallback_not_the_default():
             f"not the primary command"
         )
         first = cmd.split("||")[0]
-        assert "--no-cache-dir" not in first, (
+        assert _marker(s) not in first, (
             f"{s['name']}: the FIRST install should use the cache; only the "
             f"retry bypasses it"
         )
