@@ -600,6 +600,37 @@ signal_flip_log = Table(
 # next page load that calls resolve_pending_predictions(). This creates
 # an auditable, public track record — something no free tool offers.
 # event_type: "convergence" | "score_cross_bull" | "score_cross_bear"
+# The forward nowcast record.
+#
+# WHY A SEPARATE TABLE AND NOT prediction_log. That table holds directional
+# calls on tickers resolved at 4/8/12 weeks. This holds point estimates of a
+# macro release scored against the published number and against the naive
+# forecast, on a monthly clock. Different claim, different resolution rule.
+#
+# THE UNIQUE CONSTRAINT IS THE WHOLE POINT. One row per (target, month), written
+# once and never updated. A nowcast that can be revised after the number prints
+# is not a forecast, and the entire argument for the pivot is that this record
+# cannot be edited into looking good. Scoring fills `actual` and `scored_at`;
+# nothing may ever rewrite `predicted`.
+nowcast_log = Table(
+    "nowcast_log", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("target_series", String(32), nullable=False),   # e.g. IPMANSICS
+    Column("target_month", String(7), nullable=False),     # YYYY-MM being nowcast
+    Column("predicted", Float, nullable=False),
+    Column("naive", Float, nullable=False),                # last published level
+    Column("estimator", String(16), nullable=False),
+    Column("n_features", Integer),
+    Column("features_used", Text),
+    # When the claim was made. This is the timestamp that makes it advance
+    # evidence rather than hindsight, so it is never touched by scoring.
+    Column("created_at", String(32), nullable=False),
+    Column("actual", Float),                               # filled once published
+    Column("scored_at", String(32)),
+    UniqueConstraint("target_series", "target_month", name="uq_nowcast_target_month"),
+)
+
+
 prediction_log = Table(
     "prediction_log", metadata,
     Column("id", Integer, primary_key=True),

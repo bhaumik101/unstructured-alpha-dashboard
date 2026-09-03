@@ -294,3 +294,64 @@ extracted from 2011-2026.
 - `RIDGE_ALPHA` was still not tuned.
 - 2020 was still not excluded.
 - No fifth model was tried after seeing these numbers.
+
+---
+
+## 2026-09-03 — **correction: the backtest had look-ahead**, and the forward record starts
+
+Found by running the cron against live data, not by any amount of backtesting.
+
+`rail_traffic` (`RAILFRTINTERMODAL`, first-print) publishes roughly **two months
+late**: on 2026-09-03 its most recent observation was **2026-06**, while the open
+nowcast month was **2026-08**. Historically the value for month M exists in the
+data, so a lag-0 backtest uses it happily. In real time it does not exist until
+about M+2. That is look-ahead, and it was inflating the result.
+
+### Corrected numbers
+
+| | contaminated (12 predictors) | **corrected (11)** |
+|---|---|---|
+| skill | +0.370 | **+0.348** |
+| Diebold-Mariano p | 0.113 | **0.131** |
+| months the model was closer | 51% | **50%** |
+| **skill excluding 2020** | +0.051 | **−0.006** |
+
+**The one genuine "first" claimed for the factor model was the look-ahead.**
+Skill surviving the removal of 2020 came from rail_traffic. Corrected, it is
+zero, and the hit rate is a literal coin flip.
+
+This is the most useful thing the exercise has produced. **No amount of
+backtesting would have caught it** — the bias is invisible in history, because
+history contains the value. It surfaced the moment a job tried to fetch that
+month in real time and could not.
+
+`predictors_for_lag()` now enforces it structurally: at lag 0 only predictors
+whose month-M value publishes before the target's are used, so the mistake
+cannot be made again by forgetting.
+
+### The forward record
+
+`cron/run_nowcast.py`, monthly on the **8th**. That date is the only window
+where every input exists and the answer does not:
+
+    first Friday   Employment Situation publishes AWHMAN for the month
+    the 8th        the job runs
+    ~the 15th      Industrial Production publishes the month being nowcast
+
+Running on the 1st was tried first and is wrong — AWHMAN has not published, and
+the job refuses rather than dropping a required predictor.
+
+One row per (target, month), written once, never updated. Scoring may fill
+`actual` and `scored_at` and nothing else. A skill score is withheld until
+twelve scored months exist, because a ratio of two RMSEs over a handful of
+observations is what produced the +0.280 that started this correction chain.
+
+**The locked specification:**
+
+    target      IPMANSICS (Industrial Production: Manufacturing)
+    predictors  the 11 lag-0-safe entries in NOWCAST_PREDICTORS
+    lag         0, asserted leak-free via NOWCAST_TARGET_RELEASE_LAG_MONTHS
+    model       factor, 3 components, RIDGE_ALPHA = 10.0
+    baseline    last published level
+
+Changing any of it restarts the record. The cron exposes no flags that could.

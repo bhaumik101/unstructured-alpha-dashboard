@@ -49,6 +49,7 @@ from utils.config import SIGNALS  # noqa: E402
 from utils.fetchers import fetch_signal_series  # noqa: E402
 from utils.nowcast import (  # noqa: E402
     NOWCAST_PREDICTORS,
+    predictors_for_lag,
     NOWCAST_TARGET_NAME,
     NOWCAST_TARGET_SERIES,
     run_nowcast_backtest,
@@ -107,7 +108,7 @@ def main() -> int:
 
     features: dict[str, pd.Series] = {}
     missing: list[str] = []
-    for pred in NOWCAST_PREDICTORS:
+    for pred in predictors_for_lag(args.lag):
         # Explicit FRED series where config cannot supply one; see the
         # Predictor block in utils/nowcast.py for why credit_spread is not
         # the config's hy_spread.
@@ -130,7 +131,7 @@ def main() -> int:
         features[pred.key] = series
 
     if not args.json:
-        print(f"[nowcast] fetched: {len(features)} of {len(NOWCAST_PREDICTORS)} predictors"
+        print(f"[nowcast] fetched: {len(features)} of {len(predictors_for_lag(args.lag))} predictors"
               + (f"   missing: {', '.join(missing)}" if missing else ""))
 
     result = run_nowcast_backtest(target, features, feature_lag_months=args.lag,

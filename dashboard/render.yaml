@@ -660,3 +660,43 @@ services:
         value: "https://www.unstructuredalpha.com"
       - key: APP_URL
         value: "https://unstructuredalpha.com"
+
+  # ── Monthly macro nowcast: the forward record ───────────────────────────────
+  #
+  # THE 8TH IS NOT ARBITRARY. It is the only window where every input exists and
+  # the answer does not:
+  #
+  #     first Friday   Employment Situation publishes AWHMAN for the month
+  #     the 8th        THIS JOB RUNS
+  #     ~the 15th      Industrial Production publishes the month being nowcast
+  #
+  # Running on the 1st was tried and is wrong — AWHMAN has not published, and
+  # the job correctly refuses rather than silently dropping a required
+  # predictor. Running after the 15th would not be a nowcast at all.
+  #
+  # The specification this job runs is LOCKED (see docs/NOWCAST_RESULTS.md).
+  # Changing the target, predictors, lag or model restarts the record, so this
+  # service deliberately exposes no flags that could change any of them.
+  - type: cron
+    name: unstructured-alpha-nowcast
+    runtime: python
+    plan: starter
+    rootDir: dashboard
+    schedule: "0 12 8 * *"   # 12:00 UTC on the 8th
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
+    startCommand: python -m cron.run_nowcast
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: FRED_API_KEY
+        sync: false
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
+      - key: NUMEXPR_NUM_THREADS
+        value: "1"
+      - key: VECLIB_MAXIMUM_THREADS
+        value: "1"

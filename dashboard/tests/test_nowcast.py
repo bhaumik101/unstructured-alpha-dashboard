@@ -267,11 +267,13 @@ def test_the_target_publishes_after_its_predictors():
     assert NOWCAST_TARGET_SERIES != "GACDFSA066MSFRBPHI", (
         "a target that publishes within its own month cannot be nowcast at lag 0"
     )
-    for p in NOWCAST_PREDICTORS:
+    # Not every predictor need be lag-0 safe — predictors_for_lag filters them.
+    # What must hold is that the set actually USED at lag 0 is all-safe.
+    from utils.nowcast import predictors_for_lag
+    for p in predictors_for_lag(0):
         assert p.safe_at_lag0, (
-            f"{p.key} is not marked safe at lag 0 but is in the active set; "
-            f"Census orders and inventories release AFTER Industrial Production "
-            f"and must not be used at lag 0"
+            f"{p.key} is used at lag 0 but publishes too late; its month-M value "
+            f"does not exist when the nowcast is made, which is look-ahead"
         )
 
 
@@ -586,3 +588,51 @@ def test_the_estimator_used_is_recorded_on_the_scorecard():
     factor = run_nowcast_backtest(target, feats, estimator="factor")
     assert ridge.estimator == "ridge" and factor.estimator == "factor"
     assert ridge.available and factor.available
+
+
+def test_lag_zero_needs_an_explicit_release_lag_assertion():
+    """Lag 0 is leak-free only when the target publishes after the month it
+    describes. That has to be asserted, not assumed."""
+    from utils.nowcast import NOWCAST_TARGET_RELEASE_LAG_MONTHS
+    idx = _months(60)
+    rng = np.random.default_rng(66)
+    target = _target_driven_by(rng.normal(0, 1, 60), beta=1.0, seed=1)
+    feats = {"f": pd.Series(np.cumsum(rng.normal(0, 1, 60)), index=idx)}
+
+    # Default: refused, because nothing has claimed the target publishes late.
+    with pytest.raises(ValueError, match="target_release_lag_months"):
+        build_design(target, feats, feature_lag_months=0)
+
+    # Asserted: permitted.
+    X, y, _d = build_design(target, feats, feature_lag_months=0,
+                            target_release_lag_months=1)
+    assert not X.empty
+
+    assert NOWCAST_TARGET_RELEASE_LAG_MONTHS >= 1, (
+        "the shipped target must publish after the month it describes, or the "
+        "cron's lag-0 nowcast is look-ahead"
+    )
+
+
+def test_predictors_that_publish_late_are_excluded_at_lag_zero():
+    """rail_traffic exists for month M in history and does NOT exist in real
+    time until ~M+2. A lag-0 backtest uses it happily; the live cron cannot.
+    Measured 2026-09-03: including it inflated ex-2020 skill from -0.006 to
+    +0.051, which is the entire difference between "no edge" and "an edge"."""
+    from utils.nowcast import NOWCAST_PREDICTORS, predictors_for_lag
+
+    safe = predictors_for_lag(0)
+    assert len(safe) < len(NOWCAST_PREDICTORS), (
+        "at least one predictor publishes too late for a lag-0 nowcast"
+    )
+    assert all(p.safe_at_lag0 for p in safe)
+    assert "rail_traffic" not in {p.key for p in safe}
+    # At lag 1 there is a full extra month, so everything qualifies.
+    assert len(predictors_for_lag(1)) == len(NOWCAST_PREDICTORS)
+
+
+def test_the_cron_only_fetches_lag_safe_predictors():
+    source = (_ROOT / "cron" / "run_nowcast.py").read_text(encoding="utf-8")
+    assert "predictors_for_lag(0)" in source, (
+        "the live nowcast must not fetch predictors that will not exist in time"
+    )

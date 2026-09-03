@@ -68,6 +68,16 @@ import pandas as pd
 NOWCAST_TARGET_SERIES = "IPMANSICS"
 NOWCAST_TARGET_NAME = "Industrial Production: Manufacturing"
 
+# Months between the end of the period a target describes and its publication.
+#
+# This is what makes lag 0 legitimate. Industrial Production for month M prints
+# in the middle of M+1, so at the end of month M every high-frequency input for
+# M is known and the official number is not — a genuine nowcast window. The
+# Philadelphia Fed index has a release lag of ZERO by this definition (it
+# publishes inside the month it describes), which is exactly why it is a
+# predictor here and not the target.
+NOWCAST_TARGET_RELEASE_LAG_MONTHS = 1
+
 # PRE-SPECIFIED PREDICTORS, each with a mechanism, chosen before seeing a score.
 #
 # This is the discipline the Confluence Score never had: it weighted all 47
@@ -148,8 +158,14 @@ NOWCAST_PREDICTORS: tuple[Predictor, ...] = (
               fred="AWHMAN", first_print=True, safe_at_lag0=True),
 
     # ── physical movement of goods ──────────────────────────────────────────
+    # NOT SAFE AT LAG 0, measured 2026-09-03: FRED's first-print series was last
+    # observed at 2026-06 while the open nowcast month was 2026-08 — a
+    # publication lag of roughly two months. Historically the value for month M
+    # exists in the data, so a lag-0 backtest happily uses it; in real time it
+    # does not exist until M+2. That is look-ahead, and it silently inflated the
+    # first factor-model result until the cron ran and could not find the month.
     Predictor("rail_traffic", "intermodal freight volume — physical goods movement",
-              signal="rail_traffic", first_print=True, safe_at_lag0=True),
+              signal="rail_traffic", first_print=True, safe_at_lag0=False),
 
     # ── market-derived, forward-looking but noisy ───────────────────────────
     Predictor("yield_curve", "financial conditions and expected activity",
@@ -161,6 +177,21 @@ NOWCAST_PREDICTORS: tuple[Predictor, ...] = (
     Predictor("semiconductor_etf", "manufacturing cycle for the sector that leads it",
               signal="semiconductor_etf", first_print=False, safe_at_lag0=True),
 )
+
+def predictors_for_lag(feature_lag_months: int) -> tuple[Predictor, ...]:
+    """The predictors usable at a given lag.
+
+    At lag 0 a predictor is only usable if its month-M value publishes before
+    the target's does. Anything slower is look-ahead — it exists in history, so
+    a backtest will use it happily, and it will not exist in real time.
+
+    This is enforced structurally rather than by remembering, because the
+    failure is invisible: the backtest simply scores better.
+    """
+    if feature_lag_months == 0:
+        return tuple(p for p in NOWCAST_PREDICTORS if p.safe_at_lag0)
+    return NOWCAST_PREDICTORS
+
 
 # DELIBERATELY EXCLUDED, and why — each of these looks helpful and is not.
 #
@@ -287,6 +318,7 @@ def build_design(
     features: Dict[str, pd.Series],
     feature_lag_months: int = 1,
     min_coverage: float = MIN_FEATURE_COVERAGE,
+    target_release_lag_months: int = 0,
 ) -> tuple[pd.DataFrame, pd.Series, List[str]]:
     """Assemble the aligned (X, y) for a one-month-ahead forecast of `target`.
 
@@ -306,11 +338,16 @@ def build_design(
     Raises ValueError on feature_lag_months < 1 — see the module docstring on
     why lag 0 is refused rather than approximated.
     """
-    if feature_lag_months < 1:
+    if feature_lag_months < 0:
+        raise ValueError("feature_lag_months cannot be negative")
+    if feature_lag_months == 0 and target_release_lag_months < 1:
         raise ValueError(
-            "feature_lag_months must be >= 1. Lag 0 is a true nowcast and needs "
-            "per-release intra-month information cutoffs that are not implemented; "
-            "allowing it here would leak days of future data silently."
+            "feature_lag_months=0 is a true nowcast and is only leak-free when the "
+            "target publishes AFTER the month it describes. Pass "
+            "target_release_lag_months>=1 to assert that (Industrial Production "
+            "for month M prints mid-M+1, so it qualifies; the Philadelphia Fed "
+            "index publishes inside its own month and does not). Allowing lag 0 "
+            "without that assertion leaks days of future data silently."
         )
 
     y = monthly_aggregate(target, how="last")
@@ -558,6 +595,7 @@ def run_nowcast_backtest(
     min_train: int = MIN_TRAIN_MONTHS,
     alpha: float = RIDGE_ALPHA,
     min_coverage: float = MIN_FEATURE_COVERAGE,
+    target_release_lag_months: int = 0,
     estimator: str = "ridge",  # scripts default to "factor"; see N_FACTORS
     n_factors: int = N_FACTORS,
 ) -> NowcastScore:
@@ -566,6 +604,7 @@ def run_nowcast_backtest(
         X, y, dropped = build_design(
             target, features, feature_lag_months=feature_lag_months,
             min_coverage=min_coverage,
+            target_release_lag_months=target_release_lag_months,
         )
     except ValueError as exc:
         return _unavailable(str(exc), feature_lag_months=feature_lag_months)
