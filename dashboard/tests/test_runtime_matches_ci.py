@@ -55,22 +55,13 @@ def test_the_pin_matches_ci():
     )
 
 
-def test_every_python_service_shares_the_root_dir_the_pin_lives_in():
-    """One .python-version covers every PYTHON service because they share a rootDir.
-
-    Scoped to the Python runtime deliberately. The landing page is a Node
-    service rooted at dashboard/unstructured-alpha-web and has no business
-    inheriting an interpreter pin; counting it here would assert something the
-    file this test exists to protect does not govern.
-    """
-    import yaml as _yaml
-
-    spec = _yaml.safe_load((_DASHBOARD / "render.yaml").read_text(encoding="utf-8"))
-    python_services = [s for s in spec.get("services", [])
-                       if s.get("runtime", "python") == "python"]
-    assert python_services, "no python services parsed from render.yaml"
-    unrooted = [s["name"] for s in python_services if s.get("rootDir") != "dashboard"]
-    assert not unrooted, (
-        f"{unrooted} are Python services that do not declare rootDir: dashboard — "
-        f".python-version in dashboard/ would not reach them"
+def test_every_service_shares_the_root_dir_the_pin_lives_in():
+    """One file only covers all services because they all share a rootDir."""
+    yaml = (_DASHBOARD / "render.yaml").read_text(encoding="utf-8")
+    services = len(re.findall(r"^  - type:", yaml, flags=re.M))
+    rooted = len(re.findall(r"^\s*rootDir:\s*dashboard\s*$", yaml, flags=re.M))
+    assert services > 0, "no services parsed from render.yaml"
+    assert rooted >= services, (
+        f"{services} services but only {rooted} declare rootDir: dashboard — "
+        f".python-version in dashboard/ would not reach all of them"
     )
