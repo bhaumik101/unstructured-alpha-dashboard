@@ -90,3 +90,74 @@ Two legitimate next steps, neither of which is tuning:
 
 If neither works, the honest conclusion is that this data does not nowcast
 manufacturing activity, and that is publishable exactly as it stands.
+
+---
+
+## 2026-09-03 — second run — **the nowcast wins, then the win evaporates**
+
+Prompted by the first run's honest read: try a target with a genuine release
+lag. Six configurations were searched — three targets x two lags. **All six are
+reported below**, because reporting only the best of a search is the same
+p-hacking this project was already caught by once.
+
+### The search
+
+| target | lag 1 (forecast) | lag 0 (nowcast) | lag 0 safe? |
+|---|---|---|---|
+| Philadelphia Fed Mfg | −0.156 | +0.057 | **no** — publishes within its own month |
+| Industrial Production | −0.250 | **+0.106** | yes — ~6-week release lag |
+| IP: Manufacturing | −0.416 | **+0.280** | yes — ~6-week release lag |
+
+**A correction to the first run's reasoning.** It argued a smoother target would
+be easier. That was wrong: skill is *relative*, so a smoother target makes
+persistence smoother too. INDPRO's monthly change has a standard deviation of
+1.36 on a ~100 index, and a random walk is close to unbeatable there. INDPRO at
+lag 1 scored *worse* than the volatile Philadelphia Fed index, not better.
+
+**What did change the result was lag 0.** A one-month-ahead forecast was never
+the task the pivot proposed. Because IP for month M is not published until
+mid-M+1, using all of month M's high-frequency data is legitimate — at the
+moment the number prints, every input was already known. That is a genuine
+nowcast, and it is leak-free *for this target specifically*. It is not
+leak-free for the Philadelphia Fed index, which publishes inside its own month,
+and that row is excluded from consideration for exactly that reason.
+
+### And then it evaporated
+
+| | IP: Manufacturing | Industrial Production |
+|---|---|---|
+| skill | +0.280 | +0.106 |
+| Diebold-Mariano p | **0.200 — not significant** | **0.530 — not significant** |
+| Bonferroni over 6 configs | does not survive | does not survive |
+| **skill excluding 2020** | **−0.105** | **−0.104** |
+| months the model was closer | **45%** | **37%** |
+| years the model won | 2 of 9 | 2 of 13 |
+
+**The entire apparent win is 2020.** RMSE squares errors, so three crisis months
+— where the random walk was catastrophically wrong and the model merely very
+wrong — own the whole figure. In ordinary months the model is *worse* than
+persistence: it lands closer to the truth in fewer than half of them.
+
+### The honest conclusion
+
+**The nowcast does not beat persistence.** Not at lag 1, and not at lag 0 once
+the result is tested rather than admired.
+
+There is one genuine, narrow finding inside this: the high-frequency data *did*
+see the 2020 collapse when a random walk could not. That is what nowcasting is
+supposed to be for — turning points, where persistence fails by construction.
+But "this helps during once-a-decade shocks" is not a product claim, and one
+crisis is n=1.
+
+### What this changed in the code
+
+`score_predictions` now reports `dm_p_value`, `significant` and
+`months_model_closer` alongside skill. Skill on its own produced a confident
++0.280 off three observations and would have been shipped as a 28% improvement.
+A scorecard that can do that is not a scorecard.
+
+### What was NOT done
+
+- The best of six configurations was not reported as the result.
+- 2020 was not excluded to rescue the number.
+- `RIDGE_ALPHA` was still not tuned.
