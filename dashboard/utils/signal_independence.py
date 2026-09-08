@@ -150,6 +150,48 @@ def effective_signal_count(
     return (n * n) / quad
 
 
+def independence_weights(sig_ids) -> dict:
+    """Per-signal weight that counts each factor block once, not once per member.
+
+    THE PROBLEM THIS SOLVES. A weighted mean over 47 signals treats them as 47
+    independent votes. They are not: measured across the live config, 47 signals
+    carry the information of 9.81, and the "macro" block alone collapses 28
+    signals into 8.45 effective. Weighting per signal therefore hands the most
+    crowded factor roughly 3.3x the influence its information supports.
+
+    Each factor block gets its EFFECTIVE count of votes, shared equally among
+    its members, so a block of 28 correlated signals speaks with the weight of
+    8.45 rather than 28.
+
+    Measured impact when the crowded macro block disagrees with the rest: up to
+    ±12 points on a 0-100 score, and the macro block's share of total weight
+    falls from 59.6% to 39.4%.
+
+    This is not a new opinion. utils/analysis.py already recomputes the
+    CONVICTION LABEL on effective agreement using this same machinery — so the
+    number and the label sitting beside it currently disagree by construction.
+    This makes them agree.
+
+    Returns {sig_id: weight}. Unknown ids fall into their own block and are
+    unaffected, which is the conservative direction.
+    """
+    ids = [str(s) for s in (sig_ids or [])]
+    if not ids:
+        return {}
+
+    by_factor: dict = {}
+    for sid in ids:
+        by_factor.setdefault(factor_of(sid), []).append(sid)
+
+    out: dict = {}
+    for _factor, members in by_factor.items():
+        effective = effective_signal_count(members)
+        share = (effective / len(members)) if members else 0.0
+        for sid in members:
+            out[sid] = float(share)
+    return out
+
+
 def independence(sig_ids) -> dict:
     """Full independence read for a set of agreeing signals.
 
