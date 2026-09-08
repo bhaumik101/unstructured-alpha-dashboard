@@ -225,6 +225,27 @@ def validate_all_macro_signals(_v: int = 1) -> Dict[str, dict]:
     return out
 
 
+def confluence_disclosure() -> dict:
+    """The Confluence Score's validation status, for display AT THE SCORE.
+
+    WHY THIS FUNCTION EXISTS. The walk-forward null result was written down and
+    surfaced on Model Validation, Signal Research and About — every page except
+    the one where someone actually receives a score. A reader typed a ticker,
+    got a 0-100 number and a conviction label, and had to find their way two
+    clicks deeper to learn the score has never been shown to predict returns.
+    That is the gap an external reviewer sees first.
+
+    Pulled from get_static_validation_summary() rather than restated, so the
+    claim at the point of use cannot drift from the claim on the validation
+    page — tests/test_validation_status_unit.py already pins those strings
+    against the source docstrings they came from.
+    """
+    for entry in get_static_validation_summary():
+        if entry.get("category", "").startswith("Confluence Score"):
+            return {"status": entry["status"], "detail": entry["detail"]}
+    return {"status": "", "detail": ""}
+
+
 def get_static_validation_summary() -> list:
     """
     Validation status for every score category that ISN'T a per-signal

@@ -862,8 +862,12 @@ def compute_signal_confidence(
         icon  = "◆"
         color = "#00D566"
         note  = (
-            f"Strong read — {z:.1f}σ from 52w mean, "
-            f"momentum aligns, historically predictive (PCS {pcs_score}/10)."
+            # PCS is a hand-assigned 1-10 prior. It was never validated, and
+            # since 2026-09-03 it does not even set the signal's weight — the
+            # independence share does. Calling it "historically predictive" was
+            # the strongest unearned claim in the product's own copy.
+            f"Strong read — {z:.1f}σ from 52w mean, momentum aligns, "
+            f"high prior confidence (PCS {pcs_score}/10, hand-assigned)."
         )
     elif z_strong and trend_agrees:
         level = "High"
