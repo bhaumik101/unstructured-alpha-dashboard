@@ -755,6 +755,27 @@ if section == "Overview":
     except Exception:
         pass
 
+    # ── What the score has and has not been shown to do ──────────────────────
+    # THE GAP THIS CLOSES. The walk-forward null result was written down and
+    # surfaced on Model Validation, Signal Research and About — every page
+    # except this one, where the score is actually delivered. A reader typed a
+    # ticker, got a 0-100 number and a conviction label, and had to go two
+    # clicks deeper to learn the score has never been shown to predict returns.
+    # That ordering is what an external reviewer sees first, and it is why the
+    # honest work read as marketing.
+    #
+    # Pulled from utils.validation_status rather than restated here, so the
+    # claim at the point of use cannot drift from the claim on the validation
+    # page. st.caption, not the HTML banner above: that banner ends its raw-HTML
+    # block at the first blank line, and a conditional there breaks the layout.
+    try:
+        from utils.validation_status import confluence_disclosure
+        _disc = confluence_disclosure()
+        if _disc.get("detail"):
+            st.caption(f"**{_disc['status']}.** {_disc['detail']}")
+    except Exception:
+        pass
+
     # ── Macro Conviction Curve (research preview) ─────────────────────────────
     # Projects each signal's CURRENT reading to its researched lead time and
     # aggregates into a forward profile: not "bullish today" but "macro support
