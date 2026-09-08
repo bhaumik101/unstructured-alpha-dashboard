@@ -355,3 +355,94 @@ observations is what produced the +0.280 that started this correction chain.
     baseline    last published level
 
 Changing any of it restarts the record. The cron exposes no flags that could.
+
+---
+
+## 2026-09-03 — fifth run — **the fragility hypothesis fails too**
+
+The nowcast established that these signals do not predict the *direction* of
+anything. This tested the remaining escape route, pre-specified before running:
+macro conditions might predict the **width** of the forward return distribution
+rather than its centre — the Adrian-Boyarchenko-Giannone result, where financial
+conditions shape the downside quantile of growth without shifting the mean.
+
+**Target:** forward 21-day realized volatility, sampled monthly.
+**Baseline:** trailing 21-day realized volatility. Volatility clustering is one
+of the most robust facts in finance, so this is a hard baseline by construction —
+the same role the random walk played for the nowcast.
+**Panel:** the 11 lag-0-safe macro predictors. **Model:** factor, as locked.
+
+| ticker | n | skill | DM p | months model closer |
+|---|---|---|---|---|
+| SPY | 112 | −0.059 | 0.190 | 50% |
+| NVDA | 112 | +0.009 | 0.855 | 45% |
+| CAT | 112 | −0.292 | 0.210 | 41% |
+| MU | 112 | +0.005 | 0.904 | 51% |
+
+**Nothing.** Skills sit at zero, no significance anywhere, hit rates 41–51%. The
+macro panel adds nothing on top of trailing volatility.
+
+### What this settles
+
+There is no validated predictive claim available from this data — not on
+direction, and not on dispersion. That is not a gap to be closed with more
+signals or a better model; three targets, two lags, two estimators and now a
+second dependent variable have all returned the same answer.
+
+**The Confluence Score therefore cannot be a forecast, and the honest move is to
+make it a coherent descriptor instead.**
+
+---
+
+## 2026-09-03 — the Confluence Score's weights stop being asserted
+
+Two changes to how `utils/ticker_score.py` weights each signal, both measured
+before shipping.
+
+### 1. The hand-assigned PCS did almost nothing
+
+The weight was `max(0.15, r_lower) * pcs/10`, where pcs is one of 47
+hand-assigned integers. Its range is 5–9 with 31 of 47 sitting at 7 or 8, so
+across 20,000 random score vectors a PCS-weighted mean differed from a plain
+average by **0.49 points on a 0–100 scale** (p95 1.21, max 2.49).
+
+Forty-seven numbers someone chose, driving every weight in the product, moving
+the answer by half a point. They created the appearance of calibration and
+contributed nothing measurable — and nothing about them was ever validated.
+
+### 2. The crowding was uncounted
+
+47 signals carry the information of **9.81**. The most crowded latent factor —
+`activity` — collapses **7 signals into 1.63 effective**. Weighting per signal
+handed that factor roughly four times the influence its information supports.
+
+**A correction to a number quoted earlier in this session.** The first estimate
+of this effect was ±12 points, computed by grouping on `utils/config.py`'s
+`category` field. That field is a UI bucket: it files 28 signals under "macro"
+although they span rates, labour, housing, inflation, credit and activity, which
+are different economic drivers. `SIGNAL_FACTOR` is the economic mapping and is
+what the correlation prior applies to. Regrouped correctly:
+
+| crowded factor says | others say | equal | independence | delta |
+|---|---|---|---|---|
+| 20 | 80 | 71.1 | 75.3 | **+4.19** |
+| 40 | 60 | 57.0 | 58.4 | +1.40 |
+| 60 | 40 | 43.0 | 41.6 | −1.40 |
+| 80 | 20 | 28.9 | 24.7 | **−4.19** |
+
+Across random score vectors: mean **1.40 points**, p95 3.40. Real, visible, and
+a good deal smaller than first claimed.
+
+### Why this was not a new opinion
+
+`utils/analysis.py` already recomputed the **conviction label** on effective
+agreement using this exact machinery. The score counted 7 activity signals as 7
+votes while the label beside it counted them as 1.63. The number and the label
+disagreed by construction, on the same screen. This makes them agree.
+
+### What it does not do
+
+It does not make the score predictive. Nothing does. It makes the score a
+coherent descriptor: an independence-weighted average of how the signals
+relevant to a ticker are currently leaning — which is what it literally
+computes, and is now what it can honestly be said to be.
