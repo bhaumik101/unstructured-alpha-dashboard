@@ -12,8 +12,9 @@ Running on the 1st looked right and is wrong: AWHMAN for the month has not
 published yet, and the job correctly refuses rather than dropping a required
 predictor. Running after the 15th would not be a nowcast at all.
 
-    resolve  fill `actual` for any logged month that has since published
-    publish  compute and record the nowcast for the month that just ended
+    resolve   fill `actual` for any logged month that has since published
+    publish   compute and record the nowcast for the month that just ended
+    evaluate  test ONE pre-registered candidate signal, and record the result
 
 ORDER MATTERS, the same way it does in cron/resolve_predictions.py: scoring
 runs FIRST so a month is never published and scored in the same pass, which
@@ -66,6 +67,12 @@ from utils.nowcast_log import (  # noqa: E402
     next_target_month,
     resolve_nowcasts,
 )
+from utils.candidate_ledger import (  # noqa: E402
+    get_ledger,
+    record_evaluation,
+    untested_candidates,
+)
+from utils.nowcast import run_nowcast_backtest  # noqa: E402
 
 # The locked specification. Duplicated here as a comment rather than a config
 # knob on purpose: a cron flag that changes the model is a tuning surface, and
@@ -212,6 +219,73 @@ def main() -> int:
     )
     print(f"[nowcast] {target_month}: predicted={predicted:.3f} naive={naive:.3f} "
           f"({'recorded' if written else 'already on record'})", flush=True)
+
+    # ── 3. evaluate one candidate signal ────────────────────────────────────
+    #
+    # ONE PER MONTH, deliberately. Testing a dozen in an afternoon would demand
+    # p < 0.004 of every one of them under the ledger's Bonferroni correction
+    # and produce nothing interpretable; one a month keeps the search budget
+    # small and each result worth reading.
+    #
+    # This is evaluation only. A candidate that survives does NOT join the
+    # locked specification here — promoting it changes the nowcast mid-record
+    # and restarts the forward clock, so it requires a deliberate commit and a
+    # new entry in docs/NOWCAST_RESULTS.md.
+    try:
+        pending = untested_candidates()
+        if not pending:
+            print("[candidates] every registered candidate has been evaluated",
+                  flush=True)
+        else:
+            cand = pending[0]
+            lag = 0 if cand.safe_at_lag0 else 1
+            print(f"[candidates] evaluating {cand.key} ({cand.fred}) at lag {lag}",
+                  flush=True)
+
+            extra = fetch_signal_series(
+                {"source": "fred", "series_id": cand.fred, "name": cand.key},
+                start, end, point_in_time=cand.first_print,
+            )
+            if extra is None or extra.empty:
+                record_evaluation(cand.key, cand.hypothesis, None, None, 0,
+                                  notes=f"{cand.fred} returned no observations")
+            else:
+                base_feats = _fetch_predictors(start, end) if lag == 0 else {
+                    p.key: fetch_signal_series(
+                        SIGNALS.get(p.signal) if p.signal else
+                        {"source": "fred", "series_id": p.fred, "name": p.key},
+                        start, end, point_in_time=p.first_print)
+                    for p in NOWCAST_PREDICTORS
+                }
+                base_feats = {k: v for k, v in base_feats.items()
+                              if v is not None and not v.empty}
+                with_cand = dict(base_feats)
+                with_cand[cand.key] = extra
+
+                common = dict(
+                    feature_lag_months=lag, estimator=ESTIMATOR,
+                    target_release_lag_months=NOWCAST_TARGET_RELEASE_LAG_MONTHS,
+                )
+                base = run_nowcast_backtest(target_monthly, base_feats, **common)
+                trial = run_nowcast_backtest(target_monthly, with_cand, **common)
+
+                record_evaluation(
+                    cand.key, cand.hypothesis,
+                    skill=trial.skill, dm_p_value=trial.dm_p_value,
+                    n_scored=trial.n_scored or 0,
+                    baseline_skill=base.skill,
+                    notes=(f"lag {lag}; baseline skill {base.skill}; "
+                           f"with candidate {trial.skill}"),
+                )
+                print(f"[candidates] {cand.key}: skill {base.skill} -> {trial.skill}, "
+                      f"p={trial.dm_p_value}", flush=True)
+
+        _led = get_ledger()
+        print(f"[candidates] ledger: {_led['n_tested']}/{_led['n_registered']} tested, "
+              f"corrected alpha {_led['corrected_alpha']}, "
+              f"survivors {_led['survivors'] or 'none'}", flush=True)
+    except Exception as exc:
+        print(f"[candidates] evaluation failed: {type(exc).__name__}: {exc}", flush=True)
 
     record = get_forward_record(NOWCAST_TARGET_SERIES)
     print(f"[nowcast] forward record: {record['n_logged']} logged, "

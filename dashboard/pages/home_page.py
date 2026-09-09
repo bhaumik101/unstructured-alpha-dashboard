@@ -374,12 +374,13 @@ st.markdown(f"""
 </style>
 <section class="ua-landing-hero">
   <div>
-    <div class="ua-landing-kicker">Macro intelligence for real portfolios</div>
-    <div class="ua-landing-title">See the conditions shaping your next investment decision.</div>
+    <div class="ua-landing-kicker">Macro exposure for real portfolios</div>
+    <div class="ua-landing-title">Know what your portfolio is actually exposed to.</div>
     <div class="ua-landing-copy">
       {len(SIGNALS)} real macro and alternative-data signals, scored on first-print
-      observations and connected to the stocks you own. Start with the market
-      regime, then inspect the evidence behind any ticker.
+      observations and mapped to the stocks you own. See which macro factors you
+      are concentrated in, which holdings share the same bet, and what moved this
+      week — measured from primary sources, never forecast.
     </div>
   </div>
   <div class="ua-landing-access">
@@ -607,31 +608,51 @@ if _home_section == "Dashboard":
 """,
         unsafe_allow_html=True,
     )
-    _dash_row_1 = st.columns(3)
+    # ORDER IS THE POSITIONING, and nothing is removed to achieve it.
+    #
+    # Portfolio and factor exposure lead because they are the two things here
+    # that are MEASURED rather than forecast: which macro factors a book is
+    # concentrated in, and which holdings are quietly the same bet. Ticker Deep
+    # Dive moves to the second row because its Confluence Score is backtested
+    # and NOT validated (utils/validation_status), so leading with it puts the
+    # least defensible claim in front of every visitor.
+    #
+    # Every previously-linked page keeps its link. tests/test_home_page_ctas.py
+    # exists because Watchlist and Signal Research once had no route from Home
+    # at all; demoting a page must not repeat that.
+    _dash_row_1 = st.columns(4)
     with _dash_row_1[0]:
-        if st.button("Today's Brief", type="primary", width="stretch", key="dashboard_brief"):
-            st.switch_page("pages/2_Today_Digest.py")
+        if st.button("Portfolio Exposure", type="primary", width="stretch", key="cta_portfolio"):
+            st.switch_page("pages/44_Portfolio_Suite.py")
     with _dash_row_1[1]:
+        if st.button("Factor Exposure", width="stretch", key="cta_factor"):
+            st.switch_page("pages/27_Factor_Exposure.py")
+    with _dash_row_1[2]:
+        if st.button("Today's Brief", width="stretch", key="dashboard_brief"):
+            st.switch_page("pages/2_Today_Digest.py")
+    with _dash_row_1[3]:
         if st.button("Signal Dashboard", width="stretch", key="cta_signals"):
             st.switch_page("pages/1_Signal_Dashboard.py")
-    with _dash_row_1[2]:
+
+    _dash_row_2 = st.columns(4)
+    with _dash_row_2[0]:
         if st.button("Ticker Deep Dive", width="stretch", key="cta_dive"):
             st.switch_page("pages/3_Ticker_Deep_Dive.py")
-
-    _dash_row_2 = st.columns(3)
-    with _dash_row_2[0]:
+    with _dash_row_2[1]:
         if st.button("Market Overview", width="stretch", key="cta_market"):
             st.switch_page("pages/5_Market_Overview.py")
-    with _dash_row_2[1]:
+    with _dash_row_2[2]:
         if st.button("My Watchlist", width="stretch", key="cta_watchlist"):
             st.switch_page("pages/10_Watchlist.py")
-    with _dash_row_2[2]:
+    with _dash_row_2[3]:
         if st.button("Signal Research", width="stretch", key="cta_validation"):
             st.switch_page("pages/51_Signal_Research.py")
 
     st.caption(
-        "Choose Discover in the page rail for the full product tour and personal command "
-        "center, or open Portfolio Intelligence for a full holding-by-holding exposure analysis."
+        "Exposure and factor analysis are measured from primary sources. Ticker Deep "
+        "Dive's Confluence Score is backtested and **not** validated — it describes how "
+        "the signals are currently leaning, not where a price is going. The full "
+        "product tour is in the page rail under Discover."
     )
     render_footer()
     st.session_state["_ua_home_perf_last"] = _home_perf.finish("dashboard_actions_and_footer")

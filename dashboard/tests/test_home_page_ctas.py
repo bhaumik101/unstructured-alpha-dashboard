@@ -4,7 +4,7 @@ Tests for the Home page's call-to-action buttons.
 Added 2026-06-22 alongside the secondary "My Watchlist" / "Signal
 Research Center" CTA row -- before this, those two pages (2 of the
 app's 9 routed pages) had no discoverable link from Home at all. This
-file confirms all 5 CTA buttons (3 primary + 2 secondary) exist with
+file confirms every CTA button exists with
 their expected keys and that clicking each one actually navigates,
 rather than just trusting the button labels visually look right.
 """
@@ -17,10 +17,15 @@ _CTA_TARGETS = {
     "cta_market":    "pages/5_Market_Overview.py",
     "cta_watchlist": "pages/10_Watchlist.py",
     "cta_validation": "pages/51_Signal_Research.py",
+    # 2026-09-08: exposure became the front door. Added here rather than
+    # replacing anything — this file exists because two pages once had no route
+    # from Home, and repositioning must not recreate that.
+    "cta_portfolio": "pages/44_Portfolio_Suite.py",
+    "cta_factor":    "pages/27_Factor_Exposure.py",
 }
 
 
-def test_all_five_cta_buttons_present(app_test):
+def test_all_cta_buttons_present(app_test):
     at = app_test("pages/home_page.py")
     assert not at.exception
     present_keys = {b.key for b in at.button}
@@ -58,3 +63,30 @@ def test_cta_button_navigates_to_expected_page(app_test, key, target_page):
         f"Clicking {key!r} raised: " + "\n".join(str(e) for e in at.exception)
     )
     assert at.session_state["_test_switch_page"] == target_page
+
+
+def test_exposure_leads_and_the_unvalidated_score_does_not(app_test):
+    """Positioning, asserted rather than trusted to stay.
+
+    The Confluence Score is backtested and NOT validated. Leading the home page
+    with it puts the product's least defensible claim in front of every
+    visitor, which is what an external reviewer reacted to. Portfolio exposure
+    is measured, so it leads.
+    """
+    source = __import__("pathlib").Path("pages/home_page.py").read_text(encoding="utf-8")
+    portfolio = source.index('key="cta_portfolio"')
+    deep_dive = source.index('key="cta_dive"')
+    assert portfolio < deep_dive, (
+        "portfolio exposure must appear before Ticker Deep Dive in the CTA grid"
+    )
+    assert 'type="primary"' in source[portfolio - 200:portfolio], (
+        "the measured feature should be the primary call to action"
+    )
+
+
+def test_the_home_page_says_the_score_is_not_validated(app_test):
+    source = __import__("pathlib").Path("pages/home_page.py").read_text(encoding="utf-8")
+    assert "not** validated" in source or "not validated" in source, (
+        "the home page routes visitors to the score; it should say what the "
+        "score has and has not been shown to do"
+    )

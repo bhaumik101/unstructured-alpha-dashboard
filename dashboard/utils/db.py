@@ -600,6 +600,33 @@ signal_flip_log = Table(
 # next page load that calls resolve_pending_predictions(). This creates
 # an auditable, public track record — something no free tool offers.
 # event_type: "convergence" | "score_cross_bull" | "score_cross_bear"
+# The candidate signal ledger.
+#
+# WRITE-ONCE PER CANDIDATE, which is the point. "Try new data until something
+# works" is p-hacking; a ledger makes exploration cumulative instead, because
+# the Bonferroni correction is computed from the number of rows here and
+# therefore tightens on its own as the search continues. A candidate that could
+# be re-evaluated until it behaved would defeat that entirely, so the unique
+# constraint is load-bearing rather than hygiene.
+#
+# survives_correction is deliberately NOT stored: it is recomputed on read
+# against the CURRENT ledger size, so a candidate tested when the ledger held
+# three rows cannot keep a threshold that later exploration has invalidated.
+candidate_evaluations = Table(
+    "candidate_evaluations", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("candidate", String(64), nullable=False),
+    Column("hypothesis", Text, nullable=False),      # stated BEFORE the test
+    Column("skill", Float),
+    Column("dm_p_value", Float),
+    Column("baseline_skill", Float),                 # the spec without this candidate
+    Column("n_scored", Integer),
+    Column("notes", Text),
+    Column("evaluated_at", String(32), nullable=False),
+    UniqueConstraint("candidate", name="uq_candidate_evaluation"),
+)
+
+
 # The forward nowcast record.
 #
 # WHY A SEPARATE TABLE AND NOT prediction_log. That table holds directional
