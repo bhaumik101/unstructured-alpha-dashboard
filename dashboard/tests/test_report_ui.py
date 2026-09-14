@@ -158,3 +158,9 @@ def test_a_failed_report_is_retried_instead_of_served_from_cache(monkeypatch):
     assert ui.get_report(key, 15).get("marker") is True
     assert calls["n"] == 2, "a successful report should be served from cache"
     ui._cached_ok_report.clear()
+
+
+def test_labels_keep_us_capitalised_mid_sentence(report):
+    assert ex.lower_label("U.S. dollar") == "U.S. dollar"
+    assert ex.lower_label("Interest rates") == "interest rates"
+    assert "u.s." not in ui.summary_text(report)

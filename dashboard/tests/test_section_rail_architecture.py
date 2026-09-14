@@ -122,7 +122,8 @@ def test_section_rail_selection_updates_url_without_dropping_context(app_test):
 def test_visible_header_and_footer_own_removed_sidebar_actions():
     header_source = (PAGES.parent / "utils" / "header.py").read_text(encoding="utf-8")
     assert 'key="topright_logout"' in header_source
-    assert 'href="/ai-research-assistant"' in header_source
+    # The AI assistant left the nav in the 2026-09-14 redesign; Methodology took its slot.
+    assert 'href="/methodology"' in header_source
     assert "Switch to light theme" in header_source
     assert "Important Disclaimer" in header_source
 

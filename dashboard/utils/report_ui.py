@@ -41,7 +41,7 @@ html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f2f3f5;--ua
 .uar-head{padding:16px 20px;border-bottom:1px solid var(--uar-line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;}
 .uar-title{font-size:1.02rem;font-weight:650;color:var(--uar-ink);}
 .uar-sub{font-size:.84rem;color:var(--uar-ink-3);line-height:1.5;}
-.uar-lead{font-size:1.04rem;color:var(--uar-ink-2);line-height:1.65;margin:2px 0 10px;}
+.uar-lead{font-size:1.02rem;color:var(--uar-ink-2);line-height:1.65;margin:2px 0 10px;}
 .uar-body{padding:14px 20px;}
 .uar-row{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(140px,1.2fr) 150px minmax(160px,1fr);
   gap:14px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--uar-line);}
@@ -54,7 +54,7 @@ html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f2f3f5;--ua
 .uar-axis{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--uar-line);}
 .uar-fill{position:absolute;top:7px;height:8px;border-radius:2px;}
 .uar-whisker{position:absolute;top:10px;height:2px;background:var(--uar-ink-3);opacity:.6;}
-.uar-chip{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;
+.uar-chip{display:inline-block;align-self:flex-start;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;
   border:1px solid var(--uar-line);color:var(--uar-ink-2);white-space:nowrap;}
 .uar-chip-clear{border-color:var(--uar-accent);color:var(--uar-accent);}
 .uar-chip-tentative{border-style:dashed;}
@@ -87,7 +87,9 @@ def fmt_pct(x: Optional[float]) -> str:
     if x is None or not math.isfinite(x):
         return "—"
     digits = 1 if abs(x) >= 0.95 else 2
-    sign = "+" if x > 0 else ("−" if x < 0 else "")
+    if round(x, digits) == 0:
+        return f"{0:.{digits}f}%"
+    sign = "+" if x > 0 else "−"
     return f"{sign}{abs(x):.{digits}f}%"
 
 
@@ -271,11 +273,11 @@ def ordered_keys(report: dict) -> List[str]:
 def summary_text(report: dict) -> str:
     p = report["portfolio"]
     readings = p["readings"]
-    clear = [readings[k]["label"].lower() for k in report["top_exposures"]
+    clear = [ex.lower_label(readings[k]["label"]) for k in report["top_exposures"]
              if readings[k]["evidence"] == "clear"]
-    tentative = [readings[k]["label"].lower() for k in report["top_exposures"]
+    tentative = [ex.lower_label(readings[k]["label"]) for k in report["top_exposures"]
                  if readings[k]["evidence"] == "tentative"]
-    none = [r["label"].lower() for r in readings.values()
+    none = [ex.lower_label(r["label"]) for r in readings.values()
             if r["evidence"] in ("indistinct", "not_enough_data")]
     span = f"Over the {p['n_obs']} weeks to {fmt_date(p['end'])}"
     parts = []
@@ -358,8 +360,8 @@ def factor_detail_html(report: dict, key: str) -> str:
     ]
     if r.get("hard_to_separate_from"):
         parts.append(
-            f'<div class="uar-note uar-note-warn">Over this period {escape(r["label"].lower())} moved '
-            f'closely with {escape(r["hard_to_separate_from"].lower())}, so the two are hard to separate. '
+            f'<div class="uar-note uar-note-warn">Over this period {escape(ex.lower_label(r["label"]))} moved '
+            f'closely with {escape(ex.lower_label(r["hard_to_separate_from"]))}, so the two are hard to separate. '
             f'Read them together.</div>')
 
     rows = report["contributions"].get(key, [])
@@ -478,6 +480,27 @@ def portfolio_header_html(name: str, report: dict) -> str:
             + '</div></div>')
 
 
+FOOTER_LINKS = (("Methodology", "/methodology"), ("Research record", "/research"),
+                ("Pricing", "/pricing"), ("Privacy &amp; Terms", "/privacy-terms"))
+
+
+def render_report_footer() -> None:
+    """Footer for the redesigned pages. The shared footer still describes the
+    old signal product and its data providers, which these pages do not use."""
+    links = " · ".join(f'<a href="{href}" target="_self">{label}</a>' for label, href in FOOTER_LINKS)
+    st.markdown(
+        REPORT_CSS
+        + '<div class="uar" style="margin-top:40px;padding-top:16px;border-top:1px solid var(--uar-line)">'
+        f'<div class="uar-sub">{links}</div>'
+        '<div class="uar-sub" style="margin-top:8px">Unstructured Alpha is an educational and informational '
+        'tool. Nothing here is personalized financial, investment, tax or legal advice, or a recommendation '
+        'to buy, sell or hold any security. Exposure figures describe how portfolios have moved in the past; '
+        'relationships change and past behaviour does not guarantee future results. Prices from Yahoo '
+        'Finance; economic series from the Federal Reserve Bank of St. Louis (FRED).</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
 HOW_TO_READ = """
 **What each number means.** Take "Interest rates −0.66%". In weeks when the 10-year Treasury yield rose 0.25 percentage points, this portfolio typically moved 0.66% lower in the same week. The stock market's own movement is removed first.
 
@@ -491,5 +514,5 @@ HOW_TO_READ = """
 
 **Why the market is taken out.** Rates, oil and the dollar often move on the same days as stocks. Without removing that, nearly every stock portfolio would look sensitive to everything.
 
-**What this is not.** It describes the past three years. Relationships change, and nothing here predicts returns or recommends a trade.
+**What this is not.** It describes the past three years. Relationships change. It is not a forecast, and it is not advice.
 """

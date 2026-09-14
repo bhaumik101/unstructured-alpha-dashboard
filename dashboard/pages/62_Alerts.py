@@ -11,7 +11,7 @@ import streamlit as st
 st.set_page_config(page_title="Alerts — Unstructured Alpha", layout="wide")
 
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_footer, render_header, render_page_header  # noqa: E402
+from utils.header import render_header, render_page_header  # noqa: E402
 
 render_header("Alerts")
 st.markdown(ui.REPORT_CSS, unsafe_allow_html=True)
@@ -47,4 +47,4 @@ if user:
 else:
     st.info("Sign in (top right) to be told when alerts are ready.")
 
-render_footer()
+ui.render_report_footer()

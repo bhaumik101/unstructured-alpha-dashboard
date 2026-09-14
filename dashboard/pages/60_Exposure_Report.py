@@ -15,7 +15,7 @@ st.set_page_config(page_title="Exposure report — Unstructured Alpha", layout="
 
 from utils import exposure as ex  # noqa: E402
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_footer, render_header, render_page_header  # noqa: E402
+from utils.header import render_header, render_page_header  # noqa: E402
 
 render_header("Exposure report")
 st.markdown(ui.REPORT_CSS, unsafe_allow_html=True)
@@ -132,7 +132,7 @@ if editing:
             record("exposure_holdings_entered", n=len(rows), source="csv" if upload is not None else "paste")
             st.rerun()
 
-    render_footer()
+    ui.render_report_footer()
     st.stop()
 
 # ── the report ──────────────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ if st.session_state.get("uar_last_key") != key:
     record("exposure_report_generated", status=report.get("status"), n=len(key),
            sample=st.session_state.get("uar_loaded_sample") or "", signed_in=bool(user))
 
-head_col, edit_col, save_col = st.columns([4, 1.2, 1.2])
+head_col, edit_col, save_col = st.columns([3.4, 1.5, 1.3])
 with head_col:
     st.markdown(ui.portfolio_header_html(name, report), unsafe_allow_html=True)
 with edit_col:
@@ -190,7 +190,7 @@ if report.get("status") != "ok":
     st.markdown(ui.error_html(report), unsafe_allow_html=True)
     if report.get("retryable") and st.button("Try again", key="uar_retry"):
         st.rerun()
-    render_footer()
+    ui.render_report_footer()
     st.stop()
 
 st.markdown(f'<div class="uar"><p class="uar-lead">{ui.summary_text(report)}</p></div>',
@@ -199,7 +199,7 @@ st.markdown(ui.exposure_table_html(report), unsafe_allow_html=True)
 
 readings = report["portfolio"]["readings"]
 detail_keys = ui.ordered_keys(report)
-st.markdown("#### Which holdings drive each exposure")
+st.markdown("## Which holdings drive each exposure")
 chosen = st.radio(
     "Choose an economic force",
     detail_keys,
@@ -210,11 +210,11 @@ chosen = st.radio(
 )
 st.markdown(ui.factor_detail_html(report, chosen), unsafe_allow_html=True)
 
-st.markdown("#### What changed")
+st.markdown("## What changed")
 st.markdown(ui.shifts_html(report), unsafe_allow_html=True)
 st.markdown(ui.recent_moves_html(report), unsafe_allow_html=True)
 
-st.markdown("#### Economic growth")
+st.markdown("## Economic growth")
 st.markdown(ui.growth_html(report), unsafe_allow_html=True)
 
 st.markdown(ui.notes_html(report, cleaning_notes), unsafe_allow_html=True)
@@ -222,4 +222,4 @@ st.markdown(ui.notes_html(report, cleaning_notes), unsafe_allow_html=True)
 with st.expander("How to read this report"):
     st.markdown(ui.HOW_TO_READ)
 
-render_footer()
+ui.render_report_footer()

@@ -11,7 +11,7 @@ import streamlit as st
 st.set_page_config(page_title="Research record — Unstructured Alpha", layout="wide")
 
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_footer, render_header, render_page_header  # noqa: E402
+from utils.header import render_header, render_page_header  # noqa: E402
 
 render_header("Research record")
 st.markdown(ui.REPORT_CSS, unsafe_allow_html=True)
@@ -34,7 +34,7 @@ st.markdown(
 )
 
 # ── forward nowcast ─────────────────────────────────────────────────────────
-st.markdown("### Forward nowcast of U.S. manufacturing output")
+st.markdown("## Forward nowcast of U.S. manufacturing output")
 try:
     from utils.nowcast import NOWCAST_TARGET_NAME, NOWCAST_TARGET_SERIES
     from utils.nowcast_log import get_forward_record, list_nowcasts
@@ -73,7 +73,7 @@ if record:
         st.caption(record.get("note") or "")
 
 # ── candidate ledger ────────────────────────────────────────────────────────
-st.markdown("### Candidate data ledger")
+st.markdown("## Candidate data ledger")
 st.markdown(
     "New data sources are registered with their reasoning **before** they are tested, and each is tested "
     "once. The bar for significance tightens as more candidates are tried (Bonferroni), so exploring more "
@@ -112,7 +112,7 @@ else:
                     f'{v["reason"]}</div></div>', unsafe_allow_html=True)
 
 # ── negative results ────────────────────────────────────────────────────────
-st.markdown("### Results so far, including what failed")
+st.markdown("## Results so far, including what failed")
 st.markdown("""
 | Date | Test | Result |
 |---|---|---|
@@ -126,4 +126,4 @@ st.markdown("""
 """)
 st.caption("The older signal track record and validation pages remain available under Research in the menu.")
 
-render_footer()
+ui.render_report_footer()

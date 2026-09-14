@@ -13,7 +13,7 @@ import streamlit as st
 st.set_page_config(page_title="Pricing — Unstructured Alpha", layout="wide")
 
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_footer, render_header, render_page_header  # noqa: E402
+from utils.header import render_header, render_page_header  # noqa: E402
 
 APP_BASE = os.environ.get("APP_BASE_URL", "https://app.unstructuredalpha.com").rstrip("/")
 PILOT_EMAIL = "support@unstructuredalpha.com"
@@ -107,4 +107,4 @@ with adv_col:
     st.link_button("Ask about the pilot", f"mailto:{PILOT_EMAIL}?subject=Advisor%20pilot", width="stretch")
 
 st.caption("Unstructured Alpha is an educational and informational tool, not investment advice.")
-render_footer()
+ui.render_report_footer()

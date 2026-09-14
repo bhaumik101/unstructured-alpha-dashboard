@@ -11,7 +11,7 @@ import streamlit as st
 st.set_page_config(page_title="What changed — Unstructured Alpha", layout="wide")
 
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_footer, render_header, render_page_header  # noqa: E402
+from utils.header import render_header, render_page_header  # noqa: E402
 
 render_header("What changed")
 st.markdown(ui.REPORT_CSS, unsafe_allow_html=True)
@@ -48,7 +48,7 @@ if not holdings:
     )
     if st.button("Create an exposure report", type="primary", key="wc_to_report"):
         st.switch_page("pages/60_Exposure_Report.py")
-    render_footer()
+    ui.render_report_footer()
     st.stop()
 
 try:
@@ -64,12 +64,12 @@ with st.spinner("Measuring this portfolio…"):
 st.markdown(ui.portfolio_header_html(name, report), unsafe_allow_html=True)
 if report.get("status") != "ok":
     st.markdown(ui.error_html(report), unsafe_allow_html=True)
-    render_footer()
+    ui.render_report_footer()
     st.stop()
 
-st.markdown("#### Recent weeks")
+st.markdown("## Recent weeks")
 st.markdown(ui.recent_moves_html(report), unsafe_allow_html=True)
-st.markdown("#### Changes in exposure")
+st.markdown("## Changes in exposure")
 st.markdown(ui.shifts_html(report), unsafe_allow_html=True)
 
 st.markdown(
@@ -77,4 +77,4 @@ st.markdown(
     'saved portfolios. It isn&#39;t available yet.</div></div>',
     unsafe_allow_html=True,
 )
-render_footer()
+ui.render_report_footer()

@@ -7,6 +7,15 @@ cannot be replaced by the fuzzy match AMDC. The form also only navigates on
 submission, preventing a persisted field value from redirecting every rerun.
 """
 
+import pytest
+
+import utils.header as _header
+
+_needs_header_search = pytest.mark.skipif(
+    not _header.SHOW_MARKET_CHROME,
+    reason="header ticker search is off since the 2026-09-14 redesign (SHOW_MARKET_CHROME)",
+)
+
 
 def test_global_ticker_search_left_the_header_but_is_kept_behind_the_flag():
     """The 2026-09-14 redesign leads with the portfolio exposure report, so the
@@ -36,6 +45,7 @@ def test_exact_custom_entry_is_normalized_before_navigation():
     assert _resolve_global_ticker_query("Advanced Micro Devices", symbol_index) == ("AMD", [])
 
 
+@_needs_header_search
 def test_rerunning_after_a_pick_does_not_navigate_again(app_test):
     """
     The actual regression this test guards against: after landing on
@@ -63,6 +73,7 @@ def test_rerunning_after_a_pick_does_not_navigate_again(app_test):
     assert at.session_state["_test_switch_page"] is None
 
 
+@_needs_header_search
 def test_picking_a_different_ticker_after_one_navigates_again(app_test):
     at = app_test("pages/home_page.py")
     field = next((s for s in at.text_input if s.key == "global_ticker_search"), None)
@@ -81,6 +92,7 @@ def test_picking_a_different_ticker_after_one_navigates_again(app_test):
     assert at.session_state["_test_switch_page"] == "pages/3_Ticker_Deep_Dive.py"
 
 
+@_needs_header_search
 def test_resubmitting_same_ticker_still_navigates(app_test):
     at = app_test("pages/home_page.py")
     field = next(s for s in at.text_input if s.key == "global_ticker_search")

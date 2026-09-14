@@ -12,7 +12,8 @@ import streamlit as st
 st.set_page_config(page_title="Methodology — Unstructured Alpha", layout="wide")
 
 from utils import exposure as ex  # noqa: E402
-from utils.header import render_footer, render_header, render_page_header  # noqa: E402
+from utils import report_ui as ui  # noqa: E402
+from utils.header import render_header, render_page_header  # noqa: E402
 
 render_header("Methodology")
 try:
@@ -97,4 +98,4 @@ The one predictive test still running is a monthly nowcast published **before** 
 Exposure asks: *how has this portfolio behaved when rates, inflation, the dollar, oil or credit moved?* That can be measured from history, with honest uncertainty. Prediction asks: *what will happen next?* Our testing says this data cannot answer that reliably, so the product does not try.
 """)
 
-render_footer()
+ui.render_report_footer()
