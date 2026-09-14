@@ -8,19 +8,19 @@ submission, preventing a persisted field value from redirecting every rerun.
 """
 
 
-def test_picking_a_ticker_navigates_to_ticker_deep_dive(app_test):
-    at = app_test("pages/home_page.py")
-    field = next((s for s in at.text_input if s.key == "global_ticker_search"), None)
-    submit = next((b for b in at.button if b.key == "global_ticker_submit"), None)
-    assert field is not None, "Global ticker search field not found in header"
-    assert submit is not None, "Global ticker search submit button not found in header"
+def test_global_ticker_search_left_the_header_but_is_kept_behind_the_flag():
+    """The 2026-09-14 redesign leads with the portfolio exposure report, so the
+    ticker-first search no longer renders on every page. It is gated by
+    SHOW_MARKET_CHROME rather than deleted; the resolver below is unchanged."""
+    from pathlib import Path
 
-    field.set_value("CCJ")
-    submit.click().run()
-    assert not at.exception, (
-        "Picking a ticker raised: " + "\n".join(str(e) for e in at.exception)
-    )
-    assert at.session_state["_test_switch_page"] == "pages/3_Ticker_Deep_Dive.py"
+    import utils.header as header
+
+    src = (Path(__file__).resolve().parents[1] / "utils" / "header.py").read_text(encoding="utf-8")
+    body = src.split("def render_header(", 1)[1].split("\ndef ", 1)[0]
+    assert header.SHOW_MARKET_CHROME is False
+    assert "if SHOW_MARKET_CHROME:\n        render_global_ticker_search()" in body
+    assert callable(header.render_global_ticker_search)
 
 
 def test_exact_custom_entry_is_normalized_before_navigation():

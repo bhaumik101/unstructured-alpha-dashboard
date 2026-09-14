@@ -122,8 +122,10 @@ def test_anonymous_visitor_sees_real_home_page_content():
         + " ".join(t.value for t in at.title)
         + " ".join(button.label for button in at.button)
     )
-    assert "Continue your research" in all_text and "Signal Dashboard" in all_text, (
-        "Expected real Home page content for an anonymous visitor, got: " + all_text[:500]
+    # Since the 2026-09-14 redesign the default page is the exposure report,
+    # which opens on its onboarding for a visitor with no holdings.
+    assert "Start from a sample" in all_text and "Measure exposure" in all_text, (
+        "Expected the exposure report onboarding for an anonymous visitor, got: " + all_text[:500]
     )
 
 

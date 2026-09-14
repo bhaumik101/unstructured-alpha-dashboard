@@ -26,7 +26,9 @@ def test_public_landing_uses_current_brand_and_product_facts():
     layout = (WEB / "app" / "layout.tsx").read_text(encoding="utf-8")
     logo = (WEB / "public" / "logo.svg").read_text(encoding="utf-8")
 
-    assert "47 macro signals" in page
+    # The product is the exposure report; every factor it measures is named.
+    for label in ("Interest rates", "Inflation", "dollar", "Oil", "Credit spreads"):
+        assert label in page, f"landing no longer names the {label} exposure"
     assert "43 macro signals" not in layout
     assert "next/font/google" not in layout
     assert "#8b7cff" in logo

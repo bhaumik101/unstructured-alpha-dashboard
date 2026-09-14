@@ -47,6 +47,27 @@ INTENTIONALLY_UNLINKED: dict[str, str] = {
     ),
 }
 
+# The 2026-09-14 redesign rebuilt the product around one journey (the exposure
+# report) and took these pages out of the navigation. They stay registered so
+# existing links and bookmarks resolve while each is retired or folded into the
+# report. Removing one from app.py later will fail
+# test_intentionally_unlinked_entries_are_real_routes, which is the reminder to
+# delete its entry here too.
+_HIDDEN_IN_REDESIGN = (
+    "home", "today-s-brief", "my-watchlist", "portfolio-checkup", "decision-queue",
+    "thesis-journal", "portfolio-suite", "ticker-deep-dive", "stock-screener",
+    "stock-recommender", "power-supercycle", "stock-chart", "factor-exposure",
+    "options-flow", "export-report", "signal-dashboard", "sector-view",
+    "market-overview", "signal-research", "how-signals-work", "events-forecasts",
+    "alternative-data", "ai-research-assistant", "about-methodology",
+)
+for _slug in _HIDDEN_IN_REDESIGN:
+    INTENTIONALLY_UNLINKED.setdefault(
+        _slug,
+        "hidden from navigation in the 2026-09-14 exposure-report redesign; kept "
+        "routable so existing links resolve while it is retired or folded in",
+    )
+
 _PAGE = re.compile(
     r'st\.Page\("pages/([^"]+)"[^)]*?title="([^"]+)"[^)]*?url_path="([^"]+)"'
 )
