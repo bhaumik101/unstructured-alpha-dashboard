@@ -139,6 +139,12 @@ ROUTED_PAGES = [
     "pages/49_Decision_Queue.py",
     "pages/50_Investor_Checkup.py",
     "pages/51_Signal_Research.py",
+    "pages/60_Exposure_Report.py",
+    "pages/61_What_Changed.py",
+    "pages/62_Alerts.py",
+    "pages/63_Methodology.py",
+    "pages/64_Research.py",
+    "pages/65_Pricing.py",
 ]
 
 # pages/2_Signal_Analysis.py and pages/7_Macro_Monitor.py used to be kept

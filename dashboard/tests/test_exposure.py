@@ -273,3 +273,57 @@ def test_growth_is_always_labelled_limited_evidence():
     growth = _report()["growth"]
     assert growth["limited"] is True
     assert "limited evidence" in growth["note"]
+
+
+# ── keyless data fallback ───────────────────────────────────────────────────
+
+def test_the_public_fred_download_is_parsed_with_missing_days_dropped():
+    text = "observation_date,DGS10\n2026-09-08,4.91\n2026-09-09,.\n2026-09-10,4.95\n"
+    s = ex.parse_fred_csv(text)
+    assert list(s.values) == [4.91, 4.95]
+    assert str(s.index[-1].date()) == "2026-09-10"
+
+
+def test_the_live_report_uses_the_public_download_only_when_the_api_has_no_data(monkeypatch):
+    import utils.fetchers as fetchers
+
+    calls = {"api": 0, "public": 0}
+    idx = pd.bdate_range(end="2026-09-11", periods=5)
+
+    def api(series_id, start, end, api_key=""):
+        calls["api"] += 1
+        return pd.Series([1.0] * 5, idx) if api_key else pd.Series(dtype=float)
+
+    def public(series_id, start, end):
+        calls["public"] += 1
+        return pd.Series([2.0] * 5, idx)
+
+    seen = {}
+
+    def engine(holdings, prices_fetcher, series_fetcher, **kw):
+        seen["value"] = float(series_fetcher("DGS10", "2023-01-01", "2026-09-11").iloc[0])
+        return {"status": "ok"}
+
+    monkeypatch.setattr(fetchers, "fetch_fred", api)
+    monkeypatch.setattr(ex, "fetch_fred_public", public)
+    monkeypatch.setattr(ex, "build_exposure_report", engine)
+
+    monkeypatch.setattr(fetchers, "_get_fred_key", lambda: "configured")
+    ex.build_live_report([{"ticker": "VTI"}])
+    assert seen["value"] == 1.0 and calls == {"api": 1, "public": 0}
+
+    monkeypatch.setattr(fetchers, "_get_fred_key", lambda: "")
+    ex.build_live_report([{"ticker": "VTI"}])
+    assert seen["value"] == 2.0 and calls["public"] == 1, "no key must fall back, not fail"
+
+
+def test_formatted_numbers_never_show_a_negative_zero():
+    assert ex._fmt(-0.001) == "0.00%"
+    assert ex._fmt(-0.66) == "−0.66%"
+    assert ex._fmt(1.61) == "+1.6%"
+
+
+def test_growth_is_described_in_months_not_weeks():
+    growth = _report()["growth"]
+    sentence = growth["readings"]["growth"]["sentence"]
+    assert "months when" in sentence and "weeks" not in sentence

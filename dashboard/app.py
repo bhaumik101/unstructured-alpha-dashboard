@@ -77,7 +77,15 @@ pg = st.navigation(
         # Stock Chart, Signal Strategy and Alternative Data were merged out of
         # the visible nav but remain reachable by URL / cross-link.
         "": [
-            st.Page("pages/home_page.py",      title="Home",             default=True),
+            # Redesign 2026-09-14: the exposure report is the default page. The
+            # old signal Home stays routable at /home for existing links.
+            st.Page("pages/60_Exposure_Report.py", title="Exposure report", default=True),
+            st.Page("pages/61_What_Changed.py", title="What changed", url_path="what-changed"),
+            st.Page("pages/62_Alerts.py",       title="Alerts", url_path="alerts"),
+            st.Page("pages/63_Methodology.py",  title="Methodology", url_path="methodology"),
+            st.Page("pages/64_Research.py",     title="Research record", url_path="research"),
+            st.Page("pages/65_Pricing.py",      title="Pricing", url_path="pricing"),
+            st.Page("pages/home_page.py",      title="Home", url_path="home"),
             st.Page("pages/29_Upgrade.py",     title="Upgrade to Pro", url_path="upgrade-to-pro"),
             st.Page("pages/47_Account_Setup.py", title="Account Setup", url_path="welcome"),
         ],

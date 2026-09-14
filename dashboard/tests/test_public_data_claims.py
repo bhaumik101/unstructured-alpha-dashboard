@@ -72,30 +72,21 @@ def test_landing_does_not_claim_a_two_hourly_scoring_cadence() -> None:
 
 
 @pytest.mark.skipif(not LANDING.exists(), reason="landing page not present")
-def test_landing_source_list_matches_the_registry() -> None:
-    """The advertised source list must equal what actually feeds the signals."""
-    from utils.product_metrics import signal_source_labels
+def test_landing_data_series_match_the_exposure_engine() -> None:
+    """The landing page now sells the exposure report, so the series it names
+    must be exactly the ones the engine measures against: no more, no fewer."""
+    from utils.exposure import FACTORS, GROWTH_FACTOR
 
     body = _landing_source()
-    match = re.search(r"const SOURCES = \[(.*?)\];", body, flags=re.DOTALL)
-    assert match, "could not locate the SOURCES array on the landing page"
-    advertised = re.findall(r'"([^"]+)"', match.group(1))
+    match = re.search(r"const DATA_SERIES = \[(.*?)\];", body, flags=re.DOTALL)
+    assert match, "could not locate the DATA_SERIES array on the landing page"
+    advertised = set(re.findall(r'id:\s*"([^"]+)"', match.group(1)))
+    real = {f.series_id for f in FACTORS} | {GROWTH_FACTOR.series_id}
 
-    # Compare loosely: the site uses display names like "FRED (Federal Reserve)"
-    # while the registry says "FRED". Every advertised entry must correspond to a
-    # real signal source, and every real source must be represented.
-    real = signal_source_labels()
-
-    def _norm(value: str) -> str:
-        return value.split(" (")[0].strip().lower()
-
-    advertised_norm = {_norm(a) for a in advertised}
-    real_norm = {_norm(r) for r in real}
-
-    unbacked = advertised_norm - real_norm
-    missing = real_norm - advertised_norm
-    assert not unbacked, f"advertised but source no signals: {sorted(unbacked)}"
-    assert not missing, f"real signal sources not advertised: {sorted(missing)}"
+    assert advertised == real, (
+        f"landing names {sorted(advertised - real)} the engine does not use, and "
+        f"omits {sorted(real - advertised)} that it does"
+    )
 
 
 def test_app_does_not_report_the_cache_ttl_as_a_scoring_cadence() -> None:

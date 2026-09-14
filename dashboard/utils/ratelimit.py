@@ -144,6 +144,7 @@ POLICIES: dict[str, tuple[int, int]] = {
     "portfolio_review": (3, 86400),  # explicit, cached Pro generation
     "options_flow":    (20, 300),   # provider-heavy (yfinance options chains)
     "export":          (10, 600),
+    "exposure_report": (30, 3600),  # per session; cached reports are free to re-serve
     "checkout":        (5, 900),    # prevent duplicate Stripe sessions / scripted abuse
     "screener_scan":   (60, 300),
     "login_ip":        (25, 900),

@@ -3026,7 +3026,7 @@ def _render_topnav() -> None:
     elif effective_is_pro(_hdr_user):
         _upgrade_slot = '<span class="ua-tnav-pro" title="You\'re on Pro">PRO</span>'
     else:
-        _upgrade_slot = '<a class="ua-tnav-upgrade" href="/upgrade-to-pro">Upgrade</a>'
+        _upgrade_slot = '<a class="ua-tnav-upgrade" href="/pricing">Upgrade</a>'
     # Admin-only nav entry — only rendered for admins, invisible to everyone else.
     _admin_nav_slot = (
         '<div class="ua-tnav-drop-rule"></div>'
@@ -3323,83 +3323,32 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
     <span></span><span></span><span></span>
   </label>
 
-  <!-- Consolidated 5-section IA (2026-07-13): Today · Portfolio · Research ·
-       Signals & Methodology · Monitoring, + a demoted More cluster and the
-       pinned Upgrade CTA. Stock Chart, Signal Strategy and Alternative Data were
-       merged out of the visible nav (still URL-reachable; Signal Strategy is
-       duplicated by Portfolio Suite's Signal Backtester tab). Every href here
-       must have a matching url_path in app.py — keep them in sync. -->
+  <!-- Redesign 2026-09-14: the product is the exposure report. Four direct
+       links, a Research group for the evidence pages, and an Account group.
+       Every other page stays registered in app.py (declared in
+       tests/test_nav_reaches_every_page.py) so old links still resolve. Every
+       href here must have a matching url_path in app.py. -->
   <div class="ua-tnav-links">
-    <a class="ua-tnav-item" href="/" data-paths="/,/home">Home</a>
-    <a class="ua-tnav-item" href="/today-s-brief">Today&#39;s Brief</a>
-
-    <div class="ua-tnav-group">
-      <span class="ua-tnav-trigger">Portfolio <span class="ua-tnav-caret">&#9660;</span></span>
-      <div class="ua-tnav-drop">
-        <a href="/my-watchlist">My Watchlist</a>
-        <a href="/portfolio-checkup">Portfolio Checkup</a>
-        <a class="pro-link" href="/decision-queue">Decision Queue</a>
-        <a class="pro-link" href="/thesis-journal">Thesis Journal</a>
-        <a class="pro-link" href="/portfolio-suite">Portfolio Intelligence</a>
-      </div>
-    </div>
+    <a class="ua-tnav-item" href="/" data-paths="/">Report</a>
+    <a class="ua-tnav-item" href="/what-changed">What changed</a>
+    <a class="ua-tnav-item" href="/alerts">Alerts</a>
+    <a class="ua-tnav-item" href="/methodology">Methodology</a>
 
     <div class="ua-tnav-group">
       <span class="ua-tnav-trigger">Research <span class="ua-tnav-caret">&#9660;</span></span>
       <div class="ua-tnav-drop">
-        <a href="/ticker-deep-dive">Ticker Deep Dive</a>
-        <a href="/stock-screener">Stock Screener</a>
-        <a href="/stock-chart">Stock Chart</a>
-        <a href="/power-supercycle">Power Supercycle</a>
-        <a class="pro-link" href="/stock-recommender">Stock Recommender</a>
-        <a class="pro-link" href="/options-flow">Options Flow</a>
-        <a class="pro-link" href="/factor-exposure">Factor Exposure</a>
-      </div>
-    </div>
-
-    <div class="ua-tnav-group">
-      <span class="ua-tnav-trigger">Signals <span class="ua-tnav-caret">&#9660;</span></span>
-      <div class="ua-tnav-drop">
-        <a href="/signal-dashboard">Signal Dashboard</a>
-        <a href="/market-overview">Market Overview</a>
-        <a href="/sector-view">Sector View</a>
-        <a href="/signal-research">Signal Research Center</a>
-      </div>
-    </div>
-
-    <!-- Evidence & Methodology. Split out rather than appended to Signals:
-         adding the ten unreachable pages to their existing groups pushed
-         Signals to nine items and Research to eight, which trades one
-         navigation problem for another -- a dropdown long enough to scan is a
-         dropdown nobody reads to the bottom of. These four answer "why should
-         I believe this?", which is a different question from "what is the
-         macro doing?", so they earn their own group. -->
-    <div class="ua-tnav-group">
-      <span class="ua-tnav-trigger">Evidence <span class="ua-tnav-caret">&#9660;</span></span>
-      <div class="ua-tnav-drop">
-        <a href="/track-record">Track Record</a>
-        <a href="/model-validation">Model Validation</a>
-        <a href="/how-signals-work">How Signals Work</a>
-        <a href="/data-trust">Data Trust Center</a>
-        <a href="/alternative-data">Alternative Data</a>
-      </div>
-    </div>
-
-    <div class="ua-tnav-group">
-      <span class="ua-tnav-trigger">Monitoring <span class="ua-tnav-caret">&#9660;</span></span>
-      <div class="ua-tnav-drop">
-        <a href="/my-watchlist">Watchlist Alerts</a>
-        <a class="pro-link" href="/events-forecasts">Catalyst Command Center</a>
+        <a href="/research">Research record</a>
+        <a href="/track-record">Signal track record</a>
+        <a href="/model-validation">Model validation</a>
+        <a href="/data-trust">Data trust</a>
       </div>
     </div>
 
     <div class="ua-tnav-group ua-tnav-hide-sm">
-      <span class="ua-tnav-trigger">More <span class="ua-tnav-caret">&#9660;</span></span>
+      <span class="ua-tnav-trigger">Account <span class="ua-tnav-caret">&#9660;</span></span>
       <div class="ua-tnav-drop">
-        <a href="/ai-research-assistant">AI Assistant</a>
-        <a href="/export-report">Export Report</a>
-        <a href="/my-profile">My Profile</a>
-        <a href="/about-methodology">About &amp; Methodology</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/my-profile">My profile</a>
         <div class="ua-tnav-drop-rule"></div>
         <a href="/privacy-terms" style="font-size:0.68rem;color:var(--ua-ink-label);">Privacy &amp; Terms</a>
         __ADMIN_NAV_SLOT__
@@ -3430,8 +3379,10 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
         if (grp) grp.querySelector('.ua-tnav-trigger').classList.add('active');
       }
     });
-    var homeLink = document.querySelector('a.ua-tnav-item');
-    if (homeLink && (path === '/' || path === '/home')) homeLink.classList.add('active');
+    document.querySelectorAll('a.ua-tnav-item').forEach(function(a){
+      var hp = (a.getAttribute('href') || '').replace(/\\/+$/, '') || '/';
+      if (hp === path) a.classList.add('active');
+    });
   } catch(e){}
 })();
 </script>
@@ -3532,6 +3483,79 @@ def global_stylesheet_available() -> bool:
         return False
 
 
+# Market chrome (stock-price strip, market open/closed badge, macro regime bar,
+# global ticker search) framed every page as a trading terminal. The 2026-09-14
+# redesign leads with the portfolio exposure report, which is not a trading
+# view, so it is off. The code is kept intact behind this flag rather than
+# deleted, so turning it back on is a one-line change.
+SHOW_MARKET_CHROME = False
+
+
+def _render_regime_bar() -> None:
+    """Slim macro-regime line formerly shown under every page header."""
+    # ── Sticky Macro Regime Bar ────────────────────────────────────────────────
+    # One slim line visible on every page so users never lose macro context.
+    # Reads persisted signal snapshots only. A previous version called the full
+    # 47-signal engine from global chrome, turning every cold page load into a
+    # hidden provider sweep even when the page itself needed no macro data.
+    try:
+        from utils.regime import compute_macro_regime
+        try:
+            # Cached read (60s). This runs in global chrome on every page and
+            # every rerun, so uncached it is a Postgres round trip per click.
+            from utils.signals_cache import get_cached_signal_states as _glss
+        except Exception:
+            from utils.score_history import get_latest_signal_states as _glss
+        _rs = _glss()
+        # SSOT: the header bar and the home hero now classify the regime through
+        # ONE function fed the SAME source (persisted snapshots). Previously each
+        # rolled its own count off a different source, so the landing page showed
+        # two contradictory reads. See utils/regime.py.
+        _reg = compute_macro_regime(_rs, total=SIGNAL_COUNT)
+        _rb, _rr, _rn = _reg.bullish, _reg.bearish, _reg.neutral
+        _runavail = _reg.excluded
+        _rs_date = max((str(v.get("snapshot_date") or "") for v in _rs.values()), default="")
+        _regime_lbl, _regime_col, _regime_bg = _reg.label, _reg.color, _reg.bg
+        # The regime bar is on every page, and utils/regime._label returns one
+        # hard-coded hue per state. In light theme those hues sit on a near-white
+        # strip: RISK-ON (#00D566) measured 1.81:1 and AWAITING SNAPSHOT
+        # (#8F9AAD) 2.51:1. Keep the hue, lift it onto the strip it renders on.
+        try:
+            from utils.theme import ink as _ink
+            _regime_col = _ink(_regime_col, alpha=0.05, base_kind="strip")
+        except Exception:
+            pass
+        st.markdown(
+            f'<div style="background:{_regime_bg};border:1px solid var(--ua-hair-2);'
+            f'border-left:3px solid {_regime_col};'
+            f'border-radius:8px;padding:6px 14px;margin-bottom:12px;'
+            f'display:flex;align-items:center;gap:16px;font-family:Inter,sans-serif;">'
+            f'<span style="font-size:0.60rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.11em;font-weight:700;">MACRO REGIME</span>'
+            f'<span style="font-size:var(--ua-text-sm);font-weight:700;color:{_regime_col};">● {_regime_lbl}</span>'
+            f'<span style="font-size:0.68rem;color:var(--ua-ink-mut);">'
+            f'<span style="color:var(--ua-green);">▲ {_rb}</span>'
+            f' · <span style="color:var(--ua-red);">▼ {_rr}</span>'
+            f' · <span style="color:var(--ua-ink-label);">→ {_rn}</span>'
+            # Deliberately says "snapshot", and says so out loud. This counts
+            # signals with no fresh row in the latest scoring cycle; the data
+            # notice on the page below counts signals whose live fetch failed on
+            # this request. Different questions, both honest, and they disagree
+            # routinely -- ⊘ 3 next to "4 of 47" reads as a bug when neither
+            # label says which is which.
+            + (f' · <span style="color:var(--ua-ink-dim);" title="Signals with no fresh snapshot in the'
+               f' latest scoring cycle. The data notice below counts something different — signals whose'
+               f' live fetch failed on this page load — so the two can disagree.">⊘ {_runavail}</span>'
+               if _runavail else "")
+            + f'</span>'
+            f'<span style="font-size:0.60rem;color:var(--ua-ink-label);margin-left:auto;">'
+            f'{SIGNAL_COUNT} signals · {"snapshot " + _rs_date if _rs_date else "no snapshot yet"}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        pass  # never crash the header for a cosmetic bar
+
+
 def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str = "") -> None:
     """
     Inject global CSS and render the Unstructured Alpha masthead.
@@ -3607,12 +3631,12 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
         {property: 'og:site_name',    content: 'Unstructured Alpha'},
         {property: 'og:type',         content: 'website'},
         {property: 'og:url',          content: 'https://unstructuredalpha.com'},
-        {property: 'og:title',        content: 'Unstructured Alpha — 47-Signal Market Intelligence'},
-        {property: 'og:description',  content: 'Research 47 registered signals across 13 real-data source families. Public validation and track record; deeper testing and research workflows in Pro.'},
-        {name:     'description',     content: 'Research 47 registered signals across macro, market, filings, energy, contracts and alternative data. No synthetic placeholder observations.'},
+        {property: 'og:title',        content: 'Unstructured Alpha — Portfolio exposure to economic forces'},
+        {property: 'og:description',  content: 'See which economic forces a portfolio is exposed to, with the uncertainty shown on every number. Not a forecast.'},
+        {name:     'description',     content: 'See which economic forces a portfolio is exposed to: interest rates, inflation, the dollar, oil and credit spreads. Not a forecast.'},
         {name:     'twitter:card',    content: 'summary'},
-        {name:     'twitter:title',   content: 'Unstructured Alpha — Alternative Data Intelligence'},
-        {name:     'twitter:description', content: '47 macro signals scored daily. Free to browse. Insider trades, credit spreads, VIX term structure, copper/gold ratio and more.'},
+        {name:     'twitter:title',   content: 'Unstructured Alpha — Portfolio exposure to economic forces'},
+        {name:     'twitter:description', content: 'See which economic forces a portfolio is exposed to, with the uncertainty shown on every number. Not a forecast.'},
     ];
     metas.forEach(function(m) {
         var el = document.createElement('meta');
@@ -3645,7 +3669,8 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
 """, unsafe_allow_html=True)
 
     # ── Live ticker strip ──────────────────────────────────────────────────────
-    _render_live_ticker_strip()
+    if SHOW_MARKET_CHROME:
+        _render_live_ticker_strip()
 
     # Market open/closed status — NYSE regular hours, Mon-Fri 9:30-16:00 ET.
     # Best-effort only (no holiday calendar) — falls back to local time if
@@ -3740,80 +3765,23 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     # single line with no leading whitespace removes the condition entirely, and
     # a test pins it.
     _left_block = f'<div class="ua-header-left">{_left_html}</div>' if _left_html else ""
-    st.markdown(
-        f'<div class="ua-header">{_left_block}'
-        f'<div class="ua-header-right">{right_html}</div></div>'
-        f'<div class="gold-rule"></div>',
-        unsafe_allow_html=True,
-    )
-
-    # ── Sticky Macro Regime Bar ────────────────────────────────────────────────
-    # One slim line visible on every page so users never lose macro context.
-    # Reads persisted signal snapshots only. A previous version called the full
-    # 47-signal engine from global chrome, turning every cold page load into a
-    # hidden provider sweep even when the page itself needed no macro data.
-    try:
-        from utils.regime import compute_macro_regime
-        try:
-            # Cached read (60s). This runs in global chrome on every page and
-            # every rerun, so uncached it is a Postgres round trip per click.
-            from utils.signals_cache import get_cached_signal_states as _glss
-        except Exception:
-            from utils.score_history import get_latest_signal_states as _glss
-        _rs = _glss()
-        # SSOT: the header bar and the home hero now classify the regime through
-        # ONE function fed the SAME source (persisted snapshots). Previously each
-        # rolled its own count off a different source, so the landing page showed
-        # two contradictory reads. See utils/regime.py.
-        _reg = compute_macro_regime(_rs, total=SIGNAL_COUNT)
-        _rb, _rr, _rn = _reg.bullish, _reg.bearish, _reg.neutral
-        _runavail = _reg.excluded
-        _rs_date = max((str(v.get("snapshot_date") or "") for v in _rs.values()), default="")
-        _regime_lbl, _regime_col, _regime_bg = _reg.label, _reg.color, _reg.bg
-        # The regime bar is on every page, and utils/regime._label returns one
-        # hard-coded hue per state. In light theme those hues sit on a near-white
-        # strip: RISK-ON (#00D566) measured 1.81:1 and AWAITING SNAPSHOT
-        # (#8F9AAD) 2.51:1. Keep the hue, lift it onto the strip it renders on.
-        try:
-            from utils.theme import ink as _ink
-            _regime_col = _ink(_regime_col, alpha=0.05, base_kind="strip")
-        except Exception:
-            pass
+    if SHOW_MARKET_CHROME or _left_block:
         st.markdown(
-            f'<div style="background:{_regime_bg};border:1px solid var(--ua-hair-2);'
-            f'border-left:3px solid {_regime_col};'
-            f'border-radius:8px;padding:6px 14px;margin-bottom:12px;'
-            f'display:flex;align-items:center;gap:16px;font-family:Inter,sans-serif;">'
-            f'<span style="font-size:0.60rem;color:var(--ua-ink-mut);text-transform:uppercase;letter-spacing:0.11em;font-weight:700;">MACRO REGIME</span>'
-            f'<span style="font-size:var(--ua-text-sm);font-weight:700;color:{_regime_col};">● {_regime_lbl}</span>'
-            f'<span style="font-size:0.68rem;color:var(--ua-ink-mut);">'
-            f'<span style="color:var(--ua-green);">▲ {_rb}</span>'
-            f' · <span style="color:var(--ua-red);">▼ {_rr}</span>'
-            f' · <span style="color:var(--ua-ink-label);">→ {_rn}</span>'
-            # Deliberately says "snapshot", and says so out loud. This counts
-            # signals with no fresh row in the latest scoring cycle; the data
-            # notice on the page below counts signals whose live fetch failed on
-            # this request. Different questions, both honest, and they disagree
-            # routinely -- ⊘ 3 next to "4 of 47" reads as a bug when neither
-            # label says which is which.
-            + (f' · <span style="color:var(--ua-ink-dim);" title="Signals with no fresh snapshot in the'
-               f' latest scoring cycle. The data notice below counts something different — signals whose'
-               f' live fetch failed on this page load — so the two can disagree.">⊘ {_runavail}</span>'
-               if _runavail else "")
-            + f'</span>'
-            f'<span style="font-size:0.60rem;color:var(--ua-ink-label);margin-left:auto;">'
-            f'{SIGNAL_COUNT} signals · {"snapshot " + _rs_date if _rs_date else "no snapshot yet"}</span>'
-            f'</div>',
+            f'<div class="ua-header">{_left_block}'
+            f'<div class="ua-header-right">{right_html}</div></div>'
+            f'<div class="gold-rule"></div>',
             unsafe_allow_html=True,
         )
-    except Exception:
-        pass  # never crash the header for a cosmetic bar
+
+    if SHOW_MARKET_CHROME:
+        _render_regime_bar()
 
     # Global ticker search -- same reasoning as the account widget below:
     # a real Streamlit widget can't live inside the markdown block above,
     # so it's rendered here in its own row, automatically on every page
     # that calls render_header() (all of them).
-    render_global_ticker_search()
+    if SHOW_MARKET_CHROME:
+        render_global_ticker_search()
 
     # ── Top-right widget row: notifications (logged-in only) + account ────────
     # Single st.columns() call so both widgets share one horizontal row.

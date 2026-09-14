@@ -80,4 +80,5 @@ def test_checkup_is_free_routed_and_visible_in_portfolio_navigation():
     assert "not a weighted portfolio analysis" in page
     assert "No substitute values" in page
     assert 'title="Portfolio Checkup"' in app
-    assert 'href="/portfolio-checkup">Portfolio Checkup</a>' in header
+    # Superseded by the exposure report in the 2026-09-14 redesign; still routed.
+    assert 'href="/portfolio-checkup"' not in header
