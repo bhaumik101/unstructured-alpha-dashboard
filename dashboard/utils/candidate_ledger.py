@@ -61,7 +61,9 @@ class Candidate:
 # docs/NOWCAST_RESULTS.md, 2026-09-03 correction).
 CANDIDATES: tuple[Candidate, ...] = (
     Candidate(
-        "financial_stress", "STLFSI4",
+        # Registered as "financial_stress" until 2026-09-14; that evaluation is
+        # void (see VOIDED_EVALUATIONS) and the key is retired with it.
+        "stlfsi4_stress", "STLFSI4",
         "St Louis Fed Financial Stress Index — a weekly composite built from a "
         "different input set than Chicago's NFCI, so it may carry stress "
         "information NFCI misses rather than duplicating it.",
@@ -97,6 +99,27 @@ CANDIDATES: tuple[Candidate, ...] = (
         safe_at_lag0=False,
     ),
 )
+
+
+# EVALUATIONS DECLARED VOID.
+#
+# Write-once cuts both ways: a row that did not actually test its candidate
+# cannot be repaired in place either. A void is declared HERE, in a visible
+# commit carrying the evidence — never by editing or deleting the row.
+#
+# A voided row is excluded from the Bonferroni count, because it tested nothing
+# and so spent no search budget. Its key is retired: the retest must be
+# registered under a new key, so the original row and its void stay readable
+# side by side.
+VOIDED_EVALUATIONS: dict[str, str] = {
+    "financial_stress": (
+        "2026-09-14 cron run recorded skill 0.3483 with the candidate against a "
+        "baseline of 0.3483 — identical. Adding a column always moves the factor "
+        "loadings; on the same code path run locally, STLFSI4 moved skill "
+        "0.2784 -> 0.2883. The series never entered the trial design, so the "
+        "row is the baseline under another name. Retested as stlfsi4_stress."
+    ),
+}
 
 
 def corrected_alpha(n_tested: int, family_alpha: float = 0.05) -> float:
@@ -186,6 +209,12 @@ def get_ledger() -> dict:
     except Exception:
         rows = []
 
+    # Void rows tested nothing, so they neither count toward the correction
+    # nor can survive it. They are still reported, not hidden.
+    voided = [{"candidate": r["candidate"], "reason": VOIDED_EVALUATIONS[r["candidate"]]}
+              for r in rows if r.get("candidate") in VOIDED_EVALUATIONS]
+    rows = [r for r in rows if r.get("candidate") not in VOIDED_EVALUATIONS]
+
     n = len(rows)
     threshold = corrected_alpha(n)
     for row in rows:
@@ -202,6 +231,7 @@ def get_ledger() -> dict:
         "corrected_alpha": round(threshold, 6),
         "survivors": [r["candidate"] for r in rows if r["survives_correction"]],
         "evaluations": rows,
+        "voided": voided,
         "note": (
             f"Bonferroni over {n} tested candidate(s): a survivor must clear "
             f"p < {threshold:.4f}. The bar tightens as exploration continues."

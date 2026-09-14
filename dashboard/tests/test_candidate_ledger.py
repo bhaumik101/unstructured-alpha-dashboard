@@ -131,6 +131,72 @@ def test_the_cron_evaluates_but_never_promotes():
     )
 
 
+def _candidate_block() -> str:
+    source = (_ROOT / "cron" / "run_nowcast.py").read_text(encoding="utf-8")
+    return source[source.index("evaluate one candidate"):source.index("_led = get_ledger()")]
+
+
+def test_an_evaluation_is_recorded_only_if_the_candidate_was_in_the_model():
+    """2026-09-14: the first live run recorded STLFSI4 at exactly the baseline's
+    skill, because the series had been dropped from the design. Write-once turned
+    a test that never happened into a permanent result."""
+    block = _candidate_block()
+    assert block.count("record_evaluation(") == 1, (
+        "a failed fetch must not record anything — it would spend the candidate's "
+        "one evaluation on a network error"
+    )
+    guard = block.find("cand.key not in trial.features_used")
+    assert guard != -1, "the cron must check the candidate entered the trial design"
+    assert guard < block.index("record_evaluation("), (
+        "the membership check has to run before the write-once record"
+    )
+
+
+# ── voids are declared in code, never by editing a row ─────────────────────
+
+def test_a_voided_key_is_retired_so_it_cannot_be_rerun_under_its_old_name():
+    from utils.candidate_ledger import VOIDED_EVALUATIONS
+    registered = {c.key for c in CANDIDATES}
+    for key, reason in VOIDED_EVALUATIONS.items():
+        assert key not in registered, (
+            f"{key} is void but still registered; the retest needs a new key so "
+            f"the original row and its void stay side by side"
+        )
+        assert len(reason) > 80, f"the void of {key} must carry its evidence"
+
+
+def test_void_rows_are_reported_but_do_not_count_toward_the_correction(monkeypatch):
+    from utils import db
+    import utils.candidate_ledger as cl
+
+    rows = [
+        {"candidate": "financial_stress", "skill": 0.3, "dm_p_value": 0.001,
+         "evaluated_at": "2026-09-14T00:00:00"},
+        {"candidate": "term_spread_3m", "skill": 0.1, "dm_p_value": 0.4,
+         "evaluated_at": "2026-10-08T00:00:00"},
+    ]
+
+    class _Conn:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def execute(self, *a, **k): return self
+        def mappings(self): return self
+        def all(self): return [dict(r) for r in rows]
+
+    class _Engine:
+        def begin(self): return _Conn()
+
+    monkeypatch.setattr(db, "engine", _Engine())
+    ledger = cl.get_ledger()
+
+    assert ledger["n_tested"] == 1
+    assert ledger["corrected_alpha"] == pytest.approx(0.05)
+    assert ledger["survivors"] == [], (
+        "a void row tested nothing, so even a flattering p-value cannot survive"
+    )
+    assert [v["candidate"] for v in ledger["voided"]] == ["financial_stress"]
+
+
 def test_only_one_candidate_is_tested_per_run():
     """Testing the whole registry at once would demand p < 0.008 of all of them
     and produce nothing interpretable."""

@@ -247,9 +247,14 @@ def main() -> int:
                 start, end, point_in_time=cand.first_print,
             )
             if extra is None or extra.empty:
-                record_evaluation(cand.key, cand.hypothesis, None, None, 0,
-                                  notes=f"{cand.fred} returned no observations")
+                # A failed fetch is not a test. Recording it would spend the
+                # candidate's single write-once evaluation on a network error.
+                print(f"[candidates] {cand.fred} returned no observations — not "
+                      f"recorded; {cand.key} stays pending", flush=True)
             else:
+                print(f"[candidates] {cand.fred}: {len(extra)} observations, "
+                      f"{extra.index.min():%Y-%m} to {extra.index.max():%Y-%m}",
+                      flush=True)
                 base_feats = _fetch_predictors(start, end) if lag == 0 else {
                     p.key: fetch_signal_series(
                         SIGNALS.get(p.signal) if p.signal else
@@ -269,16 +274,32 @@ def main() -> int:
                 base = run_nowcast_backtest(target_monthly, base_feats, **common)
                 trial = run_nowcast_backtest(target_monthly, with_cand, **common)
 
-                record_evaluation(
-                    cand.key, cand.hypothesis,
-                    skill=trial.skill, dm_p_value=trial.dm_p_value,
-                    n_scored=trial.n_scored or 0,
-                    baseline_skill=base.skill,
-                    notes=(f"lag {lag}; baseline skill {base.skill}; "
-                           f"with candidate {trial.skill}"),
-                )
-                print(f"[candidates] {cand.key}: skill {base.skill} -> {trial.skill}, "
-                      f"p={trial.dm_p_value}", flush=True)
+                # THE CANDIDATE MUST BE IN THE MODEL IT IS CREDITED WITH.
+                #
+                # Measured 2026-09-14: the first live run recorded STLFSI4 at
+                # skill 0.3483 against a baseline of 0.3483 — identical, because
+                # build_design had dropped the series and the "trial" was the
+                # baseline under another name. Adding a column always moves the
+                # factor loadings; on the same code path locally it moved skill
+                # 0.2784 -> 0.2883. An evaluation is write-once, so recording a
+                # test that never happened burns the candidate for good.
+                if cand.key not in trial.features_used:
+                    why = ("; ".join(trial.features_dropped) or trial.reason
+                           or "absent from the design")
+                    print(f"[candidates] {cand.key} never entered the model ({why}) "
+                          f"— not recorded; {cand.key} stays pending", flush=True)
+                else:
+                    record_evaluation(
+                        cand.key, cand.hypothesis,
+                        skill=trial.skill, dm_p_value=trial.dm_p_value,
+                        n_scored=trial.n_scored or 0,
+                        baseline_skill=base.skill,
+                        notes=(f"lag {lag}; baseline skill {base.skill}; "
+                               f"with candidate {trial.skill}; "
+                               f"{trial.n_features} features"),
+                    )
+                    print(f"[candidates] {cand.key}: skill {base.skill} -> "
+                          f"{trial.skill}, p={trial.dm_p_value}", flush=True)
 
         _led = get_ledger()
         print(f"[candidates] ledger: {_led['n_tested']}/{_led['n_registered']} tested, "
