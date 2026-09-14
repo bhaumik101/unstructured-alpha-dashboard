@@ -446,3 +446,60 @@ It does not make the score predictive. Nothing does. It makes the score a
 coherent descriptor: an independence-weighted average of how the signals
 relevant to a ticker are currently leaning — which is what it literally
 computes, and is now what it can honestly be said to be.
+
+---
+
+## 2026-09-14 — first live run — **the record starts; the first candidate test was not a test**
+
+### The forward record has its first entry
+
+The scheduled run on 2026-09-08 refused to start: `FRED_API_KEY` and
+`DATABASE_URL` had never been set on the cron service. Both were set on
+2026-09-14 and the job was triggered by hand at 16:36 UTC.
+
+| month | predicted | naive | recorded |
+|---|---|---|---|
+| 2026-08 | 98.506 | 98.430 | 2026-09-14 16:36 UTC |
+
+August Industrial Production (Manufacturing) had not published when this was
+written. The model calls +0.076 over last month's level. One month says nothing;
+skill stays withheld until twelve are scored.
+
+### The candidate evaluation recorded a test that never happened
+
+The same run evaluated the first registered candidate, STLFSI4, and logged:
+
+```
+[candidates] financial_stress: skill 0.3483 -> 0.3483, p=0.130758
+```
+
+Identical to the baseline. That cannot be a result: adding a column to the
+panel always moves the principal-component loadings, and so the skill. Run
+locally on the same code path (FRED's public latest-vintage CSVs, not first
+prints), adding STLFSI4 moved skill **0.2784 → 0.2883** with 12 features instead
+of 11. In production the series never entered the trial design, and the "trial"
+was the baseline under another name.
+
+Because evaluations are write-once, that row can never be overwritten.
+
+### What changed
+
+- **The cron now refuses to record** an evaluation unless the candidate is in the
+  trial's `features_used`, and it logs the drop reason. A failed fetch no longer
+  records anything either; it previously spent the candidate on a network error.
+- **The row is voided in code** (`VOIDED_EVALUATIONS` in
+  `utils/candidate_ledger.py`) with the evidence above. A voided row is excluded
+  from the Bonferroni count, because it tested nothing and spent no search
+  budget, and it cannot survive. It is still reported.
+- **The key is retired.** STLFSI4 is re-registered as `stlfsi4_stress`, same
+  hypothesis and same series, and runs again next month.
+
+### What was NOT done
+
+- The database row was not edited or deleted. The void lives in a commit.
+- **Why** production dropped the series is not yet confirmed. The local check
+  used latest-vintage data, and production fetches ALFRED first prints. The
+  likeliest cause is a short first-print history failing the 80% coverage rule,
+  but that is inference. The next run logs the series' observation span and the
+  drop reason, and that log line is the confirmation.
+- The locked specification and the correction rule are unchanged.
