@@ -27,6 +27,8 @@ SAMPLE_KEYS = {
 FREE_MAX_HOLDINGS = 15
 PRO_MAX_HOLDINGS = ex.MAX_HOLDINGS
 FACTOR_BY_KEY = {f.key: f for f in ex.FACTORS}
+FACTOR_COLORS = {"rates": "#3b7ddd", "inflation": "#e0664a", "dollar": "#1a9a70",
+                 "oil": "#d99018", "credit": "#7c5ce0", "growth": "#1497b0"}
 
 GENERIC_ERROR = ("Something went wrong while measuring this portfolio. Nothing has been "
                  "estimated in its place; please try again.")
@@ -37,6 +39,8 @@ REPORT_CSS = """<style>
   font-family:Inter,system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums;color:var(--uar-ink);}
 html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f2f3f5;--uar-ink:#14171f;
   --uar-ink-2:#3a4152;--uar-ink-3:#596070;--uar-line:#e2e4e9;--uar-accent:#1f4e8c;--uar-pos:#2563a8;--uar-neg:#b45309;}
+.uar-strip{height:5px;background:linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0);}
+.uar-dot{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:9px;vertical-align:0;}
 .uar-card{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:12px;overflow:hidden;margin:6px 0 18px;}
 .uar-head{padding:16px 20px;border-bottom:1px solid var(--uar-line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;}
 .uar-title{font-size:1.02rem;font-weight:650;color:var(--uar-ink);}
@@ -56,8 +60,10 @@ html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f2f3f5;--ua
 .uar-whisker{position:absolute;top:10px;height:2px;background:var(--uar-ink-3);opacity:.6;}
 .uar-chip{display:inline-block;align-self:flex-start;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;
   border:1px solid var(--uar-line);color:var(--uar-ink-2);white-space:nowrap;}
-.uar-chip-clear{border-color:var(--uar-accent);color:var(--uar-accent);}
-.uar-chip-tentative{border-style:dashed;}
+.uar-chip-clear{background:rgba(26,154,112,.16);border-color:rgba(26,154,112,.55);color:#4fcf9f;}
+html[data-ua-theme="light"] .uar-chip-clear{background:#dcf3ea;border-color:#9fd8c2;color:#0b6a4e;}
+.uar-chip-tentative{background:rgba(217,144,24,.16);border-color:rgba(217,144,24,.5);color:#f0bb62;}
+html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:#f1cf95;color:#8a4f00;}
 .uar-driver{font-size:.8rem;color:var(--uar-ink-3);margin-top:4px;}
 .uar-foot{padding:12px 20px;background:var(--uar-subtle);font-size:.8rem;color:var(--uar-ink-3);line-height:1.55;}
 .uar-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.78rem;color:var(--uar-ink-3);align-items:center;}
@@ -320,7 +326,7 @@ def exposure_table_html(report: dict) -> str:
         r = readings[key]
         rows.append(
             f'<div class="uar-row">'
-            f'<div><div class="uar-label">{escape(r["label"])}</div>'
+            f'<div><div class="uar-label"><span class="uar-dot" style="background:{FACTOR_COLORS[key]}"></span>{escape(r["label"])}</div>'
             f'<div class="uar-shock">In weeks when {escape(r["shock_phrase"])}</div></div>'
             f'{exposure_bar(r["impact"], r["low"], r["high"], scale)}'
             f'<div><div class="uar-val">{fmt_pct(r["impact"])}</div>'
@@ -330,7 +336,7 @@ def exposure_table_html(report: dict) -> str:
             f'</div>'
         )
     return (
-        '<div class="uar"><div class="uar-card">'
+        '<div class="uar"><div class="uar-card"><div class="uar-strip"></div>'
         '<div class="uar-head"><div class="uar-title">Exposure to economic forces</div>'
         '<div class="uar-legend">'
         '<span><span class="uar-sw" style="background:var(--uar-pos)"></span>Moves up with the factor</span>'
@@ -351,8 +357,8 @@ def factor_detail_html(report: dict, key: str) -> str:
         return ""
     r = readings[key]
     parts = [
-        f'<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
-        f'<div class="uar-title">{escape(r["label"])}</div>'
+        f'<div class="uar"><div class="uar-card" style="border-top:4px solid {FACTOR_COLORS.get(key, "#3b7ddd")}"><div class="uar-head"><div>'
+        f'<div class="uar-title"><span class="uar-dot" style="background:{FACTOR_COLORS.get(key, "#3b7ddd")}"></span>{escape(r["label"])}</div>'
         f'<div class="uar-sub">{escape(r["why"])}</div></div>{evidence_chip(r["evidence"])}</div>'
         f'<div class="uar-body"><p class="uar-lead">{escape(r["sentence"])}</p>'
         f'<div class="uar-sub">{escape(ex.EVIDENCE_EXPLAINED[r["evidence"]])} '

@@ -78,7 +78,7 @@ def test_landing_data_series_match_the_exposure_engine() -> None:
     from utils.exposure import FACTORS, GROWTH_FACTOR
 
     body = _landing_source()
-    match = re.search(r"const DATA_SERIES = \[(.*?)\];", body, flags=re.DOTALL)
+    match = re.search(r"const DATA_SERIES(?::[^=]*)? = \[(.*?)\];", body, flags=re.DOTALL)
     assert match, "could not locate the DATA_SERIES array on the landing page"
     advertised = set(re.findall(r'id:\s*"([^"]+)"', match.group(1)))
     real = {f.series_id for f in FACTORS} | {GROWTH_FACTOR.series_id}
