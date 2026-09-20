@@ -37,7 +37,7 @@ def _tier(name: str, price: str, sub: str, now: list[str], later: list[str]) -> 
         later_items = "".join(f"<li>{i}</li>" for i in later)
         later_html = (f'<div class="uar-sub" style="margin-top:10px;font-weight:600">IN DEVELOPMENT</div>'
                       f'<ul style="margin:4px 0 0 18px;padding:0;color:var(--uar-ink-3)">{later_items}</ul>')
-    return (f'<div class="uar"><div class="uar-card"><div class="uar-body">'
+    return (f'<div class="uar"><div class="uar-card uar-tier"><div class="uar-body">'
             f'<div class="uar-sub" style="font-weight:600">{name}</div>'
             f'<div class="uar-title" style="font-size:1.8rem;margin:4px 0">{price}</div>'
             f'<div class="uar-sub">{sub}</div>'

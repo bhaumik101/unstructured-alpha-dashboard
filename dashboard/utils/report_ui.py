@@ -68,7 +68,7 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-foot{padding:12px 20px;background:var(--uar-subtle);font-size:.8rem;color:var(--uar-ink-3);line-height:1.55;}
 .uar-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.78rem;color:var(--uar-ink-3);align-items:center;}
 .uar-sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
-.uar-scroll{overflow-x:auto;}
+.uar-scroll{overflow-x:auto;}\n@media (min-width:761px){.uar-tier{min-height:430px;}}
 .uar-table{width:100%;border-collapse:collapse;font-size:.88rem;}
 .uar-table th{text-align:left;font-weight:600;color:var(--uar-ink-3);font-size:.74rem;padding:8px 12px;border-bottom:1px solid var(--uar-line);white-space:nowrap;}
 .uar-table td{padding:9px 12px;border-bottom:1px solid var(--uar-line);color:var(--uar-ink-2);}
@@ -78,6 +78,10 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-error{border:1px solid var(--uar-neg);border-radius:12px;padding:16px 20px;margin:8px 0 16px;color:var(--uar-ink-2);background:var(--uar-surface);}
 .uar-error b{color:var(--uar-ink);}
 .uar-kicker{font-size:.8rem;font-weight:600;color:var(--uar-accent);margin-bottom:4px;}
+.uar-map{width:100%;max-width:520px;height:auto;display:block;margin:4px auto 10px;}
+.uar-map-label{fill:var(--uar-ink);font-size:.88rem;font-weight:600;}
+.uar-map-value{fill:var(--uar-ink-3);font-size:.8rem;}
+.uar-map-core{fill:var(--uar-ink);font-size:1.02rem;font-weight:700;}
 @media (max-width:760px){
   .uar-row{grid-template-columns:1fr auto;gap:6px 12px;}
   .uar-row .uar-bar{grid-column:1/-1;order:3;}
@@ -258,14 +262,30 @@ def _cached_ok_report(key: tuple, max_holdings: int) -> dict:
 
 
 def get_report(key: tuple, max_holdings: int) -> dict:
+    """Shared cache, then this process's cache, then the engine.
+
+    The database lookup comes first because it survives deploys and is shared
+    across instances: without it every restart makes the next visitor wait ~25
+    seconds for a measurement someone else already paid for.
+    """
     if not key:
         return {"status": "error", "message": "Add at least one holding with a ticker symbol."}
+
+    from utils import report_cache
+
+    stored = report_cache.get(key, max_holdings)
+    if stored is not None:
+        return stored
+
     try:
-        return _cached_ok_report(key, max_holdings)
+        report = _cached_ok_report(key, max_holdings)
     except _NotCacheable as exc:
         return exc.payload
     except Exception:
         return {"status": "error", "message": GENERIC_ERROR, "retryable": True}
+
+    report_cache.put(key, max_holdings, report)
+    return report
 
 
 # ── report sections ─────────────────────────────────────────────────────────
@@ -314,6 +334,62 @@ def _driver_text(report: dict, key: str) -> str:
     if top.get("share") is not None and top["share"] >= 0.5:
         return f"Mostly {top['ticker']}"
     return "Largest: " + ", ".join(r["ticker"] for r in rows[:2])
+
+
+_MAP_NODES = {"rates": (260, 92), "dollar": (446, 152), "inflation": (414, 356),
+              "oil": (106, 356), "credit": (74, 152)}
+
+
+def exposure_map_html(report: dict) -> str:
+    """The portfolio at the centre, each force around it.
+
+    Line weight follows the measured size; a force with no clear link is a faint
+    dashed line. It carries no information the table below does not — it is the
+    shape of the answer, for a reader who takes in a picture faster than a table.
+    """
+    readings = report.get("portfolio", {}).get("readings") or {}
+    drawable = [k for k in _MAP_NODES if k in readings]
+    if len(drawable) < 3:
+        return ""
+    cx, cy = 260, 218
+    peak = max((abs(readings[k]["impact"]) for k in drawable), default=1.0) or 1.0
+
+    lines, nodes = [], []
+    for key in drawable:
+        x, y = _MAP_NODES[key]
+        r = readings[key]
+        clear = r["evidence"] in ("clear", "tentative")
+        colour = FACTOR_COLORS.get(key, "#3b7ddd")
+        width = 2 + 8 * min(1.0, abs(r["impact"]) / peak) if clear else 1.5
+        lines.append(
+            f'<line x1="{cx}" y1="{cy}" x2="{x}" y2="{y}" stroke="{colour if clear else "var(--uar-ink-3)"}" '
+            f'stroke-width="{width:.1f}" stroke-linecap="round"'
+            + ('' if clear else ' stroke-dasharray="5 6" opacity="0.5"') + '></line>')
+        above = y < cy - 80
+        label_y = y - 56 if above else y + 48
+        value_y = y - 38 if above else y + 66
+        value = fmt_pct(r["impact"]) if clear else "no clear link"
+        nodes.append(
+            f'<g opacity="{1 if clear else 0.65}">'
+            f'<circle cx="{x}" cy="{y}" r="26" fill="{colour}"></circle>'
+            f'<text x="{x}" y="{label_y}" text-anchor="middle" class="uar-map-label">'
+            f'{escape(r["label"])}</text>'
+            f'<text x="{x}" y="{value_y}" text-anchor="middle" class="uar-map-value">{value}</text>'
+            f'</g>')
+
+    holdings = len(report.get("positions") or [])
+    return (
+        f'<div class="uar"><svg class="uar-map" viewBox="0 0 520 430" role="img" '
+        f'aria-label="Diagram of this portfolio and the economic forces it is exposed to. '
+        f'The table below gives the same figures.">'
+        f'<circle cx="{cx}" cy="{cy}" r="150" fill="none" stroke="var(--uar-line)"></circle>'
+        + "".join(lines)
+        + f'<circle cx="{cx}" cy="{cy}" r="64" fill="var(--uar-subtle)" stroke="var(--uar-line)"></circle>'
+        f'<text x="{cx}" y="{cy - 4}" text-anchor="middle" class="uar-map-core">Portfolio</text>'
+        f'<text x="{cx}" y="{cy + 18}" text-anchor="middle" class="uar-map-value">'
+        f'{holdings} holding{"" if holdings == 1 else "s"}</text>'
+        + "".join(nodes)
+        + '</svg></div>')
 
 
 def exposure_table_html(report: dict) -> str:
@@ -479,7 +555,7 @@ def portfolio_header_html(name: str, report: dict) -> str:
                          for p in sorted(positions, key=lambda p: -p["weight_pct"])[:8])
     more = f" · +{len(positions) - 8} more" if len(positions) > 8 else ""
     as_of = report.get("as_of")
-    return (f'<div class="uar"><div class="uar-kicker">Exposure report</div>'
+    return (f'<div class="uar">'
             f'<div class="uar-title" style="font-size:1.35rem">{escape(name)}</div>'
             f'<div class="uar-sub">{escape(listing + more)}'
             + (f' · data through {escape(fmt_date(as_of))}' if as_of else "")
