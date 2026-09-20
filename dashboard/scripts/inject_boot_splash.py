@@ -544,6 +544,9 @@ META_DESC = (
     "Free, no account for your first report."
 )
 META_URL = "https://unstructuredalpha.com"
+# The landing page ships this file (scripts/make_og_image.py). Without an
+# image, a shared app link previews as a text-only card.
+META_IMAGE = "https://unstructuredalpha.com/og-image.png"
 
 
 def _build_meta() -> str:
@@ -558,6 +561,8 @@ def _build_meta() -> str:
         f'<meta property="og:url" content="{u}">'
         f'<meta property="og:title" content="{t}">'
         f'<meta property="og:description" content="{d}">'
+        f'<meta property="og:image" content="{esc(META_IMAGE)}">'
+        f'<meta name="twitter:image" content="{esc(META_IMAGE)}">'
         f'<meta name="twitter:card" content="summary">'
         f'<meta name="twitter:title" content="{t}">'
         f'<meta name="twitter:description" content="{d}">'
