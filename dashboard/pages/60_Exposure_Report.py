@@ -48,6 +48,16 @@ if sample in ui.SAMPLE_KEYS and st.session_state.get("uar_loaded_sample") != sam
     st.session_state["uar_editing"] = False
     record("exposure_sample_opened", sample=sample, source="link")
 
+shared = str(st.query_params.get(ui.HOLDINGS_PARAM, "") or "")
+if shared and st.session_state.get("uar_loaded_link") != shared:
+    linked = ui.parse_holdings_param(shared)
+    if linked:
+        st.session_state["uar_loaded_link"] = shared
+        st.session_state["uar_holdings"] = linked
+        st.session_state["uar_name"] = "Shared portfolio"
+        st.session_state["uar_editing"] = False
+        record("exposure_link_opened", n=len(linked))
+
 if user and "uar_holdings" not in st.session_state:
     try:
         from utils.portfolio_workspace import get_default_holdings
@@ -235,6 +245,11 @@ st.markdown("## Economic growth")
 st.markdown(ui.growth_html(report), unsafe_allow_html=True)
 
 st.markdown(ui.notes_html(report, cleaning_notes), unsafe_allow_html=True)
+
+with st.expander("Share or print this report"):
+    st.caption("Anyone opening this link gets the same report, measured fresh. "
+               "No account needed. To save a PDF, print the page.")
+    st.code(ui.share_url([{"ticker": t, "weight_pct": w} for t, w in key]), language=None)
 
 with st.expander("How to read this report"):
     st.markdown(ui.HOW_TO_READ)
