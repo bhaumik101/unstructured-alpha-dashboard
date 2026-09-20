@@ -35,7 +35,7 @@ MIN_ACTIVE_ROUTES = 25
 # evidence the product can generate: ten configurations were searched against
 # 2011-2026 (docs/NOWCAST_RESULTS.md), so the backtest is spent, and a forward
 # record cannot be started retroactively.
-MAX_CRON_SERVICES = 15
+MAX_CRON_SERVICES = 16
 MAX_SCORE_RSS_MB = 512
 MAX_EXTERNAL_TIMEOUT_SECONDS = 30
 

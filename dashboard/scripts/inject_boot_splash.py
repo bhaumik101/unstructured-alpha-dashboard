@@ -536,11 +536,12 @@ def _inject_or_replace(html: str, splash: str) -> tuple[str, int, str]:
 # (Googlebot) still get the richer JS-set tags; this is the crawler floor.
 META_START = "<!-- ua-meta:start -->"
 META_END = "<!-- ua-meta:end -->"
-META_TITLE = "Unstructured Alpha — 47-signal macro intelligence"
+META_TITLE = "Unstructured Alpha — portfolio exposure to economic forces"
 META_DESC = (
-    "47 macro and alt-data signals scored daily on first-print data — no hindsight, "
-    "no synthetic values. Public out-of-sample validation and a live revision audit. "
-    "Free to browse."
+    "See which economic forces a portfolio is exposed to — interest rates, inflation, "
+    "the dollar, oil and credit spreads — measured from three years of weekly returns, "
+    "with a 90% range and an evidence label on every number. Not a forecast. "
+    "Free, no account for your first report."
 )
 META_URL = "https://unstructuredalpha.com"
 
@@ -636,11 +637,11 @@ def _inject_meta(html: str) -> tuple[str, str]:
 SEO_START = "<!-- ua-seo:start -->"
 SEO_END = "<!-- ua-seo:end -->"
 _SEO_LINKS = [
-    ("Signal_Dashboard", "Signal Dashboard — all 47 signals scored live"),
-    ("Model_Validation", "Model Validation — out-of-sample results, including the signals that fail"),
-    ("Ticker_Deep_Dive", "Ticker Deep Dive — score any stock against the macro backdrop"),
-    ("Stock_Screener", "Stock Screener — rank stocks by macro tailwind"),
-    ("Today_Digest", "Today's Brief — the day's macro read in plain English"),
+    ("methodology", "Methodology — how exposure is measured, and what we tested that failed"),
+    ("research", "Research record — the forward nowcast and every candidate tested"),
+    ("what-changed", "What changed — how a portfolio's exposures have shifted"),
+    ("pricing", "Pricing — free exposure report, early-access plans"),
+    ("Model_Validation", "Model Validation — out-of-sample results, including what fails"),
     ("About", "About & methodology"),
 ]
 
@@ -653,15 +654,16 @@ def _build_seo_body() -> str:
     return (
         f"{SEO_START}"
         '<noscript><div>'
-        "<h1>Unstructured Alpha — 47-signal macro intelligence</h1>"
-        "<p>Unstructured Alpha scores 47 macro and alternative-data signals daily — "
-        "Fed liquidity, credit spreads, the yield-curve slope, energy inventories, "
-        "insider buying, short interest, put/call sentiment, the copper/gold ratio and "
-        "more — into a single 0–100 Confluence Score for each stock. Backtests run on "
-        "first-print (point-in-time) data, so a signal only earns credit for what was "
-        "knowable at the time: no revised hindsight and no synthetic values. "
-        "Out-of-sample validation and a per-signal revision audit are published in the "
-        "open. Free to browse.</p>"
+        "<h1>Unstructured Alpha — portfolio exposure to economic forces</h1>"
+        "<p>Unstructured Alpha measures which economic forces a portfolio is exposed to: "
+        "interest rates, inflation expectations, the U.S. dollar, oil, credit spreads and "
+        "economic growth. Enter holdings and it compares three years of weekly returns "
+        "with weekly changes in each force, after accounting for the overall stock "
+        "market, and reports the size of each exposure, a 90% range, the weeks of data "
+        "behind it, and which holdings cause it. Data that is missing is named, never "
+        "filled in. It describes the past rather than predicting returns, and the "
+        "research record publishes the predictive tests that failed. Free, with no "
+        "account needed for a first report.</p>"
         f"<ul>{links}</ul>"
         "</div></noscript>"
         f"{SEO_END}"

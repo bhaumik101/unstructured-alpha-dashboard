@@ -59,7 +59,10 @@ def test_low_frequency_jobs_are_grouped():
     # NOT grouped: it is the only job whose value depends on running at a
     # specific point in the release calendar (after the Employment Situation,
     # before Industrial Production), which no shared group schedule can honour.
-    assert len(crons) == 15
+    # 15 -> 16 on 2026-09-20: unstructured-alpha-exposure-weekly. Weekly, and
+    # it is the retention loop for saved portfolios — the one job whose output a
+    # user has explicitly asked to receive.
+    assert len(crons) == 16
 
 
 def test_rest_scorer_has_safe_memory_headroom_and_reduced_cadence():

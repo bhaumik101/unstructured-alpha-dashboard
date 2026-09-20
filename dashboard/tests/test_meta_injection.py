@@ -27,11 +27,12 @@ def test_meta_replaces_title_and_injects_og_and_twitter():
     assert "title" in action and "meta" in action
 
 
-def test_meta_uses_current_signal_count_not_stale_43():
+def test_meta_sells_the_exposure_report_not_the_old_signal_count():
     out, _ = m._inject_meta(STREAMLIT_HEAD)
-    assert "47" in m.META_DESC
-    assert "43" not in m.META_DESC          # the stale X-cached value must not return
-    assert "47" in out and "43 macro" not in out
+    assert "exposed to" in m.META_DESC
+    for stale in ("47 macro", "43 macro", "signals scored daily"):
+        assert stale not in m.META_DESC, stale
+    assert "Not a forecast." in m.META_DESC
 
 
 def test_meta_injection_is_idempotent():
@@ -42,8 +43,8 @@ def test_meta_injection_is_idempotent():
 
 
 def test_meta_description_is_on_message():
-    assert "first-print" in m.META_DESC.lower()
-    assert "no synthetic" in m.META_DESC.lower()
+    assert "90% range" in m.META_DESC
+    assert "evidence label" in m.META_DESC.lower()
 
 
 # ── Crawlable body content (SEO floor for a JS single-page app) ───────────────
@@ -59,9 +60,9 @@ def test_seo_body_has_real_content_and_internal_links():
     out = m._inject_seo_body(STREAMLIT_HEAD)
     # genuine, keyword-relevant prose a crawler can index
     assert "<noscript>" in out
-    assert "Confluence Score" in out and "first-print" in out
+    assert "economic forces" in out and "90% range" in out
     # a link graph to the key indexable pages
-    for slug in ("Signal_Dashboard", "Model_Validation", "Ticker_Deep_Dive"):
+    for slug in ("methodology", "research", "pricing"):
         assert f"unstructuredalpha.com/{slug}" in out
 
 
