@@ -263,3 +263,16 @@ def test_nav_links_parses_app_py_rather_than_hardcoding():
     }
     assert "ast" in imports, "nav_links must parse app.py with ast, not hardcode routes"
     assert "app.py" in src
+
+
+def test_proxy_marking_does_not_depend_on_a_frame_ever_arriving():
+    """A browser freezes requestAnimationFrame in a background tab. A page
+    opened with middle-click could therefore render ~40 clipped proxy links and
+    never mark them, leaving that many invisible stops in the keyboard tab
+    order. Marking is idempotent, so it is scheduled every way that can fire."""
+    block = _INJECTOR_SRC[_INJECTOR_SRC.index("function uaMarkProxyLinks"):
+                          _INJECTOR_SRC.index("uaDropFalse404")]
+    assert "requestAnimationFrame(uaRunMark)" in block
+    assert "setTimeout(uaRunMark" in block, "a frame may never arrive in a hidden tab"
+    assert "visibilitychange" in block, "re-check when the tab is finally shown"
+    assert ":not([data-ua-proxy])" in block, "re-running must stay cheap"

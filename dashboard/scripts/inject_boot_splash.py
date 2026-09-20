@@ -162,12 +162,29 @@ def _build_runtime() -> str:
       }
     }catch(e){}
   }
+  /* Scheduling matters more than it looks. A browser freezes
+     requestAnimationFrame in a background tab, and throttles setTimeout there
+     too, so a page opened with middle-click or "open link in new tab" could
+     paint its proxy links and never mark them -- leaving ~40 invisible stops
+     in the keyboard tab order for exactly the user who needs the tab order to
+     be sane. Belt and braces: a frame if one comes, a timer if it does not,
+     and a re-check when the tab is actually shown. Marking is idempotent
+     (:not([data-ua-proxy])), so running it more than once costs nothing. */
   var uaMarkQueued=false;
+  function uaRunMark(){ uaMarkQueued=false; uaMarkProxyLinks(); }
   function uaQueueMark(){
     if(uaMarkQueued) return;
     uaMarkQueued=true;
-    requestAnimationFrame(function(){ uaMarkQueued=false; uaMarkProxyLinks(); });
+    try{ requestAnimationFrame(uaRunMark); }catch(e){}
+    setTimeout(uaRunMark, 120);
   }
+  try{
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState === 'visible'){ uaMarkProxyLinks(); }
+    });
+    addEventListener('pageshow', uaMarkProxyLinks);
+    addEventListener('focus', uaMarkProxyLinks);
+  }catch(e){}
   /* ── Streamlit's false "Page not found" on a valid deep link ─────────────
      Observed live on /signal-dashboard while signed in, and on /track-record:
      a large overlay reading "The page that you have requested does not seem to
