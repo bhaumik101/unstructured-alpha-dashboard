@@ -677,6 +677,38 @@ services:
   # The specification this job runs is LOCKED (see docs/NOWCAST_RESULTS.md).
   # Changing the target, predictors, lag or model restarts the record, so this
   # service deliberately exposes no flags that could change any of them.
+  # Weekly exposure summary. Sunday 13:00 UTC, after the Sunday brief jobs so
+  # the three Sunday sends do not contend for the same minute. Opt-in only, and
+  # a week with nothing measurable to report still sends one honest line rather
+  # than manufacturing news.
+  - type: cron
+    name: unstructured-alpha-exposure-weekly
+    runtime: python
+    plan: starter
+    rootDir: dashboard
+    schedule: "0 13 * * 0"   # 13:00 UTC Sunday
+    buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
+    startCommand: python -m cron.send_exposure_weekly
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: FRED_API_KEY
+        sync: false
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
+      - key: NUMEXPR_NUM_THREADS
+        value: "1"
+      - key: VECLIB_MAXIMUM_THREADS
+        value: "1"
+
   - type: cron
     name: unstructured-alpha-nowcast
     runtime: python

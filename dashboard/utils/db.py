@@ -155,6 +155,10 @@ users = Table(
     # must explicitly opt in via the Watchlist page settings section. The
     # cron/send_digest.py script queries this column to decide who to email.
     Column("digest_opted_in", Boolean, nullable=False, server_default="false"),
+    # Weekly exposure summary opt-in (added 2026-09-20). False by default —
+    # set from a checkbox on the exposure report. cron/send_exposure_weekly.py
+    # emails only rows where this is true AND the address is verified.
+    Column("exposure_email_opted_in", Boolean, nullable=False, server_default="false"),
     # Stripe subscription columns (added 2026-06-30). subscription_tier is
     # "free" | "pro" — checked on every gated page via billing.get_user_tier().
     # stripe_customer_id and stripe_subscription_id are stored after a
@@ -853,7 +857,7 @@ def _migrate_users_table() -> None:
     false_literal = "0" if IS_SQLITE else "FALSE"
     with engine.begin() as conn:
         for col in new_cols:
-            if col.name in ("email_verified", "digest_opted_in"):
+            if col.name in ("email_verified", "digest_opted_in", "exposure_email_opted_in"):
                 conn.execute(text(f"ALTER TABLE users ADD COLUMN {col.name} {bool_type} DEFAULT {false_literal}"))
             elif col.name == "subscription_tier":
                 # VARCHAR with default 'free' — existing users are all free tier.

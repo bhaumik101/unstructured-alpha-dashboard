@@ -186,6 +186,22 @@ if save_clicked:
         st.info("Create a free account or sign in (top right) to save this portfolio. "
                 "Your holdings stay on this page while you do.")
 
+if user and report.get("status") == "ok":
+    from utils.exposure_email import get_weekly_opt_in, set_weekly_opt_in
+    _opt_key = f"uar_weekly_{user['id']}"
+    if _opt_key not in st.session_state:
+        st.session_state[_opt_key] = get_weekly_opt_in(int(user["id"]))
+    _wants_weekly = st.checkbox(
+        "Email me a weekly summary of what changed in this portfolio",
+        value=st.session_state[_opt_key], key="uar_weekly_optin",
+        help="Sundays. Most weeks nothing changes measurably, and the email says so.",
+    )
+    if _wants_weekly != st.session_state[_opt_key]:
+        if set_weekly_opt_in(int(user["id"]), _wants_weekly):
+            st.session_state[_opt_key] = _wants_weekly
+            record("exposure_weekly_opt_in" if _wants_weekly else "exposure_weekly_opt_out")
+            st.caption("Saved." if _wants_weekly else "Turned off.")
+
 if report.get("status") != "ok":
     st.markdown(ui.error_html(report), unsafe_allow_html=True)
     if report.get("retryable") and st.button("Try again", key="uar_retry"):
