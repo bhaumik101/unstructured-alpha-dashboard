@@ -43,14 +43,18 @@ const AXE = readFileSync(
 );
 
 const APP = "https://app.unstructuredalpha.com";
+// The surfaces a visitor actually meets since the 2026-09-20 redesign, in both
+// themes. The old signal pages are still routable but no longer in the nav, so
+// they are audited on request rather than by default.
 const DEFAULTS = [
   "https://www.unstructuredalpha.com/",
-  `${APP}/`,
-  `${APP}/?theme=light`,
-  `${APP}/signal-dashboard`,
-  `${APP}/signal-dashboard?theme=light`,
-  `${APP}/track-record`,
-  `${APP}/today-s-brief`,
+  `${APP}/?sample=balanced`,
+  `${APP}/?sample=balanced&theme=dark`,
+  `${APP}/methodology`,
+  `${APP}/research`,
+  `${APP}/pricing`,
+  `${APP}/alerts`,
+  `${APP}/what-changed`,
 ];
 
 // A page is "rendered" once the boot splash has lifted and the main block
