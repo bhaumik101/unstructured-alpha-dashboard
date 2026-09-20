@@ -3584,6 +3584,21 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     # ── Horizontal topnav (replaces sidebar, hides Streamlit chrome) ───────────
     _render_topnav()
 
+    # Pages the 2026-09-20 redesign superseded still resolve for old links, and
+    # still describe the retired signal product. Say so on the page itself, and
+    # ask search engines to stop indexing them. Detected from the caller rather
+    # than a flag, so no page has to remember to opt in.
+    try:
+        import inspect
+
+        from utils.legacy_pages import NOTICE_HTML, is_legacy_page
+
+        _caller = inspect.currentframe().f_back
+        if is_legacy_page((_caller.f_globals.get("__file__") if _caller else None)):
+            st.html(NOTICE_HTML)
+    except Exception:
+        pass  # a notice is never worth breaking a page for
+
     # Traffic tracking (deduped per session+page) — feeds the Admin dashboard.
     _track_page_view(page_subtitle)
 
