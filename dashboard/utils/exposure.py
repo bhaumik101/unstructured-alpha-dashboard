@@ -49,7 +49,6 @@ from typing import Callable, Dict, Iterable, List, Mapping, Optional
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 
 
 @dataclass(frozen=True)
@@ -102,8 +101,11 @@ GROWTH_MIN_MONTHS = 24
 MAX_HOLDINGS = 25
 VIF_WARN = 5.0
 
-Z90 = float(stats.norm.ppf(0.95))
-CLEAR_T = float(stats.norm.ppf(1 - 0.05 / (2 * len(FACTORS))))
+# Written out rather than computed, so a page that only renders a report does
+# not import scipy (~390ms per process) for two numbers that never change.
+# tests/test_exposure.py asserts they still equal scipy's values exactly.
+Z90 = 1.644853626951472          # normal 95th percentile: the 90% range
+CLEAR_T = 2.5758293035489004  # 5% shared across the five factors (Bonferroni)
 
 EVIDENCE_LABELS = {
     "clear": "Clear",
@@ -440,6 +442,7 @@ def _growth_reading(daily: Mapping[str, pd.Series], weights: Mapping[str, float]
     fit = _fit_on_frame(frame, "__portfolio__", (f,), GROWTH_MIN_MONTHS, CLEAR_T, period="months")
     n = fit["n_obs"]
     df = max(1, n - 3)
+    from scipy import stats  # deferred: only the growth reading needs it
     t_crit = float(stats.t.ppf(0.975, df))
     min_r = t_crit / math.sqrt(t_crit ** 2 + df)
     fit["limited"] = True

@@ -327,3 +327,26 @@ def test_growth_is_described_in_months_not_weeks():
     growth = _report()["growth"]
     sentence = growth["readings"]["growth"]["sentence"]
     assert "months when" in sentence and "weeks" not in sentence
+
+
+def test_the_written_out_thresholds_still_match_scipy():
+    """Z90 and CLEAR_T are literals so a page render does not import scipy.
+    If scipy ever disagrees, the evidence labels are wrong, not the import."""
+    from scipy import stats
+
+    assert ex.Z90 == pytest.approx(float(stats.norm.ppf(0.95)), abs=1e-12)
+    assert ex.CLEAR_T == pytest.approx(
+        float(stats.norm.ppf(1 - 0.05 / (2 * len(ex.FACTORS)))), abs=1e-12)
+
+
+def test_rendering_a_report_does_not_drag_in_scipy():
+    """The measurable half of the change: importing the engine must not cost
+    scipy's import time on every page that shows a report."""
+    import subprocess
+    import sys
+
+    probe = ("import sys; import utils.exposure; "
+             "print('scipy' in sys.modules)")
+    out = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
+                         cwd=str(_ROOT))
+    assert out.stdout.strip() == "False", out.stdout + out.stderr
