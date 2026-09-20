@@ -3634,7 +3634,9 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
         {property: 'og:title',        content: 'Unstructured Alpha — Portfolio exposure to economic forces'},
         {property: 'og:description',  content: 'See which economic forces a portfolio is exposed to, with the uncertainty shown on every number. Not a forecast.'},
         {name:     'description',     content: 'See which economic forces a portfolio is exposed to: interest rates, inflation, the dollar, oil and credit spreads. Not a forecast.'},
-        {name:     'twitter:card',    content: 'summary'},
+        {property: 'og:image',        content: 'https://unstructuredalpha.com/og-image.png'},
+        {name:     'twitter:image',   content: 'https://unstructuredalpha.com/og-image.png'},
+        {name:     'twitter:card',    content: 'summary_large_image'},
         {name:     'twitter:title',   content: 'Unstructured Alpha — Portfolio exposure to economic forces'},
         {name:     'twitter:description', content: 'See which economic forces a portfolio is exposed to, with the uncertainty shown on every number. Not a forecast.'},
     ];
