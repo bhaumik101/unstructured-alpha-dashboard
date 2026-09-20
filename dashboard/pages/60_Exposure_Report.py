@@ -211,6 +211,7 @@ if report.get("status") != "ok":
 
 st.markdown(f'<div class="uar"><p class="uar-lead">{ui.summary_text(report)}</p></div>',
             unsafe_allow_html=True)
+st.markdown(ui.exposure_map_html(report), unsafe_allow_html=True)
 st.markdown(ui.exposure_table_html(report), unsafe_allow_html=True)
 
 readings = report["portfolio"]["readings"]

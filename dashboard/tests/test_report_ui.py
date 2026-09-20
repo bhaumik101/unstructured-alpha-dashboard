@@ -164,3 +164,25 @@ def test_labels_keep_us_capitalised_mid_sentence(report):
     assert ex.lower_label("U.S. dollar") == "U.S. dollar"
     assert ex.lower_label("Interest rates") == "interest rates"
     assert "u.s." not in ui.summary_text(report)
+
+
+# ── the map ─────────────────────────────────────────────────────────────────
+
+def test_the_map_shows_every_factor_and_agrees_with_the_table(report):
+    svg = ui.exposure_map_html(report)
+    readings = report["portfolio"]["readings"]
+    for key, reading in readings.items():
+        if key in ui._MAP_NODES:
+            assert reading["label"] in svg
+            if reading["evidence"] in ("clear", "tentative"):
+                assert ui.fmt_pct(reading["impact"]) in svg
+            else:
+                assert "no clear link" in svg
+    assert 'role="img"' in svg and "aria-label" in svg
+
+
+def test_a_thin_report_draws_no_map_rather_than_a_misleading_one():
+    assert ui.exposure_map_html({"portfolio": {"readings": {}}}) == ""
+    one = {"portfolio": {"readings": {"rates": {"label": "Interest rates", "impact": -1.0,
+                                                "evidence": "clear"}}}}
+    assert ui.exposure_map_html(one) == ""

@@ -824,6 +824,23 @@ onboarding_progress = Table(
 )
 
 
+# Computed exposure reports, cached across processes.
+#
+# st.cache_data is per-process: a deploy, a restart, or a second Render
+# instance means the next visitor waits ~25s for a report someone already
+# paid for. This table is that cache — keyed by the normalized portfolio, with
+# the engine's own data date stored so a stale row is obvious. It holds nothing
+# a user typed beyond tickers and weights, and it is a cache: safe to truncate.
+report_cache = Table(
+    "report_cache", metadata,
+    Column("id",         Integer, primary_key=True),
+    Column("cache_key",  String(64), nullable=False, unique=True),
+    Column("as_of",      String(16)),
+    Column("payload",    Text, nullable=False),
+    Column("created_at", String(64), nullable=False),
+)
+
+
 def _migrate_users_table() -> None:
     """
     metadata.create_all() only creates tables that don't exist yet -- it

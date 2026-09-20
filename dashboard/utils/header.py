@@ -3792,7 +3792,15 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     _hdr_user = try_restore_session(_cookies)
     _uid = (_hdr_user or {}).get("id")
 
-    _space, _bell_col, _acct_col = st.columns([3.9, 1.15, 1.35])
+    _account_row = st.container(key="ua_account_row")
+    with _account_row:
+        _space, _bell_col, _acct_col = st.columns([3.9, 1.15, 1.35])
+
+    st.markdown(
+        "<style>.st-key-ua_account_row{margin-top:-30px;margin-bottom:-14px;}"
+        "@media (max-width:640px){.st-key-ua_account_row{margin-top:-8px;}}</style>",
+        unsafe_allow_html=True,
+    )
 
     _notification_api = None
     _unread = 0
