@@ -64,6 +64,15 @@ def main() -> int:
               flush=True)
         return 2
 
+    # Without DATABASE_URL, init_db() silently falls back to a local SQLite file
+    # that has no users — the job would then report "nobody has opted in" and
+    # exit 0 every week while sending nothing. Refuse instead, so a missing
+    # secret shows up as a failed run rather than a successful no-op.
+    if not os.environ.get("DATABASE_URL"):
+        print("[exposure-email] DATABASE_URL is not set — refusing to run against an "
+              "empty local database. Nothing was sent.", flush=True)
+        return 2
+
     init_db()
     try:
         recipients = _recipients()

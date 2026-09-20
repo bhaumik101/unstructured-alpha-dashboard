@@ -127,6 +127,11 @@ def main() -> int:
               "to anything.", flush=True)
         return 2
 
+    if not os.environ.get("DATABASE_URL"):
+        print("[nowcast] DATABASE_URL is not set — refusing to write the forward "
+              "record to a local database that nothing reads.", flush=True)
+        return 2
+
     init_db()
     start, end = _window()
 

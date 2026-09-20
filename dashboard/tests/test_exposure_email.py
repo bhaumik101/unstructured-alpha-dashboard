@@ -116,3 +116,15 @@ def test_a_missing_mail_key_stops_the_run_instead_of_failing_silently():
     assert 'if not api_key:' in CRON
     assert "Nothing was sent." in CRON
     assert "return 2" in CRON
+
+
+def test_a_missing_database_url_fails_loudly_instead_of_sending_nothing():
+    """Without DATABASE_URL the app falls back to an empty local SQLite file.
+    The job would find no opted-in users and exit 0 forever while sending
+    nothing, which is the failure mode hardest to notice."""
+    assert 'if not os.environ.get("DATABASE_URL")' in CRON
+    assert "refusing to run against an" in CRON
+    nowcast = (_ROOT / "cron" / "run_nowcast.py").read_text(encoding="utf-8")
+    assert 'if not os.environ.get("DATABASE_URL")' in nowcast, (
+        "the nowcast writes its write-once record to the same database"
+    )
