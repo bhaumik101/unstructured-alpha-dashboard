@@ -15,6 +15,8 @@ from datetime import datetime
 from html import escape
 from typing import Iterable, List, Optional, Tuple
 
+from urllib.parse import quote
+
 import streamlit as st
 
 from utils import exposure as ex
@@ -82,6 +84,15 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-map-label{fill:var(--uar-ink);font-size:.88rem;font-weight:600;}
 .uar-map-value{fill:var(--uar-ink-3);font-size:.8rem;}
 .uar-map-core{fill:var(--uar-ink);font-size:1.02rem;font-weight:700;}
+@media print{
+  .ua-topnav,.st-key-ua_account_row,[data-testid="stButton"],[data-testid="stRadio"],
+  [data-testid="stExpander"],[data-testid="stCode"],.ua-scroll-top,#ua-scroll-top{display:none!important;}
+  .uar{--uar-surface:#fff;--uar-subtle:#f6f7f9;--uar-ink:#14171f;--uar-ink-2:#3a4152;
+       --uar-ink-3:#596070;--uar-line:#d8dbe2;}
+  .uar-card{break-inside:avoid;page-break-inside:avoid;box-shadow:none;}
+  .uar-map{max-width:420px;}
+  a[href]:after{content:"";}
+}
 @media (max-width:760px){
   .uar-row{grid-template-columns:1fr auto;gap:6px 12px;}
   .uar-row .uar-bar{grid-column:1/-1;order:3;}
@@ -224,6 +235,43 @@ def parse_holdings_csv(data: bytes) -> Tuple[List[dict], List[str]]:
             continue
         rows.append({"ticker": raw, "weight_pct": amount})
     return rows, rejected
+
+
+HOLDINGS_PARAM = "h"
+APP_BASE = "https://app.unstructuredalpha.com"
+
+
+def holdings_param(rows: Iterable[dict]) -> str:
+    """'VTI:40,BND:30' — a portfolio small enough to live in a link.
+
+    Outreach and sharing both need one URL that opens a finished report, with
+    no account and no upload. Weights are rounded to one decimal: the extra
+    precision changes nothing a reader sees and makes links unreadable.
+    """
+    parts = []
+    for r in rows or []:
+        weight = r.get("weight_pct")
+        parts.append(f"{r['ticker']}:{round(float(weight), 1):g}" if weight else str(r["ticker"]))
+    return ",".join(parts)
+
+
+def parse_holdings_param(value: str) -> List[dict]:
+    """The inverse. Anything malformed is dropped, never guessed at."""
+    rows: List[dict] = []
+    for chunk in str(value or "").split(","):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        ticker, _, weight = chunk.partition(":")
+        ticker = ticker.strip().upper().lstrip("$")
+        if not _TICKER_RE.match(ticker):
+            continue
+        rows.append({"ticker": ticker, "weight_pct": _number(weight) if weight else None})
+    return rows
+
+
+def share_url(rows: Iterable[dict], app_base: str = APP_BASE) -> str:
+    return f"{app_base}/?{HOLDINGS_PARAM}={quote(holdings_param(rows))}"
 
 
 def holdings_to_text(rows: Iterable[dict]) -> str:

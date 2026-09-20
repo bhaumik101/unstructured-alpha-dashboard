@@ -186,3 +186,45 @@ def test_a_thin_report_draws_no_map_rather_than_a_misleading_one():
     one = {"portfolio": {"readings": {"rates": {"label": "Interest rates", "impact": -1.0,
                                                 "evidence": "clear"}}}}
     assert ui.exposure_map_html(one) == ""
+
+
+# ── shareable links ─────────────────────────────────────────────────────────
+
+def test_a_portfolio_survives_a_round_trip_through_a_link():
+    rows = [{"ticker": "VTI", "weight_pct": 40.0}, {"ticker": "BND", "weight_pct": 30.0},
+            {"ticker": "BRK.B", "weight_pct": 30.0}]
+    param = ui.holdings_param(rows)
+    assert param == "VTI:40,BND:30,BRK.B:30"
+    assert ui.parse_holdings_param(param) == rows
+
+
+def test_a_link_without_weights_is_accepted_as_equal_weights():
+    rows = ui.parse_holdings_param("VTI,BND,GLD")
+    assert [r["ticker"] for r in rows] == ["VTI", "BND", "GLD"]
+    assert all(r["weight_pct"] is None for r in rows)
+    key, notes = ui.prepare_holdings(rows, 15)
+    weights = dict(key)
+    assert set(weights) == {"VTI", "BND", "GLD"}
+    assert sum(weights.values()) == pytest.approx(100.0, abs=0.001)
+    assert all(w == pytest.approx(33.33, abs=0.01) for w in weights.values())
+    assert any("equally" in n for n in notes)
+
+
+def test_junk_in_a_link_is_dropped_never_guessed_at():
+    rows = ui.parse_holdings_param("VTI:40, ,<script>:10,BND:oops,,TOOLONGATICKERNAME:5")
+    assert [r["ticker"] for r in rows] == ["VTI", "BND"]
+    assert rows[1]["weight_pct"] is None, "an unreadable weight is not invented"
+
+
+def test_the_share_url_is_escaped_and_points_at_the_report():
+    url = ui.share_url([{"ticker": "BRK.B", "weight_pct": 100}])
+    assert url.startswith("https://app.unstructuredalpha.com/?h=")
+    assert " " not in url
+
+
+def test_a_report_prints_as_a_document():
+    """Advisers print or save to PDF; the nav, buttons and radio are furniture."""
+    assert "@media print" in ui.REPORT_CSS
+    for furniture in (".ua-topnav", "stButton", "stRadio"):
+        assert furniture in ui.REPORT_CSS.split("@media print")[1].split("}")[0] + \
+            ui.REPORT_CSS.split("@media print")[1][:400]
