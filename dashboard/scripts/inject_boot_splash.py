@@ -85,7 +85,8 @@ def _build_runtime() -> str:
     if(q==='light'||q==='dark'){ try{ localStorage.setItem('ua-theme',q); }catch(e){} }
     var t=q;
     if(!t){ try{ t=localStorage.getItem('ua-theme'); }catch(e){} }
-    if(t==='light'){ document.documentElement.setAttribute('data-ua-theme','light'); }
+    /* Light is the default since 2026-09-14: advisers print and screen-share. */
+    if(t!=='dark'){ document.documentElement.setAttribute('data-ua-theme','light'); }
     else { document.documentElement.removeAttribute('data-ua-theme'); }
   }catch(e){}
   /* ── Client-side navigation proxy ──────────────────────────────────────
@@ -299,7 +300,7 @@ def _build_splash() -> str:
             font-size="30" font-weight="900" fill="#0B0D12">UA</text>
     </svg>
     <div class="ua-boot-logo">UNSTRUCTURED <span>ALPHA</span></div>
-    <div class="ua-boot-sub">Loading macro signal intelligence…</div>
+    <div class="ua-boot-sub">Loading Unstructured Alpha…</div>
     <div class="ua-boot-bar"><div class="ua-boot-bar-fill"></div></div>
     <div class="ua-boot-fact" id="ua-boot-fact"></div>
   </div>

@@ -1812,7 +1812,7 @@ def skeleton_chart_block(height: int = 300, title_lines: int = 1) -> str:
 
 
 def loading_splash(fact: str | None = None, height: int = 260,
-                   sub: str = "Loading macro signal intelligence") -> str:
+                   sub: str = "Loading Unstructured Alpha") -> str:
     """Branded loading panel: a filled brand hexagon, the wordmark, and a true
     macro fun fact. For use in an st.empty() placeholder before a heavy fetch:
 

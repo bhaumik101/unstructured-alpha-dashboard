@@ -210,3 +210,15 @@ def get_forward_record(target_series: Optional[str] = None) -> dict:
                  f"{len(done)} of {MIN_MONTHS_FOR_SKILL} months needed before a "
                  f"skill score means anything"),
     }
+
+
+def list_nowcasts(target_series: Optional[str] = None) -> List[dict]:
+    """Every logged nowcast, oldest month first. Read-only, for the public record."""
+    try:
+        with db.engine.begin() as conn:
+            query = select(nowcast_log).order_by(nowcast_log.c.target_month)
+            if target_series:
+                query = query.where(nowcast_log.c.target_series == target_series)
+            return [dict(r) for r in conn.execute(query).mappings().all()]
+    except Exception:
+        return []

@@ -180,4 +180,5 @@ def test_page_has_no_hardcoded_event_schedule_and_navigation_is_upgraded():
     assert "EVENTS = [" not in page
     assert "include_release_dates_with_no_data" in (root / "utils" / "catalyst_center.py").read_text()
     assert 'title="Catalyst Command Center"' in app
-    assert ">Catalyst Command Center</a>" in header
+    # Hidden from the nav in the 2026-09-14 redesign, still routed by URL.
+    assert ">Catalyst Command Center</a>" not in header

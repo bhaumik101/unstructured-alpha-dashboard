@@ -41,6 +41,7 @@
 
 from __future__ import annotations
 
+import io
 import math
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -83,7 +84,7 @@ FACTORS: tuple[Factor, ...] = (
 
 GROWTH_FACTOR = Factor(
     "growth", "Economic growth", "INDPRO", "pct", 1.0,
-    "U.S. industrial production grew 1% in a month",
+    "U.S. industrial production grew 1%",
     "Growth drives company earnings, but it is only published monthly, so evidence is thin.",
 )
 
@@ -230,19 +231,28 @@ def evidence_for(t: float, n_obs: int, min_obs: int = MIN_WEEKS,
     return "indistinct"
 
 
+def lower_label(label: str) -> str:
+    """Lower-case a factor label for use mid-sentence, keeping "U.S." intact."""
+    return label if label.startswith("U.S.") else label[:1].lower() + label[1:]
+
+
 def _fmt(x: float) -> str:
-    return f"{x:+.1f}%" if abs(x) >= 0.95 else f"{x:+.2f}%"
+    """Signed percent with a true minus sign; never prints a negative zero."""
+    digits = 1 if abs(x) >= 0.95 else 2
+    if round(x, digits) == 0:
+        return f"{0:.{digits}f}%"
+    return f"{'+' if x > 0 else '−'}{abs(x):.{digits}f}%"
 
 
 def _sentence(f: Factor, impact: float, low: float, high: float, evidence: str,
-              subject: str = "this portfolio") -> str:
+              subject: str = "this portfolio", period: str = "weeks") -> str:
     if evidence == "not_enough_data":
-        return f"There isn't enough history to measure exposure to {f.label.lower()}."
+        return f"There isn't enough history to measure exposure to {lower_label(f.label)}."
     if evidence == "indistinct":
-        return (f"No measurable link to {f.label.lower()}: in weeks when {f.shock_phrase}, "
+        return (f"No measurable link to {lower_label(f.label)}: in {period} when {f.shock_phrase}, "
                 f"{subject}'s typical move of {_fmt(impact)} sat inside its range of "
                 f"uncertainty ({_fmt(low)} to {_fmt(high)}).")
-    text = (f"In weeks when {f.shock_phrase}, {subject} has typically moved {_fmt(impact)} "
+    text = (f"In {period} when {f.shock_phrase}, {subject} has typically moved {_fmt(impact)} "
             f"(90% range {_fmt(low)} to {_fmt(high)}), after accounting for the overall "
             f"stock market.")
     if evidence == "tentative":
@@ -252,7 +262,7 @@ def _sentence(f: Factor, impact: float, low: float, high: float, evidence: str,
 
 def _fit_on_frame(frame: pd.DataFrame, ycol: str, factors: Iterable[Factor],
                   min_obs: int, clear_t: float = CLEAR_T,
-                  subject: str = "this portfolio") -> dict:
+                  subject: str = "this portfolio", period: str = "weeks") -> dict:
     by_key = {f.key: f for f in factors}
     keys = [k for k in by_key if k in frame.columns]
     n = int(len(frame))
@@ -288,7 +298,7 @@ def _fit_on_frame(frame: pd.DataFrame, ycol: str, factors: Iterable[Factor],
             "impact": impact, "low": low, "high": high, "se_impact": se_impact,
             "t": t, "n_obs": n, "evidence": ev, "evidence_label": EVIDENCE_LABELS[ev],
             "vif": factor_vif, "hard_to_separate_from": partner,
-            "sentence": _sentence(f, impact, low, high, ev, subject),
+            "sentence": _sentence(f, impact, low, high, ev, subject, period),
         }
 
     return {
@@ -380,7 +390,7 @@ def _shifts(recent: dict, earlier: dict) -> List[dict]:
                         f"{_fmt(now['impact'])} versus {_fmt(then['impact'])} in the two years "
                         f"before. The difference is larger than the combined uncertainty.")
         else:
-            sentence = (f"No measurable change in {now['label'].lower()} sensitivity between "
+            sentence = (f"No measurable change in {lower_label(now['label'])} sensitivity between "
                         f"the past year and the two years before.")
         out.append({"key": key, "label": now["label"], "recent": now["impact"],
                     "earlier": then["impact"], "difference": diff, "se": se,
@@ -427,7 +437,7 @@ def _growth_reading(daily: Mapping[str, pd.Series], weights: Mapping[str, float]
         return {"available": False, "reason": "monthly growth data was unavailable",
                 "limited": True}
     frame["__portfolio__"] = sum(frame[t] * w for t, w in weights.items())
-    fit = _fit_on_frame(frame, "__portfolio__", (f,), GROWTH_MIN_MONTHS, CLEAR_T)
+    fit = _fit_on_frame(frame, "__portfolio__", (f,), GROWTH_MIN_MONTHS, CLEAR_T, period="months")
     n = fit["n_obs"]
     df = max(1, n - 3)
     t_crit = float(stats.t.ppf(0.975, df))
@@ -580,6 +590,33 @@ def build_exposure_report(
     }
 
 
+FRED_PUBLIC_CSV = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}&cosd={start}&coed={end}"
+
+
+def parse_fred_csv(text: str) -> pd.Series:
+    """FRED's public graph CSV: a date column and a value column, '.' for missing."""
+    frame = pd.read_csv(io.StringIO(text or ""))
+    if frame.shape[1] < 2 or frame.empty:
+        return pd.Series(dtype=float, index=pd.DatetimeIndex([]))
+    values = pd.to_numeric(frame.iloc[:, 1], errors="coerce")
+    values.index = pd.to_datetime(frame.iloc[:, 0], errors="coerce")
+    return _clean(values[values.index.notna()])
+
+
+def fetch_fred_public(series_id: str, start: str, end: str) -> pd.Series:
+    """The same FRED series from the keyless public download.
+
+    Used only when the API route has no key or returns nothing. It is the same
+    published data (latest vintage, exactly what fetch_fred returns), not an
+    estimate, so falling back to it does not weaken the report.
+    """
+    import requests
+
+    resp = requests.get(FRED_PUBLIC_CSV.format(series_id=series_id, start=start, end=end), timeout=30)
+    resp.raise_for_status()
+    return parse_fred_csv(resp.text)
+
+
 def build_live_report(holdings: Iterable[dict], max_holdings: int = MAX_HOLDINGS) -> dict:
     """Production adapter: the app's cached fetchers, same engine."""
     from utils.fetchers import _get_fred_key, fetch_fred, fetch_prices_batch
@@ -588,6 +625,10 @@ def build_live_report(holdings: Iterable[dict], max_holdings: int = MAX_HOLDINGS
         return fetch_prices_batch(tuple(tickers), start, end)
 
     def _series(series_id, start, end):
-        return fetch_fred(series_id, start, end, api_key=_get_fred_key())
+        key = _get_fred_key()
+        series = fetch_fred(series_id, start, end, api_key=key) if key else None
+        if series is None or len(series) == 0:
+            series = fetch_fred_public(series_id, start, end)
+        return series
 
     return build_exposure_report(holdings, _prices, _series, max_holdings=max_holdings)

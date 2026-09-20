@@ -87,40 +87,31 @@ def test_signal_research_keeps_existing_short_deep_links(app_test):
     assert _section_control(app).value == "Data Quality"
 
 
-def test_visible_signal_nav_is_consolidated_but_compatibility_routes_remain():
+def test_redesigned_nav_leads_with_the_exposure_report_and_keeps_old_routes():
+    """The 2026-09-14 redesign replaced the signal-first menus. Signal Research
+    and its sibling pages left the visible nav but must stay routable."""
+    import re
+
     header = (DASHBOARD / "utils/header.py").read_text(encoding="utf-8")
     app = (DASHBOARD / "app.py").read_text(encoding="utf-8")
-    signals_menu = header.split(
-        '<span class="ua-tnav-trigger">Signals ', 1
-    )[1].split("</div>\n    </div>", 1)[0]
+    nav = header.split("def _render_topnav", 1)[1].split('<div class="ua-tnav-right">', 1)[0]
 
-    assert signals_menu.count("<a href=") == 4
-    assert "/signal-dashboard" in signals_menu
-    assert "/market-overview" in signals_menu
-    assert "/sector-view" in signals_menu
-    assert "/signal-research" in signals_menu
-    for retired_visible_link in (
-        "/model-validation",
-        "/track-record",
-        "/how-signals-work",
-        "/data-trust",
-        "/power-supercycle",
-    ):
-        assert retired_visible_link not in signals_menu
+    top_level = re.findall(r'<a class="ua-tnav-item" href="(/[a-z0-9\-]*)"', nav)
+    assert top_level == ["/", "/what-changed", "/alerts", "/methodology"]
 
-    assert 'url_path="signal-research"' in app
+    research_menu = nav.split('<span class="ua-tnav-trigger">Research ', 1)[1].split(
+        "</div>\n    </div>", 1)[0]
+    for link in ("/research", "/track-record", "/model-validation", "/data-trust"):
+        assert link in research_menu
+
+    for retired in ("/signal-dashboard", "/stock-recommender", "/power-supercycle", "/options-flow"):
+        assert retired not in nav
+
     for compatibility_route in (
+        'url_path="signal-research"',
+        'url_path="how-signals-work"',
+        'url_path="power-supercycle"',
         'url_path="model-validation"',
         'url_path="track-record"',
-        'url_path="how-signals-work"',
-        'url_path="data-trust"',
     ):
         assert compatibility_route in app
-
-
-def test_power_supercycle_moved_to_research_navigation():
-    header = (DASHBOARD / "utils/header.py").read_text(encoding="utf-8")
-    research_menu = header.split(
-        '<span class="ua-tnav-trigger">Research ', 1
-    )[1].split("</div>\n    </div>", 1)[0]
-    assert "/power-supercycle" in research_menu

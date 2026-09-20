@@ -179,5 +179,6 @@ def test_page_is_registered_pro_gated_and_marketed():
 
     assert 'require_pro(page_name="Decision Queue")' in page
     assert 'url_path="decision-queue"' in app
-    assert 'href="/decision-queue"' in header
+    # Hidden from the nav in the 2026-09-14 redesign, still routed by URL.
+    assert 'href="/decision-queue"' not in header
     assert "Decision Queue — evidence-ranked daily triage" in upgrade
