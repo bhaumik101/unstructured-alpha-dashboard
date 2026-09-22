@@ -15,7 +15,8 @@ st.set_page_config(page_title="Exposure report — Unstructured Alpha", layout="
 
 from utils import exposure as ex  # noqa: E402
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_header, render_page_header  # noqa: E402
+from utils.app_theme import product_page_header  # noqa: E402
+from utils.header import render_header  # noqa: E402
 
 render_header("Exposure report")
 st.markdown(ui.REPORT_CSS, unsafe_allow_html=True)
@@ -73,9 +74,12 @@ if user and "uar_holdings" not in st.session_state:
 holdings = st.session_state.get("uar_holdings") or []
 editing = st.session_state.get("uar_editing", False) or not holdings
 
-render_page_header(
+product_page_header(
     "Exposure report",
     "See which economic forces a portfolio is exposed to, which holdings cause it, and how sure we can be.",
+    eyebrow="Measure a portfolio",
+    facts=("Three years of weekly returns", "Five economic series from FRED",
+           "The market's own movement removed", "Every reading labelled by evidence"),
 )
 
 # ── onboarding / edit ───────────────────────────────────────────────────────
@@ -97,6 +101,20 @@ if editing:
                     uar_editing=False,
                 )
                 record("exposure_sample_opened", sample=key, source="button")
+                st.rerun()
+
+    st.markdown("**Or look at a single company**")
+    st.caption("The same measurement, run on one name. These are common examples, not suggestions.")
+    for _row_start in range(0, len(ui.SINGLE_STOCKS), 4):
+        for col, (ticker, company) in zip(
+            st.columns(4), ui.SINGLE_STOCKS[_row_start:_row_start + 4]
+        ):
+            if col.button(f"{ticker} · {company}", key=f"uar_one_{ticker}", width="stretch"):
+                st.session_state.update(
+                    uar_holdings=[{"ticker": ticker, "weight_pct": 100}],
+                    uar_name=company, uar_editing=False,
+                )
+                record("exposure_single_stock_opened", ticker=ticker)
                 st.rerun()
 
     st.markdown("**Or enter your own holdings**")
@@ -240,6 +258,7 @@ chosen = st.radio(
     label_visibility="collapsed",
 )
 st.markdown(ui.factor_detail_html(report, chosen), unsafe_allow_html=True)
+st.markdown(ui.holdings_matrix_html(report), unsafe_allow_html=True)
 
 st.markdown("## What changed")
 st.markdown(ui.shifts_html(report), unsafe_allow_html=True)

@@ -13,7 +13,8 @@ st.set_page_config(page_title="Methodology — Unstructured Alpha", layout="wide
 
 from utils import exposure as ex  # noqa: E402
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_header, render_page_header  # noqa: E402
+from utils.app_theme import product_page_header  # noqa: E402
+from utils.header import render_header  # noqa: E402
 
 render_header("Methodology")
 try:
@@ -22,9 +23,12 @@ try:
 except Exception:
     pass
 
-render_page_header(
+product_page_header(
     "Methodology",
     "How exposure is measured, how to read the uncertainty, and what we tested that did not work.",
+    eyebrow="How this works",
+    facts=("Newey-West standard errors", "90% ranges on every estimate",
+           "A five-factor correction before anything is called clear"),
 )
 
 factor_rows = "\n".join(
