@@ -37,7 +37,7 @@ if str(DASHBOARD) not in sys.path:
 # custom properties, so an email body must carry literal px sizes — the same
 # exemption utils/email.py has always had. Browser-rendered UI is unchanged.
 BASELINE_DISTINCT_FONT_SIZES = 109
-BASELINE_FONT_SIZE_OCCURRENCES = 1450  # +3 email, +3 report map, +1 the legacy-page notice (existing sizes)
+BASELINE_FONT_SIZE_OCCURRENCES = 1453  # +3 email, +3 report map, +1 legacy notice, +3 the 2026-09-22 visual pass (all existing sizes)
 BASELINE_DISTINCT_RADII = 19
 
 _FONT_SIZE = re.compile(r"font-size:\s*([0-9.]+)(rem|px|em)")
