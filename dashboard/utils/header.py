@@ -3199,13 +3199,13 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(var(--ua-roy
 .ua-tnav-upgrade {
   display: inline-flex; align-items: center; gap: 3px;
   padding: 5px 12px; height: 30px;
-  background: linear-gradient(135deg, var(--ua-purple), #6D28D9);
+  background: linear-gradient(135deg, #1f5fae, #17457f);
   color: #fff !important; font-size: 0.72rem; font-weight: 700;
   border-radius: 6px; text-decoration: none !important; letter-spacing: 0.01em;
   transition: all .14s ease; white-space: nowrap; flex-shrink: 0;
 }
 .ua-tnav-upgrade:hover {
-  background: linear-gradient(135deg, #8B5CF6, var(--ua-purple));
+  background: linear-gradient(135deg, #2a72c9, #1f5fae);
   box-shadow: 0 0 18px rgba(var(--ua-purple-rgb),0.45);
 }
 /* Pro members: small non-clickable status pill instead of the Upgrade CTA */

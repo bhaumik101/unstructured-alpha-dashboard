@@ -70,7 +70,41 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-foot{padding:12px 20px;background:var(--uar-subtle);font-size:.8rem;color:var(--uar-ink-3);line-height:1.55;}
 .uar-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.78rem;color:var(--uar-ink-3);align-items:center;}
 .uar-sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
-.uar-scroll{overflow-x:auto;}\n@media (min-width:761px){.uar-tier{min-height:430px;}}
+.uar-scroll{overflow-x:auto;}
+/* Product chrome, scoped to the pages that inject this stylesheet. The app's
+   legacy primary is purple; the exposure product is navy and blue, and a
+   visitor arriving from the landing page should not meet a different brand.
+   The selectors carry the same html[data-ua-theme] prefix as utils/header.py's
+   own rules: without it the global theme wins on specificity and none of this
+   applies (checked in the browser, where the first attempt did nothing). */
+html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"],
+html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primary"]{
+  background:#1f5fae!important;border:1px solid #1f5fae!important;color:#fff!important;
+  box-shadow:none!important;}
+html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"]:hover,
+html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primary"]:hover{
+  background:#17457f!important;border-color:#17457f!important;}
+html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"] p,
+html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primary"] p{
+  color:#fff!important;}
+/* Long measures are the single most common readability failure on wide screens:
+   the report's own copy is capped, and so is any markdown these pages emit. */
+.uar-lead,.uar-sub,.uar-note{max-width:76ch;}
+.stApp [data-testid="stMarkdownContainer"] p,
+.stApp [data-testid="stMarkdownContainer"] li{max-width:76ch;}
+/* Section rhythm: a hairline above each section heading instead of headings
+   floating in whitespace. */
+.stApp [data-testid="stMarkdownContainer"] h2{border-top:1px solid var(--uar-line);
+  padding-top:20px;margin-top:30px;font-size:1.02rem;letter-spacing:-0.01em;}
+/* The three sample portfolios are the main thing to click on an empty report,
+   and rendered as bare buttons they read as secondary chrome. */
+.uar-samples{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:6px 0 4px;}
+.uar-sample{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:12px;
+  padding:14px 16px 12px;border-top:3px solid var(--uar-accent);}
+.uar-sample-name{font-weight:650;font-size:.95rem;color:var(--uar-ink);}
+.uar-sample-holds{font-size:.78rem;color:var(--uar-ink-3);margin-top:4px;line-height:1.5;}
+@media (max-width:760px){.uar-samples{grid-template-columns:1fr;}}
+@media (min-width:761px){.uar-tier{min-height:430px;}}
 .uar-table{width:100%;border-collapse:collapse;font-size:.88rem;}
 .uar-table th{text-align:left;font-weight:600;color:var(--uar-ink-3);font-size:.74rem;padding:8px 12px;border-bottom:1px solid var(--uar-line);white-space:nowrap;}
 .uar-table td{padding:9px 12px;border-bottom:1px solid var(--uar-line);color:var(--uar-ink-2);}
@@ -337,6 +371,23 @@ def get_report(key: tuple, max_holdings: int) -> dict:
 
 
 # ── report sections ─────────────────────────────────────────────────────────
+
+SAMPLE_BLURBS = {
+    "Balanced ETF portfolio": "A classic stocks-and-bonds mix, U.S. and international.",
+    "Retirement income": "Dividend payers, long bonds and utilities — an income shape.",
+    "Concentrated growth stocks": "Six large technology names, deliberately concentrated.",
+}
+
+
+def sample_card_html(name: str) -> str:
+    """The sample portfolios are the main thing to click on an empty report."""
+    holdings = ex.SAMPLE_PORTFOLIOS.get(name, [])
+    listing = " · ".join(f"{h['weight_pct']:g}% {h['ticker']}" for h in holdings)
+    return (f'<div class="uar"><div class="uar-sample">'
+            f'<div class="uar-sample-name">{escape(name)}</div>'
+            f'<div class="uar-sample-holds">{escape(SAMPLE_BLURBS.get(name, ""))}</div>'
+            f'<div class="uar-sample-holds">{escape(listing)}</div></div></div>')
+
 
 def ordered_keys(report: dict) -> List[str]:
     readings = report["portfolio"]["readings"]

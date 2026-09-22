@@ -90,7 +90,8 @@ if editing:
     sample_cols = st.columns(len(ui.SAMPLE_KEYS))
     for col, (key, name) in zip(sample_cols, ui.SAMPLE_KEYS.items()):
         with col:
-            if st.button(name, key=f"uar_sample_{key}", width="stretch"):
+            st.markdown(ui.sample_card_html(name), unsafe_allow_html=True)
+            if st.button("Measure this one", key=f"uar_sample_{key}", type="primary", width="stretch"):
                 st.session_state.update(
                     uar_holdings=ex.SAMPLE_PORTFOLIOS[name], uar_name=f"Sample: {name}",
                     uar_editing=False,
@@ -219,9 +220,12 @@ if report.get("status") != "ok":
     ui.render_report_footer()
     st.stop()
 
-st.markdown(f'<div class="uar"><p class="uar-lead">{ui.summary_text(report)}</p></div>',
-            unsafe_allow_html=True)
-st.markdown(ui.exposure_map_html(report), unsafe_allow_html=True)
+_summary_col, _map_col = st.columns([1.05, 1], gap="large")
+with _summary_col:
+    st.markdown(f'<div class="uar"><p class="uar-lead">{ui.summary_text(report)}</p></div>',
+                unsafe_allow_html=True)
+with _map_col:
+    st.markdown(ui.exposure_map_html(report), unsafe_allow_html=True)
 st.markdown(ui.exposure_table_html(report), unsafe_allow_html=True)
 
 readings = report["portfolio"]["readings"]
