@@ -68,7 +68,9 @@ def _build_runtime() -> str:
 
     Injected under its own markers so the splash can be removed on its own.
     """
-    return RUNTIME_START + "\n" + r"""<script>
+    import json as _json
+
+    return (RUNTIME_START + "\n" + r"""<script>
 /* Theme init — runs before first paint so there is no dark-to-light flash.
    This has to live here rather than in utils/header.py: st.markdown does NOT
    execute script tags, and a Streamlit component would run inside a sandboxed
@@ -274,6 +276,26 @@ def _build_runtime() -> str:
   }catch(e){}
 
   /* Handle for the real toggle button once every page is migrated. */
+  /* ── noindex for the routes the redesign superseded ────────────────────
+     Those pages still describe the retired signal product. They stay routable
+     so old links resolve, but they should stop collecting search traffic.
+     The visible notice lives in utils/legacy_pages.py; this half has to be
+     here because Streamlit sanitises <script> out of st.html, so a meta tag
+     added from Python never runs. The slug list is generated from app.py's
+     own registry at injection time, so it cannot drift from the router. */
+  try{
+    var uaLegacy = __UA_LEGACY_SLUGS__;
+    var uaPath = (location.pathname||'/').replace(/^\/+|\/+$/g,'');
+    if(uaLegacy.indexOf(uaPath) !== -1 &&
+       !document.querySelector('meta[name="robots"][data-ua-legacy]')){
+      var uaM=document.createElement('meta');
+      uaM.setAttribute('name','robots');
+      uaM.setAttribute('content','noindex,follow');
+      uaM.setAttribute('data-ua-legacy','1');
+      document.head.appendChild(uaM);
+    }
+  }catch(e){}
+
   window.uaSetTheme=function(t){
     try{ localStorage.setItem('ua-theme',t); }catch(e){}
     if(t==='light'){ document.documentElement.setAttribute('data-ua-theme','light'); }
@@ -281,7 +303,30 @@ def _build_runtime() -> str:
   };
 })();
 </script>
-""".rstrip() + "\n" + RUNTIME_END + "\n"
+""".rstrip().replace("__UA_LEGACY_SLUGS__", _json.dumps(legacy_slugs()))
+            + "\n" + RUNTIME_END + "\n")
+
+
+def legacy_slugs() -> list[str]:
+    """URL slugs of the pages the 2026-09-20 redesign superseded.
+
+    Read from app.py's own registry and utils/legacy_pages.py rather than
+    hand-listed here: two hand-written copies of the same decision drift, and
+    the failure mode is a retired page quietly collecting search traffic.
+    """
+    import re as _re
+    from pathlib import Path as _Path
+
+    from utils.legacy_pages import LEGACY_PAGE_FILES
+
+    app_py = (_Path(__file__).resolve().parent.parent / "app.py").read_text(encoding="utf-8")
+    slugs = []
+    for match in _re.finditer(
+        r'st\.Page\("pages/([^"]+)"[^)]*?url_path="([^"]+)"', app_py
+    ):
+        if match.group(1) in LEGACY_PAGE_FILES:
+            slugs.append(match.group(2))
+    return sorted(slugs)
 
 
 def _build_splash() -> str:
