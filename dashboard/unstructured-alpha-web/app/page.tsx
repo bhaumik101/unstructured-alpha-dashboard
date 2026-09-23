@@ -516,7 +516,7 @@ export default function Home() {
                   <li>Exposure threshold alerts</li>
                   <li>PDF export and multiple portfolios</li>
                 </ul>
-                <a href={appUrl("/upgrade-to-pro", "pro_plan")} onClick={() => recordAppOpen("pro_plan")}
+                <a href={appUrl("/pricing", "pro_plan")} onClick={() => recordAppOpen("pro_plan")}
                    className="lp-btn lp-btn-secondary">See Investor Pro</a>
               </div>
               <div className="lp-price lp-price-feature">

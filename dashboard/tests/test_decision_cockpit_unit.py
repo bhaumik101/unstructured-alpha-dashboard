@@ -174,5 +174,9 @@ def test_today_page_wires_lazy_cache_modes_actions_and_marketing():
     assert "@st.cache_data(ttl=300" in page
     assert '["Guided", "Professional"]' in page
     assert "DECISION_COCKPIT_ACTION" in page
-    assert "Professional Decision Cockpit" in billing
-    assert "Personalized Decision Cockpit" in upgrade
+    # The upgrade page no longer markets this: the 2026-09-20 redesign retired
+    # the page it belongs to, and selling a retired feature at the moment
+    # someone decides whether to pay is the worst place to do it. The route
+    # and the gate stay; the marketing does not.
+    assert "Decision Cockpit" not in billing
+    assert "Decision Cockpit" not in upgrade

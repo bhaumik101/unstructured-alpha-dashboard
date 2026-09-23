@@ -288,7 +288,15 @@ if editing:
             st.warning("These lines weren't understood and were skipped: " + "; ".join(rejected[:8])
                        + (" …" if len(rejected) > 8 else ""))
         if not rows:
-            st.error("No holdings found. Add at least one ticker, for example VTI 60 and BND 40.")
+            # "for example VTI 60 and BND 40" is pasting advice, and it was shown
+            # to someone standing in the search tab with nowhere to type it.
+            st.error({
+                "Search by name": "Nothing has been added yet. Search for a holding above "
+                                  "and press Add.",
+                "Upload a statement": "No holdings were read from that file. Try the search "
+                                      "box, or paste the tickers.",
+            }.get(method, "No holdings found. Add at least one ticker, for example "
+                          "VTI 60 and BND 40."))
         else:
             st.session_state.update(uar_holdings=rows, uar_name="Your portfolio", uar_editing=False)
             record("exposure_holdings_entered", n=len(rows), source="csv" if upload is not None else "paste")

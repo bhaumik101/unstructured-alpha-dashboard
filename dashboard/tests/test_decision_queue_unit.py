@@ -181,4 +181,8 @@ def test_page_is_registered_pro_gated_and_marketed():
     assert 'url_path="decision-queue"' in app
     # Hidden from the nav in the 2026-09-14 redesign, still routed by URL.
     assert 'href="/decision-queue"' not in header
-    assert "Decision Queue — evidence-ranked daily triage" in upgrade
+    # The upgrade page no longer markets this: the 2026-09-20 redesign retired
+    # the page it belongs to, and selling a retired feature at the moment
+    # someone decides whether to pay is the worst place to do it. The route
+    # and the gate stay; the marketing does not.
+    assert "Decision Queue" not in upgrade

@@ -292,6 +292,74 @@ def _render_password_reset_confirm(key_prefix: str = "") -> None:
         st.rerun()
 
 
+# The sign-in panel renders in a BaseWeb PORTAL, outside .stApp. Every themed
+# rule in the app is scoped to .stApp, so none of them reach it: the panel kept
+# the dark skin's near-black background while its text picked up the LIGHT
+# theme's ink. Measured on production with light as the default — "Log In" and
+# "Create Account" rendered #2c3149 on #0b0d12, a contrast ratio of 1.5:1, and
+# "Forgot password?" was no better. This is the first thing anyone touches when
+# they try to make an account.
+#
+# So these selectors are deliberately NOT .stApp-scoped, and the colours are
+# literals rather than --p-* tokens, which are declared on .stApp and therefore
+# do not exist inside the portal either.
+_AUTH_CSS = """<style>
+html[data-ua-theme="light"] [data-testid="stPopoverBody"]{
+  background:#ffffff!important;border:1px solid #dfe5ee!important;
+  box-shadow:0 24px 50px -30px rgba(13,34,59,.35)!important;border-radius:14px!important;}
+/* The panel's own inner wrapper carries the background, not the panel. */
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] > div{background:#ffffff!important;}
+/* Purple is the retired skin's accent; the active tab and the checkbox are the
+   last two places it survived on this panel. */
+[data-testid="stPopoverBody"] [data-baseweb="tab-highlight"]{background:#1f5fae!important;}
+[data-testid="stPopoverBody"] [data-baseweb="checkbox"] span[aria-hidden="true"]{
+  background-color:#1f5fae!important;border-color:#1f5fae!important;}
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] p,
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] label,
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] h1,
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] h2,
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] h3{color:#13213a!important;}
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-testid="stCaptionContainer"],
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-testid="stCaptionContainer"] p,
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] small{color:#5b6780!important;}
+/* The dark did not stop at the panel. st.form keeps its own near-black
+   background and each field sits in a BaseWeb wrapper with another one, so
+   whitening only the panel and the <input> left a black slab between them
+   with the new dark ink written on top of it. */
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-testid="stForm"],
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-testid="stTextInputRootElement"],
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-baseweb="input"],
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-baseweb="base-input"],
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] input{
+  background:#ffffff!important;color:#13213a!important;}
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-testid="stForm"],
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-testid="stTextInputRootElement"]{
+  border:1px solid #dfe5ee!important;border-radius:10px!important;}
+html:not([data-ua-theme="light"]) [data-testid="stPopoverBody"] p,
+html:not([data-ua-theme="light"]) [data-testid="stPopoverBody"] label{color:#e8edf5!important;}
+/* The tab strip is the part that disappeared. Both themes, explicitly. */
+[data-testid="stPopoverBody"] [data-testid="stTab"] p{font-weight:600!important;}
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-testid="stTab"] p{color:#3a4760!important;}
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] [data-testid="stTab"][aria-selected="true"] p{
+  color:#1f5fae!important;}
+html:not([data-ua-theme="light"]) [data-testid="stPopoverBody"] [data-testid="stTab"] p{color:#bdc7d8!important;}
+html:not([data-ua-theme="light"]) [data-testid="stPopoverBody"] [data-testid="stTab"][aria-selected="true"] p{
+  color:#8cb8f2!important;}
+/* Sign in and Create Account are the product's primary action here, so they
+   wear the product's blue rather than the retired skin's purple. */
+[data-testid="stPopoverBody"] button[data-testid="stBaseButton-primary"],
+[data-testid="stPopoverBody"] button[data-testid="stBaseButton-primaryFormSubmit"]{
+  background:#1f5fae!important;border:1px solid #1f5fae!important;box-shadow:none!important;}
+[data-testid="stPopoverBody"] button[data-testid="stBaseButton-primary"] p,
+[data-testid="stPopoverBody"] button[data-testid="stBaseButton-primaryFormSubmit"] p{
+  color:#ffffff!important;}
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] button[data-testid="stBaseButton-secondary"]{
+  background:#ffffff!important;border:1px solid #dfe5ee!important;}
+html[data-ua-theme="light"] [data-testid="stPopoverBody"] button[data-testid="stBaseButton-secondary"] p{
+  color:#13213a!important;}
+</style>"""
+
+
 def render_auth_forms(cookies: CookieManager, key_prefix: str = "") -> None:
     """
     Renders the Log In / Create Account tabs (or, mid-verification, the
@@ -302,6 +370,7 @@ def render_auth_forms(cookies: CookieManager, key_prefix: str = "") -> None:
     unique between those two call sites in case both somehow render in the
     same script run.
     """
+    st.markdown(_AUTH_CSS, unsafe_allow_html=True)
     if "pending_verification_email" in st.session_state:
         _render_verification_form(cookies, key_prefix)
         return

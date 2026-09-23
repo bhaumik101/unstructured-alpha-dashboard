@@ -407,22 +407,18 @@ def admin_revoke_pro(email: str) -> dict:
 
 # ── Pro gating utility ────────────────────────────────────────────────────────
 
+# What Investor Pro actually is, as of the 2026-09-20 redesign. The list this
+# replaced named fifteen features, of which most were retired with the signal
+# product and several were never built (Signal Backtester, the Pro API, the
+# 7 AM digest). It is rendered to prospects, so it has to be true.
 PRO_FEATURES = [
-    "Factor Exposure — Fama-French regression for any ticker",
-    "PDF Research Reports — one-click export for any equity",
-    "Signal Backtester — build & backtest custom signal combinations",
-    "Portfolio Analyzer — risk decomposition across your full portfolio",
-    "Portfolio Fit Lab — simulate a candidate's score, factor, and concentration impact",
-    "Options Flow — live unusual options activity feed",
-    "AI Research Assistant — answers grounded in current live signals",
-    "Ticker Deep Dive Pro — correlation, filings, contracts, and sentiment",
-    "Professional Decision Cockpit — personalized priorities, evidence stacks, and one-click triage",
-    "Decision Queue — daily evidence triage across holdings, catalysts, and theses",
-    "Catalyst Command Center — verified events, portfolio exposure, private plans, and proactive digest prompts",
-    "Notification Policy Center — simple investor presets plus advanced timing, relevance, and volume controls",
-    "Thesis Journal — private decisions, invalidation rules, and outcomes",
-    "Unlimited watchlist tickers (Free: 5)",
-    "Morning digest email with top signal moves",
+    "Up to 25 holdings per portfolio, instead of 15",
+    "Every holding measured on its own, and the holdings behind each exposure",
+    "A 90% range and an evidence label on every number",
+    "Saved portfolios",
+    "In development: a weekly \u201cwhat changed\u201d email",
+    "In development: alerts when an exposure crosses a threshold you set",
+    "In development: PDF export and more than one saved portfolio",
 ]
 
 # Contextual Pro (Phase 16): each gated page names the SPECIFIC value it unlocks,
