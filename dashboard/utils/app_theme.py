@@ -250,6 +250,20 @@ html:not([data-ua-theme="light"]) .stApp a[data-testid="stBaseLinkButton-primary
 .stApp [data-testid="stNumberInputStepUp"]{{display:none!important;}}
 .stApp [data-testid="stFileUploaderDropzone"]{{background:var(--p-subtle)!important;
   border:1px dashed var(--p-line)!important;border-radius:var(--p-r)!important;}}
+/* The uploader's own labels and the accepted-file row kept the dark skin's ink.
+   Measured on the light page: "Drag and drop file here" rendered #e8eeff on
+   #f4f6fa, about 1.1:1 — legible only if you already knew what it said. */
+html[data-ua-theme="light"] .stApp [data-testid="stFileUploaderDropzone"] span,
+html[data-ua-theme="light"] .stApp [data-testid="stFileUploaderDropzone"] div,
+html[data-ua-theme="light"] .stApp [data-testid="stFileUploaderFile"] div,
+html[data-ua-theme="light"] .stApp [data-testid="stFileUploaderFile"] span{{
+  color:var(--p-ink)!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stFileUploaderDropzone"] small,
+html[data-ua-theme="light"] .stApp [data-testid="stFileUploaderFile"] small{{
+  color:var(--p-ink3)!important;}}
+html:not([data-ua-theme="light"]) .stApp [data-testid="stFileUploaderDropzone"] span,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stFileUploaderFile"] div{{
+  color:var(--p-ink)!important;}}
 .stApp [data-testid="stWidgetLabel"] p{{color:var(--p-ink3)!important;font-size:var(--p-t-sm)!important;}}
 
 /* ── radio as a segmented control ───────────────────────────────────────── */

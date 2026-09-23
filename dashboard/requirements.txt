@@ -38,6 +38,13 @@ fpdf2>=2.7.0,<3
 stripe>=7.0.0,<13
 Pillow>=10.0.0,<12
 openpyxl>=3.1.0,<4
+
+# pypdf: read the positions table out of a brokerage PDF statement
+# (utils/statement_import.py). Pure Python, no native build step. A workplace
+# plan often offers nothing but a PDF, and those visitors were being asked to
+# retype their portfolio. Scanned statements have no text layer and are told
+# so plainly rather than parsed into an empty portfolio.
+pypdf>=4.2.0,<6
 tweepy>=4.14.0,<5
 pandas-datareader>=0.10.0,<1
 redis>=5.0.0,<7
