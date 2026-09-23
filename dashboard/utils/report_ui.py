@@ -62,6 +62,11 @@ REPORT_CSS = """<style>
 html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f4f6fa;--uar-ink:#13213a;
   --uar-ink-2:#3a4760;--uar-ink-3:#5b6780;--uar-line:#dfe5ee;--uar-accent:#1f5fae;--uar-pos:#2563a8;
   --uar-neg:#c26a0a;--uar-sky:#edf4fc;--uar-shadow:rgba(13,34,59,.35);}
+/* Links inside report surfaces take the report's own accent. Left to the
+   old skin they rendered #3d9df3 on the light page background — 2.64:1,
+   a real AA failure on the footer of every one of these pages, and it was
+   invisible until the global stylesheet was actually loading locally. */
+.uar a{color:var(--uar-accent);}
 .uar-strip{height:5px;background:linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0);}
 .uar-dot{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:9px;vertical-align:0;}
 .uar-card{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:16px;
@@ -142,6 +147,20 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-table th{text-align:left;font-weight:600;color:var(--uar-ink-3);font-size:.74rem;padding:8px 12px;border-bottom:1px solid var(--uar-line);white-space:nowrap;}
 .uar-table td{padding:9px 12px;border-bottom:1px solid var(--uar-line);color:var(--uar-ink-2);}
 .uar-table tr:last-child td{border-bottom:0;}
+/* Search results and the draft list. Rows are 44px tall so the Add and Remove
+   buttons beside them line up without a wrapper grid. */
+.uar-hit{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 2px;
+  border-bottom:1px solid var(--uar-line);}
+.uar-hit-row{border-bottom:0;}
+.uar-hit-tick{font-weight:700;color:var(--uar-ink);min-width:66px;}
+.uar-hit-kind{font-size:var(--uar-t-micro);font-weight:700;color:#fff;border-radius:999px;
+  padding:2px 8px;white-space:nowrap;}
+.uar-hit-name{color:var(--uar-ink-2);font-size:var(--uar-t-body);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.uar-hit-where{color:var(--uar-ink-3);font-size:var(--uar-t-meta);margin-left:auto;
+  white-space:nowrap;}
+.uar-draft-head{font-weight:650;color:var(--uar-ink);margin:16px 0 2px;
+  padding-top:14px;border-top:1px solid var(--uar-line);}
 /* Every holding on one grid: the old per-stock research pages, rebuilt around
    what we can actually measure. One row per holding, one column per force. */
 .uar-matrix{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--uar-t-body);}
@@ -164,6 +183,8 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-m-zero{color:var(--uar-ink-3);font-weight:500;}
 .uar-note{border-left:3px solid var(--uar-line);padding:8px 14px;color:var(--uar-ink-2);font-size:.88rem;margin:10px 0;line-height:1.55;}
 .uar-note-warn{border-left-color:var(--uar-neg);}
+.uar-note-back{border-left-color:var(--uar-accent);background:var(--uar-sky);border-radius:0 10px 10px 0;}
+.uar-note-back a{color:var(--uar-accent);font-weight:650;}
 .uar-error{border:1px solid var(--uar-neg);border-radius:12px;padding:16px 20px;margin:8px 0 16px;color:var(--uar-ink-2);background:var(--uar-surface);}
 .uar-error b{color:var(--uar-ink);}
 .uar-kicker{font-size:.8rem;font-weight:600;color:var(--uar-accent);margin-bottom:4px;}
@@ -632,6 +653,101 @@ def factor_detail_html(report: dict, key: str) -> str:
         )
     parts.append('</div></div></div>')
     return "".join(parts)
+
+
+# ── the search-and-add builder ──────────────────────────────────────────────
+# Typing tickers was the front door, and it is a real barrier: people know they
+# own "the Vanguard total bond fund", not BND, and a workplace-plan statement
+# lists fund names with no symbol at all. These are the pure parts of the
+# builder, kept here so the weight arithmetic is testable without a browser.
+
+def equalize(draft: List[dict]) -> List[dict]:
+    """Split 100% evenly, putting the rounding remainder on the first holding.
+
+    Weights that do not add to 100 are normalised downstream anyway, but a list
+    that visibly sums to 99.9% reads as a bug on a page whose whole argument is
+    that its numbers are careful.
+    """
+    if not draft:
+        return draft
+    share = round(100.0 / len(draft), 1)
+    for row in draft:
+        row["weight_pct"] = share
+    draft[0]["weight_pct"] = round(share + (100.0 - share * len(draft)), 1)
+    return draft
+
+
+def add_to_draft(draft: List[dict], row: dict, max_holdings: int,
+                 *, equal: bool = True) -> Tuple[List[dict], str]:
+    """Add one search result. Returns (draft, message); message is "" on success.
+
+    `equal=False` once the visitor has edited a weight: re-splitting the list
+    evenly would throw away numbers they had just typed.
+    """
+    ticker = str(row.get("ticker") or "").strip().upper()
+    if not ticker:
+        return draft, "That result has no ticker symbol."
+    if any(r["ticker"] == ticker for r in draft):
+        return draft, f"{ticker} is already in the list."
+    if len(draft) >= max_holdings:
+        return draft, (f"That is the limit of {max_holdings} holdings. Remove one first, "
+                       f"or measure what you have.")
+    draft = draft + [{"ticker": ticker, "name": str(row.get("name") or ""), "weight_pct": 0.0}]
+    return (equalize(draft) if equal else draft), ""
+
+
+def remove_from_draft(draft: List[dict], ticker: str, *, equal: bool = True) -> List[dict]:
+    kept = [r for r in draft if r["ticker"] != str(ticker).upper()]
+    return equalize(kept) if equal else kept
+
+
+def reopened_html() -> str:
+    """Shown when the browser reopened the last portfolio by itself.
+
+    Two things have to be said, because neither is obvious and one is about
+    the visitor's data: this is YOUR last portfolio rather than a saved
+    account, and it lives only in this browser. The escape hatch is a plain
+    link because the forgetting happens in localStorage, which Streamlit
+    cannot reach — scripts/inject_boot_splash.py handles ?fresh=1.
+    """
+    return ('<div class="uar"><div class="uar-note uar-note-back">'
+            '<b>Reopened the portfolio you measured last time</b>, and measured it again just now. '
+            'It is remembered in this browser only — nothing was sent anywhere, and no account was '
+            'created. <a href="/?fresh=1" target="_self">Start fresh</a>'
+            '</div></div>')
+
+
+KIND_HUES = {"Stock": "#1f5fae", "ETF": "#0f7a54", "Fund": "#6344c9"}
+
+
+def search_result_html(row: dict) -> str:
+    """One search result: ticker, what it is, and the full name."""
+    kind = str(row.get("kind") or "")
+    hue = KIND_HUES.get(kind, "#5b6780")
+    where = str(row.get("exchange") or "")
+    return (f'<div class="uar"><div class="uar-hit">'
+            f'<span class="uar-hit-tick">{escape(str(row.get("ticker", "")))}</span>'
+            + (f'<span class="uar-hit-kind" style="background:{hue}">{escape(kind)}</span>' if kind else "")
+            + f'<span class="uar-hit-name">{escape(str(row.get("name", "")))}</span>'
+            + (f'<span class="uar-hit-where">{escape(where)}</span>' if where else "")
+            + '</div></div>')
+
+
+def draft_header_html(draft: List[dict]) -> str:
+    n = len(draft)
+    return (f'<div class="uar"><div class="uar-draft-head">'
+            f'{n} holding{"" if n == 1 else "s"} ready to measure</div></div>')
+
+
+def draft_row_html(row: dict) -> str:
+    name = str(row.get("name") or "")
+    return (f'<div class="uar"><div class="uar-hit uar-hit-row">'
+            f'<span class="uar-hit-tick">{escape(str(row.get("ticker", "")))}</span>'
+            f'<span class="uar-hit-name">{escape(name)}</span></div></div>')
+
+
+def draft_total(draft: List[dict]) -> float:
+    return round(sum(float(r.get("weight_pct") or 0) for r in draft), 1)
 
 
 def holdings_matrix_html(report: dict) -> str:

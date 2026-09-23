@@ -91,6 +91,58 @@ def _build_runtime() -> str:
     if(t!=='dark'){ document.documentElement.setAttribute('data-ua-theme','light'); }
     else { document.documentElement.removeAttribute('data-ua-theme'); }
   }catch(e){}
+  /* ── Reopen the portfolio you last measured ───────────────────────────
+     A visitor measured a portfolio, closed the tab, and came back a week
+     later to an empty form and the same typing again. That is the retention
+     hole in an anonymous-first product: there is nothing to come back TO.
+
+     The report is already fully described by its ?h= parameter, so the whole
+     mechanic is: remember that parameter, and on a bare visit to the front
+     door, reopen it. The portfolio is stored ONLY in this browser, is never
+     sent anywhere by this code, and the page says so.
+
+     Rules, each one earned:
+       - only the bare front door. A real ?h= link, a ?sample=, a ?theme= or
+         any other query is the visitor being explicit, and beats a memory.
+       - once per tab (sessionStorage). Otherwise "Start fresh" would bounce
+         straight back to the portfolio it just cleared.
+       - ?fresh=1 forgets. That is what the page's own "Start fresh" links to,
+         because Streamlit cannot reach localStorage itself.
+       - a crawler has neither storage nor a saved portfolio, so it always
+         sees the real front door. */
+  try{
+    var UAP='ua-last-portfolio';
+    /* The report writes its own ?h= through Streamlit, which rewrites the URL
+       WITHOUT a page load — so a one-shot read at boot saw the URL the visitor
+       arrived on and never the portfolio they went on to measure. Measured:
+       build a portfolio from scratch, and nothing was remembered at all.
+       history.replaceState fires no event, so this is a cheap poll. */
+    function uaRemember(){
+      try{
+        var h=new URLSearchParams(window.location.search).get('h');
+        if(h && h !== localStorage.getItem(UAP)){ localStorage.setItem(UAP, h); }
+      }catch(e){}
+    }
+    try{ setInterval(uaRemember, 1500); }catch(e){}
+    var uaQ=new URLSearchParams(window.location.search);
+    if(uaQ.get('fresh')){
+      try{ localStorage.removeItem(UAP); sessionStorage.setItem('ua-reopened','1'); }catch(e){}
+      window.location.replace('/');
+    } else {
+      var uaH=uaQ.get('h');
+      if(uaH){
+        uaRemember();
+      } else if((location.pathname||'/').replace(/\/+$/,'') === '' && !uaQ.toString()){
+        var uaSaved=null, uaDone=null;
+        try{ uaSaved=localStorage.getItem(UAP); uaDone=sessionStorage.getItem('ua-reopened'); }catch(e){}
+        if(uaSaved && !uaDone){
+          try{ sessionStorage.setItem('ua-reopened','1'); }catch(e){}
+          window.location.replace('/?h='+encodeURIComponent(uaSaved)+'&reopened=1');
+        }
+      }
+    }
+  }catch(e){}
+
   /* ── Client-side navigation proxy ──────────────────────────────────────
      The visible top nav is raw <a href> markup, so a click is a FULL browser
      navigation: 135 JS files re-parsed, new websocket, fresh Python session.

@@ -223,11 +223,31 @@ html:not([data-ua-theme="light"]) .stApp a[data-testid="stBaseLinkButton-primary
 .stApp :focus-visible{{outline:3px solid var(--p-bright)!important;outline-offset:2px!important;}}
 
 /* ── inputs ─────────────────────────────────────────────────────────────── */
-.stApp [data-testid="stTextArea"] textarea,.stApp [data-testid="stTextInput"] input{{
+.stApp [data-testid="stTextArea"] textarea,.stApp [data-testid="stTextInput"] input,
+.stApp [data-testid="stNumberInput"] input{{
   background:var(--p-surface)!important;border:1px solid var(--p-line)!important;
   color:var(--p-ink)!important;border-radius:var(--p-r)!important;font-size:var(--p-t-base)!important;}}
-.stApp [data-testid="stTextArea"] textarea:focus,.stApp [data-testid="stTextInput"] input:focus{{
+.stApp [data-testid="stTextArea"] textarea:focus,.stApp [data-testid="stTextInput"] input:focus,
+.stApp [data-testid="stNumberInput"] input:focus{{
   border-color:var(--p-accent)!important;box-shadow:0 0 0 3px rgba(31,95,174,.14)!important;}}
+/* The number input wraps its field and the -/+ steppers in a container that
+   carries its own background; left alone it rendered as a black slab on the
+   light page. */
+.stApp [data-testid="stNumberInputContainer"]{{background:var(--p-surface)!important;
+  border:1px solid var(--p-line)!important;border-radius:var(--p-r)!important;
+  box-shadow:none!important;}}
+/* BaseWeb nests two unlabelled divs between that container and the field, and
+   both carry the old skin's near-black. Measured: the container was white and
+   the control still rendered as a black slab. */
+.stApp [data-testid="stNumberInputContainer"] div{{background:transparent!important;}}
+.stApp [data-testid="stNumberInput"] input{{border:0!important;background:transparent!important;}}
+/* The -/+ steppers carry no accessible name, which axe reports as a real
+   button-name failure, and Streamlit gives no way to label them from Python.
+   They are tabindex="-1" decoration next to a field whose actual interaction
+   is typing a percentage, so display:none removes both the clutter and the
+   violation — aria-hidden would need an attribute this stylesheet cannot set. */
+.stApp [data-testid="stNumberInputStepDown"],
+.stApp [data-testid="stNumberInputStepUp"]{{display:none!important;}}
 .stApp [data-testid="stFileUploaderDropzone"]{{background:var(--p-subtle)!important;
   border:1px dashed var(--p-line)!important;border-radius:var(--p-r)!important;}}
 .stApp [data-testid="stWidgetLabel"] p{{color:var(--p-ink3)!important;font-size:var(--p-t-sm)!important;}}
