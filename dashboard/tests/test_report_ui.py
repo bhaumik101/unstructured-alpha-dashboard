@@ -306,3 +306,61 @@ def test_the_single_company_examples_are_labelled_as_examples():
     assert "not suggestions" in page
     for ticker, company in ui.SINGLE_STOCKS:
         assert ticker.isupper() and company
+
+
+# ── building a portfolio by name ────────────────────────────────────────────
+
+def test_weights_start_out_split_evenly_and_add_to_exactly_100():
+    draft = []
+    for ticker in ("VTI", "BND", "GLD"):
+        draft, problem = ui.add_to_draft(draft, {"ticker": ticker, "name": ticker}, 15)
+        assert problem == ""
+    assert ui.draft_total(draft) == 100.0, "a list that visibly sums to 99.9% reads as a bug"
+    assert [r["weight_pct"] for r in draft] == [33.4, 33.3, 33.3]
+
+
+def test_adding_a_holding_resplits_instead_of_stacking_on_top():
+    """The first version left the earlier weight in place and added a fresh
+    equal share beside it: one holding at 100% plus a second at 50% came to
+    150%, which the engine then rescaled to 67/33. Caught in a browser."""
+    draft, _ = ui.add_to_draft([], {"ticker": "BND", "name": "Bond"}, 15)
+    assert draft[0]["weight_pct"] == 100.0
+    draft, _ = ui.add_to_draft(draft, {"ticker": "AAPL", "name": "Apple"}, 15)
+    assert [r["weight_pct"] for r in draft] == [50.0, 50.0]
+
+
+def test_weights_someone_typed_are_not_flattened_by_the_next_add():
+    draft = [{"ticker": "VTI", "name": "V", "weight_pct": 80.0},
+             {"ticker": "BND", "name": "B", "weight_pct": 20.0}]
+    draft, _ = ui.add_to_draft(draft, {"ticker": "GLD", "name": "G"}, 15, equal=False)
+    assert [r["weight_pct"] for r in draft] == [80.0, 20.0, 0.0]
+
+
+def test_a_duplicate_and_an_over_full_list_are_refused_in_plain_words():
+    draft, _ = ui.add_to_draft([], {"ticker": "vti", "name": "V"}, 2)
+    again, problem = ui.add_to_draft(draft, {"ticker": "VTI", "name": "V"}, 2)
+    assert again == draft and "already in the list" in problem
+
+    draft, _ = ui.add_to_draft(draft, {"ticker": "BND", "name": "B"}, 2)
+    full, problem = ui.add_to_draft(draft, {"ticker": "GLD", "name": "G"}, 2)
+    assert full == draft and "limit of 2 holdings" in problem
+
+
+def test_removing_the_last_holding_leaves_an_empty_list_not_a_crash():
+    draft, _ = ui.add_to_draft([], {"ticker": "VTI", "name": "V"}, 15)
+    assert ui.remove_from_draft(draft, "VTI") == []
+    assert ui.draft_total([]) == 0.0
+    assert ui.equalize([]) == []
+
+
+def test_a_search_result_shows_what_kind_of_thing_it_is():
+    html = ui.search_result_html({"ticker": "VTSAX", "name": "Vanguard Total Stock Market",
+                                  "kind": "Fund", "exchange": "NASDAQ"})
+    assert "VTSAX" in html and "Fund" in html and "NASDAQ" in html
+    assert ui.KIND_HUES["Fund"] in html
+
+
+def test_a_search_result_cannot_inject_markup():
+    html = ui.search_result_html({"ticker": "X", "name": "<script>alert(1)</script>",
+                                  "kind": "<b>", "exchange": ""})
+    assert "<script>" not in html and "&lt;script&gt;" in html

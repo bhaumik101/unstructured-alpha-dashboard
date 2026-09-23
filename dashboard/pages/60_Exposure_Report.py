@@ -53,11 +53,13 @@ shared = str(st.query_params.get(ui.HOLDINGS_PARAM, "") or "")
 if shared and st.session_state.get("uar_loaded_link") != shared:
     linked = ui.parse_holdings_param(shared)
     if linked:
+        reopened = str(st.query_params.get("reopened", "") or "") == "1"
         st.session_state["uar_loaded_link"] = shared
         st.session_state["uar_holdings"] = linked
-        st.session_state["uar_name"] = "Shared portfolio"
+        st.session_state["uar_name"] = "Your portfolio" if reopened else "Shared portfolio"
         st.session_state["uar_editing"] = False
-        record("exposure_link_opened", n=len(linked))
+        st.session_state["uar_reopened"] = reopened
+        record("exposure_reopened" if reopened else "exposure_link_opened", n=len(linked))
 
 if user and "uar_holdings" not in st.session_state:
     try:
@@ -86,8 +88,8 @@ product_page_header(
 if editing:
     st.markdown(
         '<div class="uar"><p class="uar-lead">Start from a sample portfolio, or enter your own holdings. '
-        f'Up to {max_holdings} U.S.-listed stocks or ETFs, each with at least two years of price '
-        'history. Nothing is saved unless you choose to save it.</p></div>',
+        f'Up to {max_holdings} U.S.-listed stocks, ETFs or mutual funds, each with at least two '
+        'years of price history. Nothing is saved unless you choose to save it.</p></div>',
         unsafe_allow_html=True,
     )
     st.markdown("**Start from a sample**")
@@ -117,11 +119,89 @@ if editing:
                 record("exposure_single_stock_opened", ticker=ticker)
                 st.rerun()
 
-    st.markdown("**Or enter your own holdings**")
-    method = st.radio("How would you like to add holdings?", ("Paste a list", "Upload a CSV"),
-                      horizontal=True, key="uar_method", label_visibility="collapsed")
+    st.markdown("**Or build your own portfolio**")
+    method = st.radio(
+        "How would you like to add holdings?",
+        ("Search by name", "Paste a list", "Upload a CSV"),
+        horizontal=True, key="uar_method", label_visibility="collapsed",
+    )
     text, upload = "", None
-    if method == "Paste a list":
+
+    if method == "Search by name":
+        # The primary path. Typing a ticker assumes the visitor knows it; most
+        # people know the fund's name, and a workplace-plan statement often
+        # prints no symbol at all.
+        from utils import symbol_search as sym
+
+        draft = st.session_state.setdefault("uar_draft", [])
+        query = st.text_input(
+            "Search for a stock, ETF or mutual fund by name or ticker",
+            placeholder="Apple · total bond market · Fidelity 500 · VTSAX",
+            key="uar_query",
+        )
+        if query and len(query.strip()) >= 2:
+            results, source = sym.search_symbols(query, limit=6)
+            record_once("exposure_symbol_searched")
+            if source == "offline":
+                st.caption("The name lookup is unavailable right now, so these are matches from a "
+                           "short built-in list. Anything missing can still be added by ticker "
+                           "under “Paste a list”.")
+            if not results:
+                st.caption("Nothing matched. Try a shorter phrase, or the ticker itself.")
+            for row in results:
+                label_col, add_col = st.columns([5, 1])
+                label_col.markdown(ui.search_result_html(row), unsafe_allow_html=True)
+                if add_col.button("Add", key=f"uar_add_{row['ticker']}", width="stretch"):
+                    # Weights stay equal until someone edits one. After that the
+                    # edits are theirs to keep, so a new holding starts at zero
+                    # rather than flattening a set of weights they just typed.
+                    touched = st.session_state.get("uar_weights_touched", False)
+                    st.session_state["uar_draft"], problem = ui.add_to_draft(
+                        draft, row, max_holdings, equal=not touched)
+                    if problem:
+                        st.warning(problem)
+                    else:
+                        if not touched:
+                            st.session_state["uar_gen"] = st.session_state.get("uar_gen", 0) + 1
+                        record("exposure_holding_added", ticker=row["ticker"], kind=row.get("kind", ""))
+                        st.rerun()
+
+        draft = st.session_state.get("uar_draft", [])
+        if draft:
+            # Deleting a widget's key does NOT reset it when the same key is
+            # rendered again on the next run: the browser resends the old value
+            # and Streamlit restores it. Measured -- adding a second holding to
+            # a 100% one left 100 + 50 = 150% on screen, which the engine then
+            # rescaled to 67/33 without anyone asking for it. A generation
+            # counter in the key makes a fresh widget instead, and it is bumped
+            # only when the weights are meant to be reset.
+            gen = st.session_state.get("uar_gen", 0)
+            st.markdown(ui.draft_header_html(draft), unsafe_allow_html=True)
+            for row in draft:
+                name_col, weight_col, drop_col = st.columns([4, 1.4, 0.9])
+                name_col.markdown(ui.draft_row_html(row), unsafe_allow_html=True)
+                before = float(row.get("weight_pct") or 0.0)
+                row["weight_pct"] = weight_col.number_input(
+                    f"{row['ticker']} weight %", min_value=0.0, max_value=100.0, step=1.0,
+                    value=before, format="%.1f", key=f"uar_w_{gen}_{row['ticker']}",
+                    label_visibility="collapsed",
+                )
+                if row["weight_pct"] != before:
+                    st.session_state["uar_weights_touched"] = True
+                if drop_col.button("Remove", key=f"uar_rm_{row['ticker']}", width="stretch"):
+                    equal = not st.session_state.get("uar_weights_touched", False)
+                    st.session_state["uar_draft"] = ui.remove_from_draft(
+                        draft, row["ticker"], equal=equal)
+                    if equal:
+                        st.session_state["uar_gen"] = gen + 1
+                    st.rerun()
+            st.caption(f"Weights total {ui.draft_total(draft):g}%. They are rescaled to 100% before "
+                       f"measuring, so they can be dollar amounts or rough shares.")
+        else:
+            st.caption("Search above and add holdings one at a time. Weights start out equal and "
+                       "can be edited.")
+
+    elif method == "Paste a list":
         text = st.text_area(
             "One holding per line: the ticker, then its weight in percent. Weights are optional; "
             "without them every holding counts equally.",
@@ -147,7 +227,11 @@ if editing:
             st.rerun()
 
     if submitted:
-        if upload is not None:
+        if method == "Search by name":
+            rows = [{"ticker": r["ticker"], "weight_pct": r["weight_pct"]}
+                    for r in st.session_state.get("uar_draft", [])]
+            rejected = []
+        elif upload is not None:
             rows, rejected = ui.parse_holdings_csv(upload.getvalue())
         else:
             rows, rejected = ui.parse_holdings_text(text)
@@ -188,6 +272,39 @@ if st.session_state.get("uar_last_key") != key:
     st.session_state["uar_last_key"] = key
     record("exposure_report_generated", status=report.get("status"), n=len(key),
            sample=st.session_state.get("uar_loaded_sample") or "", signed_in=bool(user))
+
+# The report on screen is fully described by its ?h= parameter, so put it in the
+# address bar. A refresh, a bookmark, the back button and the browser's own
+# memory of the last portfolio (scripts/inject_boot_splash.py) all follow from
+# this one line; without it a reload dropped the visitor back on an empty form.
+# uar_loaded_link is set alongside it so the shared-link branch above does not
+# then treat our own URL as somebody else's portfolio and rename it.
+if report.get("status") == "ok":
+    # The "we reopened your last one" line describes a specific portfolio, so it
+    # is tied to that portfolio's key rather than to the URL string: the stored
+    # link and the normalised key can spell the same holdings in a different
+    # order, and comparing the text made the line vanish on a correct reopen.
+    if st.session_state.get("uar_reopened"):
+        st.session_state.setdefault("uar_reopened_key", key)
+        if st.session_state["uar_reopened_key"] != key:
+            st.session_state["uar_reopened"] = False
+            st.session_state.pop("uar_reopened_key", None)
+
+    _param = ui.holdings_param([{"ticker": t, "weight_pct": w} for t, w in key])
+    if str(st.query_params.get(ui.HOLDINGS_PARAM, "") or "") != _param:
+        st.session_state["uar_loaded_link"] = _param
+        st.query_params[ui.HOLDINGS_PARAM] = _param
+        for _stale in ("sample", "reopened"):
+            if _stale in st.query_params:
+                del st.query_params[_stale]
+
+# Read, not popped. Streamlit reruns the script on its own several times during
+# a normal load, and a one-shot pop meant the line was drawn on the first run
+# and gone by the time anyone saw the page. It is a statement about the report
+# on screen, so it lives as long as that report does.
+if st.session_state.get("uar_reopened", False):
+    st.markdown(ui.reopened_html(), unsafe_allow_html=True)
+    record_once("exposure_reopened_shown")
 
 head_col, edit_col, save_col = st.columns([3.4, 1.5, 1.3])
 with head_col:
