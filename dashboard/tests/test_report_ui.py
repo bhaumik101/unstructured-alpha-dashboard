@@ -228,3 +228,81 @@ def test_a_report_prints_as_a_document():
     for furniture in (".ua-topnav", "stButton", "stRadio"):
         assert furniture in ui.REPORT_CSS.split("@media print")[1].split("}")[0] + \
             ui.REPORT_CSS.split("@media print")[1][:400]
+
+
+# ── every holding on its own ────────────────────────────────────────────────
+
+def test_the_matrix_gives_each_holding_its_own_row_and_every_factor_a_column(report):
+    html = ui.holdings_matrix_html(report)
+    for position in report["positions"]:
+        assert position["ticker"] in html
+        assert f'{position["weight_pct"]:.1f}% of the portfolio' in html
+    for key in ui.ordered_keys(report):
+        assert report["portfolio"]["readings"][key]["label"] in html
+
+
+def test_a_holding_with_no_measurable_link_gets_a_dash_not_a_faint_colour(report):
+    """A weak reading drawn in a pale tint reads as a weak exposure. It isn't
+    one: it is an absence of evidence, and the table has to say so."""
+    html = ui.holdings_matrix_html(report)
+    weak = [(c["ticker"], k) for k, rows in report["contributions"].items()
+            for c in rows if c["evidence"] not in ("clear", "tentative")]
+    assert weak, "the fixture no longer exercises the empty case -- re-point this test"
+    assert html.count("uar-m-zero") >= len(weak)
+    assert "—" in html
+
+
+def test_a_single_holding_portfolio_draws_no_matrix():
+    """One holding IS the portfolio; the table above already says it twice."""
+    one = {"positions": [{"ticker": "VTI", "weight_pct": 100.0}],
+           "portfolio": {"readings": {"rates": {"label": "Interest rates"}}},
+           "top_exposures": ["rates"],
+           "contributions": {"rates": [{"ticker": "VTI", "weight_pct": 100.0, "impact": -1.0,
+                                        "evidence": "clear", "contribution": -1.0, "share": 1.0}]}}
+    assert ui.holdings_matrix_html(one) == ""
+    assert ui.holdings_matrix_html({"contributions": {}}) == ""
+
+
+def test_the_matrix_colours_clear_white_on_a_hue_that_passes_contrast():
+    """Measured, not eyeballed.
+
+    The identity hues exist for dots and map lines, where 3:1 is the bar. Behind
+    white 13px text they fail AA: #3b7ddd is 4.07:1 and #d99018 is 2.64:1. The
+    matrix uses darkened twins, and an outline colour that clears 4.5:1 as text
+    in whichever theme it is read in.
+    """
+    def _luminance(hex_colour: str) -> float:
+        channels = [int(hex_colour[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    def _contrast(a: str, b: str) -> float:
+        la, lb = _luminance(a), _luminance(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+    assert set(ui.FACTOR_FILL) == set(ui.FACTOR_COLORS) == set(ui.FACTOR_INK_DARK)
+    for key, fill in ui.FACTOR_FILL.items():
+        assert _contrast(fill, "#ffffff") >= 4.5, f"{key}: white on {fill} fails AA"
+        assert _contrast(fill, "#ffffff") >= 4.5, key
+        assert _contrast(ui.FACTOR_INK_DARK[key], "#121d2f") >= 4.5, (
+            f"{key}: outlined text is unreadable on the dark card")
+    # And the sheet must actually carry both sets, or the cells fall back.
+    for key in ui.FACTOR_FILL:
+        assert f"--fd-{key}:" in ui.REPORT_CSS and f"--fh-{key}:" in ui.REPORT_CSS
+
+
+def test_the_matrix_describes_the_past_and_never_advises(report):
+    html = ui.holdings_matrix_html(report)
+    visible = re.sub(r"(?:is|are) not a forecast", "", _visible_text(html))
+    match = _BANNED.search(visible)
+    assert not match, f"forward-looking or advisory language: {match.group(0)!r}"
+
+
+def test_the_single_company_examples_are_labelled_as_examples():
+    """A list of named stocks on the front door is the one place this product
+    could be read as recommending something. The page says it isn't."""
+    page = (Path(__file__).resolve().parent.parent / "pages" / "60_Exposure_Report.py").read_text()
+    assert "ui.SINGLE_STOCKS" in page
+    assert "not suggestions" in page
+    for ticker, company in ui.SINGLE_STOCKS:
+        assert ticker.isupper() and company

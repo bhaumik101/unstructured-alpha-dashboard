@@ -11,7 +11,8 @@ import streamlit as st
 st.set_page_config(page_title="Research record — Unstructured Alpha", layout="wide")
 
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_header, render_page_header  # noqa: E402
+from utils.app_theme import product_page_header  # noqa: E402
+from utils.header import render_header  # noqa: E402
 
 render_header("Research record")
 st.markdown(ui.REPORT_CSS, unsafe_allow_html=True)
@@ -21,9 +22,10 @@ try:
 except Exception:
     pass
 
-render_page_header(
+product_page_header(
     "Research record",
     "A public, write-once log of the one predictive test still running, and every candidate tested.",
+    eyebrow="Open record",
 )
 
 st.markdown(

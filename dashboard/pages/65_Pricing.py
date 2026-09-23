@@ -13,7 +13,8 @@ import streamlit as st
 st.set_page_config(page_title="Pricing — Unstructured Alpha", layout="wide")
 
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_header, render_page_header  # noqa: E402
+from utils.app_theme import product_page_header  # noqa: E402
+from utils.header import render_header  # noqa: E402
 
 APP_BASE = os.environ.get("APP_BASE_URL", "https://app.unstructuredalpha.com").rstrip("/")
 PILOT_EMAIL = "support@unstructuredalpha.com"
@@ -27,21 +28,32 @@ except Exception:
     def record(*_a, **_k):
         return None
 
-render_page_header("Pricing", "Early-access pricing. Prices are being tested with early users and may change.")
+product_page_header("Pricing",
+                    "Early-access pricing. Prices are being tested with early users and may change.",
+                    eyebrow="Plans")
 
 
-def _tier(name: str, price: str, sub: str, now: list[str], later: list[str]) -> str:
+def _tier(name: str, price: str, sub: str, now: list[str], later: list[str],
+          *, badge: str = "") -> str:
+    """One pricing card. `badge` turns it navy, as on the landing page.
+
+    The landing page features the Advisor pilot, because advisers are the
+    customer this product is being built for. The two pages must feature the
+    same one or they are selling different things.
+    """
     items = "".join(f"<li>{i}</li>" for i in now)
     later_html = ""
     if later:
         later_items = "".join(f"<li>{i}</li>" for i in later)
-        later_html = (f'<div class="uar-sub" style="margin-top:10px;font-weight:600">IN DEVELOPMENT</div>'
-                      f'<ul style="margin:4px 0 0 18px;padding:0;color:var(--uar-ink-3)">{later_items}</ul>')
-    return (f'<div class="uar"><div class="uar-card uar-tier"><div class="uar-body">'
-            f'<div class="uar-sub" style="font-weight:600">{name}</div>'
-            f'<div class="uar-title" style="font-size:1.8rem;margin:4px 0">{price}</div>'
+        later_html = (f'<div class="uar-sub uar-tier-kicker">IN DEVELOPMENT</div>'
+                      f'<ul class="uar-tier-list uar-tier-later">{later_items}</ul>')
+    badge_html = f'<div class="uar-tier-badge">{badge}</div>' if badge else ""
+    feature = " uar-tier-feature" if badge else ""
+    return (f'<div class="uar"><div class="uar-card uar-tier{feature}">{badge_html}<div class="uar-body">'
+            f'<div class="uar-tier-name">{name}</div>'
+            f'<div class="uar-tier-price">{price}</div>'
             f'<div class="uar-sub">{sub}</div>'
-            f'<ul style="margin:12px 0 0 18px;padding:0;color:var(--uar-ink-2)">{items}</ul>{later_html}'
+            f'<ul class="uar-tier-list">{items}</ul>{later_html}'
             f'</div></div></div>')
 
 
@@ -103,7 +115,7 @@ with adv_col:
         "Reports for multiple client portfolios",
         "Client-ready explanations for review meetings",
         "Built with you: tell us what your clients ask",
-    ], []), unsafe_allow_html=True)
+    ], [], badge="For advisers"), unsafe_allow_html=True)
     st.link_button("Ask about the pilot", f"mailto:{PILOT_EMAIL}?subject=Advisor%20pilot", width="stretch")
 
 st.caption("Unstructured Alpha is an educational and informational tool, not investment advice.")

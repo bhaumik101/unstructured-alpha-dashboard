@@ -3584,6 +3584,8 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     # ── Horizontal topnav (replaces sidebar, hides Streamlit chrome) ───────────
     _render_topnav()
 
+    _product_css = ""
+
     # Pages the 2026-09-20 redesign superseded still resolve for old links, and
     # still describe the retired signal product. Say so on the page itself, and
     # ask search engines to stop indexing them. Detected from the caller rather
@@ -3591,13 +3593,20 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     try:
         import inspect
 
+        from utils.app_theme import PRODUCT_CSS, is_product_page
         from utils.legacy_pages import NOTICE_HTML, is_legacy_page
 
         _caller = inspect.currentframe().f_back
-        if is_legacy_page((_caller.f_globals.get("__file__") if _caller else None)):
+        _caller_file = _caller.f_globals.get("__file__") if _caller else None
+        if is_legacy_page(_caller_file):
             st.html(NOTICE_HTML)
+        else:
+            # The landing page's palette, type and furniture, carried into the
+            # app so the two stop looking like different products. Injected at
+            # the END of this function, not here — see the note there.
+            _product_css = PRODUCT_CSS if is_product_page(_caller_file) else ""
     except Exception:
-        pass  # a notice is never worth breaking a page for
+        pass  # chrome is never worth breaking a page for
 
     # Traffic tracking (deduped per session+page) — feeds the Admin dashboard.
     _track_page_view(page_subtitle)
@@ -3923,6 +3932,20 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
                             st.rerun()
                         else:
                             st.error("Could not clear notifications. Try again.")
+
+
+    # ── The product theme goes LAST, deliberately ─────────────────────────────
+    # _CSS above is ~124 KB of the old skin and is injected by this same
+    # function. CSS ties are broken by source order, so injecting the product
+    # theme before it meant every equal-specificity rule (the navy top nav, the
+    # brand colour) silently lost — the stylesheet was in the DOM and did
+    # nothing, which is exactly the failure this file's comments warn about.
+    #
+    # Worse, it lost only in local dev: in production _CSS is a <link> in
+    # index.html, so the same code would have looked right on Render and wrong
+    # on a laptop. Last wins in both.
+    if _product_css:
+        st.markdown(_product_css, unsafe_allow_html=True)
 
 
 def _fetch_ticker_strip():

@@ -26,24 +26,46 @@ SAMPLE_KEYS = {
     "income": "Retirement income",
     "growth": "Concentrated growth stocks",
 }
+SINGLE_STOCKS = (
+    ("AAPL", "Apple"), ("MSFT", "Microsoft"), ("NVDA", "Nvidia"), ("JPM", "JPMorgan Chase"),
+    ("XOM", "Exxon Mobil"), ("CAT", "Caterpillar"), ("KO", "Coca-Cola"), ("PG", "Procter & Gamble"),
+)
 FREE_MAX_HOLDINGS = 15
 PRO_MAX_HOLDINGS = ex.MAX_HOLDINGS
 FACTOR_BY_KEY = {f.key: f for f in ex.FACTORS}
 FACTOR_COLORS = {"rates": "#3b7ddd", "inflation": "#e0664a", "dollar": "#1a9a70",
                  "oil": "#d99018", "credit": "#7c5ce0", "growth": "#1497b0"}
 
+# The identity colours above are chosen for dots, borders and map lines, where
+# only 3:1 against the background is required. Set behind WHITE TEXT they fail
+# WCAG AA: measured, #3b7ddd gives 4.07:1 and #1a9a70 gives 3.54:1 against
+# white, and the matrix pills are 13px, so the large-text allowance does not
+# apply. These are the same hues darkened until white clears 4.5:1 in either
+# theme, and the outline colour is the one that clears 4.5:1 as TEXT — which
+# differs by theme, so it has to be a variable rather than an inline style.
+FACTOR_FILL = {"rates": "#1f5fae", "inflation": "#b5442a", "dollar": "#0f7a54",
+               "oil": "#8a5a06", "credit": "#6344c9", "growth": "#0e6f84"}
+FACTOR_INK_DARK = {"rates": "#6fa4ec", "inflation": "#ef9179", "dollar": "#4fc79b",
+                   "oil": "#eab54f", "credit": "#a893f0", "growth": "#55c3d8"}
+
 GENERIC_ERROR = ("Something went wrong while measuring this portfolio. Nothing has been "
                  "estimated in its place; please try again.")
 
 REPORT_CSS = """<style>
-.uar{--uar-surface:#151922;--uar-subtle:#1b202b;--uar-ink:#e8eaef;--uar-ink-2:#bcc2ce;
-  --uar-ink-3:#8f97a7;--uar-line:#2b3240;--uar-accent:#8db4e8;--uar-pos:#79aee9;--uar-neg:#e3a35c;
-  font-family:Inter,system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums;color:var(--uar-ink);}
-html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f2f3f5;--uar-ink:#14171f;
-  --uar-ink-2:#3a4152;--uar-ink-3:#596070;--uar-line:#e2e4e9;--uar-accent:#1f4e8c;--uar-pos:#2563a8;--uar-neg:#b45309;}
+.uar{--uar-surface:#121d2f;--uar-subtle:#16233a;--uar-ink:#e8edf5;--uar-ink-2:#bdc7d8;
+  --uar-ink-3:#8f9bb1;--uar-line:#243349;--uar-accent:#8cb8f2;--uar-pos:#7fb2ec;--uar-neg:#e9a35a;
+  --uar-sky:#0f1b2d;--uar-shadow:rgba(0,0,0,.45);
+  --uar-t-micro:.74rem;--uar-t-meta:.78rem;--uar-t-sm:.82rem;--uar-t-body:.88rem;
+  --uar-t-price:1.8rem;
+  font-family:Inter,"SF Pro Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  font-variant-numeric:tabular-nums;color:var(--uar-ink);}
+html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f4f6fa;--uar-ink:#13213a;
+  --uar-ink-2:#3a4760;--uar-ink-3:#5b6780;--uar-line:#dfe5ee;--uar-accent:#1f5fae;--uar-pos:#2563a8;
+  --uar-neg:#c26a0a;--uar-sky:#edf4fc;--uar-shadow:rgba(13,34,59,.35);}
 .uar-strip{height:5px;background:linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0);}
 .uar-dot{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:9px;vertical-align:0;}
-.uar-card{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:12px;overflow:hidden;margin:6px 0 18px;}
+.uar-card{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:16px;
+  overflow:hidden;margin:6px 0 18px;box-shadow:0 24px 50px -34px var(--uar-shadow);}
 .uar-head{padding:16px 20px;border-bottom:1px solid var(--uar-line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;}
 .uar-title{font-size:1.02rem;font-weight:650;color:var(--uar-ink);}
 .uar-sub{font-size:.84rem;color:var(--uar-ink-3);line-height:1.5;}
@@ -71,22 +93,6 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.78rem;color:var(--uar-ink-3);align-items:center;}
 .uar-sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
 .uar-scroll{overflow-x:auto;}
-/* Product chrome, scoped to the pages that inject this stylesheet. The app's
-   legacy primary is purple; the exposure product is navy and blue, and a
-   visitor arriving from the landing page should not meet a different brand.
-   The selectors carry the same html[data-ua-theme] prefix as utils/header.py's
-   own rules: without it the global theme wins on specificity and none of this
-   applies (checked in the browser, where the first attempt did nothing). */
-html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"],
-html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primary"]{
-  background:#1f5fae!important;border:1px solid #1f5fae!important;color:#fff!important;
-  box-shadow:none!important;}
-html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"]:hover,
-html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primary"]:hover{
-  background:#17457f!important;border-color:#17457f!important;}
-html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"] p,
-html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primary"] p{
-  color:#fff!important;}
 /* Long measures are the single most common readability failure on wide screens:
    the report's own copy is capped, and so is any markdown these pages emit. */
 .uar-lead,.uar-sub,.uar-note{max-width:76ch;}
@@ -99,16 +105,63 @@ html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primar
 /* The three sample portfolios are the main thing to click on an empty report,
    and rendered as bare buttons they read as secondary chrome. */
 .uar-samples{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:6px 0 4px;}
-.uar-sample{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:12px;
-  padding:14px 16px 12px;border-top:3px solid var(--uar-accent);}
+.uar-sample{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:16px;
+  padding:16px 18px 14px;box-shadow:0 18px 38px -32px var(--uar-shadow);height:100%;}
+.uar-sample-strip{height:4px;border-radius:2px;margin:-16px -18px 13px;
+  background:linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0);}
 .uar-sample-name{font-weight:650;font-size:.95rem;color:var(--uar-ink);}
 .uar-sample-holds{font-size:.78rem;color:var(--uar-ink-3);margin-top:4px;line-height:1.5;}
 @media (max-width:760px){.uar-samples{grid-template-columns:1fr;}}
 @media (min-width:761px){.uar-tier{min-height:430px;}}
+/* Pricing cards, as on the landing page: the Advisor pilot is the featured
+   tier there, so it is the featured tier here too. */
+/* .uar-card clips its children so the strip and head corners stay round;
+   the badge deliberately hangs over the top edge, so this one does not. */
+.uar-tier{position:relative;display:flex;flex-direction:column;overflow:visible;}
+.uar-tier-name{font-weight:700;font-size:var(--uar-t-sm);color:var(--uar-accent);
+  text-transform:uppercase;letter-spacing:.04em;}
+.uar-tier-price{font-size:var(--uar-t-price);font-weight:750;letter-spacing:-0.02em;
+  margin:6px 0 2px;color:var(--uar-ink);}
+.uar-tier-list{margin:14px 0 0;padding:0;list-style:none;}
+.uar-tier-list li{font-size:var(--uar-t-body);color:var(--uar-ink-2);padding:5px 0 5px 20px;
+  position:relative;line-height:1.5;}
+.uar-tier-list li::before{content:"";position:absolute;left:2px;top:12px;width:8px;height:8px;
+  border-radius:50%;background:#0f7a54;}
+.uar-tier-kicker{margin-top:12px;font-weight:700;letter-spacing:.04em;}
+.uar-tier-later li{color:var(--uar-ink-3);}
+.uar-tier-feature{background:linear-gradient(160deg,#0d223b,#15375d);border-color:transparent;
+  color:#eef3fa;margin-top:16px;}
+.uar-tier-feature .uar-body{padding-top:20px;}
+.uar-tier-feature .uar-tier-name{color:#ffc24b!important;}
+.uar-tier-feature .uar-tier-price{color:#ffffff!important;}
+.uar-tier-feature .uar-sub,.uar-tier-feature .uar-tier-list li{color:rgba(238,243,250,.88)!important;}
+.uar-tier-feature .uar-tier-list li::before{background:#ffc24b;}
+.uar-tier-badge{position:absolute;top:-11px;left:24px;background:#ffc24b;color:#13213a;
+  font-size:var(--uar-t-micro);font-weight:750;padding:4px 12px;border-radius:999px;}
 .uar-table{width:100%;border-collapse:collapse;font-size:.88rem;}
 .uar-table th{text-align:left;font-weight:600;color:var(--uar-ink-3);font-size:.74rem;padding:8px 12px;border-bottom:1px solid var(--uar-line);white-space:nowrap;}
 .uar-table td{padding:9px 12px;border-bottom:1px solid var(--uar-line);color:var(--uar-ink-2);}
 .uar-table tr:last-child td{border-bottom:0;}
+/* Every holding on one grid: the old per-stock research pages, rebuilt around
+   what we can actually measure. One row per holding, one column per force. */
+.uar-matrix{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--uar-t-body);}
+.uar-matrix th{text-align:center;font-weight:650;font-size:var(--uar-t-micro);padding:9px 10px;
+  border-bottom:1px solid var(--uar-line);white-space:nowrap;color:var(--uar-ink-2);}
+.uar-matrix th.uar-m-name,.uar-matrix td.uar-m-name{text-align:left;position:sticky;left:0;
+  background:var(--uar-surface);z-index:1;}
+.uar-matrix th .uar-dot{width:9px;height:9px;border-radius:3px;margin:0 6px 0 0;}
+.uar-matrix td{padding:10px;border-bottom:1px solid var(--uar-line);text-align:center;
+  color:var(--uar-ink-2);}
+.uar-matrix tr:last-child td{border-bottom:0;}
+.uar-matrix tbody tr:hover td{background:var(--uar-sky);}
+.uar-matrix tbody tr:hover td.uar-m-name{background:var(--uar-sky);}
+.uar-m-tick{font-weight:700;color:var(--uar-ink);}
+.uar-m-weight{font-size:var(--uar-t-meta);color:var(--uar-ink-3);margin-top:1px;}
+.uar-m-val{display:inline-block;padding:3px 9px;border-radius:999px;font-weight:650;
+  font-size:var(--uar-t-sm);line-height:1.35;}
+.uar-m-clear{color:#fff;}
+.uar-m-tent{background:transparent;}
+.uar-m-zero{color:var(--uar-ink-3);font-weight:500;}
 .uar-note{border-left:3px solid var(--uar-line);padding:8px 14px;color:var(--uar-ink-2);font-size:.88rem;margin:10px 0;line-height:1.55;}
 .uar-note-warn{border-left-color:var(--uar-neg);}
 .uar-error{border:1px solid var(--uar-neg);border-radius:12px;padding:16px 20px;margin:8px 0 16px;color:var(--uar-ink-2);background:var(--uar-surface);}
@@ -133,6 +186,19 @@ html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primar
   .uar-row .uar-rowdriver{grid-column:1/-1;order:4;}
 }
 </style>"""
+
+
+# Emitted after the sheet above so the two colour tables cannot drift: the dark
+# theme is the base, light overrides only the ink.
+REPORT_CSS = REPORT_CSS.replace("</style>", "".join((
+    ".uar{",
+    *(f"--fd-{k}:{v};" for k, v in FACTOR_FILL.items()),
+    *(f"--fh-{k}:{v};" for k, v in FACTOR_INK_DARK.items()),
+    "}",
+    'html[data-ua-theme="light"] .uar{',
+    *(f"--fh-{k}:{v};" for k, v in FACTOR_FILL.items()),
+    "}\n</style>",
+)))
 
 
 # ── formatting ──────────────────────────────────────────────────────────────
@@ -384,6 +450,7 @@ def sample_card_html(name: str) -> str:
     holdings = ex.SAMPLE_PORTFOLIOS.get(name, [])
     listing = " · ".join(f"{h['weight_pct']:g}% {h['ticker']}" for h in holdings)
     return (f'<div class="uar"><div class="uar-sample">'
+            f'<div class="uar-sample-strip"></div>'
             f'<div class="uar-sample-name">{escape(name)}</div>'
             f'<div class="uar-sample-holds">{escape(SAMPLE_BLURBS.get(name, ""))}</div>'
             f'<div class="uar-sample-holds">{escape(listing)}</div></div></div>')
@@ -565,6 +632,81 @@ def factor_detail_html(report: dict, key: str) -> str:
         )
     parts.append('</div></div></div>')
     return "".join(parts)
+
+
+def holdings_matrix_html(report: dict) -> str:
+    """Every holding on one grid: rows are holdings, columns are the forces.
+
+    The product used to have a shelf of per-stock research pages built on the
+    old signal scores. They went when the scores did, and nothing replaced the
+    thing people actually came for: *what is going on with this one name*.
+
+    The engine already fits every holding separately, on exactly the same weeks
+    and the same regressors as the portfolio, so this needs no new statistics
+    and invents nothing — it is the per-holding numbers the factor detail tables
+    already show, arranged so one stock can be read across instead of one factor
+    read down. A cell is filled only where that holding's own evidence stands on
+    its own; everything else is a dash, not a faint colour.
+    """
+    contributions = report.get("contributions") or {}
+    if not contributions or "portfolio" not in report:
+        return ""
+    keys = [k for k in ordered_keys(report) if contributions.get(k)]
+    if not keys:
+        return ""
+
+    cells: dict = {}
+    weights: dict = {}
+    for key in keys:
+        for row in contributions[key]:
+            cells.setdefault(row["ticker"], {})[key] = row
+            weights[row["ticker"]] = row["weight_pct"]
+    if len(weights) < 2:
+        return ""  # a single holding IS the portfolio; the table above says it
+
+    readings = report["portfolio"]["readings"]
+    head = "".join(
+        f'<th><span class="uar-dot" style="background:{FACTOR_COLORS.get(k, "#3b7ddd")}"></span>'
+        f'{escape(readings[k]["label"])}</th>' for k in keys)
+
+    body = []
+    for ticker in sorted(weights, key=lambda t: -weights[t]):
+        tds = []
+        for key in keys:
+            row = cells.get(ticker, {}).get(key)
+            if row is None or row["evidence"] not in ("clear", "tentative"):
+                tds.append('<td><span class="uar-m-val uar-m-zero">—</span></td>')
+                continue
+            if row["evidence"] == "clear":
+                style = f"background:var(--fd-{key},#1f5fae)"
+                cls = "uar-m-clear"
+            else:
+                style = (f"border:1px solid var(--fh-{key},#1f5fae);"
+                         f"color:var(--fh-{key},#1f5fae)")
+                cls = "uar-m-tent"
+            tds.append(f'<td><span class="uar-m-val {cls}" style="{style}" '
+                       f'title="{escape(ex.EVIDENCE_LABELS[row["evidence"]])}">'
+                       f'{fmt_pct(row["impact"])}</span></td>')
+        body.append(
+            f'<tr><td class="uar-m-name"><div class="uar-m-tick">{escape(ticker)}</div>'
+            f'<div class="uar-m-weight">{weights[ticker]:.1f}% of the portfolio</div></td>'
+            + "".join(tds) + "</tr>")
+
+    return (
+        '<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
+        '<div class="uar-title">Each holding, measured on its own</div>'
+        '<div class="uar-sub">The same three years of weekly returns, fitted one holding at a '
+        'time, with the stock market&#39;s own movement removed. Read a row to see what a single '
+        'name is exposed to.</div></div></div>'
+        f'<div class="uar-scroll"><table class="uar-matrix"><thead><tr>'
+        f'<th class="uar-m-name">Holding</th>{head}</tr></thead>'
+        f'<tbody>{"".join(body)}</tbody></table></div>'
+        '<div class="uar-foot">A filled cell is a <b>clear</b> reading, an outlined one is '
+        '<b>tentative</b>, and a dash means that holding&#39;s response could not be told apart '
+        'from noise — not that it has none. Figures are the holding&#39;s own sensitivity, before '
+        'its weight is applied; each one describes how that holding has moved and is not a '
+        'forecast. To look at one name on its own, enter just that ticker.</div>'
+        '</div></div>')
 
 
 def shifts_html(report: dict) -> str:

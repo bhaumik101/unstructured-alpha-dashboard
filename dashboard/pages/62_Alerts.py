@@ -11,7 +11,8 @@ import streamlit as st
 st.set_page_config(page_title="Alerts — Unstructured Alpha", layout="wide")
 
 from utils import report_ui as ui  # noqa: E402
-from utils.header import render_header, render_page_header  # noqa: E402
+from utils.app_theme import product_page_header  # noqa: E402
+from utils.header import render_header  # noqa: E402
 
 render_header("Alerts")
 st.markdown(ui.REPORT_CSS, unsafe_allow_html=True)
@@ -22,7 +23,8 @@ except Exception:
     def record(*_a, **_k):
         return None
 
-render_page_header("Alerts", "Get told when a saved portfolio's exposure changes.")
+product_page_header("Alerts", "Get told when a saved portfolio's exposure changes.",
+                    eyebrow="Stay current")
 
 st.markdown(
     '<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
