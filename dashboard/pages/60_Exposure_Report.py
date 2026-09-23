@@ -122,10 +122,51 @@ if editing:
     st.markdown("**Or build your own portfolio**")
     method = st.radio(
         "How would you like to add holdings?",
-        ("Search by name", "Paste a list", "Upload a CSV"),
+        ("Search by name", "Upload a statement", "Paste a list"),
         horizontal=True, key="uar_method", label_visibility="collapsed",
     )
     text, upload = "", None
+
+    def draft_editor(empty_hint: str) -> None:
+        """The list of holdings waiting to be measured.
+
+        Shared by the search box and the statement importer on purpose: an
+        import has to be checked before it is measured, and the surface someone
+        uses to check it should be the one they already know how to edit.
+        """
+        draft = st.session_state.get("uar_draft", [])
+        if not draft:
+            st.caption(empty_hint)
+            return
+        # Deleting a widget's key does NOT reset it when the same key is
+        # rendered again on the next run: the browser resends the old value and
+        # Streamlit restores it. Measured -- adding a second holding to a 100%
+        # one left 100 + 50 = 150% on screen, which the engine then rescaled to
+        # 67/33 without anyone asking for it. A generation counter in the key
+        # makes a fresh widget instead, and is bumped only when the weights are
+        # meant to be reset.
+        gen = st.session_state.get("uar_gen", 0)
+        st.markdown(ui.draft_header_html(draft), unsafe_allow_html=True)
+        for row in draft:
+            name_col, weight_col, drop_col = st.columns([4, 1.4, 0.9])
+            name_col.markdown(ui.draft_row_html(row), unsafe_allow_html=True)
+            before = float(row.get("weight_pct") or 0.0)
+            row["weight_pct"] = weight_col.number_input(
+                f"{row['ticker']} weight %", min_value=0.0, max_value=100.0, step=1.0,
+                value=before, format="%.1f", key=f"uar_w_{gen}_{row['ticker']}",
+                label_visibility="collapsed",
+            )
+            if row["weight_pct"] != before:
+                st.session_state["uar_weights_touched"] = True
+            if drop_col.button("Remove", key=f"uar_rm_{row['ticker']}", width="stretch"):
+                equal = not st.session_state.get("uar_weights_touched", False)
+                st.session_state["uar_draft"] = ui.remove_from_draft(
+                    draft, row["ticker"], equal=equal)
+                if equal:
+                    st.session_state["uar_gen"] = gen + 1
+                st.rerun()
+        st.caption(f"Weights total {ui.draft_total(draft):g}%. They are rescaled to 100% before "
+                   f"measuring, so they can be dollar amounts or rough shares.")
 
     if method == "Search by name":
         # The primary path. Typing a ticker assumes the visitor knows it; most
@@ -166,40 +207,57 @@ if editing:
                         record("exposure_holding_added", ticker=row["ticker"], kind=row.get("kind", ""))
                         st.rerun()
 
-        draft = st.session_state.get("uar_draft", [])
-        if draft:
-            # Deleting a widget's key does NOT reset it when the same key is
-            # rendered again on the next run: the browser resends the old value
-            # and Streamlit restores it. Measured -- adding a second holding to
-            # a 100% one left 100 + 50 = 150% on screen, which the engine then
-            # rescaled to 67/33 without anyone asking for it. A generation
-            # counter in the key makes a fresh widget instead, and it is bumped
-            # only when the weights are meant to be reset.
-            gen = st.session_state.get("uar_gen", 0)
-            st.markdown(ui.draft_header_html(draft), unsafe_allow_html=True)
-            for row in draft:
-                name_col, weight_col, drop_col = st.columns([4, 1.4, 0.9])
-                name_col.markdown(ui.draft_row_html(row), unsafe_allow_html=True)
-                before = float(row.get("weight_pct") or 0.0)
-                row["weight_pct"] = weight_col.number_input(
-                    f"{row['ticker']} weight %", min_value=0.0, max_value=100.0, step=1.0,
-                    value=before, format="%.1f", key=f"uar_w_{gen}_{row['ticker']}",
-                    label_visibility="collapsed",
-                )
-                if row["weight_pct"] != before:
-                    st.session_state["uar_weights_touched"] = True
-                if drop_col.button("Remove", key=f"uar_rm_{row['ticker']}", width="stretch"):
-                    equal = not st.session_state.get("uar_weights_touched", False)
-                    st.session_state["uar_draft"] = ui.remove_from_draft(
-                        draft, row["ticker"], equal=equal)
-                    if equal:
-                        st.session_state["uar_gen"] = gen + 1
-                    st.rerun()
-            st.caption(f"Weights total {ui.draft_total(draft):g}%. They are rescaled to 100% before "
-                       f"measuring, so they can be dollar amounts or rough shares.")
-        else:
-            st.caption("Search above and add holdings one at a time. Weights start out equal and "
-                       "can be edited.")
+        draft_editor("Search above and add holdings one at a time. Weights start out "
+                     "equal and can be edited.")
+
+    elif method == "Upload a statement":
+        # A workplace plan often offers nothing but a PDF, and "export
+        # positions" is three menus deep at most brokers. What comes out of a
+        # statement is a GUESS, so it lands in the same editable list as
+        # everything else and is measured only after someone has looked at it.
+        from utils import statement_import as si
+
+        upload = st.file_uploader(
+            "A PDF statement, or a CSV or text positions export. Most brokerage "
+            "statements work. Nothing is uploaded anywhere else — the file is read "
+            "here and discarded.",
+            type=list(si.SUPPORTED),
+            key="uar_file",
+        )
+        if upload is not None:
+            signature = (upload.name, upload.size)
+            if st.session_state.get("uar_upload_sig") != signature:
+                st.session_state["uar_upload_sig"] = signature
+                data = upload.getvalue()
+                if upload.name.lower().endswith(".csv"):
+                    # The CSV reader understands brokerage exports column by
+                    # column, which beats parsing them as loose text.
+                    rows, rejected = ui.parse_holdings_csv(data)
+                    found = ui.equalize([{"ticker": r["ticker"], "name": "",
+                                          "weight_pct": 0.0} for r in rows]) if rows else []
+                    if rows and any(r.get("weight_pct") for r in rows):
+                        total = sum(float(r.get("weight_pct") or 0) for r in rows)
+                        if total > 0:
+                            found = [{"ticker": r["ticker"], "name": "",
+                                      "weight_pct": round(100.0 * float(r.get("weight_pct") or 0) / total, 1)}
+                                     for r in rows]
+                    notes = rejected
+                else:
+                    found, notes = si.read_statement(upload.name, data)
+                st.session_state["uar_draft"] = found[:max_holdings]
+                st.session_state["uar_upload_notes"] = notes
+                st.session_state["uar_weights_touched"] = False
+                st.session_state["uar_gen"] = st.session_state.get("uar_gen", 0) + 1
+                record("exposure_statement_imported", n=len(found),
+                       kind=upload.name.rsplit(".", 1)[-1].lower())
+                st.rerun()
+
+        for note in st.session_state.get("uar_upload_notes", []):
+            st.caption(note)
+        if st.session_state.get("uar_draft"):
+            st.info("Check these before measuring. A statement is read, not understood — "
+                    "remove anything that does not belong and correct any weight.")
+        draft_editor("Upload a statement or positions export above.")
 
     elif method == "Paste a list":
         text = st.text_area(
@@ -209,13 +267,6 @@ if editing:
             placeholder="VTI 40\nBND 30\nVXUS 20\nGLD 10",
             height=180,
             key="uar_text",
-        )
-    else:
-        upload = st.file_uploader(
-            "A CSV with a Ticker or Symbol column, plus an optional Weight or Market Value column. "
-            "Most brokerage position exports work.",
-            type=["csv"],
-            key="uar_csv",
         )
 
     submit_col, cancel_col, _ = st.columns([1.3, 1, 3])
@@ -227,12 +278,10 @@ if editing:
             st.rerun()
 
     if submitted:
-        if method == "Search by name":
+        if method in ("Search by name", "Upload a statement"):
             rows = [{"ticker": r["ticker"], "weight_pct": r["weight_pct"]}
                     for r in st.session_state.get("uar_draft", [])]
             rejected = []
-        elif upload is not None:
-            rows, rejected = ui.parse_holdings_csv(upload.getvalue())
         else:
             rows, rejected = ui.parse_holdings_text(text)
         if rejected:

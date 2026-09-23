@@ -283,6 +283,27 @@ def _build_runtime() -> str:
     }catch(e){}
   }
 
+  function uaLabelUploads(){
+    /* Streamlit renders the file uploader's label as a sibling <div> and never
+       associates it with the hidden <input type=file>, so axe reports a real
+       "form element has no label" failure on every page with an uploader. The
+       label text is right there in the DOM; this connects the two.
+
+       It lives here rather than in CSS because only an attribute fixes it, and
+       rather than in Python because Streamlit owns that markup. */
+    try{
+      var inputs = document.querySelectorAll(
+        'input[data-testid="stFileUploaderDropzoneInput"]:not([aria-label])');
+      for(var i=0;i<inputs.length;i++){
+        var input = inputs[i];
+        var widget = input.closest('[data-testid="stFileUploader"]');
+        var label = widget && widget.querySelector('[data-testid="stWidgetLabel"]');
+        var text = (label && label.innerText || '').trim().replace(/\s+/g,' ');
+        input.setAttribute('aria-label', text ? text.slice(0,180) : 'Choose a file to upload');
+      }
+    }catch(e){}
+  }
+
   function uaDropFalse404(){
     try{
       var slug = location.pathname.replace(/^\/+|\/+$/g, '');
@@ -322,8 +343,9 @@ def _build_runtime() -> str:
     uaQueueMark();
     uaDropFalse404();
     uaFocusableScrollers();
+    uaLabelUploads();
     new MutationObserver(function(){
-      uaQueueMark(); uaDropFalse404(); uaFocusableScrollers();
+      uaQueueMark(); uaDropFalse404(); uaFocusableScrollers(); uaLabelUploads();
     }).observe(document.documentElement, {childList:true, subtree:true});
   }catch(e){}
 
