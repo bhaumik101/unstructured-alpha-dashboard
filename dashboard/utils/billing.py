@@ -407,15 +407,18 @@ def admin_revoke_pro(email: str) -> dict:
 
 # ── Pro gating utility ────────────────────────────────────────────────────────
 
+from utils.guards import MAX_EXPOSURE_HOLDINGS, MAX_SAVED_PORTFOLIOS
+
 # What Investor Pro actually is, as of the 2026-09-20 redesign. The list this
 # replaced named fifteen features, of which most were retired with the signal
 # product and several were never built (Signal Backtester, the Pro API, the
 # 7 AM digest). It is rendered to prospects, so it has to be true.
 PRO_FEATURES = [
-    "Up to 25 holdings per portfolio, instead of 15",
+    f"Up to {MAX_EXPOSURE_HOLDINGS} holdings per portfolio, instead of 15",
     "Every holding measured on its own, and the holdings behind each exposure",
     "A 90% range and an evidence label on every number",
-    "Saved portfolios",
+    f"Up to {MAX_SAVED_PORTFOLIOS} saved portfolios, switched from the report",
+    "The report's numbers as a CSV",
     "In development: a weekly \u201cwhat changed\u201d email",
     "In development: alerts when an exposure crosses a threshold you set",
     "In development: PDF export and more than one saved portfolio",

@@ -363,7 +363,9 @@ if st.session_state.get("uar_reopened", False):
     st.markdown(ui.reopened_html(), unsafe_allow_html=True)
     record_once("exposure_reopened_shown")
 
-head_col, edit_col, save_col = st.columns([3.4, 1.5, 1.3])
+# A fourth action made the three button columns narrow enough to wrap
+# "Change holdings" onto two lines; the header column gives back the room.
+head_col, edit_col, save_col, csv_col = st.columns([2.5, 1.5, 1.4, 1.4])
 with head_col:
     st.markdown(ui.portfolio_header_html(name, report), unsafe_allow_html=True)
 with edit_col:
@@ -373,21 +375,101 @@ with edit_col:
 with save_col:
     save_clicked = st.button("Save portfolio", key="uar_save", width="stretch",
                              disabled=report.get("status") != "ok")
+with csv_col:
+    # An adviser puts these figures next to their own; a web page does not go
+    # into a client review. The evidence label travels with every row, because
+    # a number lifted out of here without it is the misuse the report exists
+    # to prevent.
+    if report.get("status") == "ok" and is_pro:
+        st.download_button(
+            "Download CSV", data=ui.report_csv(report, name),
+            file_name=ui.csv_filename(name, report.get("as_of")),
+            mime="text/csv", key="uar_csv", width="stretch",
+            on_click=lambda: record("exposure_csv_downloaded", n=len(key)),
+        )
+    elif report.get("status") == "ok":
+        st.button("Download CSV", key="uar_csv_locked", width="stretch", disabled=True,
+                  help="Investor Pro downloads the report's numbers as a spreadsheet.")
+
+_rows_to_save = [{"ticker": t, "weight_pct": w} for t, w in key]
 
 if save_clicked:
-    if user:
+    if not user:
+        record("exposure_save_needs_account")
+        st.info("Create a free account or sign in (top right) to save this portfolio. "
+                "Your holdings stay on this page while you do.")
+    elif is_pro:
+        # Pro names its portfolios, so saving asks what to call this one.
+        st.session_state["uar_naming"] = True
+    else:
         try:
             from utils.portfolio_workspace import replace_default_holdings
-            replace_default_holdings(int(user["id"]), [{"ticker": t, "weight_pct": w} for t, w in key])
+            replace_default_holdings(int(user["id"]), _rows_to_save)
             st.session_state["uar_name"] = "Your saved portfolio"
             record("exposure_portfolio_saved", n=len(key))
             st.success("Saved. This portfolio loads automatically when you sign in.")
         except Exception:
             st.error("Couldn't save right now. Your report is still here; please try again.")
-    else:
-        record("exposure_save_needs_account")
-        st.info("Create a free account or sign in (top right) to save this portfolio. "
-                "Your holdings stay on this page while you do.")
+
+# ── Pro: several portfolios, switched from here ─────────────────────────────
+# An adviser looking at four client portfolios was retyping three of them every
+# time. The table has always had a name column; only one row per user was ever
+# written to it.
+if user and is_pro and report.get("status") == "ok":
+    from utils.guards import MAX_SAVED_PORTFOLIOS
+    from utils.portfolio_workspace import (
+        delete_portfolio, get_holdings, list_portfolios, save_named_portfolio,
+    )
+
+    try:
+        _saved = list_portfolios(int(user["id"]))
+    except Exception:
+        _saved = []
+
+    if st.session_state.pop("uar_naming", False):
+        st.session_state["uar_show_saved"] = True
+
+    with st.expander(f"Saved portfolios ({len(_saved)} of {MAX_SAVED_PORTFOLIOS})",
+                     expanded=st.session_state.pop("uar_show_saved", False)):
+        _name_col, _save_col = st.columns([3, 1])
+        _new_name = _name_col.text_input(
+            "Save the portfolio on screen as", value=name if name != "Your portfolio" else "",
+            placeholder="Client — Smith IRA", key="uar_save_name",
+        )
+        if _save_col.button("Save", key="uar_save_named", width="stretch", type="primary"):
+            try:
+                saved_row = save_named_portfolio(int(user["id"]), _new_name, _rows_to_save,
+                                                 limit=MAX_SAVED_PORTFOLIOS)
+                st.session_state["uar_name"] = saved_row["name"]
+                record("exposure_portfolio_saved", n=len(key), named=True)
+                st.success(f"Saved as “{saved_row['name']}”.")
+                st.rerun()
+            except ValueError as limit_reached:
+                st.warning(str(limit_reached))
+            except Exception:
+                st.error("Couldn't save right now. Your report is still here; please try again.")
+
+        if _saved:
+            st.caption("Open one to measure it again with today's data.")
+        for _row in _saved:
+            _open_col, _del_col = st.columns([4, 1])
+            if _open_col.button(f"Open “{_row['name']}”", key=f"uar_open_{_row['id']}",
+                                width="stretch"):
+                _holdings = get_holdings(int(user["id"]), int(_row["id"]))
+                if not _holdings:
+                    st.warning("That portfolio has no holdings saved in it.")
+                else:
+                    st.session_state.update(
+                        uar_holdings=[{"ticker": h["ticker"], "weight_pct": h["weight_pct"]}
+                                      for h in _holdings],
+                        uar_name=_row["name"], uar_editing=False, uar_reopened=False,
+                    )
+                    st.session_state.pop("uar_reopened_key", None)
+                    record("exposure_portfolio_opened")
+                    st.rerun()
+            if _del_col.button("Delete", key=f"uar_del_{_row['id']}", width="stretch"):
+                delete_portfolio(int(user["id"]), int(_row["id"]))
+                st.rerun()
 
 if user and report.get("status") == "ok":
     from utils.exposure_email import get_weekly_opt_in, set_weekly_opt_in

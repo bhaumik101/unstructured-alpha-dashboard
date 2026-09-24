@@ -14,6 +14,7 @@ st.set_page_config(page_title="Pricing — Unstructured Alpha", layout="wide")
 
 from utils import report_ui as ui  # noqa: E402
 from utils.app_theme import product_page_header  # noqa: E402
+from utils.guards import MAX_SAVED_PORTFOLIOS  # noqa: E402
 from utils.header import render_header  # noqa: E402
 
 APP_BASE = os.environ.get("APP_BASE_URL", "https://app.unstructuredalpha.com").rstrip("/")
@@ -60,7 +61,7 @@ def _tier(name: str, price: str, sub: str, now: list[str], later: list[str],
 free_col, pro_col, adv_col = st.columns(3)
 with free_col:
     st.markdown(_tier("Free", "$0", "No card needed", [
-        "Exposure report for one portfolio, up to 15 holdings",
+        f"Exposure report for one portfolio, up to {ui.FREE_MAX_HOLDINGS} holdings",
         "Holdings behind each exposure",
         "Range and evidence label on every number",
         "Save one portfolio with a free account",
@@ -71,12 +72,15 @@ with free_col:
 
 with pro_col:
     st.markdown(_tier("Investor Pro", "$20 / month", "7-day free trial · cancel anytime", [
-        "Measure up to 25 holdings per portfolio",
+        f"Measure up to {ui.PRO_MAX_HOLDINGS} holdings per portfolio, instead of "
+        f"{ui.FREE_MAX_HOLDINGS}",
+        f"Save up to {MAX_SAVED_PORTFOLIOS} portfolios and switch between them",
+        "Download the report's numbers as a CSV",
         "Everything in Free",
     ], [
         "Weekly &ldquo;what changed&rdquo; email",
         "Exposure threshold alerts",
-        "PDF export and multiple portfolios",
+        "PDF export",
     ]), unsafe_allow_html=True)
     user = st.session_state.get("user")
     try:
