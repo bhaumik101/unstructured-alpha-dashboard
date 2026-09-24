@@ -203,5 +203,9 @@ def test_fit_lab_is_in_portfolio_navigation_and_pro_marketing():
 
     assert '"Portfolio Fit Lab"' in portfolio
     assert "simulate_portfolio_fit" in portfolio
-    assert "Portfolio Fit Lab — pre-trade factor and concentration simulation" in upgrade
-    assert '"Portfolio Fit Lab":' in billing
+    # The upgrade page no longer markets this: the 2026-09-20 redesign retired
+    # the page it belongs to, and selling a retired feature at the moment
+    # someone decides whether to pay is the worst place to do it. The route
+    # and the gate stay; the marketing does not.
+    assert "Portfolio Fit Lab" not in upgrade
+    assert '"Portfolio Fit Lab":' in billing  # the gate still names it

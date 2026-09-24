@@ -295,6 +295,13 @@ html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stB
 </style>"""
 
 
+# Pages outside the 60-65 block that are nonetheless part of the current
+# product. 29_Upgrade.py is here because Stripe's success_url, the Pro gates,
+# referral links and several emails all point at /upgrade-to-pro; the route
+# cannot move, so the page comes to the theme instead.
+EXTRA_PRODUCT_PAGES = frozenset({"29_Upgrade.py"})
+
+
 def is_product_page(caller_file: str | None) -> bool:
     """True for the pages built after the redesign, which carry this theme."""
     from utils.legacy_pages import LEGACY_PAGE_FILES
@@ -302,8 +309,9 @@ def is_product_page(caller_file: str | None) -> bool:
     if not caller_file:
         return False
     name = Path(str(caller_file)).name
-    return (name.startswith(("60_", "61_", "62_", "63_", "64_", "65_"))
-            and name not in LEGACY_PAGE_FILES)
+    if name in LEGACY_PAGE_FILES:
+        return False
+    return name.startswith(("60_", "61_", "62_", "63_", "64_", "65_")) or name in EXTRA_PRODUCT_PAGES
 
 
 def product_page_header(title: str, subtitle: str = "", *, eyebrow: str = "",
