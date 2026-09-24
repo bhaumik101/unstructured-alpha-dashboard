@@ -123,6 +123,24 @@ html[data-ua-theme="light"] .ua-topnav .ua-tnav-trigger.active,
 html:not([data-ua-theme="light"]) .ua-topnav .ua-tnav-trigger.active{{
   color:#fff!important;background:rgba(255,255,255,.14)!important;
 }}
+/* Below the nav's breakpoint the links stop being a row on the navy bar and
+   become a drop-down panel that is WHITE in light mode -- but they are still
+   inside .ua-topnav, so the rule above painted them near-white on white and
+   the whole menu vanished. Found by opening it at 900px: "Report", "What
+   changed", "Alerts" and "Methodology" were all rgba(238,243,250,.86) on
+   rgba(255,255,255,.99). Only the sub-links were readable, because the old
+   skin still themes those. */
+@media (max-width: 1000px) {{
+  html[data-ua-theme="light"] .ua-topnav .ua-tnav-links a.ua-tnav-item,
+  html[data-ua-theme="light"] .ua-topnav .ua-tnav-links .ua-tnav-trigger{{
+    color:var(--p-ink)!important;}}
+  html[data-ua-theme="light"] .ua-topnav .ua-tnav-links a.ua-tnav-item:hover{{
+    background:var(--p-sky)!important;color:var(--p-accent)!important;}}
+  html[data-ua-theme="light"] .ua-topnav .ua-tnav-links a.ua-tnav-item.active{{
+    background:var(--p-sky)!important;color:var(--p-accent)!important;}}
+  html[data-ua-theme="light"] .ua-topnav .ua-tnav-links .ua-tnav-trigger{{
+    color:var(--p-ink3)!important;}}
+}}
 html[data-ua-theme="light"] .ua-tnav-brand-text,
 html:not([data-ua-theme="light"]) .ua-tnav-brand-text{{color:#fff!important;font-size:var(--p-t-sm)!important;}}
 .ua-tnav-brand-text em{{-webkit-text-fill-color:var(--p-bright)!important;background:none!important;}}
@@ -221,6 +239,40 @@ html:not([data-ua-theme="light"]) .stApp a[data-testid="stBaseLinkButton-primary
   color:var(--p-accent-ink)!important;border-radius:var(--p-r-sm)!important;min-height:44px!important;
   font-weight:650!important;font-size:var(--p-t-base)!important;box-shadow:none!important;}}
 .stApp :focus-visible{{outline:3px solid var(--p-bright)!important;outline-offset:2px!important;}}
+
+/* ── every control surface, not just the visible face of one ────────────────
+   Found by sweeping the rendered page for the retired skin's own colours
+   (#0b0d12, #12151e, #6470f5) rather than by looking at screenshots. Styling
+   an <input> while leaving BaseWeb's wrapper alone leaves a dark ring around a
+   white field, and the radio and checkbox markers kept the old purple
+   throughout. These are the wrappers and the markers. */
+html[data-ua-theme="light"] .stApp [data-testid="stTextInputRootElement"],
+html:not([data-ua-theme="light"]) .stApp [data-testid="stTextInputRootElement"],
+html[data-ua-theme="light"] .stApp [data-baseweb="input"],
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="input"],
+html[data-ua-theme="light"] .stApp [data-baseweb="base-input"],
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="base-input"],
+html[data-ua-theme="light"] .stApp [data-baseweb="textarea"],
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="textarea"]{{
+  background:var(--p-surface)!important;border-color:var(--p-line)!important;
+  color:var(--p-ink)!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] [role="radiogroup"] label > div:first-child,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stRadio"] [role="radiogroup"] label > div:first-child{{
+  background:var(--p-surface)!important;border-color:var(--p-line)!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] label:has(input:checked) > div:first-child,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stRadio"] label:has(input:checked) > div:first-child{{
+  background:var(--p-accent)!important;border-color:var(--p-accent)!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stCheckbox"] label span[aria-hidden="true"],
+html:not([data-ua-theme="light"]) .stApp [data-testid="stCheckbox"] label span[aria-hidden="true"]{{
+  background-color:var(--p-accent)!important;border-color:var(--p-accent)!important;}}
+/* The label element carries the old ink even when the <p> inside is themed;
+   one nested override away from being visible, so it is set too. */
+html[data-ua-theme="light"] .stApp [data-testid="stWidgetLabel"],
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] [role="radiogroup"] label,
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] [role="radiogroup"] label div{{
+  color:var(--p-ink2)!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] label:has(input:checked) div{{
+  color:var(--p-accent)!important;}}
 
 /* ── inputs ─────────────────────────────────────────────────────────────── */
 .stApp [data-testid="stTextArea"] textarea,.stApp [data-testid="stTextInput"] input,
