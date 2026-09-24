@@ -130,3 +130,56 @@ def test_the_hero_escapes_everything_it_is_given():
     for field in ("eyebrow", "title", "subtitle"):
         assert f"escape({field})" in body, field
     assert "escape(str(f))" in body, "facts are interpolated unescaped"
+
+
+# ── the top bar has to fit ──────────────────────────────────────────────────
+
+def test_the_nav_collapses_before_it_overflows():
+    """Measured at a 900px viewport — an ordinary laptop window, or an iPad in
+    landscape. The link row needed 584px inside a 492px box, and the right-hand
+    cluster ran to x=925 against a bar that ended at 820: the Upgrade pill was
+    clipped and the theme toggle was entirely off the screen. The whole band
+    between the old 860px breakpoint and roughly 1050px was broken, and only
+    shows up if you resize into it.
+    """
+    src = (_ROOT / "utils" / "header.py").read_text(encoding="utf-8")
+    burger = src[src.index(".ua-tnav-burger {"):]
+    media = re.search(r"@media \(max-width: (\d+)px\) \{\s*/\*[^*]*horizontal links", src, re.S) \
+        or re.search(r"@media \(max-width: (\d+)px\) \{[^@]*?\.ua-tnav-burger \{ display: flex", src, re.S)
+    assert media, "the nav's collapse breakpoint moved -- re-point this test"
+    assert int(media.group(1)) >= 1000, (
+        f"the horizontal nav needs about 930px plus the bar's own inset; "
+        f"collapsing at {media.group(1)}px leaves a band where it overflows"
+    )
+    assert burger  # the burger rule still exists
+
+
+def test_the_collapsed_menu_is_readable_on_the_light_theme():
+    """Below the breakpoint the links stop being a row on the navy bar and
+    become a WHITE drop-down panel — but they are still inside .ua-topnav, so
+    the navy-bar rule painted them near-white on white and the entire menu
+    vanished. Opened at 900px: every top-level link was rgba(238,243,250,.86)
+    on rgba(255,255,255,.99).
+    """
+    assert "@media (max-width: 1000px)" in PRODUCT_CSS, (
+        "the collapsed menu needs its own colours, at the same breakpoint the "
+        "nav collapses at"
+    )
+    block = PRODUCT_CSS[PRODUCT_CSS.index("@media (max-width: 1000px)"):]
+    block = block[: block.index("\n}\n") + 3]
+    assert ".ua-tnav-links a.ua-tnav-item" in block
+    assert "var(--p-ink)" in block
+
+
+def test_the_controls_streamlit_draws_are_themed_not_just_their_faces():
+    """Styling an <input> and leaving BaseWeb's wrapper alone leaves a dark ring
+    round a white field; the radio and checkbox markers kept the retired purple
+    throughout. Found by sweeping the rendered page for the old skin's own
+    colours rather than by looking at screenshots."""
+    for wrapper in ('[data-testid="stTextInputRootElement"]', '[data-baseweb="base-input"]',
+                    '[data-testid="stNumberInputContainer"]'):
+        assert wrapper in PRODUCT_CSS, wrapper
+    assert 'label:has(input:checked) > div:first-child' in PRODUCT_CSS, (
+        "the selected radio marker was the retired purple"
+    )
+    assert '[data-testid="stCheckbox"] label span[aria-hidden="true"]' in PRODUCT_CSS
