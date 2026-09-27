@@ -193,6 +193,19 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-m-clear{color:#fff;}
 .uar-m-tent{background:transparent;}
 .uar-m-zero{color:var(--uar-ink-3);font-weight:500;}
+/* Saved-portfolio cards on the portfolios page. */
+.uar-pcard{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:16px;
+  padding:16px 18px 14px;box-shadow:0 18px 38px -32px var(--uar-shadow);min-height:230px;}
+.uar-pcard .uar-sample-strip{margin:-16px -18px 13px;border-radius:16px 16px 0 0;}
+.uar-pcard-name{font-weight:700;color:var(--uar-ink);font-size:var(--uar-t-body);}
+.uar-pchips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 8px;}
+.uar-pchip{display:inline-flex;align-items:center;gap:2px;padding:3px 10px;border-radius:999px;
+  border:1px solid var(--uar-line);background:var(--uar-subtle);font-size:var(--uar-t-meta);
+  color:var(--uar-ink-2);}
+.uar-pchip .uar-dot{width:8px;height:8px;margin-right:6px;}
+.uar-pchip b{margin-left:4px;color:var(--uar-ink);}
+.uar-pcard-spark{margin:6px 0 8px;}
+.uar-pcard-empty{margin-top:14px;color:var(--uar-ink-3);font-size:var(--uar-t-body);}
 .uar-note{border-left:3px solid var(--uar-line);padding:8px 14px;color:var(--uar-ink-2);font-size:.88rem;margin:10px 0;line-height:1.55;}
 .uar-note-warn{border-left-color:var(--uar-neg);}
 .uar-note-back{border-left-color:var(--uar-accent);background:var(--uar-sky);border-radius:0 10px 10px 0;}
@@ -440,6 +453,22 @@ def _cached_ok_report(key: tuple, max_holdings: int) -> dict:
         # served from cache for six hours.
         raise _NotCacheable(report)
     return report
+
+
+def peek_report(key: tuple, max_holdings: int) -> Optional[dict]:
+    """A report only if one is already stored — never a new measurement.
+
+    The portfolios page lists every saved portfolio, and for the Advisor pilot
+    that list has no limit. Measuring each one on page load would be 10-20
+    seconds apiece against two providers before anything appeared, so the page
+    shows what is already measured and offers a button for the rest.
+    """
+    try:
+        from utils import report_cache
+
+        return report_cache.get(key, max_holdings)
+    except Exception:
+        return None
 
 
 def get_report(key: tuple, max_holdings: int) -> dict:
@@ -1070,6 +1099,52 @@ def holdings_diff_html(key_a: Tuple[Tuple[str, float], ...], key_b: Tuple[Tuple[
         '<div class="uar-scroll"><table class="uar-table"><thead><tr>'
         f'<th>Holding</th><th>{left}</th><th>{right}</th><th>Change</th>'
         f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div></div></div>')
+
+
+def portfolio_card_html(name: str, n_holdings: int, updated: str,
+                        report: Optional[dict]) -> str:
+    """One saved portfolio at a glance: its strongest readings and their drift.
+
+    Only exposures that stand on their own evidence are shown as chips — a
+    card that led with a "not distinguishable from zero" number would be
+    headlining noise. The sparkline is the strongest exposure's rolling year,
+    the same series the report charts, so the card and the report agree.
+    """
+    from utils import report_charts as charts
+
+    head = (f'<div class="uar-pcard-name">{escape(name)}</div>'
+            f'<div class="uar-sub">{n_holdings} holding{"" if n_holdings == 1 else "s"}'
+            + (f' · saved {escape(fmt_date(updated))}' if updated else '') + '</div>')
+    if not report or report.get("status") != "ok":
+        return (f'<div class="uar"><div class="uar-pcard"><div class="uar-sample-strip"></div>'
+                f'{head}<div class="uar-pcard-empty">Not measured in the last six hours. '
+                f'Measure it to see its exposures.</div></div></div>')
+
+    readings = report["portfolio"]["readings"]
+    strong = [k for k in report.get("top_exposures", []) if k in readings][:3]
+    if strong:
+        chips = "".join(
+            f'<span class="uar-pchip"><span class="uar-dot" style="background:'
+            f'{FACTOR_COLORS.get(k, "#3b7ddd")}"></span>{escape(readings[k]["label"])} '
+            f'<b>{fmt_pct(readings[k]["impact"])}</b></span>' for k in strong)
+    else:
+        chips = ('<span class="uar-sub">No exposure stood out from noise over the three '
+                 'years.</span>')
+
+    spark = ""
+    lead = strong[0] if strong else None
+    rolling = (report.get("rolling") or {}).get(lead) if lead else None
+    if rolling and len(rolling) >= 3:
+        words = (f"{readings[lead]['label']} sensitivity over rolling years, from "
+                 f"{fmt_pct(rolling[0]['impact'])} to {fmt_pct(rolling[-1]['impact'])}.")
+        spark = (f'<div class="uar-pcard-spark">'
+                 f'{charts.sparkline_svg([p["impact"] for p in rolling], FACTOR_COLORS.get(lead, "#3b7ddd"), words)}'
+                 f'<div class="uar-sub">{escape(readings[lead]["label"])}, rolling year</div></div>')
+
+    return (f'<div class="uar"><div class="uar-pcard"><div class="uar-sample-strip"></div>'
+            f'{head}<div class="uar-pchips">{chips}</div>{spark}'
+            f'<div class="uar-sub">Measured through {escape(fmt_date(report.get("as_of")))}</div>'
+            f'</div></div>')
 
 
 def holdings_matrix_html(report: dict) -> str:

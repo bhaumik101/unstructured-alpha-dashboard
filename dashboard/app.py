@@ -82,6 +82,7 @@ pg = st.navigation(
             st.Page("pages/60_Exposure_Report.py", title="Exposure report", default=True),
             st.Page("pages/61_What_Changed.py", title="What changed", url_path="what-changed"),
             st.Page("pages/66_Compare.py",     title="Compare portfolios", url_path="compare"),
+            st.Page("pages/67_Portfolios.py",  title="Your portfolios", url_path="portfolios"),
             st.Page("pages/62_Alerts.py",       title="Alerts", url_path="alerts"),
             st.Page("pages/63_Methodology.py",  title="Methodology", url_path="methodology"),
             st.Page("pages/64_Research.py",     title="Research record", url_path="research"),

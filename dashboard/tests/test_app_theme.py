@@ -33,7 +33,7 @@ from utils.app_theme import PRODUCT_CSS, FACTOR_HUES, is_product_page  # noqa: E
 
 HEADER = (_ROOT / "utils" / "header.py").read_text(encoding="utf-8")
 PRODUCT_PAGES = ("60_Exposure_Report.py", "61_What_Changed.py", "62_Alerts.py",
-                 "63_Methodology.py", "64_Research.py", "65_Pricing.py", "66_Compare.py")
+                 "63_Methodology.py", "64_Research.py", "65_Pricing.py", "66_Compare.py", "67_Portfolios.py")
 
 
 def test_only_the_redesigned_pages_carry_the_theme():
