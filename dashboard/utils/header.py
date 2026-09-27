@@ -3380,6 +3380,7 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
     <div class="ua-tnav-group ua-tnav-hide-sm">
       <span class="ua-tnav-trigger">Account <span class="ua-tnav-caret">&#9660;</span></span>
       <div class="ua-tnav-drop">
+        <a href="/portfolios">Your portfolios</a>
         <a href="/pricing">Pricing</a>
         <a href="/alerts">Alerts</a>
         <a href="/my-profile">My profile</a>
