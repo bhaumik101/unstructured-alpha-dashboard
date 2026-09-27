@@ -18,9 +18,12 @@ from sqlalchemy import create_engine, text
 
 load_dotenv(".env.render")
 
+# Same driver pinning as utils/db.py: SQLAlchemy 2.1 reads a bare
+# postgresql:// as psycopg 3, which is not installed.
 _url = os.environ["DATABASE_URL"]
-if _url.startswith("postgres://"):
-    _url = _url.replace("postgres://", "postgresql://", 1)
+for _bare in ("postgresql://", "postgres://"):
+    if _url.startswith(_bare):
+        _url = "postgresql+psycopg2://" + _url[len(_bare):]
 ENGINE = create_engine(_url, pool_pre_ping=True)
 
 NOW = datetime.now(timezone.utc)

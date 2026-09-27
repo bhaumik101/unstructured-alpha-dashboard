@@ -79,7 +79,25 @@ def _resolve_database_url() -> str:
     return f"sqlite:///{_LOCAL_DB_PATH}"
 
 
-DATABASE_URL = _resolve_database_url()
+def with_installed_driver(url: str) -> str:
+    """Name the Postgres driver we ship, instead of trusting SQLAlchemy's default.
+
+    requirements.txt installs psycopg2. SQLAlchemy 2.0 read a bare
+    ``postgresql://`` URL as psycopg2; 2.1 reads it as psycopg 3, which is not
+    installed. The first build to resolve 2.1 (2026-09-27) crashed every page
+    and every cron at import with ``ModuleNotFoundError: psycopg`` — with no
+    code change of ours. Render and Heroku hand out ``postgres://`` and
+    ``postgresql://`` URLs, so the driver is pinned here. A URL that already
+    names a driver (``postgresql+psycopg://``) is the operator's choice and is
+    left alone.
+    """
+    for bare in ("postgresql://", "postgres://"):
+        if url.startswith(bare):
+            return "postgresql+psycopg2://" + url[len(bare):]
+    return url
+
+
+DATABASE_URL = with_installed_driver(_resolve_database_url())
 IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 # SQLite: single-file, no pool — just enable multi-thread access.
