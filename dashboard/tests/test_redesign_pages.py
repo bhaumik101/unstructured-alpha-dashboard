@@ -282,3 +282,109 @@ def test_measuring_something_else_drops_the_reopened_line(monkeypatch, synthetic
     assert "Reopened the portfolio" not in _text(at), (
         "the line describes one portfolio; it must not follow the visitor onto another"
     )
+
+
+# ── what Investor Pro gets ──────────────────────────────────────────────────
+
+def _pro(monkeypatch, path, **kwargs):
+    """The report as a Pro subscriber sees it. The session user dict carries no
+    tier, so it is read from the DB and cached under _tier_{id} — which is the
+    key to set here."""
+    user = {"id": 77, "email": "pro@example.com"}
+    at = _page(monkeypatch, path, user=user, **kwargs)
+    at.session_state["_tier_77"] = "pro"
+    at.run()
+    return at
+
+
+@pytest.fixture
+def fake_workspace(monkeypatch):
+    """The saved-portfolio table, in memory. These tests are about the page's
+    wiring, not about SQLAlchemy."""
+    from utils import portfolio_workspace as pw
+
+    store: dict[int, dict] = {}
+    seq = {"n": 0}
+
+    def _list(user_id):
+        return [dict(p) for p in store.values() if p["user_id"] == int(user_id)]
+
+    def _save(user_id, name, rows, *, limit=None):
+        existing = {p["name"]: p for p in _list(user_id)}
+        clean = " ".join(str(name or "").split()) or "My Portfolio"
+        if limit is not None and clean not in existing and len(existing) >= limit:
+            raise ValueError(f"this plan saves {limit}")
+        row = existing.get(clean)
+        if not row:
+            seq["n"] += 1
+            row = {"id": seq["n"], "user_id": int(user_id), "name": clean}
+            store[seq["n"]] = row
+        store[row["id"]]["rows"] = [dict(r) for r in rows]
+        return dict(store[row["id"]])
+
+    def _get(user_id, portfolio_id):
+        row = store.get(int(portfolio_id))
+        if not row or row["user_id"] != int(user_id):
+            return []
+        return [{"ticker": r["ticker"], "weight_pct": r["weight_pct"]} for r in row.get("rows", [])]
+
+    monkeypatch.setattr(pw, "list_portfolios", _list)
+    monkeypatch.setattr(pw, "save_named_portfolio", _save)
+    monkeypatch.setattr(pw, "get_holdings", _get)
+    monkeypatch.setattr(pw, "delete_portfolio",
+                        lambda uid, pid: bool(store.pop(int(pid), None)))
+    return store
+
+
+def test_a_free_visitor_sees_the_csv_button_locked_rather_than_missing(
+        monkeypatch, synthetic_engine):
+    """A paid feature nobody can see is not a reason to upgrade."""
+    at = _page(monkeypatch, "pages/60_Exposure_Report.py",
+               state={"uar_holdings": HOLDINGS, "uar_name": "Test"})
+    assert not at.exception
+    locked = at.button(key="uar_csv_locked")
+    assert locked.disabled
+    assert "Investor Pro" in (locked.help or "")
+
+
+def test_pro_can_save_several_portfolios_and_open_them_again(
+        monkeypatch, synthetic_engine, fake_workspace):
+    at = _pro(monkeypatch, "pages/60_Exposure_Report.py",
+              state={"uar_holdings": HOLDINGS, "uar_name": "Client — Smith IRA"})
+    assert not at.exception, "\n".join(str(e) for e in at.exception)
+
+    at.text_input(key="uar_save_name").set_value("Client — Smith IRA")
+    at.button(key="uar_save_named").click().run()
+    assert not at.exception, "\n".join(str(e) for e in at.exception)
+    assert [p["name"] for p in fake_workspace.values()] == ["Client — Smith IRA"]
+
+    # A second, different portfolio, then reopen the first.
+    at.session_state["uar_holdings"] = [{"ticker": "VTI", "weight_pct": 100}]
+    at.run()
+    at.text_input(key="uar_save_name").set_value("Client — Jones taxable")
+    at.button(key="uar_save_named").click().run()
+    assert len(fake_workspace) == 2
+
+    first = next(p for p in fake_workspace.values() if p["name"] == "Client — Smith IRA")
+    at.button(key=f"uar_open_{first['id']}").click().run()
+    assert not at.exception
+    assert at.session_state["uar_name"] == "Client — Smith IRA"
+    assert {h["ticker"] for h in at.session_state["uar_holdings"]} == {h["ticker"] for h in HOLDINGS}
+
+
+def test_hitting_the_saved_limit_is_explained_not_swallowed(
+        monkeypatch, synthetic_engine, fake_workspace):
+    from utils.guards import MAX_SAVED_PORTFOLIOS
+
+    at = _pro(monkeypatch, "pages/60_Exposure_Report.py",
+              state={"uar_holdings": HOLDINGS, "uar_name": "Test"})
+    for n in range(MAX_SAVED_PORTFOLIOS):
+        at.text_input(key="uar_save_name").set_value(f"Portfolio {n}")
+        at.button(key="uar_save_named").click().run()
+    assert len(fake_workspace) == MAX_SAVED_PORTFOLIOS
+
+    at.text_input(key="uar_save_name").set_value("One too many")
+    at.button(key="uar_save_named").click().run()
+    assert not at.exception
+    assert len(fake_workspace) == MAX_SAVED_PORTFOLIOS
+    assert any("this plan saves" in w.value for w in at.warning)

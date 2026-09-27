@@ -507,7 +507,9 @@ export default function Home() {
                 <div className="lp-price-amount">$20<span className="lp-small"> / month</span></div>
                 <div className="lp-small">Cancel anytime</div>
                 <ul>
-                  <li>Measure up to 25 holdings per portfolio</li>
+                  <li>Measure up to 60 holdings per portfolio, instead of 15</li>
+                  <li>Save up to 5 portfolios and switch between them</li>
+                  <li>Download the report&rsquo;s numbers as a CSV</li>
                   <li>Everything in Free</li>
                 </ul>
                 <div className="lp-price-sub">In development</div>

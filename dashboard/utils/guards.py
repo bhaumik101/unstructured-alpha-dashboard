@@ -24,6 +24,15 @@ def _cap(name: str, default: int) -> int:
 
 # ── Caps (env-overridable) ────────────────────────────────────────────────────
 MAX_PORTFOLIO_HOLDINGS = _cap("MAX_PORTFOLIO_HOLDINGS", 25)   # each = 1 full score
+# The exposure report has its own cap, deliberately separate and much higher.
+# The comment above is the reason: a holding used to mean a full ticker score
+# with its own three-year price fetch. In the exposure engine a holding is one
+# OLS fit on 156 weekly returns, sharing a single batched price request with
+# every other holding. Timed on this machine with synthetic data: 15 holdings
+# 0.06s, 60 holdings 0.13s. The old cap was sized for work this product does
+# not do, and it was the only thing Investor Pro had to sell.
+MAX_EXPOSURE_HOLDINGS  = _cap("MAX_EXPOSURE_HOLDINGS", 60)
+MAX_SAVED_PORTFOLIOS   = _cap("MAX_SAVED_PORTFOLIOS", 5)      # per Pro account
 MAX_BASKET_TICKERS     = _cap("MAX_BASKET_TICKERS", 25)
 MAX_TICKERS_PER_REQUEST = _cap("MAX_TICKERS_PER_REQUEST", 40)  # ad-hoc multi-ticker scans
 MAX_EXPORT_ROWS        = _cap("MAX_EXPORT_ROWS", 5000)

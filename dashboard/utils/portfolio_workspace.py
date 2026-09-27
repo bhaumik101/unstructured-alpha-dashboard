@@ -10,7 +10,7 @@ from typing import Iterable
 from sqlalchemy import delete, select
 
 from utils.db import engine, portfolio_holdings, portfolios, upsert_stmt
-from utils.guards import MAX_PORTFOLIO_HOLDINGS
+from utils.guards import MAX_EXPOSURE_HOLDINGS, MAX_PORTFOLIO_HOLDINGS
 
 
 DEFAULT_PORTFOLIO_NAME = "My Portfolio"
@@ -174,3 +174,107 @@ def replace_default_holdings(user_id: int, rows: Iterable[dict]) -> list[dict]:
             .values(updated_at=now)
         )
     return get_default_holdings(int(user_id))
+
+
+# ── named portfolios ────────────────────────────────────────────────────────
+# The table has carried a name and a uniqueness constraint on (user_id, name)
+# since it was created, but only ever held one row per user, because the only
+# writer was replace_default_holdings. An adviser looking at four client
+# portfolios had to retype three of them every time.
+#
+# Every function here filters on user_id as well as portfolio id. That is not
+# belt-and-braces: a portfolio id is a small integer, so an id alone would let
+# anyone read anyone's holdings by guessing.
+
+def list_portfolios(user_id: int) -> list[dict]:
+    """Every portfolio this user has saved, most recently touched first."""
+    with engine.begin() as conn:
+        rows = conn.execute(
+            select(portfolios.c.id, portfolios.c.name, portfolios.c.is_default,
+                   portfolios.c.updated_at)
+            .where(portfolios.c.user_id == int(user_id))
+            .order_by(portfolios.c.updated_at.desc(), portfolios.c.id.desc())
+        ).mappings().all()
+    return [dict(row) for row in rows]
+
+
+def get_holdings(user_id: int, portfolio_id: int) -> list[dict]:
+    """Positions in one of THIS user's portfolios, or [] if it is not theirs."""
+    with engine.begin() as conn:
+        owned = conn.execute(
+            select(portfolios.c.id).where(
+                portfolios.c.id == int(portfolio_id),
+                portfolios.c.user_id == int(user_id),
+            )
+        ).first()
+        if not owned:
+            return []
+        rows = conn.execute(
+            select(portfolio_holdings)
+            .where(portfolio_holdings.c.portfolio_id == int(portfolio_id))
+            .order_by(portfolio_holdings.c.weight_pct.desc(), portfolio_holdings.c.ticker)
+        ).mappings().all()
+    return [dict(row) for row in rows]
+
+
+def save_named_portfolio(user_id: int, name: str, rows: Iterable[dict],
+                         *, limit: int | None = None) -> dict:
+    """Create or overwrite one named portfolio. Returns the portfolio row.
+
+    Raises ValueError when the account is already at its limit and the name is
+    a new one — overwriting an existing name is always allowed, so someone at
+    the cap can still correct what they have.
+    """
+    user_id = int(user_id)
+    clean_name = " ".join(str(name or "").split())[:96] or DEFAULT_PORTFOLIO_NAME
+    normalized = normalize_holdings(rows, limit=MAX_EXPOSURE_HOLDINGS)
+    existing = {p["name"]: p for p in list_portfolios(user_id)}
+    if limit is not None and clean_name not in existing and len(existing) >= int(limit):
+        raise ValueError(
+            f"That would be portfolio number {len(existing) + 1}; this plan saves "
+            f"{int(limit)}. Overwrite one of the saved names, or delete one first."
+        )
+
+    now = _now()
+    stmt = upsert_stmt(portfolios, ["user_id", "name"]).values(
+        user_id=user_id, name=clean_name,
+        is_default=1 if not existing else 0,
+        created_at=now, updated_at=now,
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["user_id", "name"], set_={"updated_at": now},
+    )
+    with engine.begin() as conn:
+        conn.execute(stmt)
+        row = conn.execute(
+            select(portfolios).where(
+                portfolios.c.user_id == user_id, portfolios.c.name == clean_name,
+            )
+        ).mappings().one()
+        conn.execute(
+            delete(portfolio_holdings).where(portfolio_holdings.c.portfolio_id == row["id"])
+        )
+        if normalized:
+            conn.execute(
+                portfolio_holdings.insert(),
+                [{"portfolio_id": row["id"], **position, "created_at": now, "updated_at": now}
+                 for position in normalized],
+            )
+    return dict(row)
+
+
+def delete_portfolio(user_id: int, portfolio_id: int) -> bool:
+    """Delete one of this user's portfolios. False if it was not theirs."""
+    user_id, portfolio_id = int(user_id), int(portfolio_id)
+    with engine.begin() as conn:
+        owned = conn.execute(
+            select(portfolios.c.id).where(
+                portfolios.c.id == portfolio_id, portfolios.c.user_id == user_id,
+            )
+        ).first()
+        if not owned:
+            return False
+        conn.execute(delete(portfolio_holdings).where(
+            portfolio_holdings.c.portfolio_id == portfolio_id))
+        conn.execute(delete(portfolios).where(portfolios.c.id == portfolio_id))
+    return True

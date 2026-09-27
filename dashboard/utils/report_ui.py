@@ -701,6 +701,60 @@ def remove_from_draft(draft: List[dict], ticker: str, *, equal: bool = True) -> 
     return equalize(kept) if equal else kept
 
 
+def report_csv(report: dict, name: str = "portfolio") -> bytes:
+    """The report's numbers, as a spreadsheet.
+
+    An adviser does not read a web page into a client review; they put the
+    figures next to their own. Everything here is already on the page — the
+    portfolio's reading per force, then each holding's own reading and its
+    contribution — so this adds no claim, only a format. The evidence label
+    travels with every row on purpose: a number lifted out of here without it
+    is exactly the misuse the whole report is built to prevent.
+    """
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(["Unstructured Alpha — exposure report"])
+    writer.writerow(["Portfolio", name])
+    writer.writerow(["Measured through", fmt_date(report.get("as_of"))])
+    portfolio = report["portfolio"]
+    writer.writerow(["Window", f"{portfolio.get('n_obs', '')} weeks of weekly returns, "
+                               f"{fmt_date(portfolio.get('start'))} to {fmt_date(portfolio.get('end'))}"])
+    writer.writerow(["Market control", str(report.get("method", {}).get("market_control", ""))])
+    writer.writerow(["Note", "Describes how this portfolio has moved. Not a forecast, "
+                             "not investment advice."])
+    writer.writerow([])
+    writer.writerow(["Scope", "Economic force", "Holding", "Weight %", "Impact %",
+                     "90% low", "90% high", "Evidence", "Contribution %", "Share of total %"])
+
+    readings = portfolio["readings"]
+    contributions = report.get("contributions") or {}
+    for key in ordered_keys(report):
+        reading = readings[key]
+        writer.writerow(["Portfolio", reading["label"], "", 100.0,
+                         _csv_num(reading.get("impact")), _csv_num(reading.get("low")),
+                         _csv_num(reading.get("high")), reading.get("evidence_label", ""), "", ""])
+        for row in contributions.get(key, []):
+            writer.writerow(["Holding", reading["label"], row["ticker"],
+                             _csv_num(row.get("weight_pct")), _csv_num(row.get("impact")),
+                             "", "", ex.EVIDENCE_LABELS.get(row.get("evidence"), ""),
+                             _csv_num(row.get("contribution")),
+                             _csv_num(None if row.get("share") is None else 100 * row["share"])])
+    return buffer.getvalue().encode("utf-8")
+
+
+def _csv_num(value) -> str:
+    """Plain decimals for a spreadsheet: no minus-sign typography, no percent
+    sign, and an empty cell rather than the em dash the page uses."""
+    if value is None or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return ""
+    return f"{value:.4f}"
+
+
+def csv_filename(name: str, as_of: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", str(name or "portfolio").lower()).strip("-") or "portfolio"
+    return f"unstructured-alpha-{slug}-{str(as_of)[:10]}.csv"
+
+
 def reopened_html() -> str:
     """Shown when the browser reopened the last portfolio by itself.
 

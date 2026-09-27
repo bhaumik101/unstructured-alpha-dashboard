@@ -98,7 +98,10 @@ RECENT_MOVE_WEEKS = 4      # "what happened lately": the last four weeks
 NEWEY_WEST_LAGS = 4
 GROWTH_WINDOW_MONTHS = 36
 GROWTH_MIN_MONTHS = 24
-MAX_HOLDINGS = 25
+# Raised from 25 on 2026-09-24: see utils/guards.MAX_EXPOSURE_HOLDINGS for the
+# timing that justifies it. Env-overridable, so a smaller box can lower it
+# without a deploy.
+from utils.guards import MAX_EXPOSURE_HOLDINGS as MAX_HOLDINGS  # noqa: E402
 VIF_WARN = 5.0
 
 # Written out rather than computed, so a page that only renders a report does
