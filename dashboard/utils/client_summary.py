@@ -60,19 +60,40 @@ SUMMARY_CSS = """<style>
 .ucs-caveat{border-left:3px solid var(--ucs-accent);background:var(--ucs-sub);padding:8px 12px;
   font-size:var(--uar-t-meta);color:var(--ucs-ink2);margin:14px 0 8px;line-height:1.55;}
 .ucs-foot{font-size:var(--uar-t-micro);color:var(--ucs-ink3);line-height:1.5;margin-top:8px;}
+/* The app theme sets every markdown <p> and every <h3> with !important — in
+   dark mode, light ink meant for a dark page. The summary is a white sheet in
+   both themes, so its own type and colours have to outrank the theme. */
+.stApp .ucs p.ucs-lead{font-size:var(--uar-t-body)!important;color:var(--ucs-ink2)!important;}
+.stApp .ucs h3{font-family:inherit!important;font-size:var(--uar-t-sm)!important;color:var(--ucs-ink3)!important;}
+.ucs-hint{font-size:.82rem;color:var(--p-ink2,#3a4760);}
 .ucs-print{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:8px;
   background:#1f5fae;color:#ffffff!important;font-weight:650;text-decoration:none!important;}
 .ucs-print:hover{background:#184c8c;}
 @media (max-width:700px){.ucs{padding:18px;}.ucs-two{grid-template-columns:1fr;}
   .ucs-mini{grid-template-columns:repeat(2,1fr);}.ucs-top{flex-direction:column;}.ucs-meta{text-align:left;}}
 @media print{
-  @page{size:letter;margin:12mm;}
+  @page{size:letter;margin:10mm;}
   html,body,.stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"]{background:#fff!important;}
   .ua-topnav,.st-key-ua_account_row,.st-key-ua_spa_proxy_rail,[data-testid="stButton"],
   [data-testid="stHeader"],.ua-phero,.ucs-screen-only,.st-key-cs_controls,#ua-scroll-top,.ua-scroll-top,
   [data-testid="stCaptionContainer"]{display:none!important;}
-  .block-container{padding:0!important;max-width:none!important;}
+  .block-container,[data-testid="stMainBlockContainer"]{padding:0!important;max-width:none!important;}
+  /* Print the summary and nothing else. Hiding an element's contents still
+     left its container, and each one kept the column's 16px gap: a ~240px
+     blank band above the summary that pushed the method onto page two. */
+  [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"]{gap:0!important;}
+  [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > :not(:has(.ucs)){display:none!important;}
   .ucs{border:0;padding:0;max-width:none;}
+  /* One sheet of Letter is ~980px at 10mm margins; at screen size this ran to
+     ~1,130 and spilled the method onto a second page. The map is the tallest
+     block, so it gives up the most; the type steps down one notch. */
+  .ucs{--uar-t-body:.8rem;--uar-t-sm:.76rem;--uar-t-meta:.72rem;--uar-t-micro:.68rem;}
+  .ucs .uar-map{max-height:200px;width:auto;display:block;margin:0 auto;}
+  .ucs h3{margin:10px 0 4px;}
+  .ucs td{padding:4px 6px;}
+  .stApp .ucs p.ucs-lead,.ucs-lead{margin-bottom:8px;}
+  .stApp .ucs h3{margin:10px 0 4px;}
+  .ucs-caveat{margin:10px 0 6px;}
   .ucs *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .ucs-two,.ucs-mini,.ucs table{break-inside:avoid;}
 }

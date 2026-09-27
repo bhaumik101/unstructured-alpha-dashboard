@@ -108,7 +108,7 @@ record_once("client_summary_viewed")
 st.markdown(
     '<div class="ucs-screen-only" style="display:flex;gap:10px;align-items:center;margin:4px 0 16px">'
     '<a href="#print" data-ua-print="1" class="ucs-print">Print or save as PDF</a>'
-    '<span class="uar-sub">In the print dialog, choose “Save as PDF” to attach it to an email.</span>'
+    '<span class="ucs-hint">In the print dialog, choose “Save as PDF” to attach it to an email.</span>'
     '</div>', unsafe_allow_html=True)
 st.markdown(cs.summary_html(report, name, prepared_for, prepared_by), unsafe_allow_html=True)
 
