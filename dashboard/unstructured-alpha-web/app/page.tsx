@@ -508,7 +508,7 @@ export default function Home() {
                 <div className="lp-small">Cancel anytime</div>
                 <ul>
                   <li>Measure up to 60 holdings per portfolio, instead of 15</li>
-                  <li>Save up to 5 portfolios and switch between them</li>
+                  <li>Save up to 3 portfolios and switch between them</li>
                   <li>Download the report&rsquo;s numbers as a CSV</li>
                   <li>Everything in Free</li>
                 </ul>
@@ -527,7 +527,7 @@ export default function Home() {
                 <div className="lp-price-amount">$149<span className="lp-small"> / month</span></div>
                 <div className="lp-small">Small pilot · first month free</div>
                 <ul>
-                  <li>Reports for multiple client portfolios</li>
+                  <li>Unlimited client portfolios, saved and switched from the report</li>
                   <li>Client-ready explanations for review meetings</li>
                   <li>Built with you: tell us what your clients ask</li>
                 </ul>

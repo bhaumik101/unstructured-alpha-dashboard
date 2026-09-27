@@ -14,6 +14,8 @@ import streamlit as st
 st.set_page_config(page_title="Exposure report — Unstructured Alpha", layout="wide")
 
 from utils import exposure as ex  # noqa: E402
+from utils import holdings as hold  # noqa: E402
+from utils import holdings_panel as panel  # noqa: E402
 from utils import report_ui as ui  # noqa: E402
 from utils.app_theme import product_page_header  # noqa: E402
 from utils.header import render_header  # noqa: E402
@@ -127,88 +129,18 @@ if editing:
     )
     text, upload = "", None
 
-    def draft_editor(empty_hint: str) -> None:
-        """The list of holdings waiting to be measured.
-
-        Shared by the search box and the statement importer on purpose: an
-        import has to be checked before it is measured, and the surface someone
-        uses to check it should be the one they already know how to edit.
-        """
-        draft = st.session_state.get("uar_draft", [])
-        if not draft:
-            st.caption(empty_hint)
-            return
-        # Deleting a widget's key does NOT reset it when the same key is
-        # rendered again on the next run: the browser resends the old value and
-        # Streamlit restores it. Measured -- adding a second holding to a 100%
-        # one left 100 + 50 = 150% on screen, which the engine then rescaled to
-        # 67/33 without anyone asking for it. A generation counter in the key
-        # makes a fresh widget instead, and is bumped only when the weights are
-        # meant to be reset.
-        gen = st.session_state.get("uar_gen", 0)
-        st.markdown(ui.draft_header_html(draft), unsafe_allow_html=True)
-        for row in draft:
-            name_col, weight_col, drop_col = st.columns([4, 1.4, 0.9])
-            name_col.markdown(ui.draft_row_html(row), unsafe_allow_html=True)
-            before = float(row.get("weight_pct") or 0.0)
-            row["weight_pct"] = weight_col.number_input(
-                f"{row['ticker']} weight %", min_value=0.0, max_value=100.0, step=1.0,
-                value=before, format="%.1f", key=f"uar_w_{gen}_{row['ticker']}",
-                label_visibility="collapsed",
-            )
-            if row["weight_pct"] != before:
-                st.session_state["uar_weights_touched"] = True
-            if drop_col.button("Remove", key=f"uar_rm_{row['ticker']}", width="stretch"):
-                equal = not st.session_state.get("uar_weights_touched", False)
-                st.session_state["uar_draft"] = ui.remove_from_draft(
-                    draft, row["ticker"], equal=equal)
-                if equal:
-                    st.session_state["uar_gen"] = gen + 1
-                st.rerun()
-        st.caption(f"Weights total {ui.draft_total(draft):g}%. They are rescaled to 100% before "
-                   f"measuring, so they can be dollar amounts or rough shares.")
-
     if method == "Search by name":
         # The primary path. Typing a ticker assumes the visitor knows it; most
         # people know the fund's name, and a workplace-plan statement often
-        # prints no symbol at all.
-        from utils import symbol_search as sym
-
-        draft = st.session_state.setdefault("uar_draft", [])
-        query = st.text_input(
-            "Search for a stock, ETF or mutual fund by name or ticker",
-            placeholder="Apple · total bond market · Fidelity 500 · VTSAX",
-            key="uar_query",
-        )
-        if query and len(query.strip()) >= 2:
-            results, source = sym.search_symbols(query, limit=6)
-            record_once("exposure_symbol_searched")
-            if source == "offline":
-                st.caption("The name lookup is unavailable right now, so these are matches from a "
-                           "short built-in list. Anything missing can still be added by ticker "
-                           "under “Paste a list”.")
-            if not results:
-                st.caption("Nothing matched. Try a shorter phrase, or the ticker itself.")
-            for row in results:
-                label_col, add_col = st.columns([5, 1])
-                label_col.markdown(ui.search_result_html(row), unsafe_allow_html=True)
-                if add_col.button("Add", key=f"uar_add_{row['ticker']}", width="stretch"):
-                    # Weights stay equal until someone edits one. After that the
-                    # edits are theirs to keep, so a new holding starts at zero
-                    # rather than flattening a set of weights they just typed.
-                    touched = st.session_state.get("uar_weights_touched", False)
-                    st.session_state["uar_draft"], problem = ui.add_to_draft(
-                        draft, row, max_holdings, equal=not touched)
-                    if problem:
-                        st.warning(problem)
-                    else:
-                        if not touched:
-                            st.session_state["uar_gen"] = st.session_state.get("uar_gen", 0) + 1
-                        record("exposure_holding_added", ticker=row["ticker"], kind=row.get("kind", ""))
-                        st.rerun()
-
-        draft_editor("Search above and add holdings one at a time. Weights start out "
-                     "equal and can be edited.")
+        # prints no symbol at all. The panel is the same one the report carries,
+        # so the surface used to build a portfolio is the one used to change it.
+        if panel.render_search(max_holdings):
+            record("exposure_holding_added")
+            st.rerun()
+        record_once("exposure_symbol_searched")
+        panel.render(max_holdings,
+                     empty_hint="Search above and add holdings one at a time. Amounts can "
+                                "be percentages, dollar values or share counts.")
 
     elif method == "Upload a statement":
         # A workplace plan often offers nothing but a PDF, and "export
@@ -257,7 +189,8 @@ if editing:
         if st.session_state.get("uar_draft"):
             st.info("Check these before measuring. A statement is read, not understood — "
                     "remove anything that does not belong and correct any weight.")
-        draft_editor("Upload a statement or positions export above.")
+        panel.render(max_holdings, empty_hint="Upload a statement or positions export above.",
+                     show_mode=False)
 
     elif method == "Paste a list":
         text = st.text_area(
@@ -279,8 +212,10 @@ if editing:
 
     if submitted:
         if method in ("Search by name", "Upload a statement"):
-            rows = [{"ticker": r["ticker"], "weight_pct": r["weight_pct"]}
-                    for r in st.session_state.get("uar_draft", [])]
+            _draft = st.session_state.get("uar_draft", [])
+            _mode = st.session_state.get("uar_mode", "percent")
+            _prices = hold.latest_closes([r["ticker"] for r in _draft]) if _mode == "shares" else {}
+            rows = panel.draft_to_holdings(_draft, _mode, _prices)
             rejected = []
         else:
             rows, rejected = ui.parse_holdings_text(text)
@@ -416,10 +351,12 @@ if save_clicked:
 # time. The table has always had a name column; only one row per user was ever
 # written to it.
 if user and is_pro and report.get("status") == "ok":
-    from utils.guards import MAX_SAVED_PORTFOLIOS
+    from utils.billing import saved_portfolio_limit
     from utils.portfolio_workspace import (
         delete_portfolio, get_holdings, list_portfolios, save_named_portfolio,
     )
+
+    _limit = saved_portfolio_limit(user)          # None for the Advisor pilot
 
     try:
         _saved = list_portfolios(int(user["id"]))
@@ -429,7 +366,8 @@ if user and is_pro and report.get("status") == "ok":
     if st.session_state.pop("uar_naming", False):
         st.session_state["uar_show_saved"] = True
 
-    with st.expander(f"Saved portfolios ({len(_saved)} of {MAX_SAVED_PORTFOLIOS})",
+    _cap_label = f"{len(_saved)} of {_limit}" if _limit else f"{len(_saved)} saved"
+    with st.expander(f"Saved portfolios ({_cap_label})",
                      expanded=st.session_state.pop("uar_show_saved", False)):
         _name_col, _save_col = st.columns([3, 1])
         _new_name = _name_col.text_input(
@@ -439,7 +377,7 @@ if user and is_pro and report.get("status") == "ok":
         if _save_col.button("Save", key="uar_save_named", width="stretch", type="primary"):
             try:
                 saved_row = save_named_portfolio(int(user["id"]), _new_name, _rows_to_save,
-                                                 limit=MAX_SAVED_PORTFOLIOS)
+                                                 limit=_limit)
                 st.session_state["uar_name"] = saved_row["name"]
                 record("exposure_portfolio_saved", n=len(key), named=True)
                 st.success(f"Saved as “{saved_row['name']}”.")
@@ -516,6 +454,42 @@ chosen = st.radio(
 st.markdown(ui.factor_detail_html(report, chosen), unsafe_allow_html=True)
 st.markdown(ui.holdings_matrix_html(report), unsafe_allow_html=True)
 
+# ── the holdings themselves, editable here ──────────────────────────────────
+# Changing one holding used to mean leaving the report, finding the row in a
+# form, and measuring again, so nobody did it — and "what if I take this one
+# out" is the question people actually have once they have read the numbers.
+st.markdown("## Your holdings")
+if not st.session_state.get("uar_draft"):
+    # The report may have arrived from a link, a sample or a saved portfolio,
+    # none of which went through the panel. Seed it from what was measured.
+    st.session_state["uar_draft"] = [
+        {"ticker": t, "name": "", "weight_pct": round(w, 2)} for t, w in key
+    ]
+    st.session_state["uar_mode"] = "percent"
+    st.session_state["uar_weights_touched"] = True
+
+_added = panel.render_search(max_holdings, key_prefix="uar_live")
+if _added:
+    st.rerun()
+panel.render(max_holdings, key_prefix="uar_live",
+             empty_hint="Add a holding above to start building a portfolio.")
+
+if panel.is_stale():
+    st.info("These holdings no longer match the report above.")
+    if st.button("Measure the new list", type="primary", key="uar_remeasure"):
+        _draft = st.session_state.get("uar_draft", [])
+        _mode = st.session_state.get("uar_live_mode", "percent")
+        _prices = hold.latest_closes([r["ticker"] for r in _draft]) if _mode == "shares" else {}
+        _rows = panel.draft_to_holdings(_draft, _mode, _prices)
+        if not _rows:
+            st.error("Nothing measurable in that list yet.")
+        else:
+            panel.clear_stale()
+            st.session_state.update(uar_holdings=_rows, uar_name="Your portfolio",
+                                    uar_editing=False)
+            record("exposure_remeasured", n=len(_rows), mode=_mode)
+            st.rerun()
+
 st.markdown("## What changed")
 st.markdown(ui.shifts_html(report), unsafe_allow_html=True)
 st.markdown(ui.recent_moves_html(report), unsafe_allow_html=True)
@@ -525,9 +499,37 @@ st.markdown(ui.growth_html(report), unsafe_allow_html=True)
 
 st.markdown(ui.notes_html(report, cleaning_notes), unsafe_allow_html=True)
 
-with st.expander("Share or print this report"):
-    st.caption("Anyone opening this link gets the same report, measured fresh. "
-               "No account needed. To save a PDF, print the page.")
+with st.expander("Export or share this report", expanded=False):
+    _report_col, _holdings_col = st.columns(2)
+    with _report_col:
+        st.caption("**The report's numbers** — one row per force, and per holding, "
+                   "each with its evidence label.")
+        if is_pro:
+            st.download_button(
+                "Download the report (CSV)", data=ui.report_csv(report, name),
+                file_name=ui.csv_filename(name, report.get("as_of")),
+                mime="text/csv", key="uar_csv_full", width="stretch",
+                on_click=lambda: record("exposure_csv_downloaded", n=len(key), where="export"),
+            )
+        else:
+            st.button("Download the report (CSV)", key="uar_csv_full_locked",
+                      width="stretch", disabled=True,
+                      help="Investor Pro downloads the report's numbers as a spreadsheet.")
+    with _holdings_col:
+        # Their own holdings are their own data, so this is not gated. Only the
+        # measurement is the paid part.
+        st.caption("**Just the holdings** — the list you typed, to keep or re-import.")
+        st.download_button(
+            "Download the holdings (CSV)",
+            data=ui.holdings_csv(st.session_state.get("uar_draft") or
+                                 [{"ticker": t, "weight_pct": w} for t, w in key],
+                                 st.session_state.get("uar_live_mode", "percent")),
+            file_name=ui.csv_filename(name + " holdings", report.get("as_of")),
+            mime="text/csv", key="uar_csv_holdings", width="stretch",
+            on_click=lambda: record("exposure_holdings_downloaded", n=len(key)),
+        )
+    st.caption("A link to this exact portfolio. Anyone who opens it gets the same report, "
+               "measured fresh, with no account. To keep a PDF, print the page.")
     st.code(ui.share_url([{"ticker": t, "weight_pct": w} for t, w in key]), language=None)
 
 with st.expander("How to read this report"):

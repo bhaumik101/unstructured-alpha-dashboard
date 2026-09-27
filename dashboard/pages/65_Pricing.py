@@ -75,6 +75,7 @@ with pro_col:
         f"Measure up to {ui.PRO_MAX_HOLDINGS} holdings per portfolio, instead of "
         f"{ui.FREE_MAX_HOLDINGS}",
         f"Save up to {MAX_SAVED_PORTFOLIOS} portfolios and switch between them",
+        "Enter holdings as percentages, dollar values or share counts",
         "Download the report's numbers as a CSV",
         "Everything in Free",
     ], [
@@ -116,7 +117,7 @@ with pro_col:
 
 with adv_col:
     st.markdown(_tier("Advisor pilot", "$149 / month", "Small pilot · first month free", [
-        "Reports for multiple client portfolios",
+        "Unlimited client portfolios, saved and switched from the report",
         "Client-ready explanations for review meetings",
         "Built with you: tell us what your clients ask",
     ], [], badge="For advisers"), unsafe_allow_html=True)

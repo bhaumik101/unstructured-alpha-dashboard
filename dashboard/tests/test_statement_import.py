@@ -210,7 +210,9 @@ def test_the_page_reviews_every_import_before_measuring_it():
     assert 'st.session_state["uar_draft"] = found' in page, (
         "an import must land in the editable draft, not go straight to a report"
     )
-    assert "draft_editor(" in page
+    assert "panel.render(" in page, (
+        "an import must be reviewed on the same editable panel as everything else"
+    )
 
 
 def test_the_uploaders_hidden_input_gets_a_label_from_the_runtime():

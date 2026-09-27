@@ -159,6 +159,18 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
   text-overflow:ellipsis;white-space:nowrap;}
 .uar-hit-where{color:var(--uar-ink-3);font-size:var(--uar-t-meta);margin-left:auto;
   white-space:nowrap;}
+.uar-hold-head{display:grid;grid-template-columns:3.4fr 1.5fr 1.5fr .9fr;gap:8px;
+  font-size:var(--uar-t-micro);font-weight:650;color:var(--uar-ink-3);text-transform:uppercase;
+  letter-spacing:.05em;padding:14px 2px 6px;border-bottom:1px solid var(--uar-line);
+  margin-top:8px;}
+.uar-hold-val{min-height:44px;display:flex;flex-direction:column;justify-content:center;
+  font-size:var(--uar-t-body);color:var(--uar-ink-2);}
+.uar-hold-sub{font-size:var(--uar-t-meta);color:var(--uar-ink-3);}
+.uar-hold-muted{color:var(--uar-ink-3);}
+.uar-hold-warn{color:var(--uar-neg);font-weight:600;}
+.uar-hold-total{margin-top:10px;padding-top:10px;border-top:1px solid var(--uar-line);
+  font-size:var(--uar-t-meta);color:var(--uar-ink-3);}
+@media (max-width:760px){.uar-hold-head{display:none;}}
 .uar-draft-head{font-weight:650;color:var(--uar-ink);margin:16px 0 2px;
   padding-top:14px;border-top:1px solid var(--uar-line);}
 /* Every holding on one grid: the old per-stock research pages, rebuilt around
@@ -692,8 +704,21 @@ def add_to_draft(draft: List[dict], row: dict, max_holdings: int,
     if len(draft) >= max_holdings:
         return draft, (f"That is the limit of {max_holdings} holdings. Remove one first, "
                        f"or measure what you have.")
-    draft = draft + [{"ticker": ticker, "name": str(row.get("name") or ""), "weight_pct": 0.0}]
-    return (equalize(draft) if equal else draft), ""
+    if equal:
+        draft = draft + [{"ticker": ticker, "name": str(row.get("name") or ""), "weight_pct": 0.0}]
+        return equalize(draft), ""
+
+    # Weights someone typed are theirs to keep, so the rest are left exactly as
+    # they are -- but arriving at 0.0 made "add a holding" do nothing at all:
+    # a zero weight is dropped before measuring, and the only sign was a line
+    # of small print. A new holding gets the average of what is already there,
+    # which changes none of the existing PROPORTIONS, since everything is
+    # rescaled to 100% before it is measured.
+    existing = [float(r.get("weight_pct") or 0) for r in draft]
+    positive = [w for w in existing if w > 0]
+    default = round(sum(positive) / len(positive), 2) if positive else 1.0
+    return draft + [{"ticker": ticker, "name": str(row.get("name") or ""),
+                     "weight_pct": default}], ""
 
 
 def remove_from_draft(draft: List[dict], ticker: str, *, equal: bool = True) -> List[dict]:
@@ -750,6 +775,29 @@ def _csv_num(value) -> str:
     return f"{value:.4f}"
 
 
+def holdings_csv(draft: List[dict], mode: str = "percent") -> bytes:
+    """Just the list of holdings, in the units it was entered in.
+
+    Not gated: someone's own holdings are their own data, and the paid part is
+    the measurement, not the list. It reads back through parse_holdings_csv, so
+    a portfolio can leave and come back without being retyped.
+    """
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    header = ["Ticker", "Name"]
+    column = {"percent": "Weight %", "amount": "Value", "shares": "Shares"}.get(mode, "Weight %")
+    field = {"percent": "weight_pct", "amount": "amount", "shares": "shares"}.get(mode, "weight_pct")
+    writer.writerow(header + [column])
+    for row in draft or []:
+        value = row.get(field)
+        writer.writerow([
+            str(row.get("ticker", "")).upper(),
+            str(row.get("name", "") or ""),
+            _csv_num(value if isinstance(value, (int, float)) else None),
+        ])
+    return buffer.getvalue().encode("utf-8")
+
+
 def csv_filename(name: str, as_of: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", str(name or "portfolio").lower()).strip("-") or "portfolio"
     return f"unstructured-alpha-{slug}-{str(as_of)[:10]}.csv"
@@ -785,6 +833,71 @@ def search_result_html(row: dict) -> str:
             + f'<span class="uar-hit-name">{escape(str(row.get("name", "")))}</span>'
             + (f'<span class="uar-hit-where">{escape(where)}</span>' if where else "")
             + '</div></div>')
+
+
+def holdings_head_html(draft: List[dict], mode: str) -> str:
+    """Column headings for the holdings panel, named after the unit in use."""
+    from utils import holdings as hold
+
+    n = len(draft)
+    return (f'<div class="uar"><div class="uar-hold-head">'
+            f'<span>{n} holding{"" if n == 1 else "s"}</span>'
+            f'<span>{escape(hold.MODE_COLUMN.get(mode, "Weight %"))}</span>'
+            f'<span>{"Weight" if mode == "percent" else "Last close · value"}</span>'
+            f'<span></span></div></div>')
+
+
+def holding_value_html(row: dict, mode: str, prices: dict, draft: List[dict] = ()) -> str:
+    """What one holding is worth, and where that number came from.
+
+    In percent mode there is nothing to price, so it says so rather than
+    printing a total the percentages cannot support. A share count with no
+    price says "no recent price" — never a zero.
+    """
+    from utils import holdings as hold
+
+    if mode == "percent":
+        # What this row BECOMES, which is not what was typed unless the column
+        # happens to add to 100. Saying "share of the portfolio" was filler.
+        total = sum(float(r.get("weight_pct") or 0) for r in (draft or []))
+        typed = float(row.get("weight_pct") or 0)
+        if total <= 0:
+            share = "—"
+        else:
+            share = f"{100.0 * typed / total:.1f}% of the portfolio"
+        return (f'<div class="uar"><div class="uar-hold-val uar-hold-muted">'
+                f'{escape(share)}</div></div>')
+    ticker = str(row.get("ticker", "")).upper()
+    quote = prices.get(ticker)
+    value = hold.row_value(row, mode, prices)
+    if mode == "shares" and not quote:
+        return ('<div class="uar"><div class="uar-hold-val uar-hold-warn">'
+                'no recent price</div></div>')
+    detail = ""
+    if mode == "shares" and quote:
+        detail = (f'<span class="uar-hold-sub">{hold.fmt_money(quote["close"])} close · '
+                  f'{escape(fmt_date(quote["date"]))}</span>')
+    return (f'<div class="uar"><div class="uar-hold-val">{escape(hold.fmt_money(value))}'
+            f'{detail}</div></div>')
+
+
+def holdings_total_html(draft: List[dict], mode: str, prices: dict,
+                        weights: List[dict]) -> str:
+    """The line under the table: what it adds up to, and what that means."""
+    from utils import holdings as hold
+
+    total = hold.portfolio_value(draft, mode, prices)
+    if mode == "percent":
+        entered = draft_total(draft)
+        body = (f'Weights total {entered:g}%. They are rescaled to 100% before measuring, '
+                f'so rough shares are fine.')
+    elif total is None:
+        body = 'Nothing has an amount yet.'
+    else:
+        counted = len(weights)
+        body = (f'{hold.fmt_money(total)} across {counted} holding{"" if counted == 1 else "s"}. '
+                f'The report measures the proportions, not the size.')
+    return f'<div class="uar"><div class="uar-hold-total">{body}</div></div>'
 
 
 def draft_header_html(draft: List[dict]) -> str:

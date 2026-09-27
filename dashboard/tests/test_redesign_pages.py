@@ -245,12 +245,14 @@ def test_the_weight_widgets_are_rebuilt_when_the_weights_are_reset():
     asked for. The fix is a generation counter in the widget key, bumped only
     when the weights are meant to be re-split.
     """
-    page = (DASHBOARD_ROOT / "pages/60_Exposure_Report.py").read_text(encoding="utf-8")
-    assert 'key=f"uar_w_{gen}_{row[\'ticker\']}"' in page, (
-        "the weight widget key must carry the generation counter"
+    # The panel moved out of the page when the report grew an editable copy of
+    # it; the invariant did not move.
+    panel = (DASHBOARD_ROOT / "utils/holdings_panel.py").read_text(encoding="utf-8")
+    assert '{gen}_{row[\'ticker\']}' in panel, (
+        "the amount widget key must carry the generation counter"
     )
-    assert 'st.session_state["uar_gen"] = st.session_state.get("uar_gen", 0) + 1' in page
-    assert "uar_weights_touched" in page, (
+    assert 'st.session_state["uar_gen"] = st.session_state.get("uar_gen", 0) + 1' in panel
+    assert "uar_weights_touched" in panel, (
         "weights someone typed must survive the next add"
     )
 
@@ -388,3 +390,68 @@ def test_hitting_the_saved_limit_is_explained_not_swallowed(
     assert not at.exception
     assert len(fake_workspace) == MAX_SAVED_PORTFOLIOS
     assert any("this plan saves" in w.value for w in at.warning)
+
+
+# ── editing the holdings from the report ────────────────────────────────────
+
+def test_changing_a_holding_on_the_report_does_not_silently_remeasure(
+        monkeypatch, synthetic_engine, fake_search):
+    """The report is real work against two providers. An edit marks it stale
+    and offers a button; it does not fire ten reports while someone types."""
+    # Count DISTINCT portfolios measured, not calls: every rerun asks for the
+    # report again and is served from cache, which is the point of the cache.
+    seen: set = set()
+    real = ui.get_report
+
+    def counted(key, max_holdings):
+        seen.add(key)
+        return real(key, max_holdings)
+
+    monkeypatch.setattr(ui, "get_report", counted)
+    at = _page(monkeypatch, "pages/60_Exposure_Report.py",
+               state={"uar_holdings": HOLDINGS, "uar_name": "Test"})
+    assert not at.exception, "\n".join(str(e) for e in at.exception)
+    before = set(seen)
+
+    at.text_input(key="uar_live_query").set_value("total bond").run()
+    at.button(key="uar_live_add_BND").click().run()
+    assert not at.exception, "\n".join(str(e) for e in at.exception)
+    assert "no longer match the report" in _text(at)
+    assert seen == before, "an edit must not measure a different portfolio on its own"
+
+    at.button(key="uar_remeasure").click().run()
+    assert not at.exception, "\n".join(str(e) for e in at.exception)
+    assert seen > before, "the button must measure the new list"
+    assert "BND" in {h["ticker"] for h in at.session_state["uar_holdings"]}
+
+
+def test_removing_a_holding_from_the_report_leaves_the_rest_alone(
+        monkeypatch, synthetic_engine):
+    at = _page(monkeypatch, "pages/60_Exposure_Report.py",
+               state={"uar_holdings": HOLDINGS, "uar_name": "Test"})
+    assert not at.exception
+    at.button(key="uar_live_rm_XOM").click().run()
+    at.button(key="uar_remeasure").click().run()
+    assert not at.exception, "\n".join(str(e) for e in at.exception)
+    assert {h["ticker"] for h in at.session_state["uar_holdings"]} == {"TLT", "VTI"}
+
+
+def test_the_report_download_is_the_gated_one(monkeypatch, synthetic_engine):
+    """Someone's own holdings are their own data; the measurement is the part
+    that is paid for.
+
+    AppTest has no accessor for st.download_button in this version, so the
+    ungated half is asserted from source below. What IS observable here is that
+    a free visitor gets the report download as a disabled button with a reason,
+    rather than nothing at all.
+    """
+    at = _page(monkeypatch, "pages/60_Exposure_Report.py",
+               state={"uar_holdings": HOLDINGS, "uar_name": "Test"})
+    assert not at.exception
+    keys = {b.key for b in at.button}
+    assert "uar_csv_full_locked" in keys and "uar_csv_locked" in keys
+
+    page = (DASHBOARD_ROOT / "pages/60_Exposure_Report.py").read_text(encoding="utf-8")
+    gated = page[page.index("_report_col, _holdings_col"):page.index("uar_csv_holdings")]
+    assert gated.count("if is_pro") == 1, "only the report download is behind the tier check"
+    assert "ui.holdings_csv(" in page

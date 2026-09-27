@@ -330,10 +330,25 @@ def test_adding_a_holding_resplits_instead_of_stacking_on_top():
 
 
 def test_weights_someone_typed_are_not_flattened_by_the_next_add():
+    """And the new holding does not arrive at zero.
+
+    It did, and that made "add a holding" do nothing: a zero weight is dropped
+    before measuring, so the report came back identical and the only sign was
+    a line of small print. The average of what is already there changes none of
+    the existing proportions, since everything is rescaled to 100% anyway.
+    """
     draft = [{"ticker": "VTI", "name": "V", "weight_pct": 80.0},
              {"ticker": "BND", "name": "B", "weight_pct": 20.0}]
     draft, _ = ui.add_to_draft(draft, {"ticker": "GLD", "name": "G"}, 15, equal=False)
-    assert [r["weight_pct"] for r in draft] == [80.0, 20.0, 0.0]
+    assert [r["weight_pct"] for r in draft] == [80.0, 20.0, 50.0]
+
+    first, second, _third = (r["weight_pct"] for r in draft)
+    assert first / second == 4.0, "the weights already typed keep their ratio"
+
+
+def test_adding_to_an_empty_typed_list_still_produces_something_measurable():
+    draft, _ = ui.add_to_draft([], {"ticker": "VTI", "name": "V"}, 15, equal=False)
+    assert draft[0]["weight_pct"] > 0
 
 
 def test_a_duplicate_and_an_over_full_list_are_refused_in_plain_words():
