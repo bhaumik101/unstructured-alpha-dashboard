@@ -109,6 +109,36 @@ def is_admin(user: dict | None) -> bool:
     return (user.get("email") or "").strip().lower() in {e.lower() for e in ADMIN_EMAILS}
 
 
+ADVISOR_TIER = "advisor"
+
+
+def saved_portfolio_limit(user: dict | None) -> int | None:
+    """How many portfolios this account may keep. None means no limit.
+
+    The Advisor pilot is unlimited: running a book of client portfolios is the
+    whole reason it exists, and capping it would sell the same thing twice. It
+    has no Stripe product — the pilot is hand-sold — so it is the
+    subscription_tier column set to "advisor" by hand, which is exactly how a
+    hand-sold plan should work.
+    """
+    if not user or not user.get("id"):
+        return 1
+    if is_admin(user):
+        return None
+    tier = st.session_state.get(f"_tier_{user['id']}")
+    if tier is None:
+        try:
+            tier = get_user_tier(user["id"])
+            st.session_state[f"_tier_{user['id']}"] = tier
+        except Exception:
+            return 1
+    if tier == ADVISOR_TIER:
+        return None
+    from utils.guards import MAX_SAVED_PORTFOLIOS
+
+    return MAX_SAVED_PORTFOLIOS if tier == "pro" else 1
+
+
 def effective_is_pro(user: dict | None) -> bool:
     """
     Non-blocking Pro check for chrome (header/footer badges).
@@ -129,7 +159,7 @@ def effective_is_pro(user: dict | None) -> bool:
             st.session_state[cache_key] = get_user_tier(user["id"])
         except Exception:
             return False
-    return st.session_state.get(cache_key) == "pro"
+    return st.session_state.get(cache_key) in ("pro", ADVISOR_TIER)
 
 
 def set_user_tier(user_id: int, tier: str, customer_id: str = "", subscription_id: str = "") -> None:
@@ -418,6 +448,7 @@ PRO_FEATURES = [
     "Every holding measured on its own, and the holdings behind each exposure",
     "A 90% range and an evidence label on every number",
     f"Up to {MAX_SAVED_PORTFOLIOS} saved portfolios, switched from the report",
+    "Holdings entered as percentages, dollar values or share counts",
     "The report's numbers as a CSV",
     "In development: a weekly \u201cwhat changed\u201d email",
     "In development: alerts when an exposure crosses a threshold you set",

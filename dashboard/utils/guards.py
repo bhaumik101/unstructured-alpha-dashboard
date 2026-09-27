@@ -32,7 +32,10 @@ MAX_PORTFOLIO_HOLDINGS = _cap("MAX_PORTFOLIO_HOLDINGS", 25)   # each = 1 full sc
 # 0.06s, 60 holdings 0.13s. The old cap was sized for work this product does
 # not do, and it was the only thing Investor Pro had to sell.
 MAX_EXPOSURE_HOLDINGS  = _cap("MAX_EXPOSURE_HOLDINGS", 60)
-MAX_SAVED_PORTFOLIOS   = _cap("MAX_SAVED_PORTFOLIOS", 5)      # per Pro account
+MAX_SAVED_PORTFOLIOS   = _cap("MAX_SAVED_PORTFOLIOS", 3)      # per Pro account;
+# the Advisor pilot is unlimited — see utils.billing.saved_portfolio_limit. Pro
+# keeps a few because an individual investor has a few; running a book of
+# client portfolios is what the pilot is for.
 MAX_BASKET_TICKERS     = _cap("MAX_BASKET_TICKERS", 25)
 MAX_TICKERS_PER_REQUEST = _cap("MAX_TICKERS_PER_REQUEST", 40)  # ad-hoc multi-ticker scans
 MAX_EXPORT_ROWS        = _cap("MAX_EXPORT_ROWS", 5000)
