@@ -65,6 +65,7 @@ with free_col:
         "Holdings behind each exposure",
         "Range and evidence label on every number",
         "Save one portfolio with a free account",
+        "A weekly email when its exposures change, with a free account",
         "Public methodology and research record",
     ], []), unsafe_allow_html=True)
     if st.button("Open the exposure report", key="price_free", width="stretch"):
@@ -76,12 +77,11 @@ with pro_col:
         f"{ui.FREE_MAX_HOLDINGS}",
         f"Save up to {MAX_SAVED_PORTFOLIOS} portfolios and switch between them",
         "Enter holdings as percentages, dollar values or share counts",
+        "A one-page client summary, ready to print or save as a PDF",
         "Download the report's numbers as a CSV",
         "Everything in Free",
     ], [
-        "Weekly &ldquo;what changed&rdquo; email",
         "Exposure threshold alerts",
-        "PDF export",
     ]), unsafe_allow_html=True)
     user = st.session_state.get("user")
     try:

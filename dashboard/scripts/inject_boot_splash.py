@@ -304,6 +304,19 @@ def _build_runtime() -> str:
     }catch(e){}
   }
 
+  /* The client summary's "Print or save as PDF" link. st.markdown strips
+     <script> and a Streamlit button runs Python on a server that cannot open
+     the visitor's print dialog, so the page renders a plain link and this
+     turns it into window.print(). */
+  try{
+    document.addEventListener('click', function(ev){
+      var link = ev.target && ev.target.closest && ev.target.closest('[data-ua-print]');
+      if(!link) return;
+      ev.preventDefault();
+      try{ window.print(); }catch(e){}
+    });
+  }catch(e){}
+
   function uaDropFalse404(){
     try{
       var slug = location.pathname.replace(/^\/+|\/+$/g, '');

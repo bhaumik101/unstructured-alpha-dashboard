@@ -450,9 +450,8 @@ PRO_FEATURES = [
     f"Up to {MAX_SAVED_PORTFOLIOS} saved portfolios, switched from the report",
     "Holdings entered as percentages, dollar values or share counts",
     "The report's numbers as a CSV",
-    "In development: a weekly \u201cwhat changed\u201d email",
+    "A one-page client summary, ready to print or save as a PDF",
     "In development: alerts when an exposure crosses a threshold you set",
-    "In development: PDF export and more than one saved portfolio",
 ]
 
 # Contextual Pro (Phase 16): each gated page names the SPECIFIC value it unlocks,

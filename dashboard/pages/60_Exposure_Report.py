@@ -590,8 +590,19 @@ with st.expander("Export or share this report", expanded=False):
             mime="text/csv", key="uar_csv_holdings", width="stretch",
             on_click=lambda: record("exposure_holdings_downloaded", n=len(key)),
         )
+    # The one-page version is what goes into a review meeting; the full report
+    # printed as eight pages of everything.
+    if is_pro:
+        if st.button("One-page client summary (print or PDF)", type="primary",
+                     key="uar_to_summary", width="stretch"):
+            record("client_summary_opened_from_report")
+            st.switch_page("pages/68_Summary.py")
+    else:
+        st.button("One-page client summary (print or PDF)", key="uar_to_summary_locked",
+                  width="stretch", disabled=True,
+                  help="Investor Pro turns any report into one page to print or attach.")
     st.caption("A link to this exact portfolio. Anyone who opens it gets the same report, "
-               "measured fresh, with no account. To keep a PDF, print the page.")
+               "measured fresh, with no account.")
     st.code(ui.share_url([{"ticker": t, "weight_pct": w} for t, w in key]), language=None)
 
 if st.button("Compare this portfolio with another", key="uar_to_compare"):

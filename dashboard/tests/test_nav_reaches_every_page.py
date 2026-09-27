@@ -30,6 +30,7 @@ HEADER = DASHBOARD / "utils" / "header.py"
 
 # Routes deliberately kept out of the nav. Add here WITH a reason, or link it.
 INTENTIONALLY_UNLINKED: dict[str, str] = {
+    "summary": "needs a portfolio loaded; reached from the report's export panel",
     "welcome": (
         "post-signup account setup; reached by redirect after registration, not "
         "browsed to"
