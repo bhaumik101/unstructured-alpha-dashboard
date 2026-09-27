@@ -379,3 +379,73 @@ def test_a_search_result_cannot_inject_markup():
     html = ui.search_result_html({"ticker": "X", "name": "<script>alert(1)</script>",
                                   "kind": "<b>", "exchange": ""})
     assert "<script>" not in html and "&lt;script&gt;" in html
+
+
+# ── what a change would have done ───────────────────────────────────────────
+
+def test_a_candidate_takes_its_room_from_everything_proportionally(report):
+    key = (("TLT", 40.0), ("VTI", 30.0), ("XOM", 30.0))
+    blended = ui.blend_for_candidate(key, "gld", 20)
+    weights = dict(blended)
+    assert round(weights["GLD"], 1) == 20.0
+    assert round(sum(weights.values()), 1) == 100.0
+    # the three already held keep their ratios exactly: 4 : 3 : 3
+    assert round(weights["TLT"] / weights["VTI"], 3) == round(40 / 30, 3)
+    assert round(weights["VTI"], 1) == round(weights["XOM"], 1)
+
+
+def test_trying_something_already_held_replaces_it_rather_than_doubling_it():
+    key = (("TLT", 40.0), ("VTI", 60.0))
+    weights = dict(ui.blend_for_candidate(key, "TLT", 10))
+    assert round(weights["TLT"], 1) == 10.0
+    assert round(sum(weights.values()), 1) == 100.0
+
+
+def test_an_absurd_weight_is_clamped_rather_than_accepted():
+    key = (("VTI", 100.0),)
+    assert round(dict(ui.blend_for_candidate(key, "GLD", 9999))["GLD"], 1) == 90.0
+    assert round(dict(ui.blend_for_candidate(key, "GLD", -5))["GLD"], 1) == 0.1
+
+
+def test_the_comparison_shows_both_sides_and_the_difference(report):
+    html = ui.candidate_delta_html(report, report, "GLD", 10)
+    for reading in report["portfolio"]["readings"].values():
+        assert reading["label"] in html
+    # against itself every difference is zero, and the ones that cannot be told
+    # apart from noise say so instead of printing one
+    assert "no measurable link either way" in html or "0.00%" in html
+
+
+def test_a_difference_is_not_invented_out_of_two_noisy_numbers():
+    """Subtracting two readings that are both indistinguishable from zero gives
+    a third number that is also noise. Printing it would invite exactly the
+    reading this report exists to prevent."""
+    noise = {"portfolio": {"readings": {
+        "oil": {"label": "Oil and energy", "impact": 0.4, "evidence": "indistinct",
+                "evidence_label": "Not distinguishable from zero"}}},
+        "top_exposures": []}
+    other = {"portfolio": {"readings": {
+        "oil": {"label": "Oil and energy", "impact": -0.9, "evidence": "indistinct",
+                "evidence_label": "Not distinguishable from zero"}}},
+        "top_exposures": []}
+    html = ui.candidate_delta_html(noise, other, "GLD", 10)
+    assert "no measurable link either way" in html
+    assert "1.3" not in html, "the difference between two noisy numbers is noise"
+
+
+def test_nothing_in_the_comparison_advises_or_forecasts(report):
+    html = ui.candidate_delta_html(report, report, "GLD", 10)
+    visible = re.sub(r"(?:is|are) not a forecast", "", _visible_text(html))
+    match = _BANNED.search(visible)
+    assert not match, f"forward-looking or advisory language: {match.group(0)!r}"
+    assert "not a suggestion to hold it" in html
+
+
+def test_the_examples_are_labelled_as_examples_not_suggestions():
+    """A list of tickers next to a portfolio is the one place this could read
+    as telling someone what to buy."""
+    page = (Path(__file__).resolve().parent.parent / "pages" / "60_Exposure_Report.py").read_text()
+    assert "ui.CANDIDATE_EXAMPLES" in page
+    assert "not suggestions to hold them" in page
+    for ticker, what in ui.CANDIDATE_EXAMPLES:
+        assert ticker.isupper() and what

@@ -917,6 +917,100 @@ def draft_total(draft: List[dict]) -> float:
     return round(sum(float(r.get("weight_pct") or 0) for r in draft), 1)
 
 
+# ── what a change would have done ───────────────────────────────────────────
+# This is the honest form of "which stocks should I buy". It is not that, and
+# it must never become that: testing found no way to predict returns from this
+# data, so a list of names to buy is the one thing this product withdrew.
+#
+# What it CAN do is measure. Adding a holding changes what a portfolio is
+# exposed to, and that change is measurable over the same three years with the
+# same method. So: pick anything, and see what the past three years would have
+# looked like with it in. Description, not advice — and the wording says so
+# rather than leaving it implied.
+
+CANDIDATE_EXAMPLES = (
+    ("GLD", "Gold"),
+    ("TLT", "Long Treasuries"),
+    ("XLE", "Energy"),
+    ("VNQ", "Real estate"),
+    ("TIP", "Inflation-protected bonds"),
+    ("BNDX", "International bonds"),
+)
+
+
+def blend_for_candidate(key: Tuple[Tuple[str, float], ...], ticker: str,
+                        weight_pct: float) -> Tuple[Tuple[str, float], ...]:
+    """The current portfolio at (100 - w)%, plus the candidate at w%.
+
+    Everything already held keeps its proportions exactly; only the room made
+    for the new holding changes. Re-uses prepare_holdings so the result is the
+    same shape of cache key as any other report.
+    """
+    weight = max(0.1, min(float(weight_pct), 90.0))
+    ticker = str(ticker).upper().strip()
+    # The room is made from what is left AFTER removing any existing position
+    # in the candidate. Scaling the whole portfolio by (100-w)/100 first gave
+    # the candidate a smaller weight than asked for whenever it was already
+    # held -- 10% GLD against a portfolio that already held GLD came out at
+    # 15.6%, because dropping the old position shrank the base it was scaled
+    # against and normalisation then stretched everything back up.
+    rest = [(t, w) for t, w in key if t != ticker]
+    rest_total = sum(w for _t, w in rest)
+    if rest_total <= 0:
+        return prepare_holdings([{"ticker": ticker, "weight_pct": 100.0}], ex.MAX_HOLDINGS)[0]
+    scale = (100.0 - weight) / rest_total
+    rows = [{"ticker": t, "weight_pct": w * scale} for t, w in rest]
+    rows.append({"ticker": ticker, "weight_pct": weight})
+    return prepare_holdings(rows, ex.MAX_HOLDINGS)[0]
+
+
+def candidate_delta_html(base: dict, after: dict, ticker: str, weight_pct: float) -> str:
+    """Side by side: every force, before and after, and the difference.
+
+    A row is only given a difference where at least one side stands on its own
+    evidence. Subtracting two numbers that are both indistinguishable from zero
+    produces a third number that is also noise, and printing it would invite
+    exactly the reading this report exists to prevent.
+    """
+    base_readings = base.get("portfolio", {}).get("readings", {})
+    after_readings = after.get("portfolio", {}).get("readings", {})
+    keys = [k for k in ordered_keys(base) if k in after_readings]
+    if not keys:
+        return ""
+
+    rows = []
+    for key in keys:
+        before, now = base_readings[key], after_readings[key]
+        told_apart = {before["evidence"], now["evidence"]} & {"clear", "tentative"}
+        if told_apart:
+            change = now["impact"] - before["impact"]
+            delta = f'<b>{fmt_pct(change)}</b>'
+        else:
+            delta = '<span class="uar-hold-muted">no measurable link either way</span>'
+        rows.append(
+            f'<tr><td><span class="uar-dot" style="background:'
+            f'{FACTOR_COLORS.get(key, "#3b7ddd")}"></span><b>{escape(before["label"])}</b></td>'
+            f'<td>{fmt_pct(before["impact"])} {evidence_chip(before["evidence"])}</td>'
+            f'<td>{fmt_pct(now["impact"])} {evidence_chip(now["evidence"])}</td>'
+            f'<td>{delta}</td></tr>')
+
+    share = f"{weight_pct:g}%"
+    return (
+        '<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
+        f'<div class="uar-title">The same three years, with {share} {escape(ticker.upper())}</div>'
+        f'<div class="uar-sub">Everything already held keeps its proportions; the {share} is '
+        f'made from the rest. This is what the past three years would have measured with '
+        f'{escape(ticker.upper())} in the portfolio — it is not a forecast, and it is not a '
+        f'suggestion to hold it.</div></div></div>'
+        '<div class="uar-scroll"><table class="uar-table"><thead><tr>'
+        '<th>Economic force</th><th>This portfolio</th>'
+        f'<th>With {share} {escape(ticker.upper())}</th><th>Difference</th>'
+        f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        '<div class="uar-foot">A difference is only shown where at least one side could be '
+        'told apart from noise. Two numbers that are both indistinguishable from zero have a '
+        'difference that is also noise.</div></div></div>')
+
+
 def holdings_matrix_html(report: dict) -> str:
     """Every holding on one grid: rows are holdings, columns are the forces.
 

@@ -490,6 +490,50 @@ if panel.is_stale():
             record("exposure_remeasured", n=len(_rows), mode=_mode)
             st.rerun()
 
+# ── what a change would have done ──────────────────────────────────────────
+# The honest form of "which stocks should I buy", which this product does not
+# answer and never will: testing found no way to predict returns from this
+# data. What it can do is measure, so this measures the same three years with
+# the candidate in the portfolio and shows the difference.
+st.markdown("## Try a holding against this portfolio")
+st.caption("Pick anything and see what the past three years would have measured with it in. "
+           "These are examples of things to try, not suggestions to hold them.")
+
+_pick_col, _weight_col, _go_col = st.columns([3, 1.3, 1.2])
+_candidate = _pick_col.text_input(
+    "Ticker to try", value=st.session_state.get("uar_try_ticker", ""),
+    placeholder="GLD · TLT · XLE · a ticker you are considering",
+    key="uar_try_ticker", label_visibility="collapsed",
+)
+_try_weight = _weight_col.number_input(
+    "Weight to try (%)", min_value=1.0, max_value=90.0, value=10.0, step=5.0,
+    key="uar_try_weight", label_visibility="collapsed",
+)
+_try_clicked = _go_col.button("Measure it", key="uar_try_go", width="stretch")
+
+_example_cols = st.columns(len(ui.CANDIDATE_EXAMPLES))
+for _col, (_ticker, _what) in zip(_example_cols, ui.CANDIDATE_EXAMPLES):
+    if _col.button(f"{_ticker} · {_what}", key=f"uar_try_{_ticker}", width="stretch"):
+        st.session_state["uar_try_pending"] = _ticker
+        st.rerun()
+
+_pending = st.session_state.pop("uar_try_pending", None) or (
+    _candidate.strip().upper() if _try_clicked else None)
+if _pending:
+    _blend = ui.blend_for_candidate(key, _pending, _try_weight)
+    if _blend == key:
+        st.warning(f"{_pending} is already this portfolio, so there is nothing to compare.")
+    else:
+        with st.spinner(f"Measuring the same three years with {_try_weight:g}% {_pending}…"):
+            _after = ui.get_report(_blend, max_holdings)
+        if _after.get("status") != "ok":
+            st.error(f"Couldn't measure {_pending} alongside this portfolio. "
+                     f"{_after.get('message', '')}")
+        else:
+            record("exposure_candidate_tried", ticker=_pending, weight=float(_try_weight))
+            st.markdown(ui.candidate_delta_html(report, _after, _pending, _try_weight),
+                        unsafe_allow_html=True)
+
 st.markdown("## What changed")
 st.markdown(ui.shifts_html(report), unsafe_allow_html=True)
 st.markdown(ui.recent_moves_html(report), unsafe_allow_html=True)
