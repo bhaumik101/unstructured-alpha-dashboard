@@ -34,10 +34,18 @@ TTL_HOURS = 6
 MAX_ROWS = 500
 
 
+# Bumped whenever the report payload gains or changes a field the page reads.
+# Without it a report cached by the previous deploy -- up to TTL_HOURS old --
+# is served to code that expects the new field, and the new section simply
+# does not appear for anyone whose portfolio was measured before the deploy.
+# 2: "rolling" and "factor_paths" (2026-09-27).
+REPORT_SCHEMA = 2
+
+
 def cache_key(key: tuple, max_holdings: int) -> str:
-    """One key per (portfolio, holding cap). Stable across processes."""
-    payload = json.dumps({"holdings": [list(item) for item in key], "max": int(max_holdings)},
-                         sort_keys=True)
+    """One key per (portfolio, holding cap, payload schema). Stable across processes."""
+    payload = json.dumps({"holdings": [list(item) for item in key], "max": int(max_holdings),
+                          "schema": REPORT_SCHEMA}, sort_keys=True)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 

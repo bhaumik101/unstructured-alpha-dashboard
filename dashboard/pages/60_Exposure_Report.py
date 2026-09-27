@@ -16,12 +16,14 @@ st.set_page_config(page_title="Exposure report — Unstructured Alpha", layout="
 from utils import exposure as ex  # noqa: E402
 from utils import holdings as hold  # noqa: E402
 from utils import holdings_panel as panel  # noqa: E402
+from utils import report_charts as charts  # noqa: E402
 from utils import report_ui as ui  # noqa: E402
 from utils.app_theme import product_page_header  # noqa: E402
 from utils.header import render_header  # noqa: E402
 
 render_header("Exposure report")
 st.markdown(ui.REPORT_CSS, unsafe_allow_html=True)
+st.markdown(charts.CHART_CSS, unsafe_allow_html=True)
 
 try:
     from utils.instrumentation import record, record_once
@@ -442,6 +444,18 @@ st.markdown(ui.exposure_table_html(report), unsafe_allow_html=True)
 
 readings = report["portfolio"]["readings"]
 detail_keys = ui.ordered_keys(report)
+
+# How each exposure has moved, then what the forces themselves did. The
+# product says it shows "how those exposures are changing"; this is where it
+# does, as a picture with its uncertainty drawn in rather than a paragraph.
+_rolling_html = charts.rolling_charts_html(report, detail_keys)
+if _rolling_html:
+    st.markdown("## How these exposures have moved")
+    st.markdown(_rolling_html, unsafe_allow_html=True)
+_paths_html = charts.factor_paths_html(report, detail_keys)
+if _paths_html:
+    st.markdown("## What the forces themselves did")
+    st.markdown(_paths_html, unsafe_allow_html=True)
 st.markdown("## Which holdings drive each exposure")
 chosen = st.radio(
     "Choose an economic force",
@@ -452,6 +466,10 @@ chosen = st.radio(
     label_visibility="collapsed",
 )
 st.markdown(ui.factor_detail_html(report, chosen), unsafe_allow_html=True)
+_bars = charts.contribution_bars_svg(report, chosen)
+if _bars:
+    st.markdown(f'<div class="uar"><div class="uac-panel">{_bars}</div></div>',
+                unsafe_allow_html=True)
 st.markdown(ui.holdings_matrix_html(report), unsafe_allow_html=True)
 
 # ── the holdings themselves, editable here ──────────────────────────────────

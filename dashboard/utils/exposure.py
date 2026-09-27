@@ -95,6 +95,13 @@ RECENT_WEEKS = 52          # "what changed": the latest year...
 MIN_RECENT_WEEKS = 40
 EARLIER_WEEKS = 104        # ...against the two years before it (no overlap)
 RECENT_MOVE_WEEKS = 4      # "what happened lately": the last four weeks
+# "How it has moved": the sensitivity re-measured over a rolling year, stepped
+# monthly. A year is short enough to show drift and long enough that a single
+# point is not mostly noise; each point still carries its own 90% range, and
+# the evidence bar is the same Bonferroni one the headline reading uses.
+ROLLING_WEEKS = 52
+ROLLING_STEP = 4
+MIN_ROLLING_WEEKS = 40
 NEWEY_WEST_LAGS = 4
 GROWTH_WINDOW_MONTHS = 36
 GROWTH_MIN_MONTHS = 24
@@ -431,6 +438,63 @@ def _recent_moves(frame: pd.DataFrame, fit: dict, factors: Iterable[Factor]) -> 
             "portfolio_return": growth, "moves": rows}
 
 
+def _rolling(frame: pd.DataFrame, factors: Iterable[Factor]) -> Dict[str, List[dict]]:
+    """Each factor's sensitivity, re-measured over a rolling year.
+
+    The headline reading answers "what is this portfolio exposed to"; this
+    answers "how has that been moving", which is the other half of what the
+    product says it does. Every point is a full fit with its own range and
+    evidence label -- a rolling line drawn without its uncertainty would make
+    a year of noise look like a trend.
+    """
+    factors = tuple(factors)
+    n = len(frame)
+    out: Dict[str, List[dict]] = {f.key: [] for f in factors if f.key in frame.columns}
+    if n < ROLLING_WEEKS or not out:
+        return {}
+    ends = list(range(ROLLING_WEEKS, n + 1, ROLLING_STEP))
+    if ends[-1] != n:
+        ends.append(n)                     # the last point is always "now"
+    for end in ends:
+        window = frame.iloc[end - ROLLING_WEEKS:end]
+        fit = _fit_on_frame(window, "__portfolio__", factors, MIN_ROLLING_WEEKS)
+        if not fit.get("available"):
+            continue
+        for key, reading in fit["readings"].items():
+            out[key].append({
+                "end": fit["end"], "impact": reading["impact"],
+                "low": reading["low"], "high": reading["high"],
+                "evidence": reading["evidence"],
+            })
+    return {k: v for k, v in out.items() if v}
+
+
+def _factor_paths(levels: Mapping[str, Optional[pd.Series]], index: pd.Index) -> Dict[str, dict]:
+    """What each economic series itself did over the same weeks.
+
+    Plotted beside the sensitivities so a reader can see the force as well as
+    the response to it: "rates rose 1.8 points over these three years, and
+    this portfolio fell when they did". Weekly last values, trimmed to the
+    measured window, and never filled -- a gap in a published series stays a
+    gap rather than becoming a straight line through data that does not exist.
+    """
+    if index is None or len(index) == 0:
+        return {}
+    start, end = pd.Timestamp(index[0]), pd.Timestamp(index[-1])
+    out: Dict[str, dict] = {}
+    for key, raw in (levels or {}).items():
+        series = _resample_last(_clean(raw), "W-FRI")
+        series = series[(series.index >= start) & (series.index <= end)].dropna()
+        if len(series) < 8:
+            continue
+        out[key] = {
+            "dates": [str(d.date()) for d in series.index],
+            "values": [float(v) for v in series.to_numpy()],
+            "first": float(series.iloc[0]), "last": float(series.iloc[-1]),
+        }
+    return out
+
+
 def _growth_reading(daily: Mapping[str, pd.Series], weights: Mapping[str, float],
                     market_daily: pd.Series, levels: Optional[pd.Series]) -> dict:
     f = GROWTH_FACTOR
@@ -507,9 +571,11 @@ def build_exposure_report(
 
     changes: Dict[str, pd.Series] = {}
     unavailable: List[str] = []
+    levels_raw: Dict[str, Optional[pd.Series]] = {}
     for f in FACTORS:
         try:
-            ch = to_changes(series_fetcher(f.series_id, s, e), f.transform)
+            levels_raw[f.key] = series_fetcher(f.series_id, s, e)
+            ch = to_changes(levels_raw[f.key], f.transform)
         except Exception:
             ch = pd.Series(dtype=float)
         ch = ch[ch.index >= pd.Timestamp(start_d)] if not ch.empty else ch
@@ -586,10 +652,14 @@ def build_exposure_report(
         "contributions": contributions,
         "shifts": _shifts(recent, earlier),
         "recent_moves": _recent_moves(now, portfolio, active),
+        "rolling": _rolling(now, active),
+        "factor_paths": _factor_paths({k: v for k, v in levels_raw.items() if k in changes},
+                                      now.index),
         "growth": growth,
         "notes": notes,
         "method": {
             "window_weeks": WINDOW_WEEKS, "min_weeks": MIN_WEEKS, "clear_t": CLEAR_T,
+            "rolling_weeks": ROLLING_WEEKS, "rolling_step": ROLLING_STEP,
             "range": "90%", "market_control": MARKET_TICKER, "standard_errors": "Newey-West, 4 lags",
             "factors": [{"label": f.label, "series_id": f.series_id} for f in FACTORS],
         },
