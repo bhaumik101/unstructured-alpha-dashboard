@@ -3255,7 +3255,14 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
 .ua-tnav-group:focus-within > .ua-tnav-drop { visibility: visible; opacity: 1; pointer-events: auto; transition-delay: 0s; }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
-@media (max-width: 860px) {
+/* 1000px, not 860px. Measured at a 900px viewport, which is an ordinary laptop
+   window or an iPad in landscape: the link row needed 584px inside a 492px box,
+   and .ua-tnav-right ran to 925 against a bar that ended at 820 — so the
+   Upgrade pill was clipped and the theme toggle was entirely off the screen.
+   The whole band between the old breakpoint and roughly 1050px was broken, in
+   a way that only shows up if you resize to it. The horizontal row has to
+   collapse before it overflows, not after. */
+@media (max-width: 1000px) {
   /* The horizontal links become a full-width vertical menu revealed by the
      burger, with EVERY group expanded so all sub-pages are reachable by tap —
      the desktop hover dropdowns don't work on touch. This is what makes the
@@ -3307,6 +3314,32 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
 @media (max-width: 640px) {
   .ua-topnav { padding: 0 10px; }
   .ua-tnav-brand-text { font-size: 0.70rem; }
+  /* The bar was carrying the wordmark, the Upgrade pill, the theme toggle AND
+     the hamburger. Measured at 375px: the hamburger ran from 353 to 387 while
+     the bar ended at 367, so the only control that opens the navigation on a
+     phone was partly off the screen.
+
+     The toggle keeps its glyph and loses its word. font-size:0 is the way to
+     do that here because the label is a bare text node beside the icon span,
+     with nothing to select; aria-label and title still say which way it
+     switches, so nothing is lost to a screen reader.
+
+     Scoped to .ua-topnav on purpose: the plain `.ua-theme-toggle` rule lives in
+     the global sheet, which is injected AFTER this one, so an equal-specificity
+     rule here loses the tie and does nothing. Measured before adding the
+     parent: computed font-size stayed 10.88px and the word never went away. */
+  .ua-topnav .ua-theme-toggle { font-size: 0; padding: 0 9px; gap: 0; }
+  .ua-topnav .ua-theme-toggle .ua-tt-ico { font-size: 0.82rem; }
+  .ua-topnav .ua-tnav-upgrade { padding: 0 10px; }
+  .ua-tnav-brand { margin-right: 8px; min-width: 0; }
+  .ua-tnav-burger { margin-left: 2px; }
+}
+/* 320px is still a real phone width (SE, and anything at 200% zoom). At that
+   size the glyph-only toggle is not enough on its own: measured, the burger
+   still ended 10px past the edge. */
+@media (max-width: 400px) {
+  .ua-tnav-brand-text { font-size: 0.62rem; }
+  .ua-topnav .ua-tnav-upgrade { padding: 0 8px; font-size: 0.66rem; }
 }
 </style>
 
