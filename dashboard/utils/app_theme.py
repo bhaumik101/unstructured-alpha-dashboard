@@ -274,6 +274,50 @@ html[data-ua-theme="light"] .stApp [data-testid="stRadio"] [role="radiogroup"] l
 html[data-ua-theme="light"] .stApp [data-testid="stRadio"] label:has(input:checked) div{{
   color:var(--p-accent)!important;}}
 
+/* ── select boxes, closed and open ──────────────────────────────────────
+   No product page used st.selectbox until Compare, so nothing themed it: the
+   closed control rendered as a near-black bar (rgba(15,17,24,.92)) on the light
+   page, and the open list was #0b0d12 with #e8eeff text.
+
+   The open list is a BaseWeb PORTAL outside .stApp — the same trap as the
+   sign-in panel — so its rules are deliberately not .stApp-scoped, and they use
+   literal colours because the --p-* tokens are declared on .stApp and do not
+   exist out there. :has() narrows them to the select's own popover so the
+   sign-in panel, which is also a BaseWeb popover, is left alone. */
+html[data-ua-theme="light"] .stApp [data-baseweb="select"] > div,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="select"] > div{{
+  background:var(--p-surface)!important;border:1px solid var(--p-line)!important;
+  border-radius:var(--p-r)!important;color:var(--p-ink)!important;}}
+html[data-ua-theme="light"] .stApp [data-baseweb="select"] > div:focus-within,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="select"] > div:focus-within{{
+  border-color:var(--p-accent)!important;box-shadow:0 0 0 3px rgba(31,95,174,.14)!important;}}
+html[data-ua-theme="light"] .stApp [data-baseweb="select"] *,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="select"] *{{color:var(--p-ink)!important;}}
+html[data-ua-theme="light"] .stApp [data-baseweb="select"] svg{{fill:var(--p-ink3)!important;}}
+/* The select's type-ahead <input> kept #d8dde5 on white (1.36:1, measured by
+   axe) despite the rule above, because the old skin paints input text with
+   -webkit-text-fill-color, which beats `color` in WebKit and Blink. */
+html[data-ua-theme="light"] .stApp [data-baseweb="select"] input,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="select"] input{{
+  color:var(--p-ink)!important;-webkit-text-fill-color:var(--p-ink)!important;}}
+html[data-ua-theme="light"] [data-baseweb="popover"]:has([data-testid="stSelectboxVirtualDropdown"]),
+html[data-ua-theme="light"] [data-testid="stSelectboxVirtualDropdown"]{{
+  background:#ffffff!important;border:1px solid #dfe5ee!important;border-radius:12px!important;
+  box-shadow:0 24px 50px -30px rgba(13,34,59,.35)!important;}}
+html[data-ua-theme="light"] [data-testid="stSelectboxVirtualDropdown"] *{{color:#13213a!important;}}
+html[data-ua-theme="light"] [data-testid="stSelectboxVirtualDropdown"] li:hover,
+html[data-ua-theme="light"] [data-testid="stSelectboxVirtualDropdown"] [aria-selected="true"]{{
+  background:#edf4fc!important;}}
+html[data-ua-theme="light"] [data-testid="stSelectboxVirtualDropdown"] [aria-selected="true"] *{{
+  color:#1f5fae!important;font-weight:600!important;}}
+html:not([data-ua-theme="light"]) [data-baseweb="popover"]:has([data-testid="stSelectboxVirtualDropdown"]),
+html:not([data-ua-theme="light"]) [data-testid="stSelectboxVirtualDropdown"]{{
+  background:#121d2f!important;border:1px solid #243349!important;border-radius:12px!important;}}
+html:not([data-ua-theme="light"]) [data-testid="stSelectboxVirtualDropdown"] *{{color:#e8edf5!important;}}
+html:not([data-ua-theme="light"]) [data-testid="stSelectboxVirtualDropdown"] li:hover,
+html:not([data-ua-theme="light"]) [data-testid="stSelectboxVirtualDropdown"] [aria-selected="true"]{{
+  background:#16233a!important;}}
+
 /* ── inputs ─────────────────────────────────────────────────────────────── */
 .stApp [data-testid="stTextArea"] textarea,.stApp [data-testid="stTextInput"] input,
 .stApp [data-testid="stNumberInput"] input{{
@@ -363,7 +407,7 @@ def is_product_page(caller_file: str | None) -> bool:
     name = Path(str(caller_file)).name
     if name in LEGACY_PAGE_FILES:
         return False
-    return name.startswith(("60_", "61_", "62_", "63_", "64_", "65_")) or name in EXTRA_PRODUCT_PAGES
+    return name.startswith(("60_", "61_", "62_", "63_", "64_", "65_", "66_")) or name in EXTRA_PRODUCT_PAGES
 
 
 def product_page_header(title: str, subtitle: str = "", *, eyebrow: str = "",

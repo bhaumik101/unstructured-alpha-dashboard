@@ -31,7 +31,7 @@ HEADER = (_ROOT / "utils" / "header.py").read_text(encoding="utf-8")
 
 CURRENT_PAGES = (
     "60_Exposure_Report.py", "61_What_Changed.py", "62_Alerts.py",
-    "63_Methodology.py", "64_Research.py", "65_Pricing.py",
+    "63_Methodology.py", "64_Research.py", "65_Pricing.py", "66_Compare.py",
 )
 
 

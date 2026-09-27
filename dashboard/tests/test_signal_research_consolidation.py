@@ -97,7 +97,16 @@ def test_redesigned_nav_leads_with_the_exposure_report_and_keeps_old_routes():
     nav = header.split("def _render_topnav", 1)[1].split('<div class="ua-tnav-right">', 1)[0]
 
     top_level = re.findall(r'<a class="ua-tnav-item" href="(/[a-z0-9\-]*)"', nav)
-    assert top_level == ["/", "/what-changed", "/alerts", "/methodology"]
+    # "/compare" joined on 2026-09-27: current-against-proposed is the question
+    # an adviser brings to a review, so it sits next to the report it compares.
+    # "/alerts" moved under Account the same day. The bar is capped near 980px
+    # at every desktop width, and with Compare added the link row needed 659px
+    # in a 611px box -- measured -- so the right-hand cluster was pushed off
+    # the bar on every desktop screen. A page whose own text says "nothing on
+    # this page sends alerts yet" was the one that could give up its slot.
+    assert top_level == ["/", "/compare", "/what-changed", "/methodology"]
+    account_menu = nav.split('<span class="ua-tnav-trigger">Account ', 1)[1]
+    assert 'href="/alerts"' in account_menu, "alerts must stay reachable from the nav"
 
     research_menu = nav.split('<span class="ua-tnav-trigger">Research ', 1)[1].split(
         "</div>\n    </div>", 1)[0]

@@ -594,6 +594,12 @@ with st.expander("Export or share this report", expanded=False):
                "measured fresh, with no account. To keep a PDF, print the page.")
     st.code(ui.share_url([{"ticker": t, "weight_pct": w} for t, w in key]), language=None)
 
+if st.button("Compare this portfolio with another", key="uar_to_compare"):
+    # Side A defaults to "the portfolio on the report", which is this one.
+    st.session_state.pop("cmp_pending", None)
+    record("compare_opened_from_report")
+    st.switch_page("pages/66_Compare.py")
+
 with st.expander("How to read this report"):
     st.markdown(ui.HOW_TO_READ)
 

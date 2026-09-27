@@ -964,51 +964,112 @@ def blend_for_candidate(key: Tuple[Tuple[str, float], ...], ticker: str,
     return prepare_holdings(rows, ex.MAX_HOLDINGS)[0]
 
 
-def candidate_delta_html(base: dict, after: dict, ticker: str, weight_pct: float) -> str:
-    """Side by side: every force, before and after, and the difference.
+def _comparison_rows(a: dict, b: dict) -> List[str]:
+    """One row per force: A, B and the difference between them.
 
     A row is only given a difference where at least one side stands on its own
     evidence. Subtracting two numbers that are both indistinguishable from zero
     produces a third number that is also noise, and printing it would invite
     exactly the reading this report exists to prevent.
     """
-    base_readings = base.get("portfolio", {}).get("readings", {})
-    after_readings = after.get("portfolio", {}).get("readings", {})
-    keys = [k for k in ordered_keys(base) if k in after_readings]
-    if not keys:
-        return ""
-
+    a_readings = a.get("portfolio", {}).get("readings", {})
+    b_readings = b.get("portfolio", {}).get("readings", {})
     rows = []
-    for key in keys:
-        before, now = base_readings[key], after_readings[key]
-        told_apart = {before["evidence"], now["evidence"]} & {"clear", "tentative"}
-        if told_apart:
-            change = now["impact"] - before["impact"]
-            delta = f'<b>{fmt_pct(change)}</b>'
+    for key in [k for k in ordered_keys(a) if k in b_readings]:
+        left, right = a_readings[key], b_readings[key]
+        if {left["evidence"], right["evidence"]} & {"clear", "tentative"}:
+            delta = f'<b>{fmt_pct(right["impact"] - left["impact"])}</b>'
         else:
             delta = '<span class="uar-hold-muted">no measurable link either way</span>'
         rows.append(
             f'<tr><td><span class="uar-dot" style="background:'
-            f'{FACTOR_COLORS.get(key, "#3b7ddd")}"></span><b>{escape(before["label"])}</b></td>'
-            f'<td>{fmt_pct(before["impact"])} {evidence_chip(before["evidence"])}</td>'
-            f'<td>{fmt_pct(now["impact"])} {evidence_chip(now["evidence"])}</td>'
+            f'{FACTOR_COLORS.get(key, "#3b7ddd")}"></span><b>{escape(left["label"])}</b></td>'
+            f'<td>{fmt_pct(left["impact"])} {evidence_chip(left["evidence"])}</td>'
+            f'<td>{fmt_pct(right["impact"])} {evidence_chip(right["evidence"])}</td>'
             f'<td>{delta}</td></tr>')
+    return rows
 
-    share = f"{weight_pct:g}%"
+
+_COMPARE_FOOT = ('<div class="uar-foot">A difference is only shown where at least one side '
+                 'could be told apart from noise. Two numbers that are both indistinguishable '
+                 'from zero have a difference that is also noise.</div>')
+
+
+def _comparison_card(rows: List[str], title: str, sub: str, left: str, right: str) -> str:
+    if not rows:
+        return ""
     return (
         '<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
-        f'<div class="uar-title">The same three years, with {share} {escape(ticker.upper())}</div>'
-        f'<div class="uar-sub">Everything already held keeps its proportions; the {share} is '
-        f'made from the rest. This is what the past three years would have measured with '
-        f'{escape(ticker.upper())} in the portfolio — it is not a forecast, and it is not a '
-        f'suggestion to hold it.</div></div></div>'
+        f'<div class="uar-title">{title}</div><div class="uar-sub">{sub}</div></div></div>'
         '<div class="uar-scroll"><table class="uar-table"><thead><tr>'
-        '<th>Economic force</th><th>This portfolio</th>'
-        f'<th>With {share} {escape(ticker.upper())}</th><th>Difference</th>'
+        f'<th>Economic force</th><th>{left}</th><th>{right}</th><th>Difference</th>'
         f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
-        '<div class="uar-foot">A difference is only shown where at least one side could be '
-        'told apart from noise. Two numbers that are both indistinguishable from zero have a '
-        'difference that is also noise.</div></div></div>')
+        f'{_COMPARE_FOOT}</div></div>')
+
+
+def candidate_delta_html(base: dict, after: dict, ticker: str, weight_pct: float) -> str:
+    """Side by side: every force, before and after adding one holding."""
+    share, tick = f"{weight_pct:g}%", escape(ticker.upper())
+    return _comparison_card(
+        _comparison_rows(base, after),
+        f"The same three years, with {share} {tick}",
+        f"Everything already held keeps its proportions; the {share} is made from the rest. "
+        f"This is what the past three years would have measured with {tick} in the portfolio "
+        f"— it is not a forecast, and it is not a suggestion to hold it.",
+        "This portfolio", f"With {share} {tick}")
+
+
+def comparison_html(a: dict, b: dict, name_a: str, name_b: str) -> str:
+    """Two whole portfolios, measured the same way over the same weeks."""
+    left, right = escape(name_a or "Portfolio A"), escape(name_b or "Portfolio B")
+    return _comparison_card(
+        _comparison_rows(a, b),
+        f"{left} against {right}",
+        "Both measured with the same method over the same three years of weekly returns. "
+        "The difference is what separates them; it describes the past, and it is not a "
+        "forecast.",
+        left, right)
+
+
+def holdings_diff_html(key_a: Tuple[Tuple[str, float], ...], key_b: Tuple[Tuple[str, float], ...],
+                       name_a: str, name_b: str) -> str:
+    """What is in one and not the other, and what moved between them.
+
+    An adviser comparing "current" with "proposed" wants the trade list as much
+    as the exposure change: the table above says what the move does, this says
+    what the move is.
+    """
+    a, b = dict(key_a), dict(key_b)
+    tickers = sorted(set(a) | set(b), key=lambda t: -(abs(b.get(t, 0) - a.get(t, 0))))
+    rows = []
+    for t in tickers:
+        wa, wb = a.get(t), b.get(t)
+        if wa is None:
+            change, tag = f"+{wb:.1f} pts", '<span class="uar-chip uar-chip-clear">added</span>'
+        elif wb is None:
+            change, tag = f"−{wa:.1f} pts", '<span class="uar-chip uar-chip-tentative">removed</span>'
+        else:
+            diff = wb - wa
+            if abs(diff) < 0.05:
+                continue
+            change = f"{'+' if diff > 0 else '−'}{abs(diff):.1f} pts"
+            tag = ""
+        rows.append(
+            f'<tr><td><b>{escape(t)}</b> {tag}</td>'
+            f'<td>{"—" if wa is None else f"{wa:.1f}%"}</td>'
+            f'<td>{"—" if wb is None else f"{wb:.1f}%"}</td><td>{change}</td></tr>')
+    if not rows:
+        return ('<div class="uar"><div class="uar-note">The two portfolios hold the same things '
+                'in the same weights.</div></div>')
+    left, right = escape(name_a or "Portfolio A"), escape(name_b or "Portfolio B")
+    return (
+        '<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
+        f'<div class="uar-title">What is different between them</div>'
+        f'<div class="uar-sub">Largest changes first. Weights are each portfolio&#39;s share '
+        f'after rescaling to 100%.</div></div></div>'
+        '<div class="uar-scroll"><table class="uar-table"><thead><tr>'
+        f'<th>Holding</th><th>{left}</th><th>{right}</th><th>Change</th>'
+        f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div></div></div>')
 
 
 def holdings_matrix_html(report: dict) -> str:
