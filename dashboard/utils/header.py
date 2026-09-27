@@ -3363,8 +3363,8 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
        href here must have a matching url_path in app.py. -->
   <div class="ua-tnav-links">
     <a class="ua-tnav-item" href="/" data-paths="/">Report</a>
+    <a class="ua-tnav-item" href="/compare">Compare</a>
     <a class="ua-tnav-item" href="/what-changed">What changed</a>
-    <a class="ua-tnav-item" href="/alerts">Alerts</a>
     <a class="ua-tnav-item" href="/methodology">Methodology</a>
 
     <div class="ua-tnav-group">
@@ -3381,6 +3381,7 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
       <span class="ua-tnav-trigger">Account <span class="ua-tnav-caret">&#9660;</span></span>
       <div class="ua-tnav-drop">
         <a href="/pricing">Pricing</a>
+        <a href="/alerts">Alerts</a>
         <a href="/my-profile">My profile</a>
         <div class="ua-tnav-drop-rule"></div>
         <a href="/privacy-terms" style="font-size:0.68rem;color:var(--ua-ink-label);">Privacy &amp; Terms</a>
