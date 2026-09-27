@@ -10,12 +10,14 @@ import streamlit as st
 
 st.set_page_config(page_title="What changed — Unstructured Alpha", layout="wide")
 
+from utils import report_charts as charts  # noqa: E402
 from utils import report_ui as ui  # noqa: E402
 from utils.app_theme import product_page_header  # noqa: E402
 from utils.header import render_header  # noqa: E402
 
 render_header("What changed")
 st.markdown(ui.REPORT_CSS, unsafe_allow_html=True)
+st.markdown(charts.CHART_CSS, unsafe_allow_html=True)
 try:
     from utils.instrumentation import record_once
     record_once("what_changed_viewed")
@@ -69,14 +71,24 @@ if report.get("status") != "ok":
     ui.render_report_footer()
     st.stop()
 
-st.markdown("## Recent weeks")
-st.markdown(ui.recent_moves_html(report), unsafe_allow_html=True)
+_order = ui.ordered_keys(report)
+_rolling_html = charts.rolling_charts_html(report, _order)
+if _rolling_html:
+    st.markdown("## How each exposure has moved")
+    st.markdown(_rolling_html, unsafe_allow_html=True)
 st.markdown("## Changes in exposure")
 st.markdown(ui.shifts_html(report), unsafe_allow_html=True)
+st.markdown("## Recent weeks")
+st.markdown(ui.recent_moves_html(report), unsafe_allow_html=True)
+_paths_html = charts.factor_paths_html(report, _order)
+if _paths_html:
+    st.markdown("## What the forces themselves did")
+    st.markdown(_paths_html, unsafe_allow_html=True)
 
 st.markdown(
-    '<div class="uar"><div class="uar-note"><b>In development:</b> a weekly email with this summary for '
-    'saved portfolios. It isn&#39;t available yet.</div></div>',
+    '<div class="uar"><div class="uar-note"><b>Get this by email.</b> Sign in, open the portfolio '
+    'on the report page and tick &ldquo;Email me a weekly summary&rdquo;. It arrives on Sundays, '
+    'and most weeks it says plainly that nothing changed.</div></div>',
     unsafe_allow_html=True,
 )
 ui.render_report_footer()
