@@ -33,7 +33,8 @@ product_page_header(
 
 extra_rows = "\n".join(
     f"| {ex.EXTRA_GROUPS[f.group]} | {f.label} | {f.shock_phrase[0].upper() + f.shock_phrase[1:]} "
-    f"| FRED `{f.series_id}` |"
+    + (f"| FRED `{f.series_id}` |" if f.source == "fred"
+       else f"| Yahoo Finance `{f.series_id}` (the price of a fund that holds it) |")
     for f in ex.EXTRA_FACTORS
 )
 factor_rows = "\n".join(

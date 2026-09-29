@@ -125,13 +125,18 @@ def measure_batch(batch: List[Target], prices_batch: Callable[[tuple, str, str],
     from utils import exposure as ex
 
     held: Dict[str, object] = {}
+    asked: set = set()
 
     def prices(tickers, start, stop):
-        # The engine asks for [ticker, SPY]; the batch was fetched up front.
-        missing = [t for t in tickers if t not in held]
+        # The engine asks for [ticker, SPY, the price-sourced forces]; the
+        # whole batch is fetched on the first ask. What was asked and came
+        # back empty is remembered as asked: otherwise one fund Yahoo can't
+        # return would refetch the whole batch for every stock in it.
+        missing = [t for t in tickers if t not in asked]
         if missing:
-            held.update(prices_batch(tuple(sorted({t for t, _ in batch} | set(tickers))),
-                                     start, stop) or {})
+            want = tuple(sorted({t for t, _ in batch} | set(tickers)))
+            held.update(prices_batch(want, start, stop) or {})
+            asked.update(want)
         return {t: held.get(t) for t in tickers}
 
     for ticker, name in batch:

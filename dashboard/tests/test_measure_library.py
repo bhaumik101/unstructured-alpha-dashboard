@@ -105,7 +105,11 @@ def test_one_price_fetch_per_batch_not_per_stock():
     got = list(ml.measure_batch([("AAA", "A"), ("BBB", "B"), ("CCC", "C")], prices_batch,
                                 ml.memo_series(sf), END))
     assert [r["status"] for _, _, r in got] == ["ok", "ok", "ok"]
-    assert len(batches) == 1 and set(batches[0]) == {"AAA", "BBB", "CCC", "SPY"}
+    from utils import exposure as ex
+
+    # The price-sourced forces (gold, copper) ride in the same batch fetch.
+    assert len(batches) == 1
+    assert set(batches[0]) == {"AAA", "BBB", "CCC", "SPY", *ex.EXTRA_PRICE_TICKERS}
 
 
 # ── the run ─────────────────────────────────────────────────────────────────
@@ -195,3 +199,11 @@ def test_called_from_the_group_it_ignores_the_groups_own_argv(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["run_group.py", "weekly-universe"])
     monkeypatch.delenv("DATABASE_URL", raising=False)
     assert ml.main() == 2, "argparse rejected the group name instead of using defaults"
+
+
+def test_a_price_yahoo_cant_return_does_not_refetch_the_batch_per_stock():
+    """GLD missing from every answer must still mean one fetch per batch."""
+    prices_batch, sf, batches = _world_with({"AAA", "BBB", "CCC", "DDD"})
+    list(ml.measure_batch([("AAA", ""), ("BBB", ""), ("CCC", ""), ("DDD", "")], prices_batch,
+                          ml.memo_series(sf), END))
+    assert len(batches) == 1, f"{len(batches)} fetches for one batch"
