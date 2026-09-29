@@ -148,7 +148,7 @@ def _dropdown_sizes() -> dict[str, int]:
     chunks = nav.split('<div class="ua-tnav-group')
     for chunk in chunks[1:]:
         label = re.search(
-            r'<span class="ua-tnav-trigger">([^<]+?)\s*<span class="ua-tnav-caret">',
+            r'<button type="button" class="ua-tnav-trigger"[^>]*>([^<]+?)\s*<span class="ua-tnav-caret"',
             chunk,
         )
         if not label:

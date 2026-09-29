@@ -88,7 +88,7 @@ if query and len(query.strip()) >= 2:
 ticker = str(st.query_params.get("t", "") or "").strip().upper()
 
 if not ticker:
-    st.markdown("**Common examples**")
+    st.markdown("## Common examples")
     st.caption("Examples, not suggestions.")
     for _row_start in range(0, len(ui.SINGLE_STOCKS), 4):
         for col, (t, company) in zip(st.columns(4), ui.SINGLE_STOCKS[_row_start:_row_start + 4]):
@@ -96,7 +96,7 @@ if not ticker:
                 _open(t, company)
     measured = lib.latest(limit=24)
     if measured:
-        st.markdown("**Already measured here**")
+        st.markdown("## Already measured here")
         st.markdown(sui.library_chips_html(measured, limit=24), unsafe_allow_html=True)
     record_once("stock_page_landing")
     ui.render_report_footer()

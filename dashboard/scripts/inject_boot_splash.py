@@ -362,6 +362,76 @@ def _build_runtime() -> str:
     }
   }catch(e){}
 
+  /* ── Accessibility wiring (2026-09-29 keyboard / screen-reader audit) ──
+     Streamlit renders no <main>, puts an invisible cookie-manager iframe in
+     the tab order, and its markup cannot carry aria state that changes. This
+     keeps all of that right as Streamlit re-renders, idempotently:
+       - [data-testid=stMain] becomes the main landmark, target of the skip link
+       - the cookie iframe leaves the tab order and the accessibility tree
+       - the nav's Research / Account disclosures report aria-expanded, and
+         Escape closes one while focus is inside it
+       - the mobile menu button opens the CSS checkbox menu and reports it */
+  function uaA11y(){
+    try{
+      var m = document.querySelector('[data-testid="stMain"]');
+      if(m && m.id !== 'ua-main'){ m.id = 'ua-main'; m.setAttribute('role','main'); }
+      var f = document.querySelectorAll('iframe[title*="cookie_manager"]:not([tabindex="-1"])');
+      for(var i=0;i<f.length;i++){ f[i].setAttribute('tabindex','-1'); f[i].setAttribute('aria-hidden','true'); }
+      var burger = document.querySelector('.ua-tnav-burger:not([data-ua-a11y])');
+      if(burger){
+        burger.setAttribute('data-ua-a11y','1');
+        var box = document.getElementById('ua-tnav-toggle');
+        burger.setAttribute('aria-expanded', box && box.checked ? 'true' : 'false');
+        burger.addEventListener('click', function(ev){
+          ev.preventDefault();
+          var b = document.getElementById('ua-tnav-toggle');
+          if(b){ b.checked = !b.checked; burger.setAttribute('aria-expanded', b.checked ? 'true' : 'false'); }
+        });
+      }
+    }catch(e){}
+  }
+  try{
+    uaA11y();
+    var uaA11yQueued = false;
+    new MutationObserver(function(){
+      if(uaA11yQueued) return; uaA11yQueued = true;
+      requestAnimationFrame(function(){ uaA11yQueued = false; uaA11y(); });
+    }).observe(document.documentElement, {childList:true, subtree:true});
+
+    function uaGroupState(group, open){
+      var t = group && group.querySelector('.ua-tnav-trigger');
+      if(t) t.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    document.addEventListener('focusin', function(ev){
+      var g = ev.target && ev.target.closest && ev.target.closest('.ua-tnav-group');
+      var all = document.querySelectorAll('.ua-tnav-group');
+      for(var i=0;i<all.length;i++){ if(all[i] !== g){ all[i].classList.remove('ua-closed'); uaGroupState(all[i], false); } }
+      if(g && !g.classList.contains('ua-closed')) uaGroupState(g, true);
+    });
+    document.addEventListener('keydown', function(ev){
+      if(ev.key !== 'Escape') return;
+      var g = document.activeElement && document.activeElement.closest && document.activeElement.closest('.ua-tnav-group');
+      if(!g) return;
+      g.classList.add('ua-closed'); uaGroupState(g, false);
+      var t = g.querySelector('.ua-tnav-trigger'); if(t) t.focus();
+    });
+    document.addEventListener('click', function(ev){
+      var t = ev.target && ev.target.closest && ev.target.closest('.ua-tnav-trigger');
+      if(t){
+        var g = t.closest('.ua-tnav-group');
+        var open = t.getAttribute('aria-expanded') === 'true' && !g.classList.contains('ua-closed');
+        g.classList.toggle('ua-closed', open); uaGroupState(g, !open);
+        return;
+      }
+      var skip = ev.target && ev.target.closest && ev.target.closest('a.ua-skip');
+      if(skip){
+        ev.preventDefault();
+        var m = document.getElementById('ua-main');
+        if(m){ if(!m.hasAttribute('tabindex')) m.setAttribute('tabindex','-1'); m.focus(); m.scrollTop = 0; }
+      }
+    }, true);
+  }catch(e){}
+
   window.uaSetTheme=function(t){
     try{ localStorage.setItem('ua-theme',t); }catch(e){}
     if(t==='light'){ document.documentElement.setAttribute('data-ua-theme','light'); }
