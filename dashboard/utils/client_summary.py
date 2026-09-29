@@ -48,7 +48,7 @@ SUMMARY_CSS = """<style>
 .ucs-name{font-size:var(--uar-t-price);font-weight:750;letter-spacing:-0.02em;margin-top:2px;}
 .ucs-meta{font-size:var(--uar-t-meta);color:var(--ucs-ink3);text-align:right;line-height:1.5;}
 .ucs-lead{font-size:var(--uar-t-body);color:var(--ucs-ink2);line-height:1.6;margin:0 0 12px;}
-.ucs h3{font-size:var(--uar-t-sm);font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+.ucs-h{font-size:var(--uar-t-sm);font-weight:700;text-transform:uppercase;letter-spacing:.05em;
   color:var(--ucs-ink3);margin:14px 0 6px;}
 .ucs table{width:100%;border-collapse:collapse;font-size:var(--uar-t-meta);}
 .ucs th{text-align:left;font-weight:650;color:var(--ucs-ink3);padding:5px 6px;border-bottom:1px solid var(--ucs-line);}
@@ -60,11 +60,13 @@ SUMMARY_CSS = """<style>
 .ucs-caveat{border-left:3px solid var(--ucs-accent);background:var(--ucs-sub);padding:8px 12px;
   font-size:var(--uar-t-meta);color:var(--ucs-ink2);margin:14px 0 8px;line-height:1.55;}
 .ucs-foot{font-size:var(--uar-t-micro);color:var(--ucs-ink3);line-height:1.5;margin-top:8px;}
-/* The app theme sets every markdown <p> and every <h3> with !important — in
-   dark mode, light ink meant for a dark page. The summary is a white sheet in
-   both themes, so its own type and colours have to outrank the theme. */
+/* The app theme sets every markdown <p> with !important — in dark mode, light
+   ink meant for a dark page. The summary is a white sheet in both themes, so
+   its own type and colours have to outrank the theme.
+   Section titles are role="heading" divs, not <h3>: Streamlit wraps every
+   markdown heading in its own anchor block, 44px tall in print, and two of
+   them were enough to push the method onto a second sheet. */
 .stApp .ucs p.ucs-lead{font-size:var(--uar-t-body)!important;color:var(--ucs-ink2)!important;}
-.stApp .ucs h3{font-family:inherit!important;font-size:var(--uar-t-sm)!important;color:var(--ucs-ink3)!important;}
 .ucs-hint{font-size:.82rem;color:var(--p-ink2,#3a4760);}
 .ucs-print{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:8px;
   background:#1f5fae;color:#ffffff!important;font-weight:650;text-decoration:none!important;}
@@ -77,7 +79,10 @@ SUMMARY_CSS = """<style>
   .ua-topnav,.st-key-ua_account_row,.st-key-ua_spa_proxy_rail,[data-testid="stButton"],
   [data-testid="stHeader"],.ua-phero,.ucs-screen-only,.st-key-cs_controls,#ua-scroll-top,.ua-scroll-top,
   [data-testid="stCaptionContainer"]{display:none!important;}
-  .block-container,[data-testid="stMainBlockContainer"]{padding:0!important;max-width:none!important;}
+  /* .stApp-qualified: the theme's `.stApp .block-container{padding-top:58px
+     !important}` outranks a bare .block-container, and its 58px pushed the
+     foot onto page two. */
+  .stApp .block-container,.stApp [data-testid="stMainBlockContainer"]{padding:0!important;max-width:none!important;}
   /* Print the summary and nothing else. Hiding an element's contents still
      left its container, and each one kept the column's 16px gap: a ~240px
      blank band above the summary that pushed the method onto page two. */
@@ -88,11 +93,13 @@ SUMMARY_CSS = """<style>
      ~1,130 and spilled the method onto a second page. The map is the tallest
      block, so it gives up the most; the type steps down one notch. */
   .ucs{--uar-t-body:.8rem;--uar-t-sm:.76rem;--uar-t-meta:.72rem;--uar-t-micro:.68rem;}
-  .ucs .uar-map{max-height:200px;width:auto;display:block;margin:0 auto;}
-  .ucs h3{margin:10px 0 4px;}
-  .ucs td{padding:4px 6px;}
+  .ucs .uar-map{max-height:160px;width:auto;display:block;margin:0 auto;}
+  .ucs-top{padding-bottom:8px;margin-bottom:10px;}
+  .ucs-lead,.stApp .ucs p.ucs-lead{line-height:1.45!important;}
+  .ucs-caveat{padding:6px 10px;}
+  .ucs-h{margin:10px 0 4px;}
+  .ucs td{padding:3px 6px;}
   .stApp .ucs p.ucs-lead,.ucs-lead{margin-bottom:8px;}
-  .stApp .ucs h3{margin:10px 0 4px;}
   .ucs-caveat{margin:10px 0 6px;}
   .ucs *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .ucs-two,.ucs-mini,.ucs table{break-inside:avoid;}
@@ -159,15 +166,15 @@ def summary_html(report: dict, name: str, prepared_for: str = "",
         f'<p class="ucs-lead">{ui.summary_text(report)}</p>'
         '<div class="ucs-two">'
         f'<div>{ui.exposure_map_html(report)}</div>'
-        '<div><h3>How to read the numbers</h3><p class="ucs-lead">Each figure is how this '
+        '<div><div class="ucs-h" role="heading" aria-level="3">How to read the numbers</div><p class="ucs-lead">Each figure is how this '
         'portfolio typically moved in a week when that force moved by the stated amount, with the '
         'stock market&#39;s own movement removed first. The range shows how precisely it was '
         'measured; <b>Clear</b> means it held up after allowing for testing five forces at once, '
         '<b>Tentative</b> means it could still be noise.</p></div></div>'
-        '<h3>Exposure to each economic force</h3>'
+        '<div class="ucs-h" role="heading" aria-level="3">Exposure to each economic force</div>'
         '<table><thead><tr><th>Force and move</th><th>Typical weekly move · 90% range</th>'
         f'<th>Evidence</th><th>Largest contributors</th></tr></thead><tbody>{rows}</tbody></table>'
-        + (f'<h3>How each exposure has moved (rolling year)</h3><div class="ucs-mini">{"".join(minis)}</div>'
+        + (f'<div class="ucs-h" role="heading" aria-level="3">How each exposure has moved (rolling year)</div><div class="ucs-mini">{"".join(minis)}</div>'
            if minis else "")
         + '<div class="ucs-caveat"><b>This describes the past, and it is not a forecast.</b> It shows '
         'how this portfolio has moved alongside five economic forces over the last three years. '

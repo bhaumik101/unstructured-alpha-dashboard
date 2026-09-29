@@ -94,6 +94,31 @@ def test_print_hides_everything_but_the_summary():
     assert "@page" in css
 
 
+# ── one sheet, not two ──────────────────────────────────────────────────────
+# Measured in Chromium at Letter with 10mm margins: ~980px fits. After the app
+# theme grew, the summary printed at 1,136px -- the method and caveat spilled
+# onto a second sheet. Two causes, each worth ~50-60px, each pinned here.
+
+def test_the_print_padding_override_outranks_the_theme():
+    """The theme sets `.stApp .block-container{padding-top:58px!important}`.
+    Both are !important, so a bare `.block-container` override loses on
+    specificity and the 58px stays."""
+    from utils.app_theme import PRODUCT_CSS
+
+    assert ".stApp .block-container{" in PRODUCT_CSS and "padding-top:58px!important" in PRODUCT_CSS
+    css = cs.SUMMARY_CSS.split("@media print", 1)[1]
+    assert re.search(r"\.stApp \.block-container,[^{]*\{padding:0!important", css), (
+        "the print override must be at least as specific as the theme's padding rule")
+
+
+def test_section_titles_are_not_markdown_headings(report):
+    """Streamlit wraps each markdown <h3> in its own anchor block (44px in
+    print). role="heading" keeps them headings for a screen reader."""
+    html = cs.summary_html(report, "Smith IRA")
+    assert "<h3" not in html
+    assert html.count('role="heading" aria-level="3"') == 3
+
+
 # ── the print button ────────────────────────────────────────────────────────
 
 def test_the_print_link_is_wired_to_the_print_dialog():
