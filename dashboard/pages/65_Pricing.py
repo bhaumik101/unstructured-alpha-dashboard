@@ -58,7 +58,23 @@ def _tier(name: str, price: str, sub: str, now: list[str], later: list[str],
             f'</div></div></div>')
 
 
-free_col, pro_col, adv_col = st.columns(3)
+# Equal-height plans with their buttons on one line. Each card used to be as
+# tall as its own list, so the three calls to action sat at three different
+# heights. The keyed container lets the stylesheet stretch every column to the
+# row and every card to its column.
+st.markdown(
+    "<style>"
+    ".st-key-pricing_tiers [data-testid='stHorizontalBlock']{align-items:stretch!important;}"
+    ".st-key-pricing_tiers [data-testid='stColumn'] > [data-testid='stVerticalBlock']{height:100%;}"
+    ".st-key-pricing_tiers [data-testid='stElementContainer']:has(.uar-tier){flex:1 1 auto!important;}"
+    ".st-key-pricing_tiers [data-testid='stElementContainer']:has(.uar-tier) div:has(.uar-tier),"
+    ".st-key-pricing_tiers .uar-tier{height:100%!important;box-sizing:border-box;}"
+    # The featured card drops 16px for its badge; every card takes the same
+    # margin so tops and bottoms both line up and none overlaps its button.
+    ".st-key-pricing_tiers .uar-tier{margin-top:16px!important;height:calc(100% - 16px)!important;}"
+    "</style>", unsafe_allow_html=True)
+_tiers = st.container(key="pricing_tiers")
+free_col, pro_col, adv_col = _tiers.columns(3)
 with free_col:
     st.markdown(_tier("Free", "$0", "No card needed", [
         f"Exposure report for one portfolio, up to {ui.FREE_MAX_HOLDINGS} holdings",
@@ -92,7 +108,11 @@ with pro_col:
     if already_pro:
         st.success("You're on Investor Pro.")
     elif not user:
-        st.info("Sign in or create a free account (top right) to start Investor Pro.")
+        # A button in every state, so the three plans end on one line. Signed
+        # out, it says what to do rather than being replaced by a notice.
+        if st.button("Start Investor Pro", type="primary", key="price_pro_signin", width="stretch"):
+            st.info("Sign in or create a free account first (Sign In, top right). "
+                    "Then start the 7-day trial here.")
     elif st.button("Start Investor Pro", type="primary", key="price_pro", width="stretch"):
         try:
             from utils.ratelimit import guard

@@ -3878,9 +3878,21 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
     with _account_row:
         _space, _bell_col, _acct_col = st.columns([3.9, 1.15, 1.35])
 
+    # The account controls sit in the empty band ABOVE the nav bar, right-
+    # aligned with its edge -- a utility bar. They used to be pulled up under
+    # the bar with a negative margin, where Sign In read as a stray white box
+    # hanging off the nav on every page (it cannot live inside the bar: at
+    # 1024px there are 8px free). Measured flush with the bar's right edge at
+    # 390, 700, 900, 1024, 1280 and 1440px. The spacer column is dropped so
+    # the row is only as wide as its controls.
     st.markdown(
-        "<style>.st-key-ua_account_row{margin-top:-30px;margin-bottom:-14px;}"
-        "@media (max-width:640px){.st-key-ua_account_row{margin-top:-8px;}}</style>",
+        "<style>"
+        ".st-key-ua_account_row{position:absolute!important;top:-46px!important;right:0!important;"
+        "left:auto!important;width:auto!important;margin:0!important;z-index:100000;}"
+        ".st-key-ua_account_row [data-testid='stHorizontalBlock']{gap:6px!important;flex-wrap:nowrap!important;}"
+        ".st-key-ua_account_row [data-testid='stColumn']{width:auto!important;flex:0 0 auto!important;min-width:0!important;}"
+        ".st-key-ua_account_row [data-testid='stColumn']:first-child{display:none!important;}"
+        "</style>",
         unsafe_allow_html=True,
     )
 

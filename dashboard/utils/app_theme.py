@@ -349,6 +349,46 @@ html:not([data-ua-theme="light"]) .stApp [data-testid="stTextArea"] textarea:foc
 .stApp [data-testid="InputInstructions"],#stFloatingOverlayPortal [data-testid="InputInstructions"]{{
   color:var(--p-ink3)!important;opacity:1!important;}}
 
+/* ── radio buttons ─────────────────────────────────────────────────────────
+   Streamlit paints the radio circle from its base theme, which is still the
+   retired dark skin: an UNselected option drew a 14px #0b0d12 dot filling its
+   circle -- it looked more selected than the selected one, which was the
+   retired violet #6470f5. Now the standard reading: a hollow ring when off
+   (ink3, 5.6:1 against the surface), the accent with a centre dot when on. */
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] label > div:first-of-type > div:first-of-type,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stRadio"] label > div:first-of-type > div:first-of-type{{
+  background:var(--p-surface)!important;border:1.5px solid var(--p-ink3)!important;
+  box-sizing:border-box!important;width:16px!important;height:16px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] label > div:first-of-type > div:first-of-type > div,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stRadio"] label > div:first-of-type > div:first-of-type > div{{
+  background:transparent!important;width:6px!important;height:6px!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] label:has(input:checked) > div:first-of-type > div:first-of-type,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stRadio"] label:has(input:checked) > div:first-of-type > div:first-of-type{{
+  background:var(--p-accent)!important;border-color:var(--p-accent)!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] label:has(input:checked) > div:first-of-type > div:first-of-type > div,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stRadio"] label:has(input:checked) > div:first-of-type > div:first-of-type > div{{
+  background:var(--p-accent-ink)!important;}}
+
+/* ── checkboxes and tabs: the same base-theme leak as the radios ─────────────
+   Checked boxes and the selected tab's underline were the retired violet. */
+html[data-ua-theme="light"] .stApp [data-testid="stCheckbox"] label > div:first-of-type,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stCheckbox"] label > div:first-of-type,
+html #stFloatingOverlayPortal [data-testid="stCheckbox"] label > div:first-of-type{{
+  background:var(--p-surface)!important;border:1.5px solid var(--p-ink3)!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stCheckbox"] label:has(input:checked) > div:first-of-type,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stCheckbox"] label:has(input:checked) > div:first-of-type,
+html #stFloatingOverlayPortal [data-testid="stCheckbox"] label:has(input:checked) > div:first-of-type{{
+  background:var(--p-accent)!important;border-color:var(--p-accent)!important;}}
+html[data-ua-theme="light"] .stApp [data-testid="stCheckbox"] label:has(input:checked) > div:first-of-type svg,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stCheckbox"] label:has(input:checked) > div:first-of-type svg,
+html #stFloatingOverlayPortal [data-testid="stCheckbox"] label:has(input:checked) > div:first-of-type svg{{
+  color:var(--p-accent-ink)!important;stroke:var(--p-accent-ink)!important;}}
+html[data-ua-theme="light"] .stApp [role="tab"][aria-selected="true"] > div:last-child,
+html:not([data-ua-theme="light"]) .stApp [role="tab"][aria-selected="true"] > div:last-child,
+html #stFloatingOverlayPortal [role="tab"][aria-selected="true"] > div:last-child{{
+  background:var(--p-accent)!important;}}
+
 /* Placeholders carried the retired skin's faint grey (axe: 2.3:1 on /compare). */
 .stApp input::placeholder,.stApp textarea::placeholder{{color:var(--p-ink3)!important;opacity:1!important;}}
 /* A select's type-to-search text was #e8eeff -- the retired dark ink -- on a
