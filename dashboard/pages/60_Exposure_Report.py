@@ -609,6 +609,11 @@ st.markdown(ui.recent_moves_html(report), unsafe_allow_html=True)
 st.markdown("## Economic growth")
 st.markdown(ui.growth_html(report), unsafe_allow_html=True)
 
+_extras = ui.extras_html(report)
+if _extras:
+    st.markdown("## More forces")
+    st.markdown(_extras, unsafe_allow_html=True)
+
 st.markdown(ui.notes_html(report, cleaning_notes), unsafe_allow_html=True)
 
 with st.expander("Export or share this report", expanded=False):

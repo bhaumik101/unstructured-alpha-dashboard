@@ -31,6 +31,11 @@ product_page_header(
            "A five-factor correction before anything is called clear"),
 )
 
+extra_rows = "\n".join(
+    f"| {ex.EXTRA_GROUPS[f.group]} | {f.label} | {f.shock_phrase[0].upper() + f.shock_phrase[1:]} "
+    f"| FRED `{f.series_id}` |"
+    for f in ex.EXTRA_FACTORS
+)
 factor_rows = "\n".join(
     f"| {f.label} | {f.shock_phrase[0].upper() + f.shock_phrase[1:]} | FRED `{f.series_id}` |"
     for f in ex.FACTORS
@@ -69,13 +74,24 @@ Prices come from Yahoo Finance and are adjusted for dividends and splits. Holdin
 ## Sample size and power
 Three years of weekly data gives about 156 observations. That is enough to detect moderate relationships, not subtle ones. **Economic growth is published monthly**, so it rests on about {ex.GROWTH_WINDOW_MONTHS} observations. With that few, only strong relationships can be told apart from noise, and the report always labels growth as limited evidence.
 
+## More forces
+Beyond the five core forces, the report and every stock page measure {len(ex.EXTRA_FACTORS)} more:
+
+| Group | Force | Each result is expressed per | Source |
+|---|---|---|---|
+{extra_rows}
+
+- **Measured beyond the core, one at a time.** Each is its own regression: weekly returns on the stock market, the five core forces **and that one force**, over the same weeks. So a reading is only what the market and the core five don't already explain. The 2-year yield, for example, is measured with the 10-year held fixed: it is the front of the yield curve moving on its own.
+- **The core is untouched.** Adding a force never changes a core reading, so the five core numbers, and every stored week of history, stay comparable.
+- **A stricter bar.** Clear needs a t-statistic of at least {ex.EXTRA_CLEAR_T:.2f}: a 5% error rate shared across all {len(ex.FACTORS) + len(ex.EXTRA_FACTORS)} forces tested, core and extra. Adding forces makes each one harder to call Clear, never easier. In a simulation of 300 stocks with no real exposure to any of them, about 1 in 100 extra-force readings was labelled Clear.
+
 ## What changed
 The latest {ex.RECENT_WEEKS} weeks are compared with the {ex.EARLIER_WEEKS} weeks before them. The two periods don't overlap, so their uncertainties can be combined honestly. A change is shown only when the difference is larger than that combined uncertainty. The "recent weeks" table applies the measured sensitivities to what actually happened over the last {ex.RECENT_MOVE_WEEKS} weeks. It explains the recent past, and only for exposures labelled Clear or Tentative.
 
 ## What the report does not mean
 - **It is not a forecast.** A portfolio that fell when rates rose over the past three years may not do so over the next three.
 - **It is not advice.** It does not know your goals or circumstances, and it never suggests buying or selling anything.
-- **It is not a complete risk model.** It covers five economic forces and growth. Company-specific risks, sector risks and liquidity are not measured.
+- **It is not a complete risk model.** It covers five economic forces, growth and {len(ex.EXTRA_FACTORS)} more forces measured beyond them. Company-specific risks, sector risks and liquidity are not measured.
 - **A Clear label is not a cause.** It means the relationship was consistent and larger than noise, not that one thing caused the other.
 
 ## Known limitations

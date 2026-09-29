@@ -129,6 +129,10 @@ with _summary_col:
 with _map_col:
     st.markdown(sui.as_stock(ui.exposure_map_html(report), ticker), unsafe_allow_html=True)
 st.markdown(sui.as_stock(ui.exposure_table_html(report)), unsafe_allow_html=True)
+_extras = ui.extras_html(report, subject="stock")
+if _extras:
+    st.markdown(f"## {ticker} and more forces")
+    st.markdown(_extras, unsafe_allow_html=True)
 
 order = ui.ordered_keys(report)
 _rolling = charts.rolling_charts_html(report, order)

@@ -245,6 +245,11 @@ REPORT_CSS = REPORT_CSS.replace("</style>", "".join((
     *(f"--fh-{k}:{v};" for k, v in FACTOR_FILL.items()),
     "}\n</style>",
 )))
+# Group titles in the "more forces" card (extras_html).
+REPORT_CSS = REPORT_CSS.replace("</style>",
+    ".uar .uar-group{padding:12px 20px 4px;font-size:var(--uar-t-micro);font-weight:700;"
+    "letter-spacing:.05em;text-transform:uppercase;color:var(--uar-ink-3);}"
+    ".uar .uar-why{margin-top:6px;font-style:italic;}</style>")
 
 
 # ── formatting ──────────────────────────────────────────────────────────────
@@ -653,6 +658,60 @@ def exposure_table_html(report: dict) -> str:
         f'It describes the past; it is not a forecast.</div>'
         '</div></div>'
     )
+
+
+def extras_html(report: dict, subject: str = "portfolio") -> str:
+    """The extra forces: each measured beyond the market and the core five.
+
+    Grouped as in exposure.EXTRA_GROUPS. A report cached before extras existed
+    has no "extras" key and renders nothing; a force whose data failed is
+    named, never filled in.
+    """
+    x = report.get("extras")
+    if not x:
+        return ""
+    readings = x.get("readings") or {}
+    unavailable = x.get("unavailable") or []
+    if not readings:
+        if not unavailable:
+            return ""
+        return (f'<div class="uar"><div class="uar-note">More forces couldn&#39;t be measured: data '
+                f'for {escape(_join(unavailable))} was unavailable. Nothing was estimated in its '
+                f'place.</div></div>')
+    scale = _nice_scale([v for r in readings.values() for v in (r["low"], r["high"])])
+    body = []
+    for group, title in ex.EXTRA_GROUPS.items():
+        keys = [f.key for f in ex.EXTRA_FACTORS if f.group == group and f.key in readings]
+        if not keys:
+            continue
+        body.append(f'<div class="uar-group" role="heading" aria-level="3">{escape(title)}</div>')
+        for key in keys:
+            r = readings[key]
+            body.append(
+                '<div class="uar-row">'
+                f'<div><div class="uar-label">{escape(r["label"])}</div>'
+                f'<div class="uar-shock">In weeks when {escape(r["shock_phrase"])}</div>'
+                f'<div class="uar-shock uar-why">{escape(r["why"])}</div></div>'
+                f'{exposure_bar(r["impact"], r["low"], r["high"], scale)}'
+                f'<div><div class="uar-val">{fmt_pct(r["impact"])}</div>'
+                f'<div class="uar-range">range {fmt_pct(r["low"])} to {fmt_pct(r["high"])}</div></div>'
+                f'<div class="uar-rowdriver">{evidence_chip(r["evidence"])}</div>'
+                '</div>')
+    missing = (f' Data for {escape(_join(unavailable))} was unavailable, so it is not shown; '
+               'nothing was estimated in its place.' if unavailable else "")
+    return (
+        '<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
+        '<div class="uar-title">More forces, beyond the core five</div>'
+        f'<div class="uar-sub">Each measured with the stock market and the five forces above held '
+        f'fixed, so it shows only what they don&#39;t already explain.</div></div></div>'
+        + "".join(body) +
+        f'<div class="uar-foot">Each figure is the {escape(subject)}&#39;s typical same-week move when '
+        f'that force moved by the stated amount, after accounting for {escape(x.get("control") or ex.CORE_CONTROL)}. '
+        f'The evidence bar is stricter than for the core five: Clear needs |t| ≥ '
+        f'{float(x.get("clear_t") or ex.EXTRA_CLEAR_T):.2f}, shared across every force tested, so '
+        f'measuring more forces cannot manufacture more findings.{missing} It describes the past; '
+        f'it is not a forecast.</div>'
+        '</div></div>')
 
 
 def factor_detail_html(report: dict, key: str) -> str:

@@ -35,6 +35,7 @@ SYMBOL_RE = re.compile(r"^[A-Z0-9][A-Z0-9.\-]{0,14}$")
 STANDS_UP = ("clear", "tentative")
 _ORDER = [f.key for f in ex.FACTORS]
 _FACTOR = {f.key: f for f in ex.FACTORS}
+_EXTRA = {f.key: f for f in ex.EXTRA_FACTORS}
 
 
 def fmt_pct(x: Optional[float]) -> str:
@@ -222,6 +223,27 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         'the stated amount, after accounting for the stock market. It describes the past; it is not '
         'a forecast.</div></div>')
 
+    extra_html = ""
+    xkeys = [k for k in _EXTRA if k in exps]
+    if xkeys:
+        xrows = "".join(
+            f'<tr><td><b>{escape(_EXTRA[k].label)}</b>'
+            f'<span class="shock">In weeks when {escape(_EXTRA[k].shock_phrase)}</span></td>'
+            f'<td><b{"" if exps[k]["evidence"] in STANDS_UP else " class=v-weak"}>{fmt_pct(exps[k]["impact"])}</b></td>'
+            f'<td>{fmt_pct(exps[k]["low"])} to {fmt_pct(exps[k]["high"])}</td>'
+            f'<td>{_chip(exps[k]["evidence"])}</td></tr>'
+            for k in xkeys)
+        extra_html = (
+            '<h2>More forces, beyond the core five</h2>'
+            '<div class="card" tabindex="0" role="region" aria-label="More forces, beyond the core five">'
+            '<table><thead><tr><th scope="col">Force</th>'
+            '<th scope="col">Typical weekly move</th><th scope="col">90% range</th>'
+            f'<th scope="col">Evidence</th></tr></thead><tbody>{xrows}</tbody></table>'
+            '<div class="foot">Each is measured with the stock market and the five forces above held '
+            'fixed, so it shows only what they don\'t already explain. The evidence bar is stricter '
+            f'than for the core five (Clear needs |t| ≥ {ex.EXTRA_CLEAR_T:.2f}, shared across every '
+            'force tested). It describes the past; it is not a forecast.</div></div>')
+
     hist_html = ""
     if len(history) >= 2:
         cols = [k for k in _ORDER if any(k in h["exposures"] for h in history)]
@@ -276,7 +298,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<a class="btn btn-primary" href="{escape(app_url)}/stock?t={escape(symbol)}">'
         f'Open the interactive report for {escape(symbol)}</a>'
         f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure a whole portfolio</a></div>'
-        f'{hist_html}{rel_html}'
+        f'{extra_html}{hist_html}{rel_html}'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> It shows how the '
         'stock has moved alongside five economic forces. Relationships change, and nothing here is a '
         'recommendation to buy, sell or hold any security.</p>'
