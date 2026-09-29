@@ -184,3 +184,53 @@ def test_link_still_emitted_when_no_digest_is_available():
     out, _ = ibs._inject_global_css_link("<html><head></head></html>", "")
     assert 'href="/app/static/ua-global.css"' in out
     assert "?v=" not in out
+
+
+def test_the_product_theme_stays_out_of_the_every_page_stylesheet():
+    """ua-global.css loads on every route, including the retired pages that are
+    still reachable. The product theme is injected per page by render_header,
+    only where is_product_page() says so; putting it here would restyle the
+    retired pages too."""
+    from utils.app_theme import PRODUCT_CSS
+
+    theme = PRODUCT_CSS.replace("<style>", "").replace("</style>", "").strip()
+    assert theme not in ibs.build_global_css()
+
+
+def test_inter_is_requested_from_head_not_only_through_an_import():
+    out, _ = ibs._inject_global_css_link("<html><head></head><body></body></html>", "abc")
+    head = out[:out.index("</head>")]
+    assert f'<link rel="stylesheet" href="{ibs.INTER_HREF}">' in head
+    assert head.index(ibs.INTER_HREF) < head.index(ibs.GLOBAL_CSS_HREF)
+
+
+def test_a_previous_builds_link_block_is_replaced_not_kept():
+    """Render reuses its .venv, so index.html arrives holding the LAST build's
+    block. Add-once logic froze it: a new digest or a new link never landed."""
+    stale = ("<html><head><title>t</title>" + ibs._CSS_LINK_MARKER + "\n"
+             f'<link rel="stylesheet" href="{ibs.GLOBAL_CSS_HREF}?v=oldoldoldold">\n'
+             "</head><body></body></html>")
+    out, action = ibs._inject_global_css_link(stale, "newnewnewnew")
+    assert action == "css-link updated"
+    assert "oldoldoldold" not in out and "?v=newnewnewnew" in out
+    assert ibs.INTER_HREF in out
+    assert out.count(ibs._CSS_LINK_MARKER) == 1 and out.count("ua-global.css") == 1
+
+
+def test_the_injector_runs_from_any_working_directory(tmp_path):
+    """Render runs `python scripts/inject_boot_splash.py`; the dashboard root is
+    not on sys.path. When a refactor removed the one import that used to add it
+    as a side effect, every step lost `utils` and the whole injection was
+    skipped with a one-line log message."""
+    import subprocess
+    import sys
+
+    probe = ("import importlib.util as u, sys;"
+             f"s=u.spec_from_file_location('m', {str(ROOT / "scripts" / "inject_boot_splash.py")!r});"
+             "m=u.module_from_spec(s); s.loader.exec_module(m);"
+             "m.build_global_css(); m.legacy_slugs();"
+             "print('upgrade-to-pro' in m.product_slugs())")
+    proc = subprocess.run([sys.executable, "-c", probe], cwd=tmp_path,
+                          capture_output=True, text=True, timeout=120)
+    assert proc.returncode == 0, proc.stderr[-1500:]
+    assert proc.stdout.strip().endswith("True")

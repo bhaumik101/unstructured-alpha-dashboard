@@ -71,7 +71,7 @@ _TYPE = {
     "t-xs": ".75rem", "t-sm": ".82rem", "t-base": ".94rem",
     "t-md": "1.06rem", "t-lg": "1.3rem", "t-xl": "2.1rem",
 }
-_RADII = {"r-sm": "8px", "r": "12px", "r-lg": "18px", "r-pill": "999px"}
+_RADII = {"r-sm": "8px", "r-btn": "10px", "r": "12px", "r-lg": "18px", "r-pill": "999px"}
 
 _STRIP = ("linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0)")
 
@@ -94,6 +94,12 @@ html:not([data-ua-theme="light"]) .stApp{{
   font-family:Inter,"SF Pro Text","Segoe UI",system-ui,-apple-system,sans-serif;
   font-variant-numeric:tabular-nums;
 }}
+/* The full-screen container sits above .stApp and the retired skin painted it
+   (#0a0d12 dark, #f6f5fb light) with !important, so the token ground above
+   never showed: the app and the landing page were two different navies. */
+html[data-ua-theme="light"] .stApp [data-testid="stAppViewContainer"],
+html:not([data-ua-theme="light"]) .stApp [data-testid="stAppViewContainer"]{{
+  background:var(--p-bg)!important;}}
 .stApp [data-testid="stMain"]{{background:transparent!important;}}
 .stApp .block-container{{max-width:1140px;padding-top:58px!important;}}
 
@@ -205,7 +211,7 @@ html[data-ua-theme="light"] .ua-tnav-drop a:hover{{background:var(--p-sky)!impor
 html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"],
 html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primary"]{{
   background:var(--p-accent)!important;border:1px solid var(--p-accent)!important;
-  color:var(--p-accent-ink)!important;box-shadow:none!important;border-radius:var(--p-r-sm)!important;
+  color:var(--p-accent-ink)!important;box-shadow:none!important;border-radius:var(--p-r-btn)!important;
   font-weight:650!important;min-height:44px!important;}}
 html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"]:hover,
 html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primary"]:hover{{
@@ -216,7 +222,7 @@ html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primar
 html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-secondary"],
 html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-secondary"]{{
   background:var(--p-surface)!important;border:1px solid var(--p-line)!important;
-  box-shadow:none!important;border-radius:var(--p-r-sm)!important;min-height:44px!important;}}
+  box-shadow:none!important;border-radius:var(--p-r-btn)!important;min-height:44px!important;}}
 html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-secondary"] p,
 html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-secondary"] p{{
   color:var(--p-ink)!important;font-weight:600!important;font-size:var(--p-t-base)!important;}}
@@ -228,7 +234,7 @@ html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-second
 html[data-ua-theme="light"] .stApp a[data-testid="stBaseLinkButton-secondary"],
 html:not([data-ua-theme="light"]) .stApp a[data-testid="stBaseLinkButton-secondary"]{{
   background:var(--p-surface)!important;border:1px solid var(--p-line)!important;
-  color:var(--p-ink)!important;border-radius:var(--p-r-sm)!important;min-height:44px!important;
+  color:var(--p-ink)!important;border-radius:var(--p-r-btn)!important;min-height:44px!important;
   font-weight:600!important;font-size:var(--p-t-base)!important;box-shadow:none!important;}}
 html[data-ua-theme="light"] .stApp a[data-testid="stBaseLinkButton-secondary"]:hover,
 html:not([data-ua-theme="light"]) .stApp a[data-testid="stBaseLinkButton-secondary"]:hover{{
@@ -236,7 +242,7 @@ html:not([data-ua-theme="light"]) .stApp a[data-testid="stBaseLinkButton-seconda
 html[data-ua-theme="light"] .stApp a[data-testid="stBaseLinkButton-primary"],
 html:not([data-ua-theme="light"]) .stApp a[data-testid="stBaseLinkButton-primary"]{{
   background:var(--p-accent)!important;border:1px solid var(--p-accent)!important;
-  color:var(--p-accent-ink)!important;border-radius:var(--p-r-sm)!important;min-height:44px!important;
+  color:var(--p-accent-ink)!important;border-radius:var(--p-r-btn)!important;min-height:44px!important;
   font-weight:650!important;font-size:var(--p-t-base)!important;box-shadow:none!important;}}
 .stApp :focus-visible{{outline:3px solid var(--p-bright)!important;outline-offset:2px!important;}}
 
@@ -388,6 +394,19 @@ html:not([data-ua-theme="light"]) .stApp [data-testid="stFileUploaderFile"] div{
 html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stBaseButton-secondary"],
 html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stBaseButton-secondary"]{{
   min-height:34px!important;border-radius:var(--p-r-sm)!important;font-size:var(--p-t-sm)!important;}}
+/* Sign In is an st.popover, whose button carries its own testid and so
+   matched none of the rules above: a bare white 16px box hanging off the nav. */
+html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"],
+html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stPopoverButton"]{{
+  background:var(--p-surface)!important;border:1px solid var(--p-line)!important;
+  color:var(--p-ink)!important;box-shadow:none!important;border-radius:var(--p-r-btn)!important;
+  min-height:34px!important;font-weight:600!important;font-size:var(--p-t-sm)!important;}}
+html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"] p,
+html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stPopoverButton"] p{{
+  color:var(--p-ink)!important;font-weight:600!important;font-size:var(--p-t-sm)!important;}}
+html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"]:hover,
+html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stPopoverButton"]:hover{{
+  border-color:var(--p-accent)!important;background:var(--p-sky)!important;}}
 </style>"""
 
 

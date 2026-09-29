@@ -112,42 +112,35 @@ def _load_boot_module():
     return m
 
 
-def test_boot_splash_substitutes_facts_and_shape():
+def test_boot_splash_wears_the_current_brand_not_the_retired_one():
+    """Every load showed the old signal product's violet hexagon on lavender
+    until 2026-09-29. The splash is the first thing any visitor sees."""
     m = _load_boot_module()
     splash = m._build_splash()
-    assert "__UA_FACTS_JSON__" not in splash, "facts placeholder was not substituted"
-    assert "ua-boot-hex" in splash and "uaBootGrad" in splash, "hexagon shape missing"
-    assert "ua-boot-fact" in splash, "fact element missing"
+    assert "UNSTRUCTURED <span>ALPHA</span>" in splash, "the nav's wordmark is missing"
+    assert "#0d223b" in splash and "#ffc24b" in splash, "navy band / amber ALPHA missing"
+    retired = ("#6470F5", "#8B7BF7", "#D4B26A", "#F6F5FB", "#0B0D12", "uaBootGrad", "ua-boot-hex")
+    left = [c for c in retired if c.lower() in splash.lower()]
+    assert not left, f"retired splash styling still present: {left}"
 
 
-def test_boot_splash_facts_match_the_shared_list():
-    """The boot splash must use the same facts as the in-app splash — no drift."""
-    m = _load_boot_module()
-    facts = m._load_facts()
-    assert list(facts) == list(FACTS), (
-        "boot splash facts diverged from utils.macro_facts.FACTS"
-    )
+def test_boot_splash_grounds_match_the_theme_tokens():
+    """The splash hands over to the page without a colour jump."""
+    from utils.app_theme import _DARK, _LIGHT
+
+    splash = _load_boot_module()._build_splash()
+    assert f"background:{_DARK['bg']}" in splash
+    assert f'html[data-ua-theme="light"] #ua-boot-splash{{background:{_LIGHT["bg"]};}}' in splash
 
 
-def test_boot_splash_embeds_valid_json_array():
-    import re
-
-    m = _load_boot_module()
-    splash = m._build_splash()
-    # `var facts=[...]` on one line. A naive split on ';' would break because a
-    # fact legitimately contains one ("expansion; below 50"); match the whole
-    # bracketed array instead.
-    match = re.search(r"var facts=(\[.*\]);", splash)
-    assert match, "facts JS array not found"
-    parsed = json.loads(match.group(1))
-    assert isinstance(parsed, list) and len(parsed) == len(FACTS)
-
-
-def test_boot_splash_fact_loader_never_raises():
-    """It must degrade to a fallback rather than break the build."""
-    m = _load_boot_module()
-    facts = m._load_facts()
-    assert isinstance(facts, list) and len(facts) >= 3
+def test_boot_splash_carries_no_macro_trivia():
+    """The rotating 'did you know' lines were the old product's forecasting talk
+    ("inversions have led downturns by 6 to 18 months") on a product whose whole
+    pitch is that it does not forecast."""
+    splash = _load_boot_module()._build_splash()
+    assert "DID YOU KNOW" not in splash and "var facts=" not in splash
+    for fact in FACTS:
+        assert fact not in splash
 
 
 def test_boot_splash_waits_for_the_streamlit_run_to_finish():

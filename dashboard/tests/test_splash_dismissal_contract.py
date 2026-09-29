@@ -108,3 +108,39 @@ def test_the_hard_timeout_still_exists():
     assert any("setTimeout" in ln and "hide()" in ln for ln in uses), (
         f"the hard-timeout escape hatch must still call hide(); found: {uses}"
     )
+
+
+def test_the_splash_never_lifts_onto_the_retired_skin():
+    """The first stylesheet is the old skin; the product theme arrives with the
+    Python run. Lifting on 'content exists' alone showed the old look for a
+    moment on every load, so the theme is a hard gate too, on every path."""
+    body = _ready_body()
+    assert re.search(r"if\(!themeApplied\(\)\)\s*return false", body), (
+        "themeApplied() must be a hard gate, not one term of an OR")
+    assert body.index("themeApplied()") < body.index("LAYOUT_READY_MS"), (
+        "the layout budget must not be able to lift the splash before the theme")
+    fn = _SRC[_SRC.index("function themeApplied(){"):]
+    fn = fn[:fn.index("}") + 1]
+    assert "--p-ink" in fn, "themeApplied() must test for a product-theme token"
+
+
+def test_only_product_routes_wait_for_the_theme():
+    """The retired pages never get the product theme. If they waited for it,
+    they would sit behind the splash until the 45-second hard timeout."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("ibs_contract", _SCRIPT)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+
+    slugs = m.product_slugs()
+    assert "" in slugs, "the default page (the report) is a product page"
+    assert {"compare", "portfolios", "pricing", "upgrade-to-pro"} <= set(slugs)
+    assert not set(slugs) & set(m.legacy_slugs()), "a retired page would wait 45s"
+
+    fn = _SRC[_SRC.index("function themeApplied(){"):]
+    fn = fn[:fn.index("\n  }") + 4]
+    assert "productPaths.indexOf(path)===-1) return true" in fn, (
+        "non-product routes must not wait for the product theme")
+    splash = m._build_splash()
+    assert "__UA_PRODUCT_SLUGS__" not in splash
