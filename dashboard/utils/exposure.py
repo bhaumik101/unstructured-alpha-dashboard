@@ -35,6 +35,14 @@
 #   only ~3 years of the ICE high-yield series, which cannot fill a 3-year
 #   window reliably. BAA10Y has decades of daily history.
 # * A failed data series is EXCLUDED and named, never filled in.
+# * MORE FORCES (EXTRA_FACTORS) are a second layer, not part of the core model.
+#   Each is fitted on its own: returns ~ market + the five core forces + that
+#   one force, on the same weeks. So an extra reading means "beyond what the
+#   market and the core five already explain", the core readings are exactly
+#   what they were before any extra existed, and stored history stays
+#   comparable. The extras' Bonferroni bar is shared across every force tested,
+#   core and extra: an extra always needs more than a core force to be called
+#   Clear, and adding forces makes each one harder, never easier.
 #
 # The engine is pure: data arrives through injected fetchers, so every claim
 # in it is tested on synthetic data where the true exposure is known.
@@ -61,6 +69,7 @@ class Factor:
     shock: float          # the move a reading is expressed per, in `transform` units
     shock_phrase: str     # plain English for that move
     why: str              # why an investor would care, one sentence
+    group: str = "core"   # "core", or the EXTRA_GROUPS key it is listed under
 
 
 FACTORS: tuple[Factor, ...] = (
@@ -85,6 +94,33 @@ GROWTH_FACTOR = Factor(
     "growth", "Economic growth", "INDPRO", "pct", 1.0,
     "U.S. industrial production grew 1%",
     "Growth drives company earnings, but it is only published monthly, so evidence is thin.",
+)
+
+# ── more forces: a second layer, measured beyond the core five ──────────────
+# Groups are added one at a time, each after its own review. Order is display
+# order. A new force must say in `why` what it measures beyond the core: most
+# of these move with a core force, and the reading is only the part that
+# doesn't.
+EXTRA_GROUPS: Dict[str, str] = {
+    "markets": "Markets and rates",
+}
+
+EXTRA_FACTORS: tuple[Factor, ...] = (
+    Factor("short_rates", "Short-term rates", "DGS2", "diff", 0.25,
+           "the 2-year Treasury yield rose 0.25 percentage points",
+           "The 2-year yield tracks where the Federal Reserve is expected to set rates. "
+           "Measured with the 10-year yield held fixed, it is the front of the yield curve "
+           "moving on its own.", group="markets"),
+    Factor("volatility", "Market volatility", "VIXCLS", "diff", 5.0,
+           "market volatility (the VIX) rose 5 points",
+           "The VIX measures how much the stock market is expected to swing. Measured beyond "
+           "the market's own move, it is how a holding behaves when fear rises.",
+           group="markets"),
+    Factor("mortgage", "Mortgage rates", "MORTGAGE30US", "diff", 0.25,
+           "the 30-year mortgage rate rose 0.25 percentage points",
+           "Mortgage rates set the cost of buying a home. Measured with the 10-year yield "
+           "held fixed, it is the extra that lenders charge homebuyers moving on its own.",
+           group="markets"),
 )
 
 MARKET_TICKER = "SPY"
@@ -116,6 +152,21 @@ VIF_WARN = 5.0
 # tests/test_exposure.py asserts they still equal scipy's values exactly.
 Z90 = 1.644853626951472          # normal 95th percentile: the 90% range
 CLEAR_T = 2.5758293035489004  # 5% shared across the five factors (Bonferroni)
+
+
+def _bonferroni_t(n_tests: int, alpha: float = 0.05) -> float:
+    """Two-sided |t| bar with alpha shared across n_tests. Stdlib, not scipy."""
+    from statistics import NormalDist
+    return NormalDist().inv_cdf(1.0 - alpha / (2.0 * max(1, n_tests)))
+
+
+# The extras' bar: 5% shared across EVERY force tested, core and extra. So an
+# extra always needs more than a core force to be called Clear, and the bar
+# tightens as groups are added -- more forces tested must not mean more
+# findings by chance. The core keeps its own five-force bar (CLEAR_T), so its
+# readings and stored history are unchanged.
+EXTRA_CLEAR_T = _bonferroni_t(len(FACTORS) + len(EXTRA_FACTORS))
+CORE_CONTROL = "the stock market and the five core forces"
 
 EVIDENCE_LABELS = {
     "clear": "Clear",
@@ -257,7 +308,8 @@ def _fmt(x: float) -> str:
 
 
 def _sentence(f: Factor, impact: float, low: float, high: float, evidence: str,
-              subject: str = "this portfolio", period: str = "weeks") -> str:
+              subject: str = "this portfolio", period: str = "weeks",
+              control: str = "the overall stock market") -> str:
     if evidence == "not_enough_data":
         return f"There isn't enough history to measure exposure to {lower_label(f.label)}."
     if evidence == "indistinct":
@@ -265,8 +317,7 @@ def _sentence(f: Factor, impact: float, low: float, high: float, evidence: str,
                 f"{subject}'s typical move of {_fmt(impact)} sat inside its range of "
                 f"uncertainty ({_fmt(low)} to {_fmt(high)}).")
     text = (f"In {period} when {f.shock_phrase}, {subject} has typically moved {_fmt(impact)} "
-            f"(90% range {_fmt(low)} to {_fmt(high)}), after accounting for the overall "
-            f"stock market.")
+            f"(90% range {_fmt(low)} to {_fmt(high)}), after accounting for {control}.")
     if evidence == "tentative":
         text += " The evidence is tentative."
     return text
@@ -274,7 +325,8 @@ def _sentence(f: Factor, impact: float, low: float, high: float, evidence: str,
 
 def _fit_on_frame(frame: pd.DataFrame, ycol: str, factors: Iterable[Factor],
                   min_obs: int, clear_t: float = CLEAR_T,
-                  subject: str = "this portfolio", period: str = "weeks") -> dict:
+                  subject: str = "this portfolio", period: str = "weeks",
+                  control: str = "the overall stock market") -> dict:
     by_key = {f.key: f for f in factors}
     keys = [k for k in by_key if k in frame.columns]
     n = int(len(frame))
@@ -310,7 +362,7 @@ def _fit_on_frame(frame: pd.DataFrame, ycol: str, factors: Iterable[Factor],
             "impact": impact, "low": low, "high": high, "se_impact": se_impact,
             "t": t, "n_obs": n, "evidence": ev, "evidence_label": EVIDENCE_LABELS[ev],
             "vif": factor_vif, "hard_to_separate_from": partner,
-            "sentence": _sentence(f, impact, low, high, ev, subject, period),
+            "sentence": _sentence(f, impact, low, high, ev, subject, period, control),
         }
 
     return {
@@ -331,6 +383,30 @@ def fit_exposure(returns: pd.Series, market: pd.Series, factor_changes: Mapping[
     """Exposure of one weekly return series to each factor, market-controlled."""
     frame = _align(returns, market, factor_changes).iloc[-window:]
     return _fit_on_frame(frame, "__y__", factors, min_obs, clear_t)
+
+
+def fit_extras(frame: pd.DataFrame, ycol: str, core: Iterable[Factor],
+               extra_changes: Mapping[str, pd.Series], subject: str = "this portfolio",
+               extras: Iterable[Factor] = None) -> Dict[str, dict]:
+    """One reading per extra force, each beyond the market and the core forces.
+
+    `frame` is the core model's frame (already aligned, no gaps). Each extra is
+    joined onto it and fitted in its own regression, so one extra never
+    changes another's reading, and the core readings are untouched.
+    """
+    core = tuple(core)
+    out: Dict[str, dict] = {}
+    for f in (EXTRA_FACTORS if extras is None else extras):
+        ch = extra_changes.get(f.key)
+        if ch is None or ch.empty:
+            continue
+        fx = frame.join(ch.rename(f.key), how="inner").dropna()
+        fit = _fit_on_frame(fx, ycol, core + (f,), MIN_WEEKS, EXTRA_CLEAR_T, subject,
+                            control=CORE_CONTROL)
+        reading = fit["readings"].get(f.key)
+        if reading:
+            out[f.key] = dict(reading, group=f.group)
+    return out
 
 
 # ── the report ──────────────────────────────────────────────────────────────
@@ -624,6 +700,20 @@ def build_exposure_report(
     top = sorted((r for r in portfolio["readings"].values() if r["evidence"] in rank),
                  key=lambda r: (rank[r["evidence"]], -abs(r["t"])))
 
+    extra_changes: Dict[str, pd.Series] = {}
+    extra_unavailable: List[str] = []
+    for f in EXTRA_FACTORS:
+        try:
+            ch = to_changes(series_fetcher(f.series_id, s, e), f.transform)
+        except Exception:
+            ch = pd.Series(dtype=float)
+        ch = ch[ch.index >= pd.Timestamp(start_d)] if not ch.empty else ch
+        if len(ch) < MIN_WEEKS:
+            extra_unavailable.append(f.label)   # excluded and named, never filled in
+        else:
+            extra_changes[f.key] = ch
+    extras = fit_extras(now, "__portfolio__", active, extra_changes)
+
     try:
         growth_levels = series_fetcher(GROWTH_FACTOR.series_id, s, e)
     except Exception:
@@ -656,12 +746,18 @@ def build_exposure_report(
         "factor_paths": _factor_paths({k: v for k, v in levels_raw.items() if k in changes},
                                       now.index),
         "growth": growth,
+        "extras": {"readings": extras, "unavailable": extra_unavailable,
+                   "clear_t": EXTRA_CLEAR_T, "n_forces": len(EXTRA_FACTORS),
+                   "control": CORE_CONTROL},
         "notes": notes,
         "method": {
             "window_weeks": WINDOW_WEEKS, "min_weeks": MIN_WEEKS, "clear_t": CLEAR_T,
             "rolling_weeks": ROLLING_WEEKS, "rolling_step": ROLLING_STEP,
             "range": "90%", "market_control": MARKET_TICKER, "standard_errors": "Newey-West, 4 lags",
             "factors": [{"label": f.label, "series_id": f.series_id} for f in FACTORS],
+            "extra_factors": [{"label": f.label, "series_id": f.series_id, "group": f.group}
+                              for f in EXTRA_FACTORS],
+            "extra_clear_t": EXTRA_CLEAR_T,
         },
     }
 

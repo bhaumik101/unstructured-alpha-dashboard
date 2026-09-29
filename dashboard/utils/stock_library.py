@@ -58,6 +58,10 @@ def record(report: dict, name: str = "") -> bool:
         ticker = single_ticker(report)
         as_of = str(report.get("as_of") or "")[:10]
         readings = ((report.get("portfolio") or {}).get("readings")) or {}
+        # The extra forces (utils/exposure.EXTRA_FACTORS) sit beside the core
+        # ones, keyed by their own factor names; each is a separate regression,
+        # so it is stored as its own row exactly like a core reading.
+        extras = ((report.get("extras") or {}).get("readings")) or {}
         if not ticker or len(as_of) != 10 or not readings:
             return False
 
@@ -70,7 +74,7 @@ def record(report: dict, name: str = "") -> bool:
             "measured_at": datetime.now(timezone.utc).isoformat(),
         }
         rows = []
-        for key, r in readings.items():
+        for key, r in {**readings, **extras}.items():
             impact, low, high = _num(r.get("impact")), _num(r.get("low")), _num(r.get("high"))
             if impact is None or low is None or high is None:
                 continue   # not measured is not stored; never a synthesized zero
