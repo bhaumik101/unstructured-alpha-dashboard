@@ -26,6 +26,15 @@ import os
 import re
 import sys
 
+# Render runs this as `python scripts/inject_boot_splash.py`, so the dashboard
+# root is not on sys.path and `utils` does not import. This used to happen as a
+# side effect of loading the splash's macro facts; when those went, every later
+# step (legacy slugs, meta, the global stylesheet) lost its imports and main()
+# skipped the whole injection. Explicit, and first, so nothing depends on order.
+_DASHBOARD_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _DASHBOARD_ROOT not in sys.path:
+    sys.path.insert(0, _DASHBOARD_ROOT)
+
 MARKER = "ua-boot-splash"
 START_MARKER = "<!-- ua-boot-splash:start -->"
 END_MARKER = "<!-- ua-boot-splash:end -->"
@@ -37,23 +46,6 @@ END_MARKER = "<!-- ua-boot-splash:end -->"
 # removable: ua-runtime, ua-boot-splash, ua-meta, ua-seo, ua-global-css.
 RUNTIME_START = "<!-- ua-runtime:start -->"
 RUNTIME_END = "<!-- ua-runtime:end -->"
-
-
-def _load_facts() -> list:
-    """True macro facts from the shared module, so the splash and the in-app
-    loading panel never drift. Falls back to a tiny inline set if the import
-    fails — this script must never break the build."""
-    try:
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from utils.macro_facts import FACTS
-        return list(FACTS)
-    except Exception:
-        return [
-            "An inverted yield curve has preceded every U.S. recession of the "
-            "past half-century.",
-            "A manufacturing PMI above 50 signals expansion; below 50, contraction.",
-            "The VIX infers expected 30-day S&P 500 volatility from options prices.",
-        ]
 
 
 def _build_runtime() -> str:
@@ -403,117 +395,78 @@ def legacy_slugs() -> list[str]:
     return sorted(slugs)
 
 
+def product_slugs() -> list[str]:
+    """URL slugs of the pages that carry the product theme ("" is the default page).
+
+    The splash waits for that theme before lifting -- but only on these routes.
+    The retired pages never receive it, and a global wait would hold them
+    behind the splash until the 45-second hard timeout.
+    """
+    import re as _re
+    from pathlib import Path as _Path
+
+    from utils.app_theme import is_product_page
+
+    app_py = (_Path(__file__).resolve().parent.parent / "app.py").read_text(encoding="utf-8")
+    slugs = []
+    for match in _re.finditer(r'st\.Page\("pages/([^"]+)"([^)]*)\)', app_py):
+        name, args = match.group(1), match.group(2)
+        if not is_product_page(name):
+            continue
+        slug = _re.search(r'url_path="([^"]+)"', args)
+        slugs.append(slug.group(1) if slug else "" if "default=True" in args else None)
+    return sorted(s for s in slugs if s is not None)
+
+
 def _build_splash() -> str:
-    facts_json = json.dumps(_load_facts())
     # Raw string: the JS below contains regex literals such as /^\/+|\/+$/ and
     # Python reads "\/" as an invalid escape sequence. Today that is only a
     # SyntaxWarning, but it is scheduled to become a SyntaxError. There are no
     # intentional Python escapes in this blob, so r"" is a safe, exact no-op.
+    #
+    # The current brand, not the retired one. Until 2026-09-29 this painted a
+    # violet hexagon on lavender with rotating macro trivia ("yield-curve
+    # inversions have led downturns by 6 to 18 months") -- the old signal
+    # product's look, and forecasting talk the exposure product disclaims, on
+    # every single load. Now: the nav's own wordmark on its navy band, the six
+    # factor colours as the progress strip, the page's own ground behind it.
     return r"""
 <!-- ua-boot-splash:start -->
-<div id="ua-boot-splash" role="status" aria-label="Loading">
-  <div class="ua-boot-frame">
-    <!-- Hexagon frame echoing the logo mark, so the content sits inside the
-         brand shape instead of floating in empty space. Same flat-top geometry
-         as the UA mark; preserveAspectRatio="none" lets it stretch to the
-         content box while the stroke stays even via vector-effect. -->
-    <svg class="ua-boot-hexframe" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <polygon points="50,1 99,25.5 99,74.5 50,99 1,74.5 1,25.5"
-               fill="none" stroke-width="1.1" vector-effect="non-scaling-stroke"/>
-    </svg>
+<div id="ua-boot-splash" role="status" aria-label="Loading Unstructured Alpha">
   <div class="ua-boot-inner">
-    <svg class="ua-boot-hex" viewBox="0 0 100 100" width="132" height="132" aria-hidden="true">
-      <defs>
-        <linearGradient id="uaBootGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#6470F5"/>
-          <stop offset="55%" stop-color="#8B7BF7"/>
-          <stop offset="100%" stop-color="#D4B26A"/>
-        </linearGradient>
-      </defs>
-      <polygon points="50,4 91,27 91,73 50,96 9,73 9,27" fill="url(#uaBootGrad)" opacity="0.92"/>
-      <polygon points="50,4 91,27 91,73 50,96 9,73 9,27" fill="none" stroke="#0B0D12" stroke-width="2"/>
-      <text x="50" y="60" text-anchor="middle" font-family="Inter,sans-serif"
-            font-size="30" font-weight="900" fill="#0B0D12">UA</text>
-    </svg>
-    <div class="ua-boot-logo">UNSTRUCTURED <span>ALPHA</span></div>
-    <div class="ua-boot-sub">Loading Unstructured Alpha…</div>
+    <div class="ua-boot-mark">UNSTRUCTURED <span>ALPHA</span></div>
     <div class="ua-boot-bar"><div class="ua-boot-bar-fill"></div></div>
-    <div class="ua-boot-fact" id="ua-boot-fact"></div>
-  </div>
+    <div class="ua-boot-sub">Loading…</div>
   </div>
 </div>
 <style>
-#ua-boot-splash{position:fixed;inset:0;z-index:2147483647;background:#0B0D12;
+#ua-boot-splash{position:fixed;inset:0;z-index:2147483647;background:#0b1422;
   display:flex;align-items:center;justify-content:center;
-  transition:opacity .5s ease;
-  font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;}
+  transition:opacity .35s ease;
+  font-family:Inter,"SF Pro Text","Segoe UI",system-ui,-apple-system,sans-serif;}
 #ua-boot-splash.ua-hide{opacity:0;pointer-events:none;}
-#ua-boot-splash .ua-boot-hex{filter:drop-shadow(0 0 30px rgba(100,112,245,0.34));
-  animation:ua-boot-pulse 2.4s ease-in-out infinite;}
-#ua-boot-splash .ua-boot-fact{margin:16px auto 0;max-width:440px;font-size:.78rem;
-  line-height:1.5;color:#9AA6C4;border-top:1px solid rgba(255,255,255,.07);padding-top:12px;
-  opacity:0;transition:opacity .5s ease;}
-#ua-boot-splash .ua-boot-fact.show{opacity:1;}
-#ua-boot-splash .ua-boot-fact::before{content:"DID YOU KNOW";display:block;font-size:.56rem;
-  font-weight:700;letter-spacing:.14em;color:#4F5B7A;margin-bottom:5px;}
-@keyframes ua-boot-pulse{0%,100%{transform:scale(1);opacity:.92;}50%{transform:scale(1.06);opacity:1;}}
-@media (prefers-reduced-motion: reduce){#ua-boot-splash .ua-boot-hex{animation:none;}}
-/* Hexagon frame around the whole splash block. The padding is asymmetric on
-   purpose: a hexagon pinches at top and bottom, so square padding would let the
-   wordmark and the fact text collide with the sloped edges. */
-#ua-boot-splash .ua-boot-frame{
-  position:relative;
-  padding:74px 96px;
-  max-width:min(92vw,700px);
-}
-#ua-boot-splash .ua-boot-hexframe{
-  position:absolute;inset:0;width:100%;height:100%;
-  pointer-events:none;overflow:visible;
-}
-#ua-boot-splash .ua-boot-hexframe polygon{
-  stroke:rgba(139,123,247,0.55);   /* dark mode: purple */
-}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hexframe polygon{
-  stroke:rgba(16,18,32,0.72);      /* light mode: near-black, inverted */
-}
-@media (max-width:640px){
-  #ua-boot-splash .ua-boot-frame{padding:56px 34px;}
-}
-#ua-boot-splash .ua-boot-inner{text-align:center;position:relative;z-index:1;}
-#ua-boot-splash .ua-boot-logo{font-size:1.35rem;font-weight:800;letter-spacing:.04em;color:#E8EEFF;}
-#ua-boot-splash .ua-boot-logo span{background:linear-gradient(135deg,#6470F5,#8B7BF7 60%,#D4B26A 120%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-#ua-boot-splash .ua-boot-sub{margin-top:8px;font-size:.72rem;color:#6B7FBF;letter-spacing:.02em;}
-#ua-boot-splash .ua-boot-bar{margin:18px auto 0;width:180px;height:3px;border-radius:3px;
-  background:rgba(255,255,255,.08);overflow:hidden;}
+#ua-boot-splash .ua-boot-inner{text-align:center;}
+#ua-boot-splash .ua-boot-mark{display:inline-block;padding:12px 20px;border-radius:12px;
+  background:linear-gradient(135deg,#0d223b,#15375d);color:#eef3fa;
+  font-size:1.05rem;font-weight:800;letter-spacing:-.01em;
+  box-shadow:0 10px 30px rgba(13,34,59,.28);}
+#ua-boot-splash .ua-boot-mark span{color:#ffc24b;}
+#ua-boot-splash .ua-boot-bar{margin:18px auto 0;width:168px;height:3px;border-radius:3px;
+  background:rgba(143,155,177,.25);overflow:hidden;}
 #ua-boot-splash .ua-boot-bar-fill{height:100%;width:40%;border-radius:3px;
-  background:linear-gradient(90deg,#6470F5,#8B7BF7 55%,#D4B26A);
+  background:linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0);
   animation:ua-boot-slide 1.1s infinite ease-in-out;}
+#ua-boot-splash .ua-boot-sub{margin-top:12px;font-size:.75rem;color:#8f9bb1;}
 @keyframes ua-boot-slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
-/* Light theme: the splash is the very first thing painted, so if it stayed dark
-   a light-mode user would get a full-screen dark flash before the app appears. */
-html[data-ua-theme="light"] #ua-boot-splash{background:#F6F5FB;}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-logo{color:#161A2E;}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-sub{color:#5E5A8C;}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-fact{color:#3A4059;border-top-color:rgba(20,22,44,0.10);}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-fact::before{color:#62697E;}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-bar{background:rgba(20,22,44,0.10);}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hex polygon[stroke]{stroke:#F6F5FB;}
+@media (prefers-reduced-motion: reduce){#ua-boot-splash .ua-boot-bar-fill{animation:none;width:100%;}}
+/* Light theme: the splash is the very first thing painted, so it wears the
+   same ground the page will (--p-bg), or a light visitor gets a dark flash. */
+html[data-ua-theme="light"] #ua-boot-splash{background:#fafaf8;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-bar{background:#dfe5ee;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-sub{color:#5b6780;}
 </style>
 <script>
 (function(){
-  // Rotate genuinely-true macro facts while the app boots.
-  var facts=__UA_FACTS_JSON__;
-  var el=document.getElementById('ua-boot-fact');
-  if(el&&facts&&facts.length){
-    var i=Math.floor(Math.random()*facts.length);
-    function showFact(){el.textContent=facts[i];el.classList.add('show');}
-    function nextFact(){
-      el.classList.remove('show');
-      setTimeout(function(){i=(i+1)%facts.length;showFact();},500);
-    }
-    showFact();
-    setInterval(nextFact,4200);
-  }
   function hide(){
     var s=document.getElementById('ua-boot-splash');
     if(!s)return;
@@ -558,6 +511,17 @@ html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hex polygon[stroke]{stroke:
       +'[data-testid="stAlert"], [data-testid="stForm"], button, input, canvas, iframe'
     )!==null || (main.textContent||'').trim().length>24;
   }
+  /* Product pages get their theme inline from the Python run, after the
+     retired skin in <head> has already painted. Lifting on "content exists"
+     alone showed that old look for a moment on every load. Other routes never
+     get the theme, so they are not held for it. */
+  var productPaths=__UA_PRODUCT_SLUGS__;
+  function themeApplied(){
+    var path=(location.pathname||'/').replace(/^\/+|\/+$/g,'');
+    if(productPaths.indexOf(path)===-1) return true;
+    var app=appRoot();
+    return !!app && getComputedStyle(app).getPropertyValue('--p-ink').trim()!=='';
+  }
   function isStreamlitBusy(){
     // The header running icon is Streamlit's authoritative script-run signal.
     // Page-level spinners/skeletons cover long provider calls inside that run.
@@ -572,13 +536,16 @@ html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hex polygon[stroke]{stroke:
     /* Never lift over an empty page: real rendered content is required on
        every path, including the layout-budget one below. */
     if(!hasRenderedContent()) return false;
+    /* ...and never lift onto the retired skin. The product theme sets --p-ink
+       on .stApp; until it is present the page underneath is the old look. */
+    if(!themeApplied()) return false;
     if(now-started>=LAYOUT_READY_MS) return true;
     return !isStreamlitBusy() && now-lastMutation>=SETTLE_MS;
   }
 
   var observer=new MutationObserver(function(mutations){
-    // Ignore the splash's own rotating fact animation. Only application DOM
-    // changes extend the settling window.
+    // Ignore the splash's own DOM. Only application DOM changes extend the
+    // settling window.
     for(var j=0;j<mutations.length;j++){
       var target=mutations[j].target;
       var targetEl=target.nodeType===1?target:target.parentElement;
@@ -603,7 +570,17 @@ html[data-ua-theme="light"] #ua-boot-splash .ua-boot-hex polygon[stroke]{stroke:
 })();
 </script>
 <!-- ua-boot-splash:end -->
-""".replace("__UA_FACTS_JSON__", facts_json)
+""".replace("__UA_PRODUCT_SLUGS__", json.dumps(_product_slugs_or_none()))
+
+
+def _product_slugs_or_none() -> list[str]:
+    """product_slugs(), but never at the cost of the build: an empty list only
+    means no route waits for the theme, which is how the splash behaved before."""
+    try:
+        return product_slugs()
+    except Exception as exc:
+        print(f"[boot-splash] product slugs unavailable: {exc}", flush=True)
+        return []
 
 
 def _inject_runtime(html: str) -> tuple[str, str]:
@@ -840,6 +817,9 @@ def _inject_seo_body(html: str) -> str:
 GLOBAL_CSS_FILENAME = "ua-global.css"
 GLOBAL_CSS_HREF = f"/app/static/{GLOBAL_CSS_FILENAME}"
 _CSS_LINK_MARKER = "<!-- ua-global-css -->"
+# The one Inter request both surfaces make; the landing page uses the same URL.
+INTER_HREF = ("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800"
+              "&display=swap")
 
 
 def build_global_css() -> str:
@@ -913,16 +893,30 @@ def _inject_global_css_link(html: str, digest: str = "") -> tuple[str, str]:
     that path — this keeps that resolution untouched while still changing the
     URL whenever, and only whenever, the CSS actually changes.
     """
-    if _CSS_LINK_MARKER in html:
-        return html, "css-link already present"
+    # REPLACE, not add-once. Render keeps its .venv between builds, so this
+    # index.html usually still holds the previous build's block; add-once left
+    # it frozen -- the ?v= digest above never changed, and the Inter link added
+    # on 2026-09-29 would never have reached a single visitor.
+    original = html
+    html = re.sub(re.escape(_CSS_LINK_MARKER) + r"\n(?:<link [^>]*>\n)*", "", html)
     href = f"{GLOBAL_CSS_HREF}?v={digest}" if digest else GLOBAL_CSS_HREF
+    # Inter is requested from <head> in parallel with the stylesheet. It used
+    # to arrive only through an @import inside ua-global.css -- stylesheet,
+    # then import, then font, in series -- so text painted in a fallback face
+    # first and then swapped: the other half of "the old font on load".
     tag = (
         f'{_CSS_LINK_MARKER}\n'
+        f'<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+        f'<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+        f'<link rel="stylesheet" href="{INTER_HREF}">\n'
         f'<link rel="stylesheet" href="{href}">\n'
     )
     if "</head>" not in html:
-        return html, "css-link skipped (no </head>)"
-    return html.replace("</head>", tag + "</head>", 1), "css-link injected"
+        return original, "css-link skipped (no </head>)"
+    out = html.replace("</head>", tag + "</head>", 1)
+    if out == original:
+        return out, "css-link already present"
+    return out, "css-link updated" if _CSS_LINK_MARKER in original else "css-link injected"
 
 
 def main() -> None:

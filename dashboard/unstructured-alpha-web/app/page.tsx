@@ -269,10 +269,9 @@ export default function Home() {
       <div className="lp-hero-band">
         <nav className="lp-nav" aria-label="Main">
           <div className="lp-wrap lp-nav-inner">
-            <Link href="/" className="lp-brand">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.svg" alt="" width={28} height={28} />
-              Unstructured Alpha
+            {/* The app's wordmark, not the retired violet hexagon. */}
+            <Link href="/" className="lp-brand" aria-label="Unstructured Alpha home">
+              UNSTRUCTURED <span>ALPHA</span>
             </Link>
             <div className="lp-nav-links">
               <a href="#how-it-works">How it works</a>
@@ -280,8 +279,14 @@ export default function Home() {
               <a href={`${APP_URL}/research`}>Research</a>
               <a href="#pricing">Pricing</a>
               <a href="#faq">FAQ</a>
+              {/* The app's own toggle: it names the theme you would switch TO.
+                  Both labels render and CSS shows the right one, so the server
+                  HTML and the stored theme can never disagree at hydration. */}
               <button type="button" className="lp-theme" onClick={toggleTheme}
-                      aria-label="Switch between light and dark theme">Theme</button>
+                      aria-label="Switch between light and dark theme">
+                <span className="lp-theme-to-dark"><span aria-hidden="true">&#9789;</span>DARK</span>
+                <span className="lp-theme-to-light"><span aria-hidden="true">&#9788;</span>LIGHT</span>
+              </button>
               <a href={sampleUrl("nav")} onClick={() => recordAppOpen("nav")}
                  className="lp-btn lp-btn-bright lp-btn-sm">Try a sample report</a>
             </div>

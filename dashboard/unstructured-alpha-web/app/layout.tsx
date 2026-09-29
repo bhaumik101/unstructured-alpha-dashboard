@@ -63,6 +63,21 @@ export default function RootLayout({
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
         {/*
+          Inter, loaded. The stylesheets always NAMED Inter, but nothing ever
+          fetched it, so on a machine without Inter installed (most Macs) the
+          landing page set in SF Pro while the app, which does load it, set in
+          Inter. Same URL the app's index.html requests.
+        */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* The rule targets the pages/ router; this is the root layout, so the
+            font already loads on every page. */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        />
+        {/*
           Theme: a stored choice wins; otherwise light. Light is the default
           because advisers print and screen-share reports.
         */}

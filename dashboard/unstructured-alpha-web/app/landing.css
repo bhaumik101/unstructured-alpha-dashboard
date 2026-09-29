@@ -105,11 +105,19 @@
 
 .lp-nav { position: relative; z-index: 2; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
 .lp-nav-inner { height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.lp-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; letter-spacing: -0.01em; color: #ffffff; }
+/* Same wordmark as the app's nav (utils/header.py): caps, heavy, amber ALPHA. */
+.lp-brand { display: flex; align-items: center; gap: 5px; font-weight: 800; font-size: 15px; letter-spacing: -0.01em; color: #ffffff; white-space: nowrap; }
+.lp-brand span { color: var(--lp-bright); }
 .lp-nav-links { display: flex; align-items: center; gap: 24px; font-size: 14px; color: rgba(238, 243, 250, 0.82); }
 .lp-nav-links a:hover { color: #ffffff; }
-.lp-theme { background: transparent; border: 1px solid rgba(255, 255, 255, 0.25); color: rgba(238, 243, 250, 0.85); font-size: 12px; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+/* Same pill as the app's nav toggle (utils/header.py .ua-theme-toggle), so the
+   two surfaces read as one product. */
+.lp-theme { display: inline-flex; align-items: center; background: transparent; border: 1px solid rgba(255, 255, 255, 0.22); color: rgba(238, 243, 250, 0.72); font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: .06em; padding: 0 10px; min-height: 28px; border-radius: 7px; cursor: pointer; }
 .lp-theme:hover { color: #ffffff; border-color: rgba(255, 255, 255, 0.5); }
+.lp-theme > span { display: inline-flex; align-items: center; gap: 6px; }
+.lp-theme-to-light { display: none !important; }
+:root[data-theme="dark"] .lp-theme-to-dark { display: none !important; }
+:root[data-theme="dark"] .lp-theme-to-light { display: inline-flex !important; }
 .lp-menu-btn { display: none; background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); color: #ffffff; border-radius: 6px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
 .lp-mobile { display: none; position: relative; z-index: 2; border-top: 1px solid rgba(255, 255, 255, 0.1); padding: 10px 24px 16px; }
 .lp-mobile a, .lp-mobile button { display: block; padding: 10px 0; font-size: 15px; color: #eef3fa; background: none; border: 0; text-align: left; width: 100%; cursor: pointer; }
