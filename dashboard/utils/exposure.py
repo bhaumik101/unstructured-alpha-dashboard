@@ -70,7 +70,8 @@ class Factor:
     shock_phrase: str     # plain English for that move
     why: str              # why an investor would care, one sentence
     group: str = "core"   # "core", or the EXTRA_GROUPS key it is listed under
-    source: str = "fred"  # "fred": series_id is a FRED series; "price": a ticker's price
+    source: str = "fred"  # "fred": series_id is a FRED series; "price": a ticker's price;
+                          # "spread": "A/B", A's weekly return minus B's, in points
 
 
 FACTORS: tuple[Factor, ...] = (
@@ -105,6 +106,7 @@ GROWTH_FACTOR = Factor(
 EXTRA_GROUPS: Dict[str, str] = {
     "markets": "Markets and rates",
     "commodities": "Commodities and crypto",
+    "styles": "Investing styles",
 }
 
 EXTRA_FACTORS: tuple[Factor, ...] = (
@@ -147,10 +149,36 @@ EXTRA_FACTORS: tuple[Factor, ...] = (
            "Bitcoin is a speculative asset that some companies hold or build on. Measured "
            "beyond the stock market, it is how a holding moves with crypto sentiment.",
            group="commodities"),
+    # Styles are the weekly return of one fund minus another's, so each is a
+    # long-short portfolio anyone can check. Fund prices are current to the
+    # day; the academic Fama-French factors are published a month or two late,
+    # which would end these readings weeks before every other one.
+    Factor("size", "Small vs large companies", "IWM/IWB", "spread", 1.0,
+           "small companies beat large ones by 1 percentage point",
+           "Small companies depend more on bank credit and the domestic economy. Russell "
+           "2000 fund minus Russell 1000 fund, measured beyond the market and the core five.",
+           group="styles", source="spread"),
+    Factor("value", "Value vs growth", "IWD/IWF", "spread", 1.0,
+           "value stocks beat growth stocks by 1 percentage point",
+           "Value stocks are cheap on current profits; growth stocks are priced on profits "
+           "further out. Measured with rates and oil held fixed, which drive much of the gap.",
+           group="styles", source="spread"),
+    Factor("momentum", "Momentum", "MTUM/SPY", "spread", 1.0,
+           "recent winners beat the stock market by 1 percentage point",
+           "Momentum is the tendency of stocks that rose over the past year to keep "
+           "rising, until it reverses sharply. MSCI momentum fund minus the S&P 500 fund.",
+           group="styles", source="spread"),
 )
 
+
+def _spread_legs(f: Factor) -> tuple:
+    return tuple(f.series_id.split("/")) if f.source == "spread" else ()
+
+
 # Price-sourced extras are fetched with the holdings, in the same batch.
-EXTRA_PRICE_TICKERS = tuple(f.series_id for f in EXTRA_FACTORS if f.source == "price")
+EXTRA_PRICE_TICKERS = tuple(dict.fromkeys(
+    t for f in EXTRA_FACTORS
+    for t in ((f.series_id,) if f.source == "price" else _spread_legs(f))))
 
 MARKET_TICKER = "SPY"
 
@@ -734,8 +762,13 @@ def build_exposure_report(
     extra_unavailable: List[str] = []
     for f in EXTRA_FACTORS:
         try:
-            levels = daily.get(f.series_id) if f.source == "price" else series_fetcher(f.series_id, s, e)
-            ch = to_changes(levels, f.transform)
+            if f.source == "spread":
+                a, b = _spread_legs(f)
+                ch = (to_weekly_returns(daily.get(a)) - to_weekly_returns(daily.get(b))).dropna()
+            else:
+                levels = (daily.get(f.series_id) if f.source == "price"
+                          else series_fetcher(f.series_id, s, e))
+                ch = to_changes(levels, f.transform)
         except Exception:
             ch = pd.Series(dtype=float)
         ch = ch[ch.index >= pd.Timestamp(start_d)] if not ch.empty else ch
