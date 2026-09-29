@@ -53,7 +53,7 @@ GENERIC_ERROR = ("Something went wrong while measuring this portfolio. Nothing h
 
 REPORT_CSS = """<style>
 .uar{--uar-surface:#121d2f;--uar-subtle:#16233a;--uar-ink:#e8edf5;--uar-ink-2:#bdc7d8;
-  --uar-ink-3:#8f9bb1;--uar-line:#243349;--uar-accent:#8cb8f2;--uar-pos:#7fb2ec;--uar-neg:#e9a35a;
+  --uar-ink-3:#8f9bb1;--uar-line:#243349;--uar-accent:#8cb8f2;--uar-pos:#7fb2ec;--uar-neg:#e9a35a;--uar-neg-ink:#e9a35a;
   --uar-sky:#0f1b2d;--uar-shadow:rgba(0,0,0,.45);
   --uar-t-micro:.74rem;--uar-t-meta:.78rem;--uar-t-sm:.82rem;--uar-t-body:.88rem;
   --uar-t-price:1.8rem;
@@ -61,7 +61,7 @@ REPORT_CSS = """<style>
   font-variant-numeric:tabular-nums;color:var(--uar-ink);}
 html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f4f6fa;--uar-ink:#13213a;
   --uar-ink-2:#3a4760;--uar-ink-3:#5b6780;--uar-line:#dfe5ee;--uar-accent:#1f5fae;--uar-pos:#2563a8;
-  --uar-neg:#c26a0a;--uar-sky:#edf4fc;--uar-shadow:rgba(13,34,59,.35);}
+  --uar-neg:#c26a0a;--uar-neg-ink:#a8580a;--uar-sky:#edf4fc;--uar-shadow:rgba(13,34,59,.35);}
 /* Links inside report surfaces take the report's own accent. Left to the
    old skin they rendered #3d9df3 on the light page background — 2.64:1,
    a real AA failure on the footer of every one of these pages, and it was
@@ -167,7 +167,7 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
   font-size:var(--uar-t-body);color:var(--uar-ink-2);}
 .uar-hold-sub{font-size:var(--uar-t-meta);color:var(--uar-ink-3);}
 .uar-hold-muted{color:var(--uar-ink-3);}
-.uar-hold-warn{color:var(--uar-neg);font-weight:600;}
+.uar-hold-warn{color:var(--uar-neg-ink);font-weight:600;}
 .uar-hold-total{margin-top:10px;padding-top:10px;border-top:1px solid var(--uar-line);
   font-size:var(--uar-t-meta);color:var(--uar-ink-3);}
 @media (max-width:760px){.uar-hold-head{display:none;}}

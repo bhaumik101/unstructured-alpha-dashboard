@@ -148,6 +148,16 @@ def latest(limit: int = 500) -> List[dict]:
     return [dict(h, exposures=by_ticker.get(h["ticker"], {})) for h in heads]
 
 
+def count() -> int:
+    """How many distinct stocks are on record. 0 when the database is unavailable."""
+    try:
+        with db.engine.begin() as conn:
+            return int(conn.execute(
+                select(func.count(func.distinct(stock_measurements.c.ticker)))).scalar() or 0)
+    except Exception:
+        return 0
+
+
 def ranked(factor: str, n: int = 5, stocks: Optional[List[dict]] = None) -> Dict[str, List[dict]]:
     """The stocks most exposed to one force, each way, among readings that stand up.
 

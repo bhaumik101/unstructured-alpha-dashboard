@@ -98,3 +98,26 @@ def put(key: tuple, max_holdings: int, report: dict) -> bool:
         return True
     except Exception:
         return False
+
+
+def newest() -> Optional[dict]:
+    """The most recent fresh report of any portfolio, or None. Never raises.
+
+    For the main page's "what the forces did" panel: the economic series are the
+    same for every portfolio over the same window, so any recent report carries
+    them, and the page can show them without measuring anything on load.
+    """
+    try:
+        with db.engine.begin() as conn:
+            row = conn.execute(
+                select(report_cache.c.payload)
+                .where(report_cache.c.created_at >= _fresh_after())
+                .order_by(report_cache.c.created_at.desc())
+                .limit(1)
+            ).first()
+        if not row:
+            return None
+        report = json.loads(row[0])
+        return report if isinstance(report, dict) and report.get("status") == "ok" else None
+    except Exception:
+        return None
