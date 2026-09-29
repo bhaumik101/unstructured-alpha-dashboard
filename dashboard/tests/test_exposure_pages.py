@@ -182,3 +182,42 @@ def test_lowercase_redirects_to_the_one_canonical_url(client):
 def test_the_hub_and_sitemap_list_the_measured_stock(client):
     assert 'href="/exposure/XOM"' in client.get("/exposure").text
     assert "/exposure/XOM</loc>" in client.get("/sitemap.xml").text
+
+
+# ── the retired /ticker pages ───────────────────────────────────────────────
+# They show the old Confluence Score -- the "stock pick" framing the product
+# disclaims. A measured stock's old URL moves permanently to its exposure page
+# so its ranking carries over; the rest stay reachable but out of the index.
+
+def test_a_measured_stocks_ticker_page_moves_to_its_exposure_page(client):
+    r = client.get("/ticker/XOM", follow_redirects=False)
+    assert r.status_code == 301 and r.headers["location"] == "/exposure/XOM"
+    r = client.get("/ticker/xom", follow_redirects=False)
+    assert r.headers["location"] == "/exposure/XOM"
+
+
+def test_an_unmeasured_ticker_page_is_kept_out_of_the_index(client, monkeypatch):
+    import seo.main as M
+
+    monkeypatch.setattr(M, "_latest_ticker_score", lambda *a: None)
+    monkeypatch.setattr(M, "_latest_signal_statuses", lambda *a: {})
+    symbol = next(t for t in sorted(M._get_config()[0]) if t != "XOM")
+    r = client.get(f"/ticker/{symbol}", follow_redirects=False)
+    assert r.status_code == 200
+    assert r.headers["x-robots-tag"] == "noindex, follow"
+    assert '<meta name="robots" content="noindex, follow">' in r.text
+
+
+def test_the_sitemap_no_longer_lists_ticker_pages(client):
+    xml = client.get("/sitemap.xml").text
+    assert "/ticker/" not in xml
+    assert "/exposure/XOM</loc>" in xml
+
+
+def test_a_library_outage_leaves_the_old_pages_up(monkeypatch):
+    import seo.main as M
+
+    def down():
+        raise RuntimeError("database unavailable")
+    monkeypatch.setattr(M, "_exposure_stocks", down)
+    assert M._measured("XOM") is False
