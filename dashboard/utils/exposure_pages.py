@@ -161,6 +161,9 @@ td b{color:var(--ink)}
 .caveat{border-left:3px solid var(--accent);background:var(--subtle);padding:10px 14px;color:var(--ink2);margin:26px 0 10px;font-size:.92rem}
 .small{font-size:.82rem;color:var(--ink3)}
 .grid{columns:3 220px;column-gap:16px}.grid li{list-style:none;break-inside:avoid;margin:0 0 6px}
+.forces{columns:2 280px;column-gap:24px}.forces li{list-style:none;break-inside:avoid;margin:0 0 10px}
+.forces a{font-weight:650}
+th[scope=row]{font-weight:650;color:var(--ink);white-space:normal}
 """
 
 
@@ -170,12 +173,13 @@ def _chip(evidence: str) -> str:
 
 
 def _shell(title: str, description: str, canonical: str, json_ld: dict, body: str,
-           app_url: str) -> str:
+           app_url: str, robots: str = "") -> str:
     ld = json.dumps(json_ld, separators=(",", ":")).replace("</", "<\\/")
     return (
         '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         f'<title>{escape(title)}</title>'
+        + (f'<meta name="robots" content="{escape(robots)}">' if robots else "") +
         f'<meta name="description" content="{escape(description)}">'
         f'<link rel="canonical" href="{escape(canonical)}">'
         f'<meta property="og:type" content="website"><meta property="og:title" content="{escape(title)}">'
@@ -206,7 +210,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     canonical = f"{base_url}/exposure/{symbol}"
 
     rows = "".join(
-        f'<tr><td><b>{escape(_FACTOR[k].label)}</b>'
+        f'<tr><td><b><a href="/forces/{k}">{escape(_FACTOR[k].label)}</a></b>'
         f'<span class="shock">In weeks when {escape(_FACTOR[k].shock_phrase)}</span></td>'
         f'<td><b{"" if exps[k]["evidence"] in STANDS_UP else " class=v-weak"}>{fmt_pct(exps[k]["impact"])}</b></td>'
         f'<td>{fmt_pct(exps[k]["low"])} to {fmt_pct(exps[k]["high"])}</td>'
@@ -227,7 +231,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     xkeys = [k for k in _EXTRA if k in exps]
     if xkeys:
         xrows = "".join(
-            f'<tr><td><b>{escape(_EXTRA[k].label)}</b>'
+            f'<tr><td><b><a href="/forces/{k}">{escape(_EXTRA[k].label)}</a></b>'
             f'<span class="shock">In weeks when {escape(_EXTRA[k].shock_phrase)}</span></td>'
             f'<td><b{"" if exps[k]["evidence"] in STANDS_UP else " class=v-weak"}>{fmt_pct(exps[k]["impact"])}</b></td>'
             f'<td>{fmt_pct(exps[k]["low"])} to {fmt_pct(exps[k]["high"])}</td>'
@@ -334,7 +338,8 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         + (f'<ul class="grid">{items}</ul>' if items else
            '<p class="lead">No stock has been measured yet.</p>')
         + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/stock">'
-          'Look up any stock</a></div>')
+          'Look up any stock</a><a class="btn btn-secondary" href="/forces">Browse by economic '
+          'force</a></div>')
     json_ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": title,
                "description": desc, "url": f"{base_url}/exposure"}
     return _shell(title, desc, f"{base_url}/exposure", json_ld, body, app_url)
