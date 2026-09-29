@@ -127,7 +127,7 @@ if editing:
         'years of price history. Nothing is saved unless you choose to save it.</p></div>',
         unsafe_allow_html=True,
     )
-    st.markdown("**Start from a sample**")
+    st.markdown("## Start from a sample")
     sample_cols = st.columns(len(ui.SAMPLE_KEYS))
     for col, (key, name) in zip(sample_cols, ui.SAMPLE_KEYS.items()):
         with col:
@@ -143,7 +143,7 @@ if editing:
     if first_visit:
         _rank_col, _forces_col = st.columns([1.1, 1], gap="large")
         with _rank_col:
-            st.markdown("**Most exposed stocks on record**")
+            st.markdown("## Most exposed stocks on record")
             _factor = st.radio(
                 "Economic force", [f.key for f in ex.FACTORS],
                 format_func=lambda k: ui.FACTOR_BY_KEY[k].label,
@@ -152,14 +152,14 @@ if editing:
             st.markdown(dash.ranked_panel_html(_factor, lib.ranked(_factor, n=4, stocks=_stocks),
                                                _on_record), unsafe_allow_html=True)
         with _forces_col:
-            st.markdown("**What the forces themselves did**")
+            st.markdown("## What the forces themselves did")
             _paths = charts.factor_paths_html(_recent, [f.key for f in ex.FACTORS]) if _recent else ""
             # There is no portfolio on this page yet.
             _paths = _paths.replace("not what this portfolio did", "not what any one holding did")
             st.markdown(_paths or dash.forces_empty_html(), unsafe_allow_html=True)
         record_once("dashboard_viewed", stocks_on_record=_on_record, forces_shown=bool(_paths))
 
-    st.markdown("**Or look at a single company**")
+    st.markdown("## Or look at a single company")
     st.caption("The same measurement, run on one name, on its own page with its history. "
                "These are common examples, not suggestions.")
     for _row_start in range(0, len(ui.SINGLE_STOCKS), 4):
@@ -173,7 +173,7 @@ if editing:
                 record("exposure_single_stock_opened", ticker=ticker)
                 st.switch_page("pages/69_Stock.py")
 
-    st.markdown("**Or build your own portfolio**")
+    st.markdown("## Or build your own portfolio")
     method = st.radio(
         "How would you like to add holdings?",
         ("Search by name", "Upload a statement", "Paste a list"),

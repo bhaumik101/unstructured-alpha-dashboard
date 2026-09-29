@@ -84,8 +84,14 @@ _SHARED = _vars(_TYPE, _RADII) + "".join(f"--f-{k}:{v};" for k, v in FACTOR_HUES
 
 PRODUCT_CSS = f"""<style>
 /* ── tokens ─────────────────────────────────────────────────────────────── */
-html:not([data-ua-theme="light"]) .stApp{{{_vars(_DARK)}{_SHARED}}}
-html[data-ua-theme="light"] .stApp{{{_vars(_LIGHT)}{_SHARED}}}
+html:not([data-ua-theme="light"]) .stApp,
+html:not([data-ua-theme="light"]) #stFloatingOverlayPortal{{{_vars(_DARK)}{_SHARED}}}
+html[data-ua-theme="light"] .stApp,
+html[data-ua-theme="light"] #stFloatingOverlayPortal{{{_vars(_LIGHT)}{_SHARED}}}
+/* Popovers (Sign In), select menus and tooltips render in a portal OUTSIDE
+   .stApp, so every .stApp rule missed them: the sign-in form had no focus
+   ring, a 2.5:1 caption, and the retired violet on its checkbox and tabs.
+   The tokens are defined there too, and the control rules below name it. */
 
 /* ── page ground ────────────────────────────────────────────────────────── */
 html[data-ua-theme="light"] .stApp,
@@ -107,6 +113,9 @@ html:not([data-ua-theme="light"]) .stApp [data-testid="stAppViewContainer"]{{
 html[data-ua-theme="light"] .ua-topnav,
 html:not([data-ua-theme="light"]) .ua-topnav{{
   background:linear-gradient(120deg,var(--p-navy),var(--p-navy2))!important;
+  /* A solid colour under the gradient: what shows if the gradient cannot, and
+     what contrast checkers measure the bar's text against. */
+  background-color:var(--p-navy)!important;
   border-bottom:1px solid rgba(255,255,255,.10)!important;
   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
   box-shadow:0 1px 0 rgba(13,34,59,.06)!important;height:52px!important;
@@ -117,6 +126,24 @@ html[data-ua-theme="light"] .ua-topnav .ua-tnav-trigger,
 html:not([data-ua-theme="light"]) .ua-topnav .ua-tnav-trigger{{
   color:rgba(238,243,250,.86)!important;font-size:var(--p-t-sm)!important;font-weight:500!important;
 }}
+/* WCAG 2.2 target size: the links had collapsed to their 15px line box, and
+   with the menu triggers now real buttons beside them, neighbouring targets
+   sat closer than 24px. The bar is 52px; every item takes 32 of it. */
+html[data-ua-theme="light"] .ua-topnav .ua-tnav-links > a.ua-tnav-item,
+html:not([data-ua-theme="light"]) .ua-topnav .ua-tnav-links > a.ua-tnav-item,
+html[data-ua-theme="light"] .ua-topnav .ua-tnav-trigger,
+html:not([data-ua-theme="light"]) .ua-topnav .ua-tnav-trigger{{
+  display:inline-flex!important;align-items:center!important;min-height:32px!important;box-sizing:border-box;}}
+/* The triggers became buttons (keyboard access) and picked up a grey button
+   face (#6b6b6b, 4.0:1) from an older rule; they wear the bar like the links. */
+html[data-ua-theme="light"] .ua-topnav button.ua-tnav-trigger,
+html:not([data-ua-theme="light"]) .ua-topnav button.ua-tnav-trigger,
+html[data-ua-theme="light"] .ua-topnav button.ua-tnav-burger,
+html:not([data-ua-theme="light"]) .ua-topnav button.ua-tnav-burger{{
+  background:transparent!important;border:0!important;box-shadow:none!important;font-family:inherit!important;}}
+html[data-ua-theme="light"] .ua-topnav .ua-tnav-group:focus-within>.ua-tnav-trigger,
+html:not([data-ua-theme="light"]) .ua-topnav .ua-tnav-group:focus-within>.ua-tnav-trigger{{
+  color:#fff!important;background:rgba(255,255,255,.10)!important;}}
 html[data-ua-theme="light"] .ua-topnav a.ua-tnav-item:hover,
 html:not([data-ua-theme="light"]) .ua-topnav a.ua-tnav-item:hover,
 html[data-ua-theme="light"] .ua-topnav .ua-tnav-group:hover>.ua-tnav-trigger,
@@ -154,6 +181,8 @@ html[data-ua-theme="light"] .ua-tnav-upgrade,
 html:not([data-ua-theme="light"]) .ua-tnav-upgrade{{
   background:var(--p-bright)!important;color:var(--p-bright-ink)!important;font-weight:700!important;
   border-color:transparent!important;
+  /* "transition: all" animated the focus ring in from 0px; focus shows at once. */
+  transition:background-color .14s ease,color .14s ease!important;
 }}
 html[data-ua-theme="light"] .ua-theme-toggle,
 html:not([data-ua-theme="light"]) .ua-theme-toggle{{
@@ -211,6 +240,8 @@ html[data-ua-theme="light"] .ua-tnav-drop a:hover{{background:var(--p-sky)!impor
    failure on every caption of every product page. The colour already carries
    the de-emphasis. */
 .stApp [data-testid="stCaptionContainer"]{{opacity:1!important;}}
+#stFloatingOverlayPortal [data-testid="stCaptionContainer"],
+#stFloatingOverlayPortal [data-testid="stCaptionContainer"] p{{color:var(--p-ink3)!important;opacity:1!important;}}
 
 /* "Stocks" made seven top-level items, 33px too wide for a 1024px screen
    (the width #251 had to fix once already). Below 1100px the items tighten
@@ -260,7 +291,73 @@ html:not([data-ua-theme="light"]) .stApp a[data-testid="stBaseLinkButton-primary
   background:var(--p-accent)!important;border:1px solid var(--p-accent)!important;
   color:var(--p-accent-ink)!important;border-radius:var(--p-r-btn)!important;min-height:44px!important;
   font-weight:650!important;font-size:var(--p-t-base)!important;box-shadow:none!important;}}
-.stApp :focus-visible{{outline:3px solid var(--p-bright)!important;outline-offset:2px!important;}}
+/* ── keyboard focus ─────────────────────────────────────────────────────────
+   Measured 2026-09-29: no Streamlit button, input or radio showed focus. The
+   retired skin drew button focus as a box-shadow with outline:none, and the
+   buttons above set box-shadow:none, removing the only indicator; its old
+   .stButton > button:focus-visible{{outline:none!important}} also out-ranked
+   the amber ring that used to be here -- which was 1.6:1 on the light ground
+   anyway. Now: the accent (6.4:1 light, 9:1 dark) in content, amber on the
+   navy nav band, and the html[data-ua-theme] prefix so it always wins. */
+html[data-ua-theme="light"] .stApp *:focus-visible,
+html:not([data-ua-theme="light"]) .stApp *:focus-visible,
+html #stFloatingOverlayPortal *:focus-visible{{
+  outline:2px solid var(--p-accent)!important;outline-offset:2px!important;}}
+html[data-ua-theme="light"] .stApp .ua-topnav *:focus-visible,
+html:not([data-ua-theme="light"]) .stApp .ua-topnav *:focus-visible{{
+  outline:2px solid var(--p-bright)!important;outline-offset:2px!important;}}
+/* ...except the amber Upgrade pill, where an amber ring is invisible. */
+html[data-ua-theme="light"] .stApp .ua-topnav a.ua-tnav-upgrade:focus-visible,
+html:not([data-ua-theme="light"]) .stApp .ua-topnav a.ua-tnav-upgrade:focus-visible{{
+  outline:2px solid #ffffff!important;outline-offset:2px!important;}}
+/* Streamlit's text inputs and selects clip an outline on the input itself,
+   and its radios hide the real input, so the ring goes on what is visible. */
+html[data-ua-theme="light"] .stApp [data-baseweb="input"]:focus-within,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="input"]:focus-within,
+html #stFloatingOverlayPortal [data-baseweb="input"]:focus-within,
+html #stFloatingOverlayPortal [data-testid="stCheckbox"] label:has(input:focus-visible),
+html[data-ua-theme="light"] .stApp [data-baseweb="textarea"]:focus-within,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="textarea"]:focus-within,
+html[data-ua-theme="light"] .stApp [data-baseweb="select"] > div:focus-within,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="select"] > div:focus-within,
+html[data-ua-theme="light"] .stApp [data-testid="stRadio"] label:has(input:focus-visible),
+html:not([data-ua-theme="light"]) .stApp [data-testid="stRadio"] label:has(input:focus-visible),
+html[data-ua-theme="light"] .stApp [data-testid="stCheckbox"] label:has(input:focus-visible),
+html:not([data-ua-theme="light"]) .stApp [data-testid="stCheckbox"] label:has(input:focus-visible){{
+  outline:2px solid var(--p-accent)!important;outline-offset:2px!important;}}
+html[data-ua-theme="light"] .stApp [data-baseweb="input"] input:focus-visible,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="input"] input:focus-visible,
+html #stFloatingOverlayPortal [data-baseweb="input"] input:focus-visible,
+html[data-ua-theme="light"] .stApp [data-baseweb="select"] input:focus-visible,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="select"] input:focus-visible{{
+  outline:none!important;}}
+/* Text and password fields clip an outline drawn on the input (only a sliver
+   showed at the right edge), and in Streamlit 1.64 the input is not under
+   [data-baseweb="input"]. The ring goes on the input's own frame instead. */
+html[data-ua-theme="light"] .stApp [data-testid="stTextInput"] div:has(> input:focus-visible),
+html:not([data-ua-theme="light"]) .stApp [data-testid="stTextInput"] div:has(> input:focus-visible),
+html #stFloatingOverlayPortal [data-testid="stTextInput"] div:has(> input:focus-visible),
+html[data-ua-theme="light"] .stApp [data-testid="stTextArea"] div:has(> textarea:focus-visible),
+html:not([data-ua-theme="light"]) .stApp [data-testid="stTextArea"] div:has(> textarea:focus-visible){{
+  outline:2px solid var(--p-accent)!important;outline-offset:2px!important;border-radius:8px;}}
+html[data-ua-theme="light"] .stApp [data-testid="stTextInput"] input:focus-visible,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stTextInput"] input:focus-visible,
+html #stFloatingOverlayPortal [data-testid="stTextInput"] input:focus-visible,
+html[data-ua-theme="light"] .stApp [data-testid="stTextArea"] textarea:focus-visible,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stTextArea"] textarea:focus-visible{{outline:none!important;}}
+/* Streamlit's "Press Enter to submit form" hint, in the retired faint grey. */
+.stApp [data-testid="InputInstructions"],#stFloatingOverlayPortal [data-testid="InputInstructions"]{{
+  color:var(--p-ink3)!important;opacity:1!important;}}
+
+/* Placeholders carried the retired skin's faint grey (axe: 2.3:1 on /compare). */
+.stApp input::placeholder,.stApp textarea::placeholder{{color:var(--p-ink3)!important;opacity:1!important;}}
+/* A select's type-to-search text was #e8eeff -- the retired dark ink -- on a
+   white field: anything typed into it was invisible (1.15:1). */
+html[data-ua-theme="light"] .stApp [data-baseweb="select"] input,
+html:not([data-ua-theme="light"]) .stApp [data-baseweb="select"] input,
+html[data-ua-theme="light"] .stApp [data-testid="stSelectbox"] input,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stSelectbox"] input{{
+  color:var(--p-ink)!important;-webkit-text-fill-color:var(--p-ink)!important;}}
 
 /* ── every control surface, not just the visible face of one ────────────────
    Found by sweeping the rendered page for the retired skin's own colours

@@ -117,10 +117,12 @@ if _link_a and _link_b and st.session_state.get("cmp_loaded") != (_link_a, _link
 
 left, right = st.columns(2, gap="large")
 with left:
-    st.markdown("**Portfolio A** — usually what is held now")
+    st.markdown("## Portfolio A")
+    st.caption("Usually what is held now.")
     rows_a, name_a = _pick("A", "The portfolio on the report")
 with right:
-    st.markdown("**Portfolio B** — usually what is being proposed")
+    st.markdown("## Portfolio B")
+    st.caption("Usually what is being proposed.")
     rows_b, name_b = _pick("B", "A saved portfolio" if _saved_portfolios() else "A sample")
 
 if st.button("Compare them", type="primary", key="cmp_go"):

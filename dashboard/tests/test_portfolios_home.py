@@ -157,6 +157,6 @@ def test_compare_from_a_card_puts_it_on_side_a(monkeypatch, workspace):
 
 def test_the_page_is_reachable_from_the_account_menu():
     header = (_ROOT / "utils" / "header.py").read_text(encoding="utf-8")
-    account = header.split('<span class="ua-tnav-trigger">Account ', 1)[1]
+    account = header.split('aria-controls="ua-drop-account">Account ', 1)[1]
     assert 'href="/portfolios"' in account
     assert 'url_path="portfolios"' in (_ROOT / "app.py").read_text(encoding="utf-8")

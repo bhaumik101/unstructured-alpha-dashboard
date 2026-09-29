@@ -13,6 +13,7 @@ from __future__ import annotations
 from html import escape
 from typing import Iterable, List, Optional, Tuple
 
+from utils import exposure as ex
 from utils import report_ui as ui
 
 # (value, label, detail, href or "")
@@ -26,21 +27,33 @@ def kpi_tiles_html(tiles: Iterable[Tile]) -> str:
         inner = (f'<div class="udb-v">{escape(value)}</div>'
                  f'<div class="udb-l">{escape(label)}</div>'
                  + (f'<div class="udb-d">{escape(detail)}</div>' if detail else ""))
-        cells.append(f'<a class="udb-tile" href="{escape(href)}" target="_self">{inner}</a>' if href
-                     else f'<div class="udb-tile">{inner}</div>')
-    return f'<div class="udb-tiles">{"".join(cells)}</div>'
+        cells.append(f'<li><a class="udb-tile" href="{escape(href)}" target="_self">{inner}</a></li>'
+                     if href else f'<li><div class="udb-tile">{inner}</div></li>')
+    # A list, so a screen reader announces "4 items" and each tile reads as
+    # "8, Stocks on record, ..." rather than as loose text.
+    return f'<ul class="udb-tiles" role="list" aria-label="Headline numbers">{"".join(cells)}</ul>'
 
 
-def _rank_rows(rows: List[dict], scale: float) -> str:
+def _row_label(r: dict, direction: str) -> str:
+    """One sentence per row. The visible row is a ticker, a bar, three numbers
+    and a chip; read in order that is noise, so the link says it plainly."""
+    who = r["ticker"] + (f', {r["name"]}' if r.get("name") else "")
+    return (f"{who}: moved {direction} {ui.fmt_pct(abs(r['impact'])).lstrip('+')} in a typical week, "
+            f"90% range {ui.fmt_pct(r['low'])} to {ui.fmt_pct(r['high'])}, "
+            f"evidence {ex.EVIDENCE_LABELS.get(r['evidence'], r['evidence'])}. Open its page.")
+
+
+def _rank_rows(rows: List[dict], scale: float, direction: str) -> str:
     return "".join(
-        f'<a class="udb-row" href="/stock?t={escape(r["ticker"])}" target="_self">'
+        f'<li><a class="udb-row" href="/stock?t={escape(r["ticker"])}" target="_self" '
+        f'aria-label="{escape(_row_label(r, direction))}">'
         f'<span class="udb-who"><b>{escape(r["ticker"])}</b>'
         + (f'<span>{escape(r["name"])}</span>' if r.get("name") else "")
         + '</span>'
         f'<span class="udb-bar">{ui.exposure_bar(r["impact"], r["low"], r["high"], scale)}</span>'
         f'<span class="udb-num"><b>{ui.fmt_pct(r["impact"])}</b>'
         f'<span>{ui.fmt_pct(r["low"])} to {ui.fmt_pct(r["high"])}</span></span>'
-        f'<span class="udb-ev">{ui.evidence_chip(r["evidence"])}</span></a>'
+        f'<span class="udb-ev">{ui.evidence_chip(r["evidence"])}</span></a></li>'
         for r in rows)
 
 
@@ -60,10 +73,16 @@ def ranked_panel_html(factor_key: str, ranked: dict, n_on_record: int) -> str:
     else:
         scale = ui._nice_scale([v for r in up + down for v in (r["low"], r["high"])])
         body = ""
+        # aria-label, not aria-labelledby: Streamlit rewrites heading ids.
+        force = escape(ex.lower_label(f.label))
         if up:
-            body += f'<div class="udb-side">Moved up with it</div>{_rank_rows(up, scale)}'
+            body += ('<h3 class="udb-side">Moved up with it</h3>'
+                     f'<ul class="udb-list" role="list" aria-label="Stocks that moved up with {force}">'
+                     f'{_rank_rows(up, scale, "up")}</ul>')
         if down:
-            body += f'<div class="udb-side">Moved down with it</div>{_rank_rows(down, scale)}'
+            body += ('<h3 class="udb-side">Moved down with it</h3>'
+                     f'<ul class="udb-list" role="list" aria-label="Stocks that moved down with {force}">'
+                     f'{_rank_rows(down, scale, "down")}</ul>')
     return (
         '<div class="uar"><div class="uar-card udb-card"><div class="uar-body">'
         f'{body}'
@@ -87,7 +106,10 @@ def latest_as_of(stocks: List[dict], report: Optional[dict]) -> str:
 
 
 DASHBOARD_CSS = """<style>
-.udb-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:4px 0 18px;}
+.udb-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:4px 0 18px;padding:0;list-style:none;}
+.udb-tiles li,.udb-list li{list-style:none;margin:0;padding:0;}
+.udb-list{margin:0;padding:0;list-style:none;}
+.udb-tiles .udb-tile{height:100%;box-sizing:border-box;}
 .udb-tile{display:block;background:var(--p-surface);border:1px solid var(--p-line);border-radius:var(--p-r,12px);
   padding:14px 16px;color:var(--p-ink)!important;text-decoration:none!important;}
 a.udb-tile:hover{border-color:var(--p-accent);background:var(--p-sky);}
@@ -96,8 +118,7 @@ a.udb-tile:hover{border-color:var(--p-accent);background:var(--p-sky);}
 .udb-l{margin-top:4px;font-size:var(--p-t-sm,.82rem);font-weight:650;color:var(--p-ink2);}
 .udb-d{margin-top:2px;font-size:var(--p-t-xs,.75rem);color:var(--p-ink3);}
 .udb-card .uar-body{padding-top:10px;}
-.udb-side{margin:10px 0 2px;font-size:var(--p-t-xs,.75rem);font-weight:700;letter-spacing:.05em;
-  text-transform:uppercase;color:var(--p-ink3);}
+.stApp h3.udb-side{margin:10px 0 2px!important;padding:0!important;font-family:inherit!important;font-size:var(--p-t-xs,.75rem)!important;font-weight:700!important;letter-spacing:.05em;text-transform:uppercase;color:var(--p-ink3)!important;line-height:1.4!important;}
 .udb-row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.3fr) auto auto;gap:12px;align-items:center;
   padding:9px 6px;border-bottom:1px solid var(--p-line);color:var(--p-ink)!important;text-decoration:none!important;
   border-radius:8px;}

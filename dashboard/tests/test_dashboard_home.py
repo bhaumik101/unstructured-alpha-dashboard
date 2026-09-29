@@ -140,3 +140,30 @@ def test_newest_prefers_the_latest_fresh_report(store):
     report_cache.put((("AAA", 100.0),), 15, a)
     report_cache.put((("BBB", 100.0),), 15, b)
     assert report_cache.newest()["marker"] == "second"
+
+
+# ── what a screen reader hears ──────────────────────────────────────────────
+
+def test_each_ranked_row_is_one_plain_sentence(store, xom):
+    lib.record(xom, "Exxon Mobil")
+    html = dash.ranked_panel_html("oil", lib.ranked("oil"), lib.count())
+    label = __import__("re").search(r'<a class="udb-row"[^>]*aria-label="([^"]+)"', html).group(1)
+    assert label.startswith("XOM, Exxon Mobil: moved up ") and "in a typical week" in label
+    assert "90% range" in label and "evidence Clear" in label
+    assert "moved up +" not in label, "the direction is in the words; no sign after it"
+
+
+def test_the_ranked_lists_and_tiles_are_named_lists(store, xom):
+    lib.record(xom, "Exxon Mobil")
+    html = dash.ranked_panel_html("oil", lib.ranked("oil"), lib.count())
+    assert '<ul class="udb-list" role="list" aria-label="Stocks that moved up with oil and energy">' in html
+    assert "aria-labelledby" not in html, "Streamlit rewrites heading ids; a labelledby would dangle"
+    tiles = dash.kpi_tiles_html([("8", "Stocks on record", "", "/stock")])
+    assert tiles.startswith('<ul class="udb-tiles" role="list" aria-label="Headline numbers">')
+
+
+def test_dashboard_sections_are_headings_not_bold_text():
+    src = (_ROOT / "pages" / "60_Exposure_Report.py").read_text(encoding="utf-8")
+    for label in ("Start from a sample", "Most exposed stocks on record",
+                  "What the forces themselves did", "Or look at a single company"):
+        assert f'st.markdown("## {label}")' in src, label

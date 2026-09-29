@@ -3115,6 +3115,19 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(var(--ua-roy
   transition: color .12s ease, background .12s ease;
 }
 .ua-tnav-group:hover > .ua-tnav-trigger { color: var(--ua-ink); background: var(--ua-hair-2); }
+/* The triggers are real buttons so a keyboard can reach them; reset the UA look.
+   (No tag-like text in this sheet: st.html sanitizes with DOMPurify, which
+   drops a whole style element whose text looks like markup.) */
+button.ua-tnav-trigger { border: 0; background: transparent; font-family: inherit; margin: 0; }
+.ua-tnav-group:focus-within > .ua-tnav-trigger { color: var(--ua-ink); background: var(--ua-hair-2); }
+/* Skip link: off-screen until focused, then the first thing on the bar. */
+.ua-skip {
+  position: absolute; left: 12px; top: 8px; z-index: 1000;
+  width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  padding: 0; border-radius: 8px; background: #ffc24b; color: #13213a !important;
+  font-size: 0.8rem; font-weight: 700; text-decoration: none !important;
+}
+.ua-skip:focus { width: auto; height: auto; overflow: visible; clip-path: none; padding: 8px 14px; }
 .ua-tnav-trigger.active { color: var(--ua-green) !important; background: rgba(var(--ua-green-rgb),0.08) !important; }
 .ua-tnav-caret {
   font-size: 0.45rem; opacity: .38; line-height: 1;
@@ -3146,9 +3159,13 @@ a.ua-tnav-item.active { color: #B7BEFB !important; background: rgba(var(--ua-roy
   content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 10px;
 }
 .ua-tnav-group:hover .ua-tnav-drop,
+.ua-tnav-group:focus-within .ua-tnav-drop,
 .ua-tnav-drop:hover {
   visibility: visible; opacity: 1; pointer-events: auto; transition-delay: 0s;
 }
+.ua-tnav-group:focus-within .ua-tnav-drop { transition: none; }
+/* Escape closes a menu while focus is still inside it (runtime adds the class). */
+.ua-tnav-group.ua-closed .ua-tnav-drop { visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }
 .ua-tnav-drop a {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
   padding: 8px 10px; border-radius: 7px;
@@ -3344,6 +3361,9 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
 </style>
 
 <nav class="ua-topnav" role="navigation" aria-label="Main navigation">
+  <!-- First tab stop on every page. The runtime gives Streamlit's content
+       section id="ua-main" and role="main" (it has no <main> of its own). -->
+  <a class="ua-skip" href="#ua-main">Skip to content</a>
   <a class="ua-tnav-brand" href="/">
     <span class="ua-tnav-brand-text">UNSTRUCTURED <em>ALPHA</em></span>
   </a>
@@ -3352,16 +3372,16 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
        label is the hamburger button. Placed before .ua-tnav-links so the
        `.ua-tnav-toggle:checked ~ .ua-tnav-links` sibling selector reveals it. -->
   <input type="checkbox" id="ua-tnav-toggle" class="ua-tnav-toggle" aria-hidden="true" />
-  <label for="ua-tnav-toggle" class="ua-tnav-burger" aria-label="Toggle navigation menu" role="button" tabindex="0">
+  <button type="button" class="ua-tnav-burger" aria-label="Navigation menu" aria-controls="ua-tnav-links" aria-expanded="false">
     <span></span><span></span><span></span>
-  </label>
+  </button>
 
   <!-- Redesign 2026-09-14: the product is the exposure report. Four direct
        links, a Research group for the evidence pages, and an Account group.
        Every other page stays registered in app.py (declared in
        tests/test_nav_reaches_every_page.py) so old links still resolve. Every
        href here must have a matching url_path in app.py. -->
-  <div class="ua-tnav-links">
+  <div class="ua-tnav-links" id="ua-tnav-links">
     <a class="ua-tnav-item" href="/" data-paths="/">Report</a>
     <a class="ua-tnav-item" href="/compare">Compare</a>
     <a class="ua-tnav-item" href="/stock">Stocks</a>
@@ -3369,8 +3389,8 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
     <a class="ua-tnav-item" href="/methodology">Methodology</a>
 
     <div class="ua-tnav-group">
-      <span class="ua-tnav-trigger">Research <span class="ua-tnav-caret">&#9660;</span></span>
-      <div class="ua-tnav-drop">
+      <button type="button" class="ua-tnav-trigger" aria-expanded="false" aria-controls="ua-drop-research">Research <span class="ua-tnav-caret" aria-hidden="true">&#9660;</span></button>
+      <div class="ua-tnav-drop" id="ua-drop-research">
         <a href="/research">Research record</a>
         <a href="/track-record">Signal track record</a>
         <a href="/model-validation">Model validation</a>
@@ -3379,8 +3399,8 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
     </div>
 
     <div class="ua-tnav-group ua-tnav-hide-sm">
-      <span class="ua-tnav-trigger">Account <span class="ua-tnav-caret">&#9660;</span></span>
-      <div class="ua-tnav-drop">
+      <button type="button" class="ua-tnav-trigger" aria-expanded="false" aria-controls="ua-drop-account">Account <span class="ua-tnav-caret" aria-hidden="true">&#9660;</span></button>
+      <div class="ua-tnav-drop" id="ua-drop-account">
         <a href="/portfolios">Your portfolios</a>
         <a href="/pricing">Pricing</a>
         <a href="/alerts">Alerts</a>
