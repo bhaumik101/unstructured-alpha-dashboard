@@ -3364,6 +3364,7 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
   <div class="ua-tnav-links">
     <a class="ua-tnav-item" href="/" data-paths="/">Report</a>
     <a class="ua-tnav-item" href="/compare">Compare</a>
+    <a class="ua-tnav-item" href="/stock">Stocks</a>
     <a class="ua-tnav-item" href="/what-changed">What changed</a>
     <a class="ua-tnav-item" href="/methodology">Methodology</a>
 

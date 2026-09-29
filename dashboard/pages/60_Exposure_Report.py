@@ -110,18 +110,18 @@ if editing:
                 st.rerun()
 
     st.markdown("**Or look at a single company**")
-    st.caption("The same measurement, run on one name. These are common examples, not suggestions.")
+    st.caption("The same measurement, run on one name, on its own page with its history. "
+               "These are common examples, not suggestions.")
     for _row_start in range(0, len(ui.SINGLE_STOCKS), 4):
         for col, (ticker, company) in zip(
             st.columns(4), ui.SINGLE_STOCKS[_row_start:_row_start + 4]
         ):
             if col.button(f"{ticker} · {company}", key=f"uar_one_{ticker}", width="stretch"):
-                st.session_state.update(
-                    uar_holdings=[{"ticker": ticker, "weight_pct": 100}],
-                    uar_name=company, uar_editing=False,
-                )
+                # One company has its own page now, with its stored history.
+                st.session_state["ua_stock_ticker"] = ticker
+                st.session_state[f"ua_stock_name_{ticker}"] = company
                 record("exposure_single_stock_opened", ticker=ticker)
-                st.rerun()
+                st.switch_page("pages/69_Stock.py")
 
     st.markdown("**Or build your own portfolio**")
     method = st.radio(

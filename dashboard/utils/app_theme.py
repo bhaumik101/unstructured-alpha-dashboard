@@ -212,6 +212,17 @@ html[data-ua-theme="light"] .ua-tnav-drop a:hover{{background:var(--p-sky)!impor
    the de-emphasis. */
 .stApp [data-testid="stCaptionContainer"]{{opacity:1!important;}}
 
+/* "Stocks" made seven top-level items, 33px too wide for a 1024px screen
+   (the width #251 had to fix once already). Below 1100px the items tighten
+   from 9px to 6px a side instead of any of them being dropped. */
+@media (max-width:1099px){{
+  html[data-ua-theme="light"] .ua-topnav .ua-tnav-links > a.ua-tnav-item,
+  html:not([data-ua-theme="light"]) .ua-topnav .ua-tnav-links > a.ua-tnav-item,
+  html[data-ua-theme="light"] .ua-topnav .ua-tnav-links .ua-tnav-trigger,
+  html:not([data-ua-theme="light"]) .ua-topnav .ua-tnav-links .ua-tnav-trigger{{
+    padding-left:6px!important;padding-right:6px!important;}}
+}}
+
 /* ── buttons ────────────────────────────────────────────────────────────── */
 html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"],
 html:not([data-ua-theme="light"]) .stApp button[data-testid="stBaseButton-primary"]{{
@@ -431,7 +442,7 @@ def is_product_page(caller_file: str | None) -> bool:
     name = Path(str(caller_file)).name
     if name in LEGACY_PAGE_FILES:
         return False
-    return name.startswith(("60_", "61_", "62_", "63_", "64_", "65_", "66_", "67_")) or name in EXTRA_PRODUCT_PAGES
+    return name.startswith(("60_", "61_", "62_", "63_", "64_", "65_", "66_", "67_", "69_")) or name in EXTRA_PRODUCT_PAGES
 
 
 def product_page_header(title: str, subtitle: str = "", *, eyebrow: str = "",
