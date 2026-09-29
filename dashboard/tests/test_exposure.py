@@ -350,3 +350,45 @@ def test_rendering_a_report_does_not_drag_in_scipy():
     out = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
                          cwd=str(_ROOT))
     assert out.stdout.strip() == "False", out.stdout + out.stderr
+
+
+def _false_clear(world, ticker, seeds):
+    """(Clear, total) core readings on a stock built with market exposure only."""
+    clear = total = 0
+    for seed in seeds:
+        pf, sf = world(seed=seed)
+        r = ex.build_exposure_report([{"ticker": ticker, "weight_pct": 100}], pf, sf,
+                                     end=date(2026, 9, 11))
+        for v in r["portfolio"]["readings"].values():
+            total += 1
+            clear += v["evidence"] == "clear"
+    return clear, total
+
+
+@pytest.mark.slow
+def test_the_methodology_false_clear_rate_is_the_measured_one():
+    """ "Why Clear is strict" states a false-Clear rate; this is where it comes from.
+
+    The page quotes the count, so the claim and the measurement cannot drift
+    apart silently: change CLEAR_T, the standard errors or the copy, and this
+    fails until the page is re-measured.
+    """
+    from tests.test_extra_forces import _world
+
+    src = (_ROOT / "pages" / "63_Methodology.py").read_text(encoding="utf-8")
+    m = re.search(r"about (\d+) in 100 factor readings was labelled Clear "
+                  r"\((\d+) of ([\d,]+),", src)
+    assert m, "the methodology must quote its false-Clear rate as 'about K in 100 ... (N of T,'"
+    per_100, stated, stated_total = int(m[1]), int(m[2]), int(m[3].replace(",", ""))
+
+    clear, total = _false_clear(_world, "PLAIN", range(1000, 1300))
+    assert total == stated_total
+    # Seeded, so the count is exact on one machine; the slack only absorbs a
+    # t-statistic landing on the other side of the bar under a different BLAS.
+    assert abs(clear - stated) <= 3, f"measured {clear}/{total}, the page says {stated}"
+    assert per_100 == round(100 * stated / stated_total)
+
+    # Not an artefact of one generator: the older daily world, with a
+    # different set of stocks and no extra-force series, lands in the same place.
+    c2, t2 = _false_clear(_daily_world, "VTI", range(1000, 1150))
+    assert abs(c2 / t2 - clear / total) <= 0.01, f"{c2}/{t2} vs {clear}/{total}"
