@@ -88,6 +88,37 @@ product_page_header(
            "The market's own movement removed", "Every reading labelled by evidence"),
 )
 
+# ── dashboard: what a first visit sees before choosing a portfolio ──────────
+# Only with nothing loaded. Someone changing their holdings gets the editor,
+# not a dashboard. Every panel reads what is already stored (the stock library
+# and the report cache), so opening the page never starts a measurement.
+first_visit = not holdings
+if first_visit:
+    from utils import dashboard_ui as dash
+    from utils import report_cache
+    from utils import stock_library as lib
+
+    st.markdown(dash.DASHBOARD_CSS, unsafe_allow_html=True)
+    _stocks = lib.latest()
+    _on_record = lib.count()
+    _recent = report_cache.newest()
+    _as_of = dash.latest_as_of(_stocks, _recent)
+    _saved_n = None
+    if user:
+        try:
+            from utils.portfolio_workspace import list_portfolios
+            _saved_n = len(list_portfolios(int(user["id"])))
+        except Exception:
+            _saved_n = None
+    st.markdown(dash.kpi_tiles_html([
+        (f"{_on_record:,}", "Stocks on record", "Each kept week by week — open one", "/stock"),
+        (str(len(ex.FACTORS)), "Economic forces", "Measured weekly over three years", "/methodology"),
+        (ui.fmt_date(_as_of) if _as_of else "—", "Latest data week",
+         "Prices from Yahoo Finance, series from FRED", ""),
+        ((str(_saved_n), "Your saved portfolios", "See them all", "/portfolios") if _saved_n is not None
+         else ("Free", "Your first report", "No account needed", "")),
+    ]), unsafe_allow_html=True)
+
 # ── onboarding / edit ───────────────────────────────────────────────────────
 if editing:
     st.markdown(
@@ -109,19 +140,38 @@ if editing:
                 record("exposure_sample_opened", sample=key, source="button")
                 st.rerun()
 
+    if first_visit:
+        _rank_col, _forces_col = st.columns([1.1, 1], gap="large")
+        with _rank_col:
+            st.markdown("**Most exposed stocks on record**")
+            _factor = st.radio(
+                "Economic force", [f.key for f in ex.FACTORS],
+                format_func=lambda k: ui.FACTOR_BY_KEY[k].label,
+                horizontal=True, key="udb_factor", label_visibility="collapsed",
+            )
+            st.markdown(dash.ranked_panel_html(_factor, lib.ranked(_factor, n=4, stocks=_stocks),
+                                               _on_record), unsafe_allow_html=True)
+        with _forces_col:
+            st.markdown("**What the forces themselves did**")
+            _paths = charts.factor_paths_html(_recent, [f.key for f in ex.FACTORS]) if _recent else ""
+            # There is no portfolio on this page yet.
+            _paths = _paths.replace("not what this portfolio did", "not what any one holding did")
+            st.markdown(_paths or dash.forces_empty_html(), unsafe_allow_html=True)
+        record_once("dashboard_viewed", stocks_on_record=_on_record, forces_shown=bool(_paths))
+
     st.markdown("**Or look at a single company**")
-    st.caption("The same measurement, run on one name. These are common examples, not suggestions.")
+    st.caption("The same measurement, run on one name, on its own page with its history. "
+               "These are common examples, not suggestions.")
     for _row_start in range(0, len(ui.SINGLE_STOCKS), 4):
         for col, (ticker, company) in zip(
             st.columns(4), ui.SINGLE_STOCKS[_row_start:_row_start + 4]
         ):
             if col.button(f"{ticker} · {company}", key=f"uar_one_{ticker}", width="stretch"):
-                st.session_state.update(
-                    uar_holdings=[{"ticker": ticker, "weight_pct": 100}],
-                    uar_name=company, uar_editing=False,
-                )
+                # One company has its own page now, with its stored history.
+                st.session_state["ua_stock_ticker"] = ticker
+                st.session_state[f"ua_stock_name_{ticker}"] = company
                 record("exposure_single_stock_opened", ticker=ticker)
-                st.rerun()
+                st.switch_page("pages/69_Stock.py")
 
     st.markdown("**Or build your own portfolio**")
     method = st.radio(

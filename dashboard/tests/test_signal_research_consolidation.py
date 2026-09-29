@@ -104,7 +104,10 @@ def test_redesigned_nav_leads_with_the_exposure_report_and_keeps_old_routes():
     # in a 611px box -- measured -- so the right-hand cluster was pushed off
     # the bar on every desktop screen. A page whose own text says "nothing on
     # this page sends alerts yet" was the one that could give up its slot.
-    assert top_level == ["/", "/compare", "/what-changed", "/methodology"]
+    # "/stock" joined on 2026-09-29: one company's exposure and stored history.
+    # Measured: it needs 51-57px, which fits from 1060px up and overflowed a
+    # 1024px screen by 33px until items tighten below 1100px (app_theme.py).
+    assert top_level == ["/", "/compare", "/stock", "/what-changed", "/methodology"]
     account_menu = nav.split('<span class="ua-tnav-trigger">Account ', 1)[1]
     assert 'href="/alerts"' in account_menu, "alerts must stay reachable from the nav"
 

@@ -859,6 +859,44 @@ report_cache = Table(
 )
 
 
+# ── Stock exposure library ─────────────────────────────────────────────────
+# Every single stock the exposure engine measures, kept -- not cached. The
+# report cache above expires in six hours and is pruned on write; these rows
+# are the product's own record of how each company has moved with each
+# economic force, one row per data week, so a stock's history accumulates as
+# it is viewed and the main page can rank what has been measured.
+#
+# Only what the engine produced is stored. A force whose economic series
+# failed has no row for that week -- it is never filled in.
+stock_measurements = Table(
+    "stock_measurements", metadata,
+    Column("id",           Integer, primary_key=True),
+    Column("ticker",       String(16), nullable=False),
+    Column("as_of",        String(10), nullable=False),   # last week of data, YYYY-MM-DD
+    Column("name",         String(160)),
+    Column("market_beta",  Float),
+    Column("r2",           Float),
+    Column("n_obs",        Integer),
+    Column("window_weeks", Integer),
+    Column("measured_at",  String(64), nullable=False),
+    UniqueConstraint("ticker", "as_of", name="uq_stock_measurements_ticker_asof"),
+)
+
+stock_exposures = Table(
+    "stock_exposures", metadata,
+    Column("id",       Integer, primary_key=True),
+    Column("ticker",   String(16), nullable=False),
+    Column("as_of",    String(10), nullable=False),
+    Column("factor",   String(24), nullable=False),        # exposure.FACTORS key
+    Column("impact",   Float, nullable=False),             # typical weekly move, %
+    Column("low",      Float, nullable=False),             # 90% range
+    Column("high",     Float, nullable=False),
+    Column("t",        Float),
+    Column("evidence", String(24), nullable=False),        # clear / tentative / indistinct / ...
+    UniqueConstraint("ticker", "as_of", "factor", name="uq_stock_exposures_ticker_asof_factor"),
+)
+
+
 def _migrate_users_table() -> None:
     """
     metadata.create_all() only creates tables that don't exist yet -- it
