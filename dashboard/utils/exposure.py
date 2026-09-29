@@ -107,6 +107,7 @@ EXTRA_GROUPS: Dict[str, str] = {
     "markets": "Markets and rates",
     "commodities": "Commodities and crypto",
     "styles": "Investing styles",
+    "global": "Global",
 }
 
 EXTRA_FACTORS: tuple[Factor, ...] = (
@@ -168,6 +169,29 @@ EXTRA_FACTORS: tuple[Factor, ...] = (
            "Momentum is the tendency of stocks that rose over the past year to keep "
            "rising, until it reverses sharply. MSCI momentum fund minus the S&P 500 fund.",
            group="styles", source="spread"),
+    # The core already has the broad trade-weighted dollar, so these two are
+    # each currency's own move beyond it.
+    Factor("euro", "Euro", "DEXUSEU", "pct", 2.0,
+           "the euro rose 2% against the U.S. dollar",
+           "Europe is the largest foreign market for many U.S. companies. Measured beyond "
+           "the broad dollar, it is the euro moving on its own.",
+           group="global"),
+    Factor("yen", "Japanese yen", "DEXJPUS", "pct", -2.0,
+           "the yen rose 2% against the U.S. dollar",
+           "The yen tends to rise when investors seek safety and when cheap yen borrowing "
+           "unwinds. Measured beyond the broad dollar.",
+           group="global"),
+    Factor("emerging", "Emerging markets", "EEM/SPY", "spread", 1.0,
+           "emerging-market stocks beat the S&P 500 by 1 percentage point",
+           "Emerging economies buy commodities and machinery and borrow in dollars. MSCI "
+           "Emerging Markets fund minus the S&P 500 fund.",
+           group="global", source="spread"),
+    Factor("china", "China", "FXI/EEM", "spread", 1.0,
+           "Chinese stocks beat other emerging markets by 1 percentage point",
+           "China is both a supplier and a customer for many U.S. companies. Large Chinese "
+           "companies minus the emerging-markets fund, so it is China beyond emerging "
+           "markets as a whole.",
+           group="global", source="spread"),
 )
 
 

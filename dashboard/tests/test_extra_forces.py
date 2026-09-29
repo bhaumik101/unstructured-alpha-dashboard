@@ -59,6 +59,11 @@ def _world(seed=7, days=1000, fail=()):
     size_gap = rng.normal(0, 0.5, n)
     value_gap = -3 * ch["rates"] + rng.normal(0, 0.45, n)
     mom_gap = rng.normal(0, 0.5, n)
+    # Currencies: each moves with the broad dollar (core) AND on its own.
+    euro_own = rng.normal(0, 0.35, n)
+    yen_own = rng.normal(0, 0.45, n)          # % change in the yen's value
+    em_gap = rng.normal(0, 0.7, n)
+    china_gap = rng.normal(0, 0.9, n)
 
     def price(r):
         return pd.Series(100 * np.cumprod(1 + r / 100.0), idx)
@@ -82,6 +87,12 @@ def _world(seed=7, days=1000, fail=()):
     prices["IWD"] = price(np.diff(np.log(prices["IWF"].to_numpy()), prepend=np.log(100)) * 100
                           + value_gap)
     prices["MTUM"] = price(mkt + mom_gap)
+    prices["EEM"] = price(mkt + em_gap)
+    prices["FXI"] = price(np.diff(np.log(prices["EEM"].to_numpy()), prepend=np.log(100)) * 100
+                          + china_gap)
+    # EXPORTER earns in euros; YENHEDGE rises when the yen does.
+    prices["EXPORTER"] = price(0.8 * mkt + 1.4 * euro_own + rng.normal(0, 0.6, n))
+    prices["YENHEDGE"] = price(0.6 * mkt + 1.2 * yen_own + rng.normal(0, 0.6, n))
     levels = {
         "DGS10": pd.Series(4 + np.cumsum(ch["rates"]), idx),
         "T10YIE": pd.Series(2.3 + np.cumsum(ch["inflation"]), idx),
@@ -97,6 +108,9 @@ def _world(seed=7, days=1000, fail=()):
         "MORTGAGE30US": pd.Series(6.5 + np.cumsum(ch["rates"] + mort), idx)[idx.dayofweek == 3],
         "DHHNGSP": pd.Series(3 * np.cumprod(1 + gas / 100), idx),
         "CBBTCUSD": pd.Series(60000 * np.cumprod(1 + btc / 100), idx),
+        # USD per euro; yen per USD (so a stronger yen is a FALL in this series).
+        "DEXUSEU": pd.Series(1.1 * np.cumprod(1 + (-0.8 * ch["dollar"] + euro_own) / 100), idx),
+        "DEXJPUS": pd.Series(145 / np.cumprod(1 + (-0.5 * ch["dollar"] + yen_own) / 100), idx),
     }
 
     def prices_fetcher(tickers, start, end):
@@ -266,9 +280,9 @@ def test_on_stocks_with_no_exposure_about_one_in_a_hundred_extras_is_called_clea
         for v in r["extras"]["readings"].values():
             total += 1
             clear += v["evidence"] == "clear"
-    # The page says "about 1 in 100"; measured 26 of 3,000 (0.87%) over 300
-    # stocks with ten extra forces. 1.5% is where "about 1 in 100" stops being true.
-    assert clear / total <= 0.015, f"{clear}/{total} extra readings falsely Clear"
+    # The page says "fewer than 1 in 100"; measured 25 of 4,200 (0.60%) over
+    # 300 stocks with fourteen extra forces.
+    assert clear / total < 0.01, f"{clear}/{total} extra readings falsely Clear"
 
 
 def test_the_methodology_page_documents_every_extra_force():
@@ -334,3 +348,23 @@ def test_a_style_missing_one_leg_is_named_not_half_measured():
     rep = _one("SMALLCAP", fail=("IWB",))
     assert "size" not in rep["extras"]["readings"]
     assert "Small vs large companies" in rep["extras"]["unavailable"]
+
+
+# ── group 4: global ─────────────────────────────────────────────────────────
+
+def test_a_euro_earner_is_found_beyond_the_broad_dollar():
+    r = _one("EXPORTER")["extras"]["readings"]["euro"]
+    assert r["evidence"] == "clear" and r["impact"] > 0 and r["group"] == "global"
+
+
+def test_the_yen_reads_as_the_yen_rising_not_the_dollar():
+    """FRED quotes yen per dollar, so a stronger yen is a fall in the series.
+    A stock that rises with the yen must read as a positive exposure."""
+    r = _one("YENHEDGE")["extras"]["readings"]["yen"]
+    assert r["evidence"] == "clear" and r["impact"] > 0
+    assert r["low"] < r["high"], "a negative shock must not flip the range"
+
+
+def test_china_is_measured_beyond_emerging_markets():
+    f = next(f for f in ex.EXTRA_FACTORS if f.key == "china")
+    assert ex._spread_legs(f) == ("FXI", "EEM")
