@@ -62,3 +62,10 @@ def test_the_landing_page_loads_the_font_it_names():
     from scripts.inject_boot_splash import INTER_HREF
 
     assert INTER_HREF in _LAYOUT, "landing and app must request the same Inter"
+
+
+def test_captions_are_not_faded_below_contrast():
+    """Streamlit's own opacity:.6 on captions took --p-ink3 to 2.45:1."""
+    bodies = [body for sel, body in re.findall(r"([^{}]+)\{([^{}]*)\}", PRODUCT_CSS)
+              if sel.strip().endswith('[data-testid="stCaptionContainer"]')]
+    assert any("opacity:1!important" in b for b in bodies)

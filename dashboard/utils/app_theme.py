@@ -206,6 +206,11 @@ html[data-ua-theme="light"] .ua-tnav-drop a:hover{{background:var(--p-sky)!impor
 .stApp [data-testid="stMarkdownContainer"] strong{{color:var(--p-ink)!important;}}
 .stApp [data-testid="stCaptionContainer"],.stApp [data-testid="stCaptionContainer"] p{{
   color:var(--p-ink3)!important;}}
+/* Streamlit gives captions opacity:.6 on top of their colour, which took
+   --p-ink3 (#5b6780, 5.6:1) to #9ba2b0 on the light ground: 2.45:1, a WCAG
+   failure on every caption of every product page. The colour already carries
+   the de-emphasis. */
+.stApp [data-testid="stCaptionContainer"]{{opacity:1!important;}}
 
 /* ── buttons ────────────────────────────────────────────────────────────── */
 html[data-ua-theme="light"] .stApp button[data-testid="stBaseButton-primary"],
