@@ -363,7 +363,15 @@ services:
     # URL, not interpreter. Four services sat broken for three days on
     # exactly this. Normal builds still use the cache and stay fast.
     buildCommand: pip install -r requirements.txt || pip install --no-cache-dir -r requirements.txt
-    startCommand: python -m cron.grow_universe
+    # Runs the "weekly-universe" group: cron.measure_library first, then
+    # cron.grow_universe. measure_library measures every S&P 500 company
+    # (cron/sp500.csv) and refreshes every stock already in the stock library,
+    # which is what the public /exposure pages and the /ticker -> /exposure
+    # redirects read. It shares this slot rather than becoming a 17th service
+    # (see MAX_CRON_SERVICES): both are weekly, both warm data for the next
+    # visitor, and Sunday 03:00 UTC is after Friday's closes and FRED's dailies.
+    # It goes first so grow_universe's pre-warm can't eat its memory headroom.
+    startCommand: python -m cron.run_group weekly-universe
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -371,6 +379,12 @@ services:
         sync: false
       - key: EIA_API_KEY
         sync: false
+      - key: SCORE_MAX_RSS_MB
+        value: "390"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
 
   # Daily watchlist insights — score movement and velocity share the same users,
   # database and email configuration, so run both in one isolated task group.
