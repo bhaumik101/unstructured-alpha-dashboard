@@ -55,6 +55,10 @@ def _world(seed=7, days=1000, fail=()):
     copper = 0.3 * ch["oil"] + rng.normal(0, 1.2, n)
     gas = 0.4 * ch["oil"] + rng.normal(0, 3.0, n)
     btc = rng.normal(0, 3.5, n)
+    # Style spreads: each fund pair's daily gap. Value leans on rates (a core force).
+    size_gap = rng.normal(0, 0.5, n)
+    value_gap = -3 * ch["rates"] + rng.normal(0, 0.45, n)
+    mom_gap = rng.normal(0, 0.5, n)
 
     def price(r):
         return pd.Series(100 * np.cumprod(1 + r / 100.0), idx)
@@ -68,7 +72,16 @@ def _world(seed=7, days=1000, fail=()):
         "MINER": price(0.7 * mkt + 1.2 * gold_own + rng.normal(0, 0.8, n)),
         "GLD": price(gold),
         "CPER": price(copper),
+        # SMALLCAP moves with small companies beating large ones.
+        "SMALLCAP": price(1.0 * mkt + 1.5 * size_gap + rng.normal(0, 0.7, n)),
+        "IWB": price(mkt + rng.normal(0, 0.05, n)),
+        "IWF": price(mkt + rng.normal(0, 0.05, n)),
     }
+    prices["IWM"] = price(np.diff(np.log(prices["IWB"].to_numpy()), prepend=np.log(100)) * 100
+                          + size_gap)
+    prices["IWD"] = price(np.diff(np.log(prices["IWF"].to_numpy()), prepend=np.log(100)) * 100
+                          + value_gap)
+    prices["MTUM"] = price(mkt + mom_gap)
     levels = {
         "DGS10": pd.Series(4 + np.cumsum(ch["rates"]), idx),
         "T10YIE": pd.Series(2.3 + np.cumsum(ch["inflation"]), idx),
@@ -97,7 +110,8 @@ def _world(seed=7, days=1000, fail=()):
     return prices_fetcher, series_fetcher
 
 
-_ALL_EXTRAS = tuple(f.series_id for f in ex.EXTRA_FACTORS)
+_ALL_EXTRAS = (tuple(f.series_id for f in ex.EXTRA_FACTORS if f.source == "fred")
+               + tuple(t for t in ex.EXTRA_PRICE_TICKERS if t != ex.MARKET_TICKER))
 
 
 def _one(ticker, **kw):
@@ -118,8 +132,9 @@ def test_a_built_in_short_rate_exposure_is_found(bank):
     r = bank["extras"]["readings"]["short_rates"]
     assert r["evidence"] == "clear" and r["impact"] > 0
     assert r["group"] == "markets"
-    # 30 per point of FRONT, expressed per 0.25 pp: ~+7.5%.
-    assert r["low"] < 7.5 < r["high"]
+    # 30 per point of FRONT, expressed per 0.25 pp: +7.5%. Within 3 standard
+    # errors, not the 90% range, which misses the truth 1 time in 10 by design.
+    assert abs(r["impact"] - 7.5) < 3 * r["se_impact"]
 
 
 def test_no_exposure_is_invented_where_none_was_built():
@@ -241,19 +256,28 @@ def test_the_public_page_shows_stored_extras(store, bank):
 @pytest.mark.slow
 def test_on_stocks_with_no_exposure_about_one_in_a_hundred_extras_is_called_clear():
     """The methodology page states this rate; this is where it comes from."""
+    # 150 stocks x every extra force: with ten forces that is 1,500 readings,
+    # plenty for a <=2% bound, and it keeps CI's serial run from growing with
+    # every group added.
     clear = total = 0
-    for seed in range(300):
+    for seed in range(150):
         pf, sf = _world(seed=1000 + seed)
         r = ex.build_exposure_report([{"ticker": "PLAIN", "weight_pct": 100}], pf, sf, end=END)
         for v in r["extras"]["readings"].values():
             total += 1
             clear += v["evidence"] == "clear"
-    assert clear / total <= 0.02, f"{clear}/{total} extra readings falsely Clear"
+    # The page says "about 1 in 100"; measured 26 of 3,000 (0.87%) over 300
+    # stocks with ten extra forces. 1.5% is where "about 1 in 100" stops being true.
+    assert clear / total <= 0.015, f"{clear}/{total} extra readings falsely Clear"
 
 
 def test_the_methodology_page_documents_every_extra_force():
     src = (_ROOT / "pages" / "63_Methodology.py").read_text(encoding="utf-8")
     assert "## More forces" in src and "ex.EXTRA_FACTORS" in src and "ex.EXTRA_CLEAR_T" in src
+    # The false-Clear figure is a measurement, not computed at render time:
+    # adding a force means re-running the slow simulation and updating it.
+    assert f"measured with {len(ex.EXTRA_FACTORS)} extra forces" in src, (
+        "the methodology's false-Clear figure was measured with a different set of forces")
 
 
 # ── group 2: commodities and crypto ─────────────────────────────────────────
@@ -291,3 +315,22 @@ def test_a_missing_fund_price_is_named_not_filled():
 def test_the_methodology_page_names_the_right_source_for_each_force():
     src = (_ROOT / "pages" / "63_Methodology.py").read_text(encoding="utf-8")
     assert 'f.source == "fred"' in src and "Yahoo Finance" in src
+
+
+# ── group 3: investing styles ───────────────────────────────────────────────
+
+def test_a_small_company_tilt_is_found():
+    r = _one("SMALLCAP")["extras"]["readings"]["size"]
+    assert r["evidence"] == "clear" and r["impact"] > 0 and r["group"] == "styles"
+
+
+def test_a_style_is_the_gap_between_two_funds_weekly_returns():
+    f = next(f for f in ex.EXTRA_FACTORS if f.key == "size")
+    assert f.source == "spread" and ex._spread_legs(f) == ("IWM", "IWB")
+    assert {"IWM", "IWB", "IWD", "IWF", "MTUM"} <= set(ex.EXTRA_PRICE_TICKERS)
+
+
+def test_a_style_missing_one_leg_is_named_not_half_measured():
+    rep = _one("SMALLCAP", fail=("IWB",))
+    assert "size" not in rep["extras"]["readings"]
+    assert "Small vs large companies" in rep["extras"]["unavailable"]
