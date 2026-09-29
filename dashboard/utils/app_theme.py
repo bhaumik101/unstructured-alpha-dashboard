@@ -84,8 +84,14 @@ _SHARED = _vars(_TYPE, _RADII) + "".join(f"--f-{k}:{v};" for k, v in FACTOR_HUES
 
 PRODUCT_CSS = f"""<style>
 /* ── tokens ─────────────────────────────────────────────────────────────── */
-html:not([data-ua-theme="light"]) .stApp{{{_vars(_DARK)}{_SHARED}}}
-html[data-ua-theme="light"] .stApp{{{_vars(_LIGHT)}{_SHARED}}}
+html:not([data-ua-theme="light"]) .stApp,
+html:not([data-ua-theme="light"]) #stFloatingOverlayPortal{{{_vars(_DARK)}{_SHARED}}}
+html[data-ua-theme="light"] .stApp,
+html[data-ua-theme="light"] #stFloatingOverlayPortal{{{_vars(_LIGHT)}{_SHARED}}}
+/* Popovers (Sign In), select menus and tooltips render in a portal OUTSIDE
+   .stApp, so every .stApp rule missed them: the sign-in form had no focus
+   ring, a 2.5:1 caption, and the retired violet on its checkbox and tabs.
+   The tokens are defined there too, and the control rules below name it. */
 
 /* ── page ground ────────────────────────────────────────────────────────── */
 html[data-ua-theme="light"] .stApp,
@@ -234,6 +240,8 @@ html[data-ua-theme="light"] .ua-tnav-drop a:hover{{background:var(--p-sky)!impor
    failure on every caption of every product page. The colour already carries
    the de-emphasis. */
 .stApp [data-testid="stCaptionContainer"]{{opacity:1!important;}}
+#stFloatingOverlayPortal [data-testid="stCaptionContainer"],
+#stFloatingOverlayPortal [data-testid="stCaptionContainer"] p{{color:var(--p-ink3)!important;opacity:1!important;}}
 
 /* "Stocks" made seven top-level items, 33px too wide for a 1024px screen
    (the width #251 had to fix once already). Below 1100px the items tighten
@@ -292,7 +300,8 @@ html:not([data-ua-theme="light"]) .stApp a[data-testid="stBaseLinkButton-primary
    anyway. Now: the accent (6.4:1 light, 9:1 dark) in content, amber on the
    navy nav band, and the html[data-ua-theme] prefix so it always wins. */
 html[data-ua-theme="light"] .stApp *:focus-visible,
-html:not([data-ua-theme="light"]) .stApp *:focus-visible{{
+html:not([data-ua-theme="light"]) .stApp *:focus-visible,
+html #stFloatingOverlayPortal *:focus-visible{{
   outline:2px solid var(--p-accent)!important;outline-offset:2px!important;}}
 html[data-ua-theme="light"] .stApp .ua-topnav *:focus-visible,
 html:not([data-ua-theme="light"]) .stApp .ua-topnav *:focus-visible{{
@@ -305,6 +314,8 @@ html:not([data-ua-theme="light"]) .stApp .ua-topnav a.ua-tnav-upgrade:focus-visi
    and its radios hide the real input, so the ring goes on what is visible. */
 html[data-ua-theme="light"] .stApp [data-baseweb="input"]:focus-within,
 html:not([data-ua-theme="light"]) .stApp [data-baseweb="input"]:focus-within,
+html #stFloatingOverlayPortal [data-baseweb="input"]:focus-within,
+html #stFloatingOverlayPortal [data-testid="stCheckbox"] label:has(input:focus-visible),
 html[data-ua-theme="light"] .stApp [data-baseweb="textarea"]:focus-within,
 html:not([data-ua-theme="light"]) .stApp [data-baseweb="textarea"]:focus-within,
 html[data-ua-theme="light"] .stApp [data-baseweb="select"] > div:focus-within,
@@ -316,9 +327,28 @@ html:not([data-ua-theme="light"]) .stApp [data-testid="stCheckbox"] label:has(in
   outline:2px solid var(--p-accent)!important;outline-offset:2px!important;}}
 html[data-ua-theme="light"] .stApp [data-baseweb="input"] input:focus-visible,
 html:not([data-ua-theme="light"]) .stApp [data-baseweb="input"] input:focus-visible,
+html #stFloatingOverlayPortal [data-baseweb="input"] input:focus-visible,
 html[data-ua-theme="light"] .stApp [data-baseweb="select"] input:focus-visible,
 html:not([data-ua-theme="light"]) .stApp [data-baseweb="select"] input:focus-visible{{
   outline:none!important;}}
+/* Text and password fields clip an outline drawn on the input (only a sliver
+   showed at the right edge), and in Streamlit 1.64 the input is not under
+   [data-baseweb="input"]. The ring goes on the input's own frame instead. */
+html[data-ua-theme="light"] .stApp [data-testid="stTextInput"] div:has(> input:focus-visible),
+html:not([data-ua-theme="light"]) .stApp [data-testid="stTextInput"] div:has(> input:focus-visible),
+html #stFloatingOverlayPortal [data-testid="stTextInput"] div:has(> input:focus-visible),
+html[data-ua-theme="light"] .stApp [data-testid="stTextArea"] div:has(> textarea:focus-visible),
+html:not([data-ua-theme="light"]) .stApp [data-testid="stTextArea"] div:has(> textarea:focus-visible){{
+  outline:2px solid var(--p-accent)!important;outline-offset:2px!important;border-radius:8px;}}
+html[data-ua-theme="light"] .stApp [data-testid="stTextInput"] input:focus-visible,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stTextInput"] input:focus-visible,
+html #stFloatingOverlayPortal [data-testid="stTextInput"] input:focus-visible,
+html[data-ua-theme="light"] .stApp [data-testid="stTextArea"] textarea:focus-visible,
+html:not([data-ua-theme="light"]) .stApp [data-testid="stTextArea"] textarea:focus-visible{{outline:none!important;}}
+/* Streamlit's "Press Enter to submit form" hint, in the retired faint grey. */
+.stApp [data-testid="InputInstructions"],#stFloatingOverlayPortal [data-testid="InputInstructions"]{{
+  color:var(--p-ink3)!important;opacity:1!important;}}
+
 /* Placeholders carried the retired skin's faint grey (axe: 2.3:1 on /compare). */
 .stApp input::placeholder,.stApp textarea::placeholder{{color:var(--p-ink3)!important;opacity:1!important;}}
 /* A select's type-to-search text was #e8eeff -- the retired dark ink -- on a

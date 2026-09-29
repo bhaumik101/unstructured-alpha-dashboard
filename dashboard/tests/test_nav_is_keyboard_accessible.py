@@ -57,3 +57,32 @@ def test_the_runtime_wires_landmark_iframe_and_menu_state():
     assert "m.id = 'ua-main'; m.setAttribute('role','main')" in rt
     assert "iframe[title*=\"cookie_manager\"]" in rt and "setAttribute('tabindex','-1')" in rt
     assert "ev.key !== 'Escape'" in rt and "aria-expanded" in rt
+
+
+# ── focus that can actually be seen ──────────────────────────────────────────
+
+def _rules(css: str):
+    return re.findall(r"([^{}]+)\{([^{}]*)\}", css)
+
+
+def test_popovers_and_menus_get_the_theme_too():
+    """Sign In, select menus and tooltips render in #stFloatingOverlayPortal,
+    outside .stApp: the sign-in form had no focus ring and a 2.5:1 caption."""
+    from utils.app_theme import PRODUCT_CSS
+
+    token_rules = [sel for sel, body in _rules(PRODUCT_CSS) if "--p-accent:" in body]
+    assert any("#stFloatingOverlayPortal" in sel for sel in token_rules), "no tokens in the portal"
+    focus = [body for sel, body in _rules(PRODUCT_CSS)
+             if "#stFloatingOverlayPortal *:focus-visible" in sel]
+    assert focus and "outline:2px solid var(--p-accent)" in focus[0]
+    caption = [body for sel, body in _rules(PRODUCT_CSS)
+               if "#stFloatingOverlayPortal [data-testid=\"stCaptionContainer\"]" in sel]
+    assert caption and "opacity:1" in caption[0]
+
+
+def test_text_fields_draw_their_ring_on_the_frame_not_the_clipped_input():
+    from utils.app_theme import PRODUCT_CSS
+
+    ring = [body for sel, body in _rules(PRODUCT_CSS)
+            if 'div:has(> input:focus-visible)' in sel and "stTextInput" in sel]
+    assert ring and "outline:2px solid var(--p-accent)" in ring[0]
