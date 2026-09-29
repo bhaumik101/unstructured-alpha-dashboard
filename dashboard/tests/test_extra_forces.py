@@ -49,6 +49,12 @@ def _world(seed=7, days=1000, fail=()):
     front = rng.normal(0, 0.03, n)                    # 2-year beyond the 10-year
     vix = rng.normal(0, 1.2, n)
     mort = rng.normal(0, 0.02, n)
+    # Gold moves with the dollar (a core force) AND on its own.
+    gold_own = rng.normal(0, 0.8, n)
+    gold = -0.6 * ch["dollar"] + gold_own
+    copper = 0.3 * ch["oil"] + rng.normal(0, 1.2, n)
+    gas = 0.4 * ch["oil"] + rng.normal(0, 3.0, n)
+    btc = rng.normal(0, 3.5, n)
 
     def price(r):
         return pd.Series(100 * np.cumprod(1 + r / 100.0), idx)
@@ -58,6 +64,10 @@ def _world(seed=7, days=1000, fail=()):
         "BANK": price(0.9 * mkt + 30 * front + rng.normal(0, 0.8, n)),
         "LONGONLY": price(0.5 * mkt - 16 * ch["rates"] + rng.normal(0, 0.5, n)),
         "PLAIN": price(1.0 * mkt + rng.normal(0, 0.6, n)),
+        # MINER moves with gold's own part, not with the dollar.
+        "MINER": price(0.7 * mkt + 1.2 * gold_own + rng.normal(0, 0.8, n)),
+        "GLD": price(gold),
+        "CPER": price(copper),
     }
     levels = {
         "DGS10": pd.Series(4 + np.cumsum(ch["rates"]), idx),
@@ -72,10 +82,12 @@ def _world(seed=7, days=1000, fail=()):
         "VIXCLS": pd.Series(18 + np.cumsum(vix), idx),
         # Weekly, Thursdays: the engine's Friday resample must still line it up.
         "MORTGAGE30US": pd.Series(6.5 + np.cumsum(ch["rates"] + mort), idx)[idx.dayofweek == 3],
+        "DHHNGSP": pd.Series(3 * np.cumprod(1 + gas / 100), idx),
+        "CBBTCUSD": pd.Series(60000 * np.cumprod(1 + btc / 100), idx),
     }
 
     def prices_fetcher(tickers, start, end):
-        return {t: prices[t] for t in tickers if t in prices}
+        return {t: prices[t] for t in tickers if t in prices and t not in fail}
 
     def series_fetcher(series_id, start, end):
         if series_id in fail:
@@ -83,6 +95,9 @@ def _world(seed=7, days=1000, fail=()):
         return levels[series_id]
 
     return prices_fetcher, series_fetcher
+
+
+_ALL_EXTRAS = tuple(f.series_id for f in ex.EXTRA_FACTORS)
 
 
 def _one(ticker, **kw):
@@ -126,7 +141,7 @@ def test_an_extra_is_measured_beyond_the_core_not_instead_of_it():
 
 def test_the_core_readings_are_untouched_by_the_extras():
     with_extras = _one("BANK")
-    without = _one("BANK", fail=("DGS2", "VIXCLS", "MORTGAGE30US"))
+    without = _one("BANK", fail=_ALL_EXTRAS)
     for key, r in with_extras["portfolio"]["readings"].items():
         assert r == without["portfolio"]["readings"][key], key
 
@@ -208,7 +223,7 @@ def test_a_report_cached_before_extras_existed_shows_nothing(bank):
 def test_all_extras_failing_says_so_plainly():
     from utils import report_ui as ui
 
-    rep = _one("BANK", fail=("DGS2", "VIXCLS", "MORTGAGE30US"))
+    rep = _one("BANK", fail=_ALL_EXTRAS)
     html = ui.extras_html(rep)
     assert "couldn&#39;t be measured" in html and "Nothing was estimated" in html
 
@@ -239,3 +254,40 @@ def test_on_stocks_with_no_exposure_about_one_in_a_hundred_extras_is_called_clea
 def test_the_methodology_page_documents_every_extra_force():
     src = (_ROOT / "pages" / "63_Methodology.py").read_text(encoding="utf-8")
     assert "## More forces" in src and "ex.EXTRA_FACTORS" in src and "ex.EXTRA_CLEAR_T" in src
+
+
+# ── group 2: commodities and crypto ─────────────────────────────────────────
+
+def test_gold_is_found_beyond_the_dollar():
+    """MINER moves with gold's own part. Gold also moves with the dollar, a
+    core force, so this is the reading 'beyond the core' in practice."""
+    r = _one("MINER")["extras"]["readings"]["gold"]
+    assert r["evidence"] == "clear" and r["impact"] > 0 and r["group"] == "commodities"
+
+
+def test_price_sourced_forces_come_from_the_price_batch_not_fred():
+    asked = []
+    pf, sf = _world()
+
+    def prices(tickers, start, end):
+        asked.append(tuple(tickers))
+        return pf(tickers, start, end)
+
+    def series(sid, start, end):
+        assert sid not in ex.EXTRA_PRICE_TICKERS, f"{sid} was asked of FRED"
+        return sf(sid, start, end)
+
+    ex.build_exposure_report([{"ticker": "MINER", "weight_pct": 100}], prices, series, end=END)
+    assert len(asked) == 1, "one price fetch for holdings, market and price-sourced forces"
+    assert {"GLD", "CPER", "MINER", "SPY"} <= set(asked[0])
+
+
+def test_a_missing_fund_price_is_named_not_filled():
+    rep = _one("MINER", fail=("GLD",))
+    assert "gold" not in rep["extras"]["readings"] and "Gold" in rep["extras"]["unavailable"]
+    assert "copper" in rep["extras"]["readings"]
+
+
+def test_the_methodology_page_names_the_right_source_for_each_force():
+    src = (_ROOT / "pages" / "63_Methodology.py").read_text(encoding="utf-8")
+    assert 'f.source == "fred"' in src and "Yahoo Finance" in src

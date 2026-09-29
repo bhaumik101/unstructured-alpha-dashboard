@@ -70,6 +70,7 @@ class Factor:
     shock_phrase: str     # plain English for that move
     why: str              # why an investor would care, one sentence
     group: str = "core"   # "core", or the EXTRA_GROUPS key it is listed under
+    source: str = "fred"  # "fred": series_id is a FRED series; "price": a ticker's price
 
 
 FACTORS: tuple[Factor, ...] = (
@@ -103,6 +104,7 @@ GROWTH_FACTOR = Factor(
 # doesn't.
 EXTRA_GROUPS: Dict[str, str] = {
     "markets": "Markets and rates",
+    "commodities": "Commodities and crypto",
 }
 
 EXTRA_FACTORS: tuple[Factor, ...] = (
@@ -121,7 +123,34 @@ EXTRA_FACTORS: tuple[Factor, ...] = (
            "Mortgage rates set the cost of buying a home. Measured with the 10-year yield "
            "held fixed, it is the extra that lenders charge homebuyers moving on its own.",
            group="markets"),
+    # FRED stopped publishing the LBMA gold price in 2022 and has no daily
+    # copper price, so these two are the prices of the funds that hold them:
+    # GLD holds bullion; CPER holds copper futures and rolls them itself, so
+    # there are no roll jumps in its price.
+    Factor("gold", "Gold", "GLD", "pct", 5.0,
+           "the price of gold rose 5%",
+           "Gold is held as a store of value when money or markets look shaky. Measured "
+           "beyond the dollar, rates and inflation expectations, which move it most.",
+           group="commodities", source="price"),
+    Factor("copper", "Copper", "CPER", "pct", 5.0,
+           "the price of copper rose 5%",
+           "Copper goes into buildings, power grids and factories, so its price is read as a "
+           "gauge of industrial demand. Measured beyond oil and the dollar.",
+           group="commodities", source="price"),
+    Factor("natgas", "Natural gas", "DHHNGSP", "pct", 10.0,
+           "the U.S. natural gas price (Henry Hub) rose 10%",
+           "Natural gas heats homes, generates power and feeds chemical plants. Measured "
+           "with oil held fixed, it is gas moving on its own.",
+           group="commodities"),
+    Factor("bitcoin", "Bitcoin", "CBBTCUSD", "pct", 10.0,
+           "the price of bitcoin rose 10%",
+           "Bitcoin is a speculative asset that some companies hold or build on. Measured "
+           "beyond the stock market, it is how a holding moves with crypto sentiment.",
+           group="commodities"),
 )
+
+# Price-sourced extras are fetched with the holdings, in the same batch.
+EXTRA_PRICE_TICKERS = tuple(f.series_id for f in EXTRA_FACTORS if f.source == "price")
 
 MARKET_TICKER = "SPY"
 
@@ -619,7 +648,8 @@ def build_exposure_report(
 
     tickers = [p["ticker"] for p in positions]
     try:
-        daily = dict(prices_fetcher(sorted(set(tickers) | {MARKET_TICKER}), s, e) or {})
+        daily = dict(prices_fetcher(sorted(set(tickers) | {MARKET_TICKER}
+                                           | set(EXTRA_PRICE_TICKERS)), s, e) or {})
     except Exception:
         daily = {}
     market_daily = _clean(daily.get(MARKET_TICKER))
@@ -704,7 +734,8 @@ def build_exposure_report(
     extra_unavailable: List[str] = []
     for f in EXTRA_FACTORS:
         try:
-            ch = to_changes(series_fetcher(f.series_id, s, e), f.transform)
+            levels = daily.get(f.series_id) if f.source == "price" else series_fetcher(f.series_id, s, e)
+            ch = to_changes(levels, f.transform)
         except Exception:
             ch = pd.Series(dtype=float)
         ch = ch[ch.index >= pd.Timestamp(start_d)] if not ch.empty else ch
@@ -755,7 +786,8 @@ def build_exposure_report(
             "rolling_weeks": ROLLING_WEEKS, "rolling_step": ROLLING_STEP,
             "range": "90%", "market_control": MARKET_TICKER, "standard_errors": "Newey-West, 4 lags",
             "factors": [{"label": f.label, "series_id": f.series_id} for f in FACTORS],
-            "extra_factors": [{"label": f.label, "series_id": f.series_id, "group": f.group}
+            "extra_factors": [{"label": f.label, "series_id": f.series_id, "group": f.group,
+                               "source": f.source}
                               for f in EXTRA_FACTORS],
             "extra_clear_t": EXTRA_CLEAR_T,
         },
