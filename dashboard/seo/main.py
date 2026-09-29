@@ -642,6 +642,13 @@ def sitemap_xml():
     except Exception:
         pass  # a sitemap missing the archive still beats a 500
 
+    try:
+        _get_engine()
+        from utils.exposure_pages import sitemap_urls
+        urls.extend(sitemap_urls(_exposure_stocks(), BASE_URL))
+    except Exception:
+        pass  # a sitemap without the exposure pages still beats a 500
+
     for symbol in sorted(TICKERS.keys()):
         urls.append(
             f"  <url><loc>{BASE_URL}/ticker/{symbol}</loc>"
@@ -664,6 +671,61 @@ def sitemap_xml():
         + "\n</urlset>"
     )
     return Response(content=xml, media_type="application/xml")
+
+
+# ── Exposure pages: the current product, one crawlable page per measured stock ──
+# Read from the stock library (utils/stock_library.py). Only a stock that has
+# been measured gets a page; anything else is a 404, never an estimated one.
+_EXPOSURE_TTL = 900
+_exposure_cache: dict = {}
+
+
+def _exposure_stocks() -> list[dict]:
+    """Newest stored week of every measured stock, cached for a few minutes."""
+    import time
+
+    hit = _exposure_cache.get("__all__")
+    if hit and time.monotonic() - hit[0] < _EXPOSURE_TTL:
+        return hit[1]
+    from utils import stock_library
+    stocks = stock_library.latest(limit=5000)
+    _exposure_cache["__all__"] = (time.monotonic(), stocks)
+    return stocks
+
+
+@app.get("/exposure", response_class=HTMLResponse)
+def exposure_hub():
+    from utils.exposure_pages import hub_page_html
+
+    _get_engine()
+    return HTMLResponse(hub_page_html(_exposure_stocks(), BASE_URL, APP_URL))
+
+
+@app.get("/exposure/{symbol}", response_class=HTMLResponse)
+def exposure_page(symbol: str):
+    from utils import stock_library
+    from utils.exposure_pages import SYMBOL_RE, lead_factor, stock_page_html
+
+    canonical = symbol.upper().strip()
+    if not SYMBOL_RE.match(canonical):
+        raise HTTPException(status_code=404, detail="Not a ticker symbol.")
+    if symbol != canonical:
+        # One URL per stock: /exposure/xom and /exposure/XOM must not be two pages.
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/exposure/{canonical}", status_code=301)
+    symbol = canonical
+    _get_engine()
+    history = stock_library.history(symbol)
+    if not history:
+        raise HTTPException(status_code=404, detail=f"{symbol} has not been measured yet.")
+    rec = history[0]
+    lead = lead_factor(rec)
+    related = []
+    if lead:
+        ranked = stock_library.ranked(lead, n=6, stocks=_exposure_stocks())
+        related = [r for side in ("up", "down")
+                   for r in [r for r in ranked[side] if r["ticker"] != symbol][:5]]
+    return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL))
 
 
 @app.get("/ticker/{symbol}", response_class=HTMLResponse)

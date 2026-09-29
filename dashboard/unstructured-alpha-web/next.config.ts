@@ -33,6 +33,9 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       { source: "/ticker/:symbol", destination: `${SEO_ORIGIN}/ticker/:symbol` },
+      // The current product's crawlable pages: one per measured stock.
+      { source: "/exposure", destination: `${SEO_ORIGIN}/exposure` },
+      { source: "/exposure/:symbol", destination: `${SEO_ORIGIN}/exposure/:symbol` },
       { source: "/signal/:id", destination: `${SEO_ORIGIN}/signal/:id` },
       { source: "/signals/report", destination: `${SEO_ORIGIN}/signals/report` },
       // The weekly brief. Added to the SEO service and to its sitemap, but not
