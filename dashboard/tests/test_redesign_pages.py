@@ -19,7 +19,8 @@ from utils import report_ui as ui
 
 NEW_PAGES = ("pages/60_Exposure_Report.py", "pages/61_What_Changed.py", "pages/62_Alerts.py",
              "pages/63_Methodology.py", "pages/64_Research.py", "pages/65_Pricing.py",
-             "pages/66_Compare.py", "pages/67_Portfolios.py")
+             "pages/66_Compare.py", "pages/67_Portfolios.py",
+             "pages/68_Summary.py")
 
 
 @pytest.fixture

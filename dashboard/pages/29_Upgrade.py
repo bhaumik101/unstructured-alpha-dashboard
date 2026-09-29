@@ -39,6 +39,8 @@ from utils.billing import (  # noqa: E402
 )
 from utils.header import render_header  # noqa: E402
 
+from utils.guards import MAX_SAVED_PORTFOLIOS  # noqa: E402
+
 SUPPORT_EMAIL = "support@unstructuredalpha.com"
 REPORT_PAGE = "pages/60_Exposure_Report.py"
 
@@ -97,19 +99,20 @@ def _what_pro_is_html(heading: str = "What Investor Pro gives you today") -> str
         '<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
         f'<div class="uar-title">{ui.escape(heading)}</div>'
         '<div class="uar-sub">The measurement is the same one the free report runs. '
-        'Pro is about size and, shortly, about being told when something moves.</div>'
+        'Pro is about size, several portfolios, and something to hand a client.</div>'
         '</div></div><div class="uar-body">'
         '<ul class="uar-tier-list">'
         f'<li>Up to {ui.PRO_MAX_HOLDINGS} holdings per portfolio, instead of {ui.FREE_MAX_HOLDINGS}</li>'
-        '<li>Every holding measured on its own, and the holdings behind each exposure</li>'
-        '<li>A 90% range and an evidence label on every number</li>'
-        '<li>Saved portfolios, and the public methodology and research record</li>'
+        f'<li>Up to {MAX_SAVED_PORTFOLIOS} saved portfolios, opened and compared from one page</li>'
+        '<li>A one-page client summary, ready to print or save as a PDF</li>'
+        '<li>The report&#39;s numbers as a CSV</li>'
+        '<li>Holdings entered as percentages, dollar values or share counts</li>'
+        '<li>Everything in the free report: every holding measured on its own, a 90% range and '
+        'an evidence label on every number, and a weekly email when something changes</li>'
         '</ul>'
         '<div class="uar-sub uar-tier-kicker">IN DEVELOPMENT — NOT AVAILABLE YET</div>'
         '<ul class="uar-tier-list uar-tier-later">'
-        '<li>A weekly &ldquo;what changed&rdquo; email, which says plainly when nothing did</li>'
         '<li>Alerts when an exposure crosses a threshold you set</li>'
-        '<li>PDF export and more than one saved portfolio</li>'
         '</ul>'
         '<div class="uar-sub" style="margin-top:12px">Early-access pricing, and it may change. '
         'Nothing here forecasts markets or recommends a security.</div>'

@@ -502,6 +502,7 @@ export default function Home() {
                   <li>Holdings behind each exposure</li>
                   <li>Range and evidence label on every number</li>
                   <li>Save one portfolio with a free account</li>
+                  <li>A weekly email when its exposures change</li>
                   <li>Public methodology and research record</li>
                 </ul>
                 <a href={appUrl("/", "free_plan")} onClick={() => recordAppOpen("free_plan")}
@@ -514,14 +515,13 @@ export default function Home() {
                 <ul>
                   <li>Measure up to 60 holdings per portfolio, instead of 15</li>
                   <li>Save up to 3 portfolios and switch between them</li>
+                  <li>A one-page client summary, ready to print or save as a PDF</li>
                   <li>Download the report&rsquo;s numbers as a CSV</li>
                   <li>Everything in Free</li>
                 </ul>
                 <div className="lp-price-sub">In development</div>
                 <ul style={{ marginTop: 6 }}>
-                  <li>Weekly &ldquo;what changed&rdquo; email</li>
                   <li>Exposure threshold alerts</li>
-                  <li>PDF export and multiple portfolios</li>
                 </ul>
                 <a href={appUrl("/pricing", "pro_plan")} onClick={() => recordAppOpen("pro_plan")}
                    className="lp-btn lp-btn-secondary">See Investor Pro</a>

@@ -72,7 +72,9 @@ def test_unbuilt_paid_features_are_labelled_as_in_development():
     page = (WEB / "page.tsx").read_text(encoding="utf-8")
     pricing = page[page.index('id="pricing"'):page.index('id="faq"')]
     marker = pricing.index("In development")
-    for unbuilt in ("what changed", "alerts", "PDF export"):
+    # The weekly "what changed" email and the one-page PDF summary are built
+    # (2026-09-27); only threshold alerts remain unbuilt.
+    for unbuilt in ("alerts",):
         assert unbuilt in pricing[marker:], (
             f"{unbuilt!r} is offered on the pricing page but not marked in development"
         )
