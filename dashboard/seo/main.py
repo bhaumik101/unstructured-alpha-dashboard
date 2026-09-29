@@ -168,14 +168,16 @@ def _html_head(
     description: str,
     canonical: str,
     json_ld: str = "",
+    robots: str = "",
 ) -> str:
+    robots_meta = f'\n  <meta name="robots" content="{robots}">' if robots else ""
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google-site-verification" content="yo8oBRWmMzqG-7dqyFvVGvlR2XzmeofREFA3__o4ZLQ">
-  <title>{title}</title>
+  <title>{title}</title>{robots_meta}
   <meta name="description" content="{description}">
   <link rel="canonical" href="{canonical}">
 
@@ -649,13 +651,9 @@ def sitemap_xml():
     except Exception:
         pass  # a sitemap without the exposure pages still beats a 500
 
-    for symbol in sorted(TICKERS.keys()):
-        urls.append(
-            f"  <url><loc>{BASE_URL}/ticker/{symbol}</loc>"
-            f"<lastmod>{today}</lastmod>"
-            f"<changefreq>daily</changefreq>"
-            f"<priority>0.8</priority></url>"
-        )
+    # /ticker/* is not listed: those pages are the retired Confluence Score.
+    # A measured stock's /ticker URL 301s to its /exposure page (listed above);
+    # the rest are noindex. See ticker_page.
     for sig_id in sorted(SIGNALS.keys()):
         urls.append(
             f"  <url><loc>{BASE_URL}/signal/{sig_id}</loc>"
@@ -678,6 +676,18 @@ def sitemap_xml():
 # been measured gets a page; anything else is a 404, never an estimated one.
 _EXPOSURE_TTL = 900
 _exposure_cache: dict = {}
+
+
+_NOINDEX = "noindex, follow"
+
+
+def _measured(symbol: str) -> bool:
+    """True if the stock library has an exposure page for this symbol."""
+    try:
+        _get_engine()
+        return any(s["ticker"] == symbol for s in _exposure_stocks())
+    except Exception:
+        return False   # a library outage must not take the old pages down too
 
 
 def _exposure_stocks() -> list[dict]:
@@ -731,6 +741,15 @@ def exposure_page(symbol: str):
 @app.get("/ticker/{symbol}", response_class=HTMLResponse)
 def ticker_page(symbol: str):
     symbol = symbol.upper().strip()
+
+    # Retired surface. These pages show the old Confluence Score and bullish/
+    # bearish counts -- the "stock pick" framing the product now disclaims.
+    # A stock with an exposure page is sent there permanently, so its search
+    # ranking carries over; any other stays reachable for old links but is
+    # kept out of the index (noindex, and no longer in the sitemap).
+    if _measured(symbol):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/exposure/{symbol}", status_code=301)
     TICKERS, SIGNALS = _get_config()
 
     meta = TICKERS.get(symbol)
@@ -856,7 +875,7 @@ def ticker_page(symbol: str):
             '</div>'
         )
 
-    html = _html_head(page_title, seo_desc, canonical, json_ld)
+    html = _html_head(page_title, seo_desc, canonical, json_ld, robots=_NOINDEX)
     html += f"""
 <div class="container">
 
@@ -910,7 +929,7 @@ def ticker_page(symbol: str):
   </div>
 """
     html += _html_foot()
-    return html
+    return HTMLResponse(html, headers={"X-Robots-Tag": _NOINDEX})
 
 
 @app.get("/signal/{signal_id}", response_class=HTMLResponse)
@@ -977,7 +996,7 @@ def signal_page(signal_id: str):
 
     # Relevant ticker links
     ticker_links = " · ".join(
-        f'<a href="{BASE_URL}/ticker/{t}">{t}</a>'
+        f'<a href="{BASE_URL}/{"exposure" if _measured(t) else "ticker"}/{t}">{t}</a>'
         for t in relevant_t[:10]
     )
 
