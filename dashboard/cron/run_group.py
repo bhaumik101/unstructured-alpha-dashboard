@@ -35,6 +35,13 @@ GROUPS = {
         "cron.check_data_freshness",
         "cron.check_public_surfaces",
     ),
+    # Both weekly, both warm data before a visitor asks for it. The stock
+    # library goes first: it has a memory guard, and the pre-warm after it
+    # does not need the headroom back.
+    "weekly-universe": (
+        "cron.measure_library",
+        "cron.grow_universe",
+    ),
 }
 
 
