@@ -30,7 +30,11 @@
 #   independent and ordinary errors would overstate certainty.
 # * Evidence labels are Bonferroni-corrected across the five factors. "Clear"
 #   needs |t| >= 2.576 (a 1% two-sided test, i.e. 5% shared across five), so
-#   testing five things at once cannot manufacture a finding.
+#   testing five things at once does not multiply the chance of a finding.
+#   That 1% is nominal: Newey-West over 156 weeks runs ~5% narrow (var(t)
+#   ~1.10 under no exposure), and the measured false-Clear rate is ~1.9% per
+#   reading, ~9% per stock. The methodology page quotes the measured figure;
+#   tests/test_exposure.py re-runs the simulation that backs it.
 # * The Baa corporate spread (BAA10Y), not the high-yield OAS: FRED licenses
 #   only ~3 years of the ICE high-yield series, which cannot fill a 3-year
 #   window reliably. BAA10Y has decades of daily history.
@@ -217,7 +221,9 @@ def _bonferroni_t(n_tests: int, alpha: float = 0.05) -> float:
     return NormalDist().inv_cdf(1.0 - alpha / (2.0 * max(1, n_tests)))
 
 
-# The extras' bar: 5% shared across EVERY force tested, core and extra. So an
+# The extras' bar: set for 5% shared across EVERY force tested, core and
+# extra (nominal, like CLEAR_T: measured ~0.9% per reading against the ~0.33%
+# it is set for; tests/test_extra_forces.py re-runs that simulation). So an
 # extra always needs more than a core force to be called Clear, and the bar
 # tightens as groups are added -- more forces tested must not mean more
 # findings by chance. The core keeps its own five-force bar (CLEAR_T), so its
