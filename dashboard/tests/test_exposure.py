@@ -310,11 +310,14 @@ def test_the_live_report_uses_the_public_download_only_when_the_api_has_no_data(
 
     monkeypatch.setattr(fetchers, "_get_fred_key", lambda: "configured")
     ex.build_live_report([{"ticker": "VTI"}])
-    assert seen["value"] == 1.0 and calls == {"api": 1, "public": 0}
+    # Every series a report can need is fetched together on the first ask
+    # (utils/exposure.prefetching), so the count is per series, not per call.
+    n = len(ex.REPORT_SERIES_IDS)
+    assert seen["value"] == 1.0 and calls == {"api": n, "public": 0}
 
     monkeypatch.setattr(fetchers, "_get_fred_key", lambda: "")
     ex.build_live_report([{"ticker": "VTI"}])
-    assert seen["value"] == 2.0 and calls["public"] == 1, "no key must fall back, not fail"
+    assert seen["value"] == 2.0 and calls["public"] == n, "no key must fall back, not fail"
 
 
 def test_formatted_numbers_never_show_a_negative_zero():

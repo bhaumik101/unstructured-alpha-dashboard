@@ -878,18 +878,63 @@ def fetch_fred_public(series_id: str, start: str, end: str) -> pd.Series:
     return parse_fred_csv(resp.text)
 
 
+# Every FRED series a report can ask for, core, growth and extra alike.
+REPORT_SERIES_IDS = tuple(dict.fromkeys(
+    [f.series_id for f in FACTORS] + [GROWTH_FACTOR.series_id]
+    + [f.series_id for f in EXTRA_FACTORS if f.source == "fred"]))
+
+
+def prefetching(fetch: Callable[[str, str, str], pd.Series], series_ids: Iterable[str],
+                workers: int = 8) -> Callable[[str, str, str], pd.Series]:
+    """A series fetcher that, on first use, fetches every listed series at once.
+
+    A report asks for ~15 FRED series with the same dates. Fetched one after
+    another, a cold cache costs the sum of their latencies -- and in a FRED
+    outage the sum of their timeouts (12s API + 30s public fallback each),
+    minutes for one report. Fetched together it costs the slowest one. A
+    failure is kept per series and re-raised to the caller that asks for it,
+    so the engine still excludes and names exactly that series.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    ids = tuple(dict.fromkeys(series_ids))
+    done: Dict[tuple, tuple] = {}
+
+    def one(sid, start, end):
+        try:
+            return (fetch(sid, start, end), None)
+        except Exception as exc:  # kept, and raised to whoever asks for this one
+            return (None, exc)
+
+    def fetcher(series_id: str, start: str, end: str):
+        if (series_id, start, end) not in done:
+            wanted = [i for i in dict.fromkeys(ids + (series_id,)) if (i, start, end) not in done]
+            with ThreadPoolExecutor(max_workers=max(1, min(workers, len(wanted)))) as pool:
+                for sid, result in zip(wanted, pool.map(lambda i: one(i, start, end), wanted)):
+                    done[(sid, start, end)] = result
+        value, exc = done[(series_id, start, end)]
+        if exc is not None:
+            raise exc
+        return value
+    return fetcher
+
+
 def build_live_report(holdings: Iterable[dict], max_holdings: int = MAX_HOLDINGS) -> dict:
     """Production adapter: the app's cached fetchers, same engine."""
     from utils.fetchers import _get_fred_key, fetch_fred, fetch_prices_batch
+
+    # Resolved here, on the calling thread: it can read Streamlit state, which
+    # the prefetch's worker threads cannot see.
+    key = _get_fred_key()
 
     def _prices(tickers, start, end):
         return fetch_prices_batch(tuple(tickers), start, end)
 
     def _series(series_id, start, end):
-        key = _get_fred_key()
         series = fetch_fred(series_id, start, end, api_key=key) if key else None
         if series is None or len(series) == 0:
             series = fetch_fred_public(series_id, start, end)
         return series
 
-    return build_exposure_report(holdings, _prices, _series, max_holdings=max_holdings)
+    return build_exposure_report(holdings, _prices, prefetching(_series, REPORT_SERIES_IDS),
+                                 max_holdings=max_holdings)
