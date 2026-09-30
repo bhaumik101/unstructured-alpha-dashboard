@@ -72,7 +72,7 @@ Prices come from Yahoo Finance and are adjusted for dividends and splits. Holdin
 | **Not distinguishable from zero** | Anything weaker | {ex.EVIDENCE_EXPLAINED['indistinct']} |
 | **Not enough data** | Fewer than {ex.MIN_WEEKS} weeks | {ex.EVIDENCE_EXPLAINED['not_enough_data']} |
 
-**Why "Clear" is strict.** Testing five factors at once gives five chances for noise to look like a finding. The Clear threshold is corrected for that (Bonferroni: a 5% error rate shared across five tests). On simulated portfolios with no real exposure, about 1 in 100 factor readings is labelled Clear.
+**Why "Clear" is strict.** Testing five factors at once gives five chances for noise to look like a finding. The Clear threshold is corrected for that (Bonferroni: a 5% error rate shared across five tests). On simulated portfolios with no real exposure, fewer than 2 in 100 factor readings are labelled Clear (80 of 5,000, about 1.6%). That is a little above the 1 in 100 the threshold is set for, because standard errors estimated from three years of weekly data run slightly small; we state the measured rate rather than the nominal one.
 
 ## Sample size and power
 Three years of weekly data gives about 156 observations. That is enough to detect moderate relationships, not subtle ones. **Economic growth is published monthly**, so it rests on about {ex.GROWTH_WINDOW_MONTHS} observations. With that few, only strong relationships can be told apart from noise, and the report always labels growth as limited evidence.

@@ -368,3 +368,27 @@ def test_the_yen_reads_as_the_yen_rising_not_the_dollar():
 def test_china_is_measured_beyond_emerging_markets():
     f = next(f for f in ex.EXTRA_FACTORS if f.key == "china")
     assert ex._spread_legs(f) == ("FXI", "EEM")
+
+
+@pytest.mark.slow
+def test_the_core_false_clear_rate_is_what_the_methodology_page_says():
+    """The page says fewer than 2 in 100 (measured 80 of 5,000, ~1.6%, over
+    two data generators). It used to say "about 1 in 100", which nothing
+    tested and a simulation contradicted."""
+    from tests.test_exposure import _daily_world
+
+    clear = total = 0
+    for gen, ticker in ((_world, "PLAIN"), (_daily_world, "VTI")):
+        for seed in range(100):
+            pf, sf = gen(seed=5000 + seed)
+            r = ex.build_exposure_report([{"ticker": ticker, "weight_pct": 100}], pf, sf, end=END)
+            for v in r["portfolio"]["readings"].values():
+                total += 1
+                clear += v["evidence"] == "clear"
+    assert clear / total < 0.02, f"{clear}/{total} core readings falsely Clear"
+
+
+def test_the_methodology_page_states_the_measured_core_rate_not_the_nominal_one():
+    src = (_ROOT / "pages" / "63_Methodology.py").read_text(encoding="utf-8")
+    assert "about 1 in 100 factor readings" not in src
+    assert "fewer than 2 in 100 factor readings are labelled Clear (80 of 5,000" in src
