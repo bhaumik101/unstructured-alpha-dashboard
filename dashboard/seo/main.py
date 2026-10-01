@@ -651,6 +651,13 @@ def sitemap_xml():
     except Exception:
         pass  # a sitemap without the exposure pages still beats a 500
 
+    try:
+        _get_engine()
+        from utils.force_pages import force_sitemap_urls
+        urls.extend(force_sitemap_urls(_exposure_stocks(), BASE_URL))
+    except Exception:
+        pass  # likewise for the force pages
+
     # /ticker/* is not listed: those pages are the retired Confluence Score.
     # A measured stock's /ticker URL 301s to its /exposure page (listed above);
     # the rest are noindex. See ticker_page.
@@ -736,6 +743,29 @@ def exposure_page(symbol: str):
         related = [r for side in ("up", "down")
                    for r in [r for r in ranked[side] if r["ticker"] != symbol][:5]]
     return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL))
+
+
+# ── Force pages: every stock on record, read one economic force at a time ────
+@app.get("/forces", response_class=HTMLResponse)
+def forces_hub():
+    from utils.force_pages import forces_hub_html
+
+    _get_engine()
+    return HTMLResponse(forces_hub_html(_exposure_stocks(), BASE_URL, APP_URL))
+
+
+@app.get("/forces/{key}", response_class=HTMLResponse)
+def force_page(key: str):
+    from utils.force_pages import FORCE_BY_KEY, force_page_html
+
+    canonical = key.strip().lower()
+    if canonical not in FORCE_BY_KEY:
+        raise HTTPException(status_code=404, detail="Not an economic force measured here.")
+    if key != canonical:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/forces/{canonical}", status_code=301)
+    _get_engine()
+    return HTMLResponse(force_page_html(canonical, _exposure_stocks(), BASE_URL, APP_URL))
 
 
 @app.get("/ticker/{symbol}", response_class=HTMLResponse)

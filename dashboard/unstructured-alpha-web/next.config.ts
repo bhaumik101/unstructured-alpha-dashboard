@@ -36,6 +36,8 @@ const nextConfig: NextConfig = {
       // The current product's crawlable pages: one per measured stock.
       { source: "/exposure", destination: `${SEO_ORIGIN}/exposure` },
       { source: "/exposure/:symbol", destination: `${SEO_ORIGIN}/exposure/:symbol` },
+      { source: "/forces", destination: `${SEO_ORIGIN}/forces` },
+      { source: "/forces/:key", destination: `${SEO_ORIGIN}/forces/:key` },
       { source: "/signal/:id", destination: `${SEO_ORIGIN}/signal/:id` },
       { source: "/signals/report", destination: `${SEO_ORIGIN}/signals/report` },
       // The weekly brief. Added to the SEO service and to its sitemap, but not

@@ -211,7 +211,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         s = fetch_fred(series_id, start, end, api_key=key) if key else None
         return s if s is not None and len(s) else ex.fetch_fred_public(series_id, start, end)
 
-    stats = run(targets, prices_batch=fetch_prices_batch, series=memo_series(fred),
+    series = memo_series(ex.prefetching(fred, ex.REPORT_SERIES_IDS))
+    stats = run(targets, prices_batch=fetch_prices_batch, series=series,
                 record=lib.record, end=now.date(), batch_size=args.batch_size,
                 deadline=t0 + args.deadline_min * 60, max_rss_mb=args.max_rss_mb)
     _log("finished", seconds=round(time.monotonic() - t0), rss_mb=round(_rss_mb(), 1), **stats)
