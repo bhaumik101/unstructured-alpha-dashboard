@@ -41,6 +41,9 @@ GROUPS = {
     "weekly-universe": (
         "cron.measure_library",
         "cron.grow_universe",
+        # Monthly in practice: it skips itself if a result from the last 28
+        # days exists. Last, so it never holds the library's memory headroom.
+        "cron.track_record",
     ),
 }
 

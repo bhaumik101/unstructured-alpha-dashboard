@@ -3391,6 +3391,7 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
     <div class="ua-tnav-group">
       <button type="button" class="ua-tnav-trigger" aria-expanded="false" aria-controls="ua-drop-research">Research <span class="ua-tnav-caret" aria-hidden="true">&#9660;</span></button>
       <div class="ua-tnav-drop" id="ua-drop-research">
+        <a href="/evidence">Does it hold up?</a>
         <a href="/methodology">Methodology</a>
         <a href="/research">Research record</a>
         <a href="/track-record">Signal track record</a>
