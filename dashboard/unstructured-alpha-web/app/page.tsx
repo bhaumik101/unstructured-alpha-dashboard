@@ -398,12 +398,47 @@ export default function Home() {
               <div className="lp-step">
                 <StepIcon n={2} />
                 <h3 className="lp-h3">We measure</h3>
-                <p className="lp-body">Three years of weekly returns are compared with weekly changes in five economic series from the Federal Reserve, with the stock market accounted for.</p>
+                <p className="lp-body">Three years of weekly returns are compared with weekly changes in five core economic series from the Federal Reserve, and 14 more forces measured beyond them, with the stock market accounted for.</p>
               </div>
               <div className="lp-step">
                 <StepIcon n={3} />
                 <h3 className="lp-h3">You read it plainly</h3>
                 <p className="lp-body">Each exposure shows its size, a 90% range, the weeks of data used, the holdings behind it, and how strong the evidence is.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Tools ─────────────────────────────────────────────────────── */}
+        <section id="tools" className="lp-band">
+          <div className="lp-wrap">
+            <p className="lp-eyebrow">What you can do with it</p>
+            <h2 className="lp-h2">One measurement, five ways to use it</h2>
+            <div className="lp-grid-3">
+              <div className="lp-step">
+                <h3 className="lp-h3">Exposure report</h3>
+                <p className="lp-body">What a portfolio has moved with, force by force, with a range, an evidence label and a heatmap of the holdings behind each one.</p>
+                <a className="lp-link" href={`${APP_URL}/`}>Open the report →</a>
+              </div>
+              <div className="lp-step">
+                <h3 className="lp-h3">Scenario lab</h3>
+                <p className="lp-body">Move the stock market and any of 19 forces, and see the estimated move with its range, what each force contributed, and which holdings carry it.</p>
+                <a className="lp-link" href={`${APP_URL}/scenarios`}>Run a stress test →</a>
+              </div>
+              <div className="lp-step">
+                <h3 className="lp-h3">What drove returns</h3>
+                <p className="lp-body">The last 4 to 52 weeks broken into the market, each force, and what none of them explains, adding up to the total.</p>
+                <a className="lp-link" href={`${APP_URL}/`}>See it in the report →</a>
+              </div>
+              <div className="lp-step">
+                <h3 className="lp-h3">Stocks and forces</h3>
+                <p className="lp-body">Every S&amp;P 500 company&rsquo;s exposures, measured weekly, and for each force the stocks that moved up and down with it.</p>
+                <a className="lp-link" href="/forces">Browse by force →</a>
+              </div>
+              <div className="lp-step">
+                <h3 className="lp-h3">Does it hold up?</h3>
+                <p className="lp-body">How readings measured this way held up over the following year, out of sample, across the S&amp;P 500 — published whatever it shows.</p>
+                <a className="lp-link" href={`${APP_URL}/evidence`}>Read the track record →</a>
               </div>
             </div>
           </div>
@@ -464,10 +499,13 @@ export default function Home() {
         <section className="lp-band lp-band-sky">
           <div className="lp-wrap">
             <p className="lp-eyebrow">Data</p>
-            <h2 className="lp-h2">Six economic forces, from public sources</h2>
+            <h2 className="lp-h2">19 economic forces, from public sources</h2>
             <p className="lp-body lp-narrow">
               Prices from Yahoo Finance, adjusted for dividends. Economic series from the Federal Reserve Bank
-              of St. Louis (FRED).
+              of St. Louis (FRED). The five core forces and economic growth are below; 14 more are measured
+              beyond the core five: short-term rates, market volatility, mortgage rates, gold, copper, natural
+              gas, bitcoin, small vs large companies, value vs growth, momentum, the euro, the yen, emerging
+              markets and China.
             </p>
             <div className="lp-factors">
               {DATA_SERIES.map((s) => (
