@@ -301,3 +301,7 @@
   .lp-closing-icons { grid-template-columns: repeat(6, 1fr); gap: 6px; }
   .lp-closing-icons .lp-ficon { width: 100% !important; height: auto !important; aspect-ratio: 1; }
 }
+
+/* Tools section: each card ends in a text link to that tool. */
+.lp-link { display: inline-block; margin-top: 12px; font-weight: 650; color: var(--lp-accent); text-decoration: none; }
+.lp-link:hover { text-decoration: underline; }
