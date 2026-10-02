@@ -85,6 +85,7 @@ pg = st.navigation(
             st.Page("pages/67_Portfolios.py",  title="Your portfolios", url_path="portfolios"),
             st.Page("pages/68_Summary.py",     title="Client summary", url_path="summary"),
             st.Page("pages/69_Stock.py",       title="Stock exposure", url_path="stock"),
+            st.Page("pages/70_Scenarios.py",   title="Scenario lab", url_path="scenarios"),
             st.Page("pages/62_Alerts.py",       title="Alerts", url_path="alerts"),
             st.Page("pages/63_Methodology.py",  title="Methodology", url_path="methodology"),
             st.Page("pages/64_Research.py",     title="Research record", url_path="research"),

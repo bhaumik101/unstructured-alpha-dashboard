@@ -66,7 +66,7 @@ CHART_CSS = """<style>
 .uac-big{font-size:var(--uar-t-price);font-weight:750;letter-spacing:-0.02em;color:var(--uar-ink);
   line-height:1.1;margin-top:2px;}
 .uac-delta{font-size:var(--uar-t-meta);font-weight:650;}
-.uac-up{color:var(--uar-pos);}
+.uac-up{color:var(--uar-pos-ink);}
 /* Text, so the text-safe amber: the mark colour #c26a0a is 3.9:1 on white. */
 .uac-down{color:var(--uar-neg-ink);}
 @media print{.uac-panel,.uac-spark{break-inside:avoid;box-shadow:none;}}

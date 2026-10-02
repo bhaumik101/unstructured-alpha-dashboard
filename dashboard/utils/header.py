@@ -3384,13 +3384,14 @@ html[data-ua-theme="light"] .ua-tnav-pro:not(.ua-tnav-admin) {
   <div class="ua-tnav-links" id="ua-tnav-links">
     <a class="ua-tnav-item" href="/" data-paths="/">Report</a>
     <a class="ua-tnav-item" href="/compare">Compare</a>
+    <a class="ua-tnav-item" href="/scenarios">Scenarios</a>
     <a class="ua-tnav-item" href="/stock">Stocks</a>
     <a class="ua-tnav-item" href="/what-changed">What changed</a>
-    <a class="ua-tnav-item" href="/methodology">Methodology</a>
 
     <div class="ua-tnav-group">
       <button type="button" class="ua-tnav-trigger" aria-expanded="false" aria-controls="ua-drop-research">Research <span class="ua-tnav-caret" aria-hidden="true">&#9660;</span></button>
       <div class="ua-tnav-drop" id="ua-drop-research">
+        <a href="/methodology">Methodology</a>
         <a href="/research">Research record</a>
         <a href="/track-record">Signal track record</a>
         <a href="/model-validation">Model validation</a>

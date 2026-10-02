@@ -107,13 +107,18 @@ def test_redesigned_nav_leads_with_the_exposure_report_and_keeps_old_routes():
     # "/stock" joined on 2026-09-29: one company's exposure and stored history.
     # Measured: it needs 51-57px, which fits from 1060px up and overflowed a
     # 1024px screen by 33px until items tighten below 1100px (app_theme.py).
-    assert top_level == ["/", "/compare", "/stock", "/what-changed", "/methodology"]
+    # "/scenarios" joined on 2026-10-02: the stress test is the second question
+    # an adviser asks. It took Methodology's slot rather than adding a sixth
+    # (Methodology moved into the Research menu with the other evidence pages),
+    # and "Scenarios" is two characters shorter, so the row is narrower than it
+    # was at 1024px, not wider.
+    assert top_level == ["/", "/compare", "/scenarios", "/stock", "/what-changed"]
     account_menu = nav.split('aria-controls="ua-drop-account">Account ', 1)[1]
     assert 'href="/alerts"' in account_menu, "alerts must stay reachable from the nav"
 
     research_menu = nav.split('aria-controls="ua-drop-research">Research ', 1)[1].split(
         "</div>\n    </div>", 1)[0]
-    for link in ("/research", "/track-record", "/model-validation", "/data-trust"):
+    for link in ("/methodology", "/research", "/track-record", "/model-validation", "/data-trust"):
         assert link in research_menu
 
     for retired in ("/signal-dashboard", "/stock-recommender", "/power-supercycle", "/options-flow"):
