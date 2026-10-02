@@ -610,7 +610,22 @@ if _pending:
 
 st.markdown("## What changed")
 st.markdown(ui.shifts_html(report), unsafe_allow_html=True)
-st.markdown(ui.recent_moves_html(report), unsafe_allow_html=True)
+
+# What drove the portfolio's returns, over a window the reader picks. The
+# market is counted, and what no force explains is shown, never hidden.
+from utils import attribution as attr  # noqa: E402
+from utils import attribution_ui as attr_ui  # noqa: E402
+
+if attr.available(report):
+    st.markdown("## What drove returns")
+    st.markdown(attr_ui.ATTRIBUTION_CSS, unsafe_allow_html=True)
+    _win = st.radio("Window", attr.WINDOWS, index=1, horizontal=True, key="uar_attr_window",
+                    format_func=lambda w: f"Last {w} weeks")
+    _att = attr.attribute(report, int(_win))
+    if _att:
+        st.markdown(attr_ui.waterfall_html(_att), unsafe_allow_html=True)
+else:
+    st.markdown(ui.recent_moves_html(report), unsafe_allow_html=True)
 
 st.markdown("## Economic growth")
 st.markdown(ui.growth_html(report), unsafe_allow_html=True)
