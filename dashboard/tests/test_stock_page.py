@@ -156,6 +156,13 @@ def test_build_a_portfolio_carries_the_stock_to_the_report(monkeypatch, library,
     assert at.session_state["_test_switch_page"].endswith("60_Exposure_Report.py")
 
 
+def test_stress_test_carries_the_stock_to_the_scenario_lab(monkeypatch, library, measured):
+    at = _page(monkeypatch, ticker="XOM")
+    at.button(key="usl_to_scenarios").click().run()
+    assert at.session_state["uar_holdings"] == [{"ticker": "XOM", "weight_pct": 100}]
+    assert at.session_state["_test_switch_page"].endswith("70_Scenarios.py")
+
+
 def test_the_reports_single_company_buttons_open_the_stock_page(monkeypatch, library, measured):
     at = _page(monkeypatch, path="pages/60_Exposure_Report.py")
     at.button(key="uar_one_XOM").click().run()
