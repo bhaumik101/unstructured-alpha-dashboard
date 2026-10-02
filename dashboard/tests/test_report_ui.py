@@ -449,3 +449,38 @@ def test_the_examples_are_labelled_as_examples_not_suggestions():
     assert "not suggestions to hold them" in page
     for ticker, what in ui.CANDIDATE_EXAMPLES:
         assert ticker.isupper() and what
+
+
+def test_heatmap_text_passes_contrast_at_every_shade_in_both_themes():
+    """Cell text stays in body ink; the shading is the up/down pair mixed into
+    the card at HEAT_ALPHAS. Measured for every step, both directions, both
+    themes -- the darkest step is where it would fail first."""
+    def _rgb(h):
+        return [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+
+    def _lum(rgb):
+        lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+    def _contrast(a, b):
+        la, lb = _lum(a), _lum(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+    themes = {  # surface, ink, up, down -- as REPORT_CSS defines them
+        "light": ("#ffffff", "#13213a", "#2563a8", "#c26a0a"),
+        "dark": ("#121d2f", "#e8edf5", "#5a8fd4", "#c9822f"),
+    }
+    for theme, (surface, ink, up, down) in themes.items():
+        for hue in (up, down):
+            assert hue in ui.REPORT_CSS, f"{theme}: {hue} is no longer the report's colour"
+            for a in ui.HEAT_ALPHAS:
+                cell = [a * h + (1 - a) * s for h, s in zip(_rgb(hue), _rgb(surface))]
+                assert _contrast(_rgb(ink), cell) >= 4.5, (theme, hue, a)
+
+
+def test_heatmap_shades_by_size_and_never_tints_a_weak_reading(report):
+    html = ui.holdings_matrix_html(report)
+    assert "Whole portfolio" in html and 'class="uar-matrix uar-heat"' in html
+    assert ui._heat_step(0.1, 4.0) == 0 and ui._heat_step(4.0, 4.0) == len(ui.HEAT_ALPHAS) - 1
+    for cell in re.findall(r'<td class="uar-hm uar-hm-zero"[^>]*>', html):
+        assert "background" not in cell, "a weak reading was shaded"

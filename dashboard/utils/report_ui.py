@@ -193,6 +193,16 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-m-clear{color:#fff;}
 .uar-m-tent{background:transparent;}
 .uar-m-zero{color:var(--uar-ink-3);font-weight:500;}
+.uar-heat td.uar-hm{padding:11px 10px;border-bottom:2px solid var(--uar-surface);border-right:2px solid var(--uar-surface);}
+.uar-hm-v{font-weight:650;color:var(--uar-ink);font-variant-numeric:tabular-nums;}
+.uar-hm-total th,.uar-hm-total td{border-bottom:2px solid var(--uar-ink-3)!important;}
+.uar-heat tbody tr:hover td.uar-hm{filter:brightness(0.97);}
+.uar-hm-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 6px;padding:10px 20px 0;
+  font-size:var(--uar-t-micro);color:var(--uar-ink-3);}
+.uar-hm-key{display:inline-block;width:18px;height:12px;border-radius:2px;}
+.uar-hm-mid{display:inline-block;width:1px;height:14px;background:var(--uar-ink-3);margin:0 2px;}
+.uar-hm-sep{display:inline-block;width:14px;}
+.uar-hm-tentkey{outline:1.5px dashed var(--uar-ink-3);outline-offset:-2px;}
 /* Saved-portfolio cards on the portfolios page. */
 .uar-pcard{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:16px;
   padding:16px 18px 14px;box-shadow:0 18px 38px -32px var(--uar-shadow);min-height:230px;}
@@ -1206,19 +1216,47 @@ def portfolio_card_html(name: str, n_holdings: int, updated: str,
             f'</div></div>')
 
 
+# Heatmap intensity: four steps of the up/down pair mixed into the card, by how
+# large a reading is against the largest on the grid. Text stays in body ink,
+# so every step is checked for contrast in both themes (tests/test_report_ui.py).
+HEAT_ALPHAS = (0.14, 0.24, 0.34, 0.44)
+
+
+def _heat_step(value: float, largest: float) -> int:
+    if largest <= 0:
+        return 0
+    return min(len(HEAT_ALPHAS) - 1, int(abs(value) / largest * len(HEAT_ALPHAS)))
+
+
+def _heat_cell(impact: float, evidence: str, largest: float, say: str) -> str:
+    if evidence not in ("clear", "tentative"):
+        return (f'<td class="uar-hm uar-hm-zero" aria-label="{escape(say)}: not distinguishable '
+                f'from zero"><span class="uar-m-zero" aria-hidden="true">—</span></td>')
+    alpha = HEAT_ALPHAS[_heat_step(impact, largest)]
+    if evidence == "tentative":
+        alpha = HEAT_ALPHAS[0]
+    hue = "var(--uar-pos)" if impact >= 0 else "var(--uar-neg)"
+    cls = "uar-hm-clear" if evidence == "clear" else "uar-hm-tent"
+    style = f"background:color-mix(in srgb,{hue} {alpha * 100:.0f}%,transparent);"
+    if evidence == "tentative":
+        style += f"outline:1.5px dashed {hue};outline-offset:-4px;"
+    label = f"{say}: {fmt_pct(impact)}, {ex.EVIDENCE_LABELS[evidence]}"
+    return (f'<td class="uar-hm {cls}" style="{style}" aria-label="{escape(label)}">'
+            f'<span class="uar-hm-v">{fmt_pct(impact)}</span></td>')
+
+
 def holdings_matrix_html(report: dict) -> str:
-    """Every holding on one grid: rows are holdings, columns are the forces.
+    """Every holding on one heatmap: rows are holdings, columns are the forces.
 
-    The product used to have a shelf of per-stock research pages built on the
-    old signal scores. They went when the scores did, and nothing replaced the
-    thing people actually came for: *what is going on with this one name*.
-
-    The engine already fits every holding separately, on exactly the same weeks
-    and the same regressors as the portfolio, so this needs no new statistics
-    and invents nothing — it is the per-holding numbers the factor detail tables
-    already show, arranged so one stock can be read across instead of one factor
-    read down. A cell is filled only where that holding's own evidence stands on
-    its own; everything else is a dash, not a faint colour.
+    The engine fits every holding separately, on exactly the same weeks and
+    regressors as the portfolio, so this needs no new statistics and invents
+    nothing. Each cell is shaded on the report's up/down pair, darker for a
+    larger reading, so a whole book can be scanned at once: which names carry
+    the rate exposure, which ones move against the rest. Clear readings are
+    solid; tentative ones are the lightest shade with a dashed outline; a
+    reading that cannot be told from noise is a dash, never a faint colour --
+    it is an absence of evidence, not a small exposure. The whole portfolio
+    sits on the top row for reference.
     """
     contributions = report.get("contributions") or {}
     if not contributions or "portfolio" not in report:
@@ -1237,47 +1275,63 @@ def holdings_matrix_html(report: dict) -> str:
         return ""  # a single holding IS the portfolio; the table above says it
 
     readings = report["portfolio"]["readings"]
+    shown = [r["impact"] for t in weights for k, r in cells.get(t, {}).items()
+             if r["evidence"] in ("clear", "tentative")]
+    shown += [readings[k]["impact"] for k in keys if readings[k]["evidence"] in ("clear", "tentative")]
+    largest = max((abs(v) for v in shown), default=0.0)
+
     head = "".join(
-        f'<th><span class="uar-dot" style="background:{FACTOR_COLORS.get(k, "#3b7ddd")}"></span>'
+        f'<th scope="col"><span class="uar-dot" style="background:{FACTOR_COLORS.get(k, "#3b7ddd")}"></span>'
         f'{escape(readings[k]["label"])}</th>' for k in keys)
 
-    body = []
+    portfolio_row = (
+        '<tr class="uar-hm-total"><th scope="row" class="uar-m-name"><div class="uar-m-tick">Whole portfolio</div>'
+        '<div class="uar-m-weight">for reference</div></th>'
+        + "".join(_heat_cell(readings[k]["impact"], readings[k]["evidence"], largest,
+                             f'Whole portfolio, {readings[k]["label"]}') for k in keys)
+        + '</tr>')
+    body = [portfolio_row]
     for ticker in sorted(weights, key=lambda t: -weights[t]):
         tds = []
         for key in keys:
             row = cells.get(ticker, {}).get(key)
-            if row is None or row["evidence"] not in ("clear", "tentative"):
-                tds.append('<td><span class="uar-m-val uar-m-zero">—</span></td>')
-                continue
-            if row["evidence"] == "clear":
-                style = f"background:var(--fd-{key},#1f5fae)"
-                cls = "uar-m-clear"
+            say = f'{ticker}, {readings[key]["label"]}'
+            if row is None:
+                tds.append(_heat_cell(0.0, "indistinct", largest, say))
             else:
-                style = (f"border:1px solid var(--fh-{key},#1f5fae);"
-                         f"color:var(--fh-{key},#1f5fae)")
-                cls = "uar-m-tent"
-            tds.append(f'<td><span class="uar-m-val {cls}" style="{style}" '
-                       f'title="{escape(ex.EVIDENCE_LABELS[row["evidence"]])}">'
-                       f'{fmt_pct(row["impact"])}</span></td>')
+                tds.append(_heat_cell(row["impact"], row["evidence"], largest, say))
         body.append(
-            f'<tr><td class="uar-m-name"><div class="uar-m-tick">{escape(ticker)}</div>'
-            f'<div class="uar-m-weight">{weights[ticker]:.1f}% of the portfolio</div></td>'
+            f'<tr><th scope="row" class="uar-m-name"><div class="uar-m-tick">{escape(ticker)}</div>'
+            f'<div class="uar-m-weight">{weights[ticker]:.1f}% of the portfolio</div></th>'
             + "".join(tds) + "</tr>")
+
+    steps = "".join(
+        f'<span class="uar-hm-key" style="background:color-mix(in srgb,var(--uar-neg) {a * 100:.0f}%,transparent)"></span>'
+        for a in reversed(HEAT_ALPHAS)) + '<span class="uar-hm-mid"></span>' + "".join(
+        f'<span class="uar-hm-key" style="background:color-mix(in srgb,var(--uar-pos) {a * 100:.0f}%,transparent)"></span>'
+        for a in HEAT_ALPHAS)
+    legend = (f'<div class="uar-hm-legend" aria-hidden="true"><span>Moved down</span>{steps}'
+              f'<span>Moved up</span><span class="uar-hm-sep"></span>'
+              f'<span class="uar-hm-key uar-hm-tentkey"></span><span>Tentative</span>'
+              f'<span class="uar-m-zero">—</span><span>Not distinguishable from zero</span></div>')
 
     return (
         '<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
         '<div class="uar-title">Each holding, measured on its own</div>'
         '<div class="uar-sub">The same three years of weekly returns, fitted one holding at a '
-        'time, with the stock market&#39;s own movement removed. Read a row to see what a single '
-        'name is exposed to.</div></div></div>'
-        f'<div class="uar-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="uar-matrix"><thead><tr>'
-        f'<th class="uar-m-name">Holding</th>{head}</tr></thead>'
+        'time, with the stock market&#39;s own movement removed. Darker means a larger move; read '
+        'across a row for one name, down a column for one force.</div></div></div>'
+        f'{legend}'
+        '<div class="uar-scroll" tabindex="0" role="region" aria-label="Holdings heatmap, scrolls sideways">'
+        '<table class="uar-matrix uar-heat"><thead><tr>'
+        f'<th scope="col" class="uar-m-name">Holding</th>{head}</tr></thead>'
         f'<tbody>{"".join(body)}</tbody></table></div>'
-        '<div class="uar-foot">A filled cell is a <b>clear</b> reading, an outlined one is '
-        '<b>tentative</b>, and a dash means that holding&#39;s response could not be told apart '
-        'from noise — not that it has none. Figures are the holding&#39;s own sensitivity, before '
-        'its weight is applied; each one describes how that holding has moved and is not a '
-        'forecast. To look at one name on its own, enter just that ticker.</div>'
+        '<div class="uar-foot">Each figure is the holding&#39;s own sensitivity, before its weight is '
+        'applied: its typical same-week move when that force moved by the amount in the table above. '
+        'Shading is relative to the largest reading on this grid. A dash means that holding&#39;s '
+        'response could not be told apart from noise — not that it has none. Each one describes how '
+        'that holding has moved and is not a forecast. To look at one name on its own, enter just '
+        'that ticker.</div>'
         '</div></div>')
 
 
