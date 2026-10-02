@@ -150,7 +150,7 @@ else:
                "a row, so how its exposures shift can be followed over time.")
 
 st.markdown("## Use it")
-_port_col, _cmp_col, _ = st.columns([1.3, 1.3, 2])
+_port_col, _cmp_col, _stress_col, _ = st.columns([1.3, 1.3, 1.3, 0.7])
 if _port_col.button("Build a portfolio around it", key="usl_to_report", type="primary",
                     width="stretch"):
     # Opens the report on this one stock with the holdings panel seeded from
@@ -162,6 +162,12 @@ if _port_col.button("Build a portfolio around it", key="usl_to_report", type="pr
                             uar_mode="percent", uar_weights_touched=True)
     record("stock_page_to_report", ticker=ticker)
     st.switch_page("pages/60_Exposure_Report.py")
+if _stress_col.button("Stress-test this stock", key="usl_to_scenarios", width="stretch"):
+    # The scenario lab reads the holdings the report would: one stock at 100%.
+    st.session_state.update(uar_holdings=[{"ticker": ticker, "weight_pct": 100}],
+                            uar_name=name or ticker)
+    record("stock_page_to_scenarios", ticker=ticker)
+    st.switch_page("pages/70_Scenarios.py")
 if _cmp_col.button("Compare with a portfolio", key="usl_to_compare", width="stretch"):
     st.session_state.update(uar_holdings=[{"ticker": ticker, "weight_pct": 100}],
                             uar_name=name or ticker)
