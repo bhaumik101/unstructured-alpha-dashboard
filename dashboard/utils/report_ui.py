@@ -743,7 +743,7 @@ def factor_detail_html(report: dict, key: str) -> str:
             for c in rows
         )
         parts.append(
-            '<div class="uar-scroll" style="margin-top:12px"><table class="uar-table">'
+            '<div class="uar-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways" style="margin-top:12px"><table class="uar-table">'
             '<thead><tr><th>Holding</th><th>Weight</th><th>Its own sensitivity</th>'
             '<th>Contribution</th><th>Share of total</th></tr></thead>'
             f'<tbody>{body}</tbody></table></div>'
@@ -1089,7 +1089,7 @@ def _comparison_card(rows: List[str], title: str, sub: str, left: str, right: st
     return (
         '<div class="uar"><div class="uar-card"><div class="uar-head"><div>'
         f'<div class="uar-title">{title}</div><div class="uar-sub">{sub}</div></div></div>'
-        '<div class="uar-scroll"><table class="uar-table"><thead><tr>'
+        '<div class="uar-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="uar-table"><thead><tr>'
         f'<th>Economic force</th><th>{left}</th><th>{right}</th><th>Difference</th>'
         f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
         f'{_COMPARE_FOOT}</div></div>')
@@ -1155,7 +1155,7 @@ def holdings_diff_html(key_a: Tuple[Tuple[str, float], ...], key_b: Tuple[Tuple[
         f'<div class="uar-title">What is different between them</div>'
         f'<div class="uar-sub">Largest changes first. Weights are each portfolio&#39;s share '
         f'after rescaling to 100%.</div></div></div>'
-        '<div class="uar-scroll"><table class="uar-table"><thead><tr>'
+        '<div class="uar-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="uar-table"><thead><tr>'
         f'<th>Holding</th><th>{left}</th><th>{right}</th><th>Change</th>'
         f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div></div></div>')
 
@@ -1270,7 +1270,7 @@ def holdings_matrix_html(report: dict) -> str:
         '<div class="uar-sub">The same three years of weekly returns, fitted one holding at a '
         'time, with the stock market&#39;s own movement removed. Read a row to see what a single '
         'name is exposed to.</div></div></div>'
-        f'<div class="uar-scroll"><table class="uar-matrix"><thead><tr>'
+        f'<div class="uar-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="uar-matrix"><thead><tr>'
         f'<th class="uar-m-name">Holding</th>{head}</tr></thead>'
         f'<tbody>{"".join(body)}</tbody></table></div>'
         '<div class="uar-foot">A filled cell is a <b>clear</b> reading, an outlined one is '
@@ -1315,7 +1315,7 @@ def recent_moves_html(report: dict) -> str:
         for m in counted
     )
     return (
-        f'<div class="uar">{head}<div class="uar-scroll"><table class="uar-table"><thead><tr>'
+        f'<div class="uar">{head}<div class="uar-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table class="uar-table"><thead><tr>'
         f'<th>Economic force</th><th>How it moved</th><th>Portfolio move that lines up with it</th>'
         f'<th>90% range</th></tr></thead><tbody>{rows}</tbody></table></div>'
         f'<div class="uar-sub" style="margin-top:8px">These apply the measured sensitivities to what '
