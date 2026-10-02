@@ -579,7 +579,7 @@ def is_product_page(caller_file: str | None) -> bool:
     name = Path(str(caller_file)).name
     if name in LEGACY_PAGE_FILES:
         return False
-    return name.startswith(("60_", "61_", "62_", "63_", "64_", "65_", "66_", "67_", "68_", "69_", "70_")) or name in EXTRA_PRODUCT_PAGES
+    return name.startswith(("60_", "61_", "62_", "63_", "64_", "65_", "66_", "67_", "68_", "69_", "70_", "71_")) or name in EXTRA_PRODUCT_PAGES
 
 
 def product_page_header(title: str, subtitle: str = "", *, eyebrow: str = "",

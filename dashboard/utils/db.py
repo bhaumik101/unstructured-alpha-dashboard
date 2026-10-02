@@ -859,6 +859,18 @@ report_cache = Table(
 )
 
 
+# ── Published research results ─────────────────────────────────────────────
+# One row per run of a study (utils/track_record.py first). Rows are added,
+# never overwritten, so the published record keeps its own history.
+research_results = Table(
+    "research_results", metadata,
+    Column("id",          Integer, primary_key=True),
+    Column("study",       String(48), nullable=False, index=True),
+    Column("computed_at", String(64), nullable=False),
+    Column("payload",     Text, nullable=False),
+)
+
+
 # ── Stock exposure library ─────────────────────────────────────────────────
 # Every single stock the exposure engine measures, kept -- not cached. The
 # report cache above expires in six hours and is pruned on write; these rows
