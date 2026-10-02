@@ -342,6 +342,17 @@ def to_changes(levels: Optional[pd.Series], transform: str, rule: str = "W-FRI")
 # ── the regression ──────────────────────────────────────────────────────────
 
 def _ols_newey_west(y: np.ndarray, X: np.ndarray, lags: int = NEWEY_WEST_LAGS):
+    beta, cov, r2 = ols_newey_west_cov(y, X, lags)
+    return beta, np.sqrt(np.clip(np.diag(cov), 0.0, None)), r2
+
+
+def ols_newey_west_cov(y: np.ndarray, X: np.ndarray, lags: int = NEWEY_WEST_LAGS):
+    """OLS with the full Newey-West covariance of the coefficients.
+
+    The covariance, not just the standard errors, is what a scenario moving
+    several forces at once needs: correlated estimates (rates and the 2-year,
+    say) must not be treated as independent when their effects are added.
+    """
     n, k = X.shape
     if n <= k:
         raise ValueError("more regressors than observations")
@@ -355,10 +366,9 @@ def _ols_newey_west(y: np.ndarray, X: np.ndarray, lags: int = NEWEY_WEST_LAGS):
         g = u[lag:].T @ u[:-lag]
         s += w * (g + g.T)
     cov = xtx_inv @ s @ xtx_inv * (n / (n - k))
-    se = np.sqrt(np.clip(np.diag(cov), 0.0, None))
     ss_tot = float(((y - y.mean()) ** 2).sum())
     r2 = 1.0 - float(resid @ resid) / ss_tot if ss_tot > 0 else float("nan")
-    return beta, se, r2
+    return beta, cov, r2
 
 
 def _vifs(values: np.ndarray) -> np.ndarray:
@@ -494,6 +504,30 @@ def fit_extras(frame: pd.DataFrame, ycol: str, core: Iterable[Factor],
         if reading:
             out[f.key] = dict(reading, group=f.group)
     return out
+
+
+def _series_payload(now: pd.DataFrame, weights: Mapping[str, float], core: Iterable[Factor],
+                    extra_changes: Mapping[str, pd.Series]) -> dict:
+    """The aligned weekly data behind the report, kept so a scenario can refit
+    any combination of forces jointly (utils/scenario.py) without measuring
+    again. ~156 weeks x (holdings + 20) numbers: small enough for the cache.
+
+    Extras are put on the report's weeks; a week a series lacks is None, and
+    the scenario drops it rather than filling it.
+    """
+    def col(s: pd.Series) -> list:
+        return [None if not np.isfinite(v) else round(float(v), 6) for v in s.to_numpy(dtype=float)]
+
+    idx = now.index
+    return {
+        "weeks": [str(d.date()) for d in idx],
+        "portfolio": col(now["__portfolio__"]),
+        "market": col(now["__mkt__"]),
+        "core": {f.key: col(now[f.key]) for f in core},
+        "extras": {k: col(ch.reindex(idx)) for k, ch in extra_changes.items()},
+        "holdings": {t: col(now[t]) for t in weights},
+        "weights": {t: float(w) for t, w in weights.items()},
+    }
 
 
 # ── the report ──────────────────────────────────────────────────────────────
@@ -840,6 +874,7 @@ def build_exposure_report(
         "factor_paths": _factor_paths({k: v for k, v in levels_raw.items() if k in changes},
                                       now.index),
         "growth": growth,
+        "series": _series_payload(now, weights, active, extra_changes),
         "extras": {"readings": extras, "unavailable": extra_unavailable,
                    "clear_t": EXTRA_CLEAR_T, "n_forces": len(EXTRA_FACTORS),
                    "control": CORE_CONTROL},

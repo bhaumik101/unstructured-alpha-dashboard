@@ -491,6 +491,12 @@ with _summary_col:
 with _map_col:
     st.markdown(ui.exposure_map_html(report), unsafe_allow_html=True)
 st.markdown(ui.exposure_table_html(report), unsafe_allow_html=True)
+# The question that follows "what is it exposed to": what if those forces move?
+_stress_col, _ = st.columns([1.3, 3])
+if _stress_col.button("Stress-test this portfolio", key="uar_to_scenarios", width="stretch",
+                      help="Move the market and up to nineteen forces and see the estimated move."):
+    record("scenario_lab_opened_from_report")
+    st.switch_page("pages/70_Scenarios.py")
 
 readings = report["portfolio"]["readings"]
 detail_keys = ui.ordered_keys(report)
