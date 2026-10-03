@@ -305,3 +305,13 @@ def app_test(monkeypatch):
         return at
 
     return _make
+
+
+def query_param(app, key):
+    """One URL query parameter from an AppTest, as the app itself reads it.
+
+    AppTest.query_params held each value as a list up to Streamlit 1.64 and as
+    a plain string from 1.65; st.query_params in the app is a string in both.
+    """
+    value = app.query_params[key]
+    return value[-1] if isinstance(value, list) else value
