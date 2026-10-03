@@ -1,6 +1,7 @@
 """Signal Research Center information architecture and lazy-loading guards."""
 
 from pathlib import Path
+from tests.conftest import query_param
 
 
 DASHBOARD = Path(__file__).resolve().parent.parent
@@ -69,7 +70,7 @@ def test_overview_cards_open_their_research_section(app_test):
     assert any(
         "Signal-level validation" in element.value for element in app.markdown
     )
-    assert app.query_params["section"] == ["validation"]
+    assert query_param(app, "section") == "validation"
 
 
 def test_signal_research_keeps_existing_short_deep_links(app_test):

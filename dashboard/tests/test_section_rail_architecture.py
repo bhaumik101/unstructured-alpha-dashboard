@@ -2,6 +2,7 @@
 
 import ast
 from pathlib import Path
+from tests.conftest import query_param
 
 
 PAGES = Path(__file__).resolve().parents[1] / "pages"
@@ -95,8 +96,8 @@ def test_section_rail_deep_link_selects_requested_section(app_test):
 
     rail = next(control for control in app.radio if control.key == "about_section_rail")
     assert rail.value == "Validation Evidence"
-    assert app.query_params["theme"] == ["light"]
-    assert app.query_params["ticker"] == ["MSFT"]
+    assert query_param(app, "theme") == "light"
+    assert query_param(app, "ticker") == "MSFT"
     assert not app.exception
 
 
@@ -108,15 +109,15 @@ def test_section_rail_selection_updates_url_without_dropping_context(app_test):
 
     rail = next(control for control in app.radio if control.key == "about_section_rail")
     rail.set_value("Validation Evidence").run()
-    assert app.query_params["section"] == ["validation-evidence"]
-    assert app.query_params["theme"] == ["dark"]
-    assert app.query_params["ticker"] == ["NVDA"]
+    assert query_param(app, "section") == "validation-evidence"
+    assert query_param(app, "theme") == "dark"
+    assert query_param(app, "ticker") == "NVDA"
 
     rail = next(control for control in app.radio if control.key == "about_section_rail")
     rail.set_value("Overview").run()
     assert "section" not in app.query_params
-    assert app.query_params["theme"] == ["dark"]
-    assert app.query_params["ticker"] == ["NVDA"]
+    assert query_param(app, "theme") == "dark"
+    assert query_param(app, "ticker") == "NVDA"
 
 
 def test_visible_header_and_footer_own_removed_sidebar_actions():

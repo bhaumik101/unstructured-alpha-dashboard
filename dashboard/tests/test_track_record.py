@@ -163,6 +163,66 @@ def test_batches_give_the_same_answer_as_one_pass():
     assert batched["by_label"] == whole["by_label"] and batched["n_pairs"] == whole["n_pairs"]
 
 
+def test_a_download_that_never_returns_cannot_stall_the_run():
+    """The first live run sat silent for hours: yfinance's threaded download
+    waits for every thread with no limit. A hung batch must fall back to
+    one-at-a-time fetches and give the same answer, not hold the process."""
+    import threading
+    import time
+
+    from cron import track_record as job
+
+    prices, levels = _world(days=2400)
+    whole = tr.summarize([dict(r) for r in tr.study_pairs(prices, levels, END)])
+    never = threading.Event()
+
+    def hung_batch(tickers, start, end):
+        never.wait()   # a download that never answers
+
+    t0 = time.monotonic()
+    out = job.study_in_batches([t for t in prices if t != "SPY"], hung_batch,
+                               lambda sid, s, e: levels[sid], END, batch=3,
+                               one=lambda t, s, e: prices[t], batch_timeout=0.2)
+    assert time.monotonic() - t0 < 30
+    assert out["by_label"] == whole["by_label"] and out["n_pairs"] == whole["n_pairs"]
+    never.set()
+
+
+def test_the_deadline_stops_between_batches_and_says_so():
+    from cron import track_record as job
+
+    prices, levels = _world(days=2400)
+    ticks = iter(range(1000))
+    batches = []
+
+    def prices_batch(tickers, start, end):
+        batches.append(tickers)
+        return {t: prices[t] for t in tickers if t in prices}
+
+    out = job.study_in_batches([t for t in prices if t != "SPY"], prices_batch,
+                               lambda sid, s, e: levels[sid], END, batch=2,
+                               deadline=1.5, clock=lambda: next(ticks))
+    assert out["stopped"] == "deadline"
+    assert 0 < len(batches) < 4 and out["n_stocks"] <= 2 * len(batches)
+
+
+def test_each_batch_is_dropped_from_the_price_cache():
+    """The batch fetcher is st.cache_data: left alone it keeps ten years of
+    prices for every batch in memory for the rest of the run."""
+    from cron import track_record as job
+
+    prices, levels = _world(days=2400)
+    cleared = []
+
+    def prices_batch(tickers, start, end):
+        return {t: prices[t] for t in tickers if t in prices}
+
+    prices_batch.clear = lambda: cleared.append(1)
+    job.study_in_batches([t for t in prices if t != "SPY"], prices_batch,
+                         lambda sid, s, e: levels[sid], END, batch=3)
+    assert len(cleared) == 3   # 7 stocks in batches of 3
+
+
 def test_it_refuses_without_the_production_database(monkeypatch):
     from cron import track_record as job
 
