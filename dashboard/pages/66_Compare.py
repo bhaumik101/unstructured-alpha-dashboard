@@ -72,7 +72,7 @@ def _pick(side: str, default_source: str) -> tuple[list[dict], str]:
     saved = _saved_portfolios()
     if saved:
         sources.append("A saved portfolio")
-    sources += ["A sample", "Type the holdings"]
+    sources += ["A benchmark", "A sample", "Type the holdings"]
 
     index = sources.index(default_source) if default_source in sources else 0
     source = st.radio(f"Portfolio {side}", sources, index=index, key=f"cmp_src_{side}",
@@ -90,6 +90,13 @@ def _pick(side: str, default_source: str) -> tuple[list[dict], str]:
         rows = get_holdings(int(user["id"]), int(choice["id"])) if choice else []
         return ([{"ticker": r["ticker"], "weight_pct": r["weight_pct"]} for r in rows],
                 choice["name"] if choice else "")
+
+    if source == "A benchmark":
+        name = st.selectbox("Benchmark", list(ex.BENCHMARK_PORTFOLIOS), key=f"cmp_bench_{side}",
+                            label_visibility="collapsed")
+        rows = list(ex.BENCHMARK_PORTFOLIOS[name])
+        st.caption(ui.holdings_param(rows).replace(",", " · "))
+        return rows, name
 
     if source == "A sample":
         name = st.selectbox("Sample", list(ex.SAMPLE_PORTFOLIOS), key=f"cmp_sample_{side}",

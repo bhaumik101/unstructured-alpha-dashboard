@@ -681,10 +681,19 @@ with st.expander("Export or share this report", expanded=False):
                "measured fresh, with no account.")
     st.code(ui.share_url([{"ticker": t, "weight_pct": w} for t, w in key]), language=None)
 
-if st.button("Compare this portfolio with another", key="uar_to_compare"):
+_cmp_col, _bench_col, _ = st.columns([1.4, 1.4, 1.2])
+if _cmp_col.button("Compare this portfolio with another", key="uar_to_compare", width="stretch"):
     # Side A defaults to "the portfolio on the report", which is this one.
     st.session_state.pop("cmp_pending", None)
     record("compare_opened_from_report")
+    st.switch_page("pages/66_Compare.py")
+if _bench_col.button("Compare with a 60/40 benchmark", key="uar_to_benchmark", width="stretch"):
+    # Opens straight into the comparison: this portfolio against the default
+    # benchmark, measured the same way over the same weeks.
+    st.session_state["cmp_pending"] = (
+        [{"ticker": t, "weight_pct": w} for t, w in key], name,
+        list(ex.BENCHMARK_PORTFOLIOS[ex.DEFAULT_BENCHMARK]), ex.DEFAULT_BENCHMARK)
+    record("benchmark_compare_opened_from_report")
     st.switch_page("pages/66_Compare.py")
 
 with st.expander("How to read this report"):

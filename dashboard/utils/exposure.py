@@ -293,6 +293,23 @@ SAMPLE_PORTFOLIOS: Dict[str, List[dict]] = {
     ],
 }
 
+# Reference mixes for a side-by-side. The S&P 500 itself is not one: every
+# reading is measured beyond the market, so its own readings are zero by
+# construction and comparing against it says nothing the report doesn't.
+# Mixes with bonds do carry rate and credit exposure, which is the point.
+BENCHMARK_PORTFOLIOS: Dict[str, List[dict]] = {
+    "60/40: U.S. stocks and bonds": [
+        {"ticker": "VTI", "weight_pct": 60}, {"ticker": "BND", "weight_pct": 40},
+    ],
+    "40/60: U.S. stocks and bonds": [
+        {"ticker": "VTI", "weight_pct": 40}, {"ticker": "BND", "weight_pct": 60},
+    ],
+    "60/40: world stocks, U.S. bonds": [
+        {"ticker": "VT", "weight_pct": 60}, {"ticker": "BND", "weight_pct": 40},
+    ],
+}
+DEFAULT_BENCHMARK = "60/40: U.S. stocks and bonds"
+
 
 # ── transforms ──────────────────────────────────────────────────────────────
 
