@@ -223,6 +223,12 @@ RECENT_MOVE_WEEKS = 4      # "what happened lately": the last four weeks
 ROLLING_WEEKS = 52
 ROLLING_STEP = 4
 MIN_ROLLING_WEEKS = 40
+# How far back that rolling line reaches. The headline reading stays on three
+# years; the rolling line alone draws on up to ten, so it spans the regimes an
+# adviser asks about (2020, the 2022 rate shock) instead of only the last two
+# years. It starts where every holding has prices -- earlier weeks are left
+# out, never filled in.
+HISTORY_WEEKS = 520
 NEWEY_WEST_LAGS = 4
 GROWTH_WINDOW_MONTHS = 36
 GROWTH_MIN_MONTHS = 24
@@ -666,6 +672,22 @@ def _rolling(frame: pd.DataFrame, factors: Iterable[Factor]) -> Dict[str, List[d
     return {k: v for k, v in out.items() if v}
 
 
+def _history_frame(weekly_full: Mapping[str, pd.Series], weights: Mapping[str, float],
+                   market_full: pd.Series, changes_full: Mapping[str, pd.Series],
+                   last: pd.Timestamp) -> pd.DataFrame:
+    """The portfolio's weekly data as far back as HISTORY_WEEKS, for the rolling line.
+
+    Only weeks where every included holding, the market and every active force
+    all have data are kept, with today's weights -- the same rule as the
+    headline frame, so its last WINDOW_WEEKS rows are the headline weeks.
+    """
+    frame = pd.concat({**{t: weekly_full[t] for t in weights}, "__mkt__": market_full,
+                       **changes_full}, axis=1).dropna()
+    frame = frame[frame.index <= last].iloc[-HISTORY_WEEKS:]
+    frame["__portfolio__"] = sum(frame[t] * w for t, w in weights.items())
+    return frame
+
+
 def _factor_paths(levels: Mapping[str, Optional[pd.Series]], index: pd.Index) -> Dict[str, dict]:
     """What each economic series itself did over the same weeks.
 
@@ -736,7 +758,8 @@ def build_exposure_report(
     end_d = end or datetime.now(timezone.utc).date()
     start_d = end_d - timedelta(weeks=WINDOW_WEEKS + 10)
     start_g = end_d - timedelta(days=31 * (GROWTH_WINDOW_MONTHS + 3))
-    s, e = str(min(start_d, start_g)), str(end_d)
+    start_h = end_d - timedelta(weeks=HISTORY_WEEKS + 10)
+    s, e = str(min(start_d, start_g, start_h)), str(end_d)
 
     tickers = [p["ticker"] for p in positions]
     try:
@@ -745,17 +768,18 @@ def build_exposure_report(
     except Exception:
         daily = {}
     market_daily = _clean(daily.get(MARKET_TICKER))
-    market_w = to_weekly_returns(market_daily)
-    market_w = market_w[market_w.index >= pd.Timestamp(start_d)]
+    market_full = to_weekly_returns(market_daily)
+    market_w = market_full[market_full.index >= pd.Timestamp(start_d)]
     if len(market_w) < MIN_WEEKS:
         return _error("Market price data is unavailable right now, so exposure can't be "
                       "measured. Nothing has been estimated in its place; please try again "
                       "shortly.", retryable=True, notes=notes)
 
     weekly: Dict[str, pd.Series] = {}
+    weekly_full: Dict[str, pd.Series] = {}
     excluded: List[dict] = []
     for p in positions:
-        w = to_weekly_returns(daily.get(p["ticker"]))
+        weekly_full[p["ticker"]] = w = to_weekly_returns(daily.get(p["ticker"]))
         w = w[w.index >= pd.Timestamp(start_d)]
         if len(w) < MIN_WEEKS:
             reason = ("no price data was found for this symbol" if w.empty else
@@ -768,6 +792,7 @@ def build_exposure_report(
                       "history, so exposure can't be measured.", excluded=excluded, notes=notes)
 
     changes: Dict[str, pd.Series] = {}
+    changes_full: Dict[str, pd.Series] = {}
     unavailable: List[str] = []
     levels_raw: Dict[str, Optional[pd.Series]] = {}
     for f in FACTORS:
@@ -776,11 +801,13 @@ def build_exposure_report(
             ch = to_changes(levels_raw[f.key], f.transform)
         except Exception:
             ch = pd.Series(dtype=float)
+        full = ch
         ch = ch[ch.index >= pd.Timestamp(start_d)] if not ch.empty else ch
         if len(ch) < MIN_WEEKS:
             unavailable.append(f.label)
         else:
             changes[f.key] = ch
+            changes_full[f.key] = full
     active = tuple(f for f in FACTORS if f.key in changes)
     if not active:
         return _error("Economic data is unavailable right now. Nothing has been estimated "
@@ -794,6 +821,7 @@ def build_exposure_report(
 
     now = frame.iloc[-WINDOW_WEEKS:]
     portfolio = _fit_on_frame(now, "__portfolio__", active, MIN_WEEKS)
+    history = _history_frame(weekly_full, weights, market_full, changes_full, now.index[-1])
     if not portfolio["available"]:
         return _error(f"Exposure couldn't be measured: {portfolio['reason']}.",
                       excluded=excluded, notes=notes)
@@ -870,7 +898,7 @@ def build_exposure_report(
         "contributions": contributions,
         "shifts": _shifts(recent, earlier),
         "recent_moves": _recent_moves(now, portfolio, active),
-        "rolling": _rolling(now, active),
+        "rolling": _rolling(history, active),
         "factor_paths": _factor_paths({k: v for k, v in levels_raw.items() if k in changes},
                                       now.index),
         "growth": growth,
@@ -882,6 +910,7 @@ def build_exposure_report(
         "method": {
             "window_weeks": WINDOW_WEEKS, "min_weeks": MIN_WEEKS, "clear_t": CLEAR_T,
             "rolling_weeks": ROLLING_WEEKS, "rolling_step": ROLLING_STEP,
+            "history_weeks": len(history),
             "range": "90%", "market_control": MARKET_TICKER, "standard_errors": "Newey-West, 4 lags",
             "factors": [{"label": f.label, "series_id": f.series_id} for f in FACTORS],
             "extra_factors": [{"label": f.label, "series_id": f.series_id, "group": f.group,
