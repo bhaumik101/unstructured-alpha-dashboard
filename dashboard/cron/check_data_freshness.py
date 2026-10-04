@@ -49,6 +49,19 @@ CHECKS: dict[str, tuple[str, int, str]] = {
         "any real traffic writes here; silence means tracking broke, which is "
         "how the funnel became unmeasurable before",
     ),
+    "stock_measurements": (
+        "measured_at",
+        9,
+        "the stock library behind the public /exposure pages; refreshed by the "
+        "Sunday weekly-universe job, so 9 days catches a week it measured nothing",
+    ),
+    "research_results": (
+        "computed_at",
+        37,
+        "the /evidence track record; rerun every 28 days inside the Sunday job "
+        "(cron/track_record.RERUN_DAYS), so 28 + 7 + 2 catches a month it never "
+        "published. Its first live run stalled for hours and nothing said so",
+    ),
 }
 
 

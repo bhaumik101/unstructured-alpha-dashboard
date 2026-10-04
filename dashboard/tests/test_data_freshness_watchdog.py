@@ -197,3 +197,16 @@ def test_db_target_makes_the_sqlite_fallback_obvious():
     target = db_target(_E())
     assert target.startswith("sqlite:")
     assert "?" not in target
+
+
+def test_the_weekly_job_s_outputs_are_watched():
+    """The weekly-universe job's first live run stalled in the track-record
+    step for hours with nothing flagging it. Both of its outputs are watched,
+    and the track record's limit leaves room for one monthly rerun plus one
+    missed week -- no more."""
+    from cron import track_record
+
+    assert watchdog.CHECKS["stock_measurements"][:2] == ("measured_at", 9)
+    column, limit, _ = watchdog.CHECKS["research_results"]
+    assert column == "computed_at"
+    assert track_record.RERUN_DAYS + 7 <= limit <= track_record.RERUN_DAYS + 14
