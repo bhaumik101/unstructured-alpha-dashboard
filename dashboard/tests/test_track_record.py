@@ -146,6 +146,17 @@ def test_the_cron_reruns_monthly():
     assert not job.is_fresh({"computed_at": (now - timedelta(days=40)).isoformat()}, now)
 
 
+def test_a_run_cut_short_is_redone_next_week():
+    """A deadline-stopped run covers part of the index; it must not count as
+    this month's result."""
+    from cron import track_record as job
+
+    now = datetime(2026, 10, 2, tzinfo=timezone.utc)
+    recent = (now - timedelta(days=5)).isoformat()
+    assert job.is_fresh({"computed_at": recent, "stopped": None}, now)
+    assert not job.is_fresh({"computed_at": recent, "stopped": "deadline"}, now)
+
+
 def test_batches_give_the_same_answer_as_one_pass():
     from cron import track_record as job
 
@@ -262,3 +273,13 @@ def test_the_page_shows_the_newest_run(monkeypatch, study):
     assert "Same direction a year later" in text and "50%: a coin flip" in text
     assert "Consistent within the uncertainty" in text and "By force" in text
     assert "it is not a forecast" in text
+
+
+def test_the_page_says_when_a_run_was_partial(monkeypatch, study):
+    full = dict(study, computed_at="2026-10-02T03:00:00+00:00", universe=503, stopped=None)
+    text = _page(monkeypatch, full)
+    assert f"{study['n_stocks']:,} of 503 S&amp;P 500 companies" in text
+    assert "stopped at its time limit" not in text
+
+    text = _page(monkeypatch, dict(full, stopped="deadline"))
+    assert "stopped at its time limit" in text and "only the companies it reached" in text

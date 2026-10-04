@@ -55,6 +55,10 @@ def _log(event: str, **fields) -> None:
 def is_fresh(latest: Optional[dict], now: datetime, days: int = RERUN_DAYS) -> bool:
     if not latest or not latest.get("computed_at"):
         return False
+    # A run cut short by the deadline covers only part of the index; redo it at
+    # the next weekly run rather than leaving it up for a month.
+    if latest.get("stopped"):
+        return False
     try:
         at = datetime.fromisoformat(str(latest["computed_at"]))
     except ValueError:
