@@ -41,7 +41,7 @@ result = tr.latest()
 if not result or not result.get("available"):
     st.markdown(tui.empty_html(), unsafe_allow_html=True)
 else:
-    st.caption(f"Latest run: {ui.fmt_date(str(result.get('computed_at', ''))[:10])}")
+    st.markdown(tui.coverage_html(result), unsafe_allow_html=True)
     st.markdown(tui.headline_html(result), unsafe_allow_html=True)
     st.markdown("## Did the direction last?")
     st.markdown(tui.direction_html(result), unsafe_allow_html=True)

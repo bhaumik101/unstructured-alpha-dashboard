@@ -30,6 +30,19 @@ def empty_html() -> str:
             'shows its results, whatever they are, as soon as it finishes.</p></div></div></div>')
 
 
+def coverage_html(r: dict) -> str:
+    """When the run happened and how much of the index it reached."""
+    when = ui.fmt_date(str(r.get("computed_at") or "")[:10]) if r.get("computed_at") else "—"
+    reached = f'{r.get("n_stocks", 0):,} of {r.get("universe") or r.get("n_stocks", 0):,} S&amp;P 500 companies'
+    line = f'Latest run: {escape(when)} · {reached}'
+    if r.get("stopped"):
+        return ('<div class="uar"><div class="evd-partial" role="note">'
+                f'{line}. This run stopped at its time limit before reaching the whole index, so these '
+                'figures cover only the companies it reached. The full study reruns with the next '
+                'weekly job.</div></div>')
+    return f'<div class="uar"><div class="evd-coverage">{line}</div></div>'
+
+
 def headline_html(r: dict) -> str:
     bl = r["by_label"]
     clear, zero = bl.get("clear") or {}, bl.get("indistinct") or {}
@@ -125,6 +138,9 @@ EVIDENCE_CSS = """<style>
 .evd-val{text-align:right;font-weight:700;color:var(--uar-ink);font-variant-numeric:tabular-nums;}
 .evd-legend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:var(--uar-t-micro);color:var(--uar-ink-3);}
 .evd-refkey{display:inline-block;width:2px;height:14px;background:var(--uar-ink-2);}
+.evd-coverage{font-size:var(--uar-t-micro);color:var(--uar-ink-3);margin:0 0 10px;}
+.evd-partial{border:1px solid var(--uar-line);border-left:3px solid var(--uar-ink-2);border-radius:6px;
+  padding:10px 12px;margin:0 0 12px;color:var(--uar-ink);font-size:var(--uar-t-sm);background:var(--uar-subtle);}
 .evd-table{overflow-x:auto;}
 .evd-table table{width:100%;border-collapse:collapse;font-size:var(--uar-t-sm);}
 .evd-table th,.evd-table td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--uar-line);color:var(--uar-ink-2);}
