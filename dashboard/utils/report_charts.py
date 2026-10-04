@@ -124,6 +124,9 @@ def _path(points: Sequence[Tuple[float, float]]) -> str:
 
 # ── 1. how each sensitivity has moved ──────────────────────────────────────
 
+DOT_LIMIT = 40
+
+
 def rolling_panel_svg(key: str, label: str, points: List[dict]) -> str:
     """One force: the rolling sensitivity, its 90% range, and zero."""
     if len(points) < 3:
@@ -147,20 +150,56 @@ def rolling_panel_svg(key: str, label: str, points: List[dict]) -> str:
 
     # Points are drawn by how well the reading stood up: filled where it was
     # clear, open where tentative, and not at all where it could be noise --
-    # so a stretch of the line with no dots on it reads as what it is.
+    # so a stretch of the line with no dots on it reads as what it is. Past
+    # DOT_LIMIT points (years of history) dots would merge into a bar, so the
+    # same three states become a strip under the line instead.
+    long_line = n > DOT_LIMIT
     dots = []
-    for i, p in enumerate(points):
+    for i, p in enumerate(points if not long_line else ()):
         if p["evidence"] == "clear":
             dots.append(f'<circle cx="{x(i):.1f}" cy="{y(p["impact"]):.1f}" r="2.6" fill="{hue}"/>')
         elif p["evidence"] == "tentative":
             dots.append(f'<circle cx="{x(i):.1f}" cy="{y(p["impact"]):.1f}" r="2.6" '
                         f'fill="var(--uar-surface)" stroke="{hue}" stroke-width="1.4"/>')
 
+    strip, x_labels = "", ""
+    if long_line:
+        step = (width - left - right) / (n - 1)
+        # One bar per run of the same label, so the strip has no seams.
+        cells, i = [], 0
+        while i < n:
+            j, ev = i, points[i]["evidence"]
+            while j + 1 < n and points[j + 1]["evidence"] == ev:
+                j += 1
+            if ev in ("clear", "tentative"):
+                x0 = max(left, x(i) - step / 2)
+                x1 = min(width - right, x(j) + step / 2)
+                cells.append(f'<rect x="{x0:.1f}" y="{bottom + 3}" width="{x1 - x0:.1f}" height="4" '
+                             f'fill="{hue}" fill-opacity="{"1" if ev == "clear" else "0.45"}"/>')
+            i = j + 1
+        strip = f'<g class="uac-strip">{"".join(cells)}</g>'
+        # A label at the first point of every other year: enough to find 2020
+        # or 2022 without crowding a 240px axis.
+        seen, labels = set(), []
+        for i, p in enumerate(points):
+            yr = str(p["end"])[:4]
+            if yr in seen:
+                continue
+            seen.add(yr)
+            if i > 0 and int(yr) % 2 == 0 and x(i) < width - right - 12:
+                labels.append(f'<line class="uac-axis" x1="{x(i):.1f}" y1="{bottom}" x2="{x(i):.1f}" '
+                              f'y2="{bottom + 2}"/><text class="uac-tick" x="{x(i):.1f}" '
+                              f'y="{height - 4}" text-anchor="middle">{yr}</text>')
+        x_labels = "".join(labels)
+
     zero_y = y(0.0)
     first, last = points[0], points[-1]
+    n_clear = sum(p["evidence"] == "clear" for p in points)
+    n_tent = sum(p["evidence"] == "tentative" for p in points)
     summary = (f"{label}: over the rolling year ending {_date(first['end'])} this portfolio "
                f"moved {_pct(first['impact'])} per standard move; by {_date(last['end'])} it was "
-               f"{_pct(last['impact'])}. The shaded range is the 90% uncertainty at each point.")
+               f"{_pct(last['impact'])}. The shaded range is the 90% uncertainty at each point. "
+               f"Clear in {n_clear} of {n} rolling years, tentative in {n_tent}.")
     return (
         f'<svg class="uac-svg" viewBox="0 0 {width} {height}" role="img" '
         f'aria-label="{escape(summary)}">'
@@ -168,14 +207,15 @@ def rolling_panel_svg(key: str, label: str, points: List[dict]) -> str:
         f'<path d="{band}" fill="{hue}" fill-opacity="0.16" stroke="none"/>'
         f'<line class="uac-zero" x1="{left}" y1="{zero_y:.1f}" x2="{width - right}" y2="{zero_y:.1f}"/>'
         f'<path d="{line}" fill="none" stroke="{hue}" stroke-width="2.2" stroke-linejoin="round"/>'
-        + "".join(dots) +
+        + "".join(dots) + strip +
         f'<text class="uac-tick" x="{left - 4}" y="{top + 8}" text-anchor="end">{escape(_pct(hi, 1))}</text>'
         f'<text class="uac-tick" x="{left - 4}" y="{zero_y + 3:.1f}" text-anchor="end">0</text>'
         f'<text class="uac-tick" x="{left - 4}" y="{bottom}" text-anchor="end">{escape(_pct(lo, 1))}</text>'
-        f'<text class="uac-tick" x="{left}" y="{height - 4}">{escape(_date(first["end"]))}</text>'
-        f'<text class="uac-tick" x="{width - right}" y="{height - 4}" text-anchor="end">'
-        f'{escape(_date(last["end"]))}</text>'
-        '</svg>')
+        + (x_labels if long_line else
+           f'<text class="uac-tick" x="{left}" y="{height - 4}">{escape(_date(first["end"]))}</text>'
+           f'<text class="uac-tick" x="{width - right}" y="{height - 4}" text-anchor="end">'
+           f'{escape(_date(last["end"]))}</text>')
+        + '</svg>')
 
 
 def rolling_charts_html(report: dict, order: Sequence[str]) -> str:
@@ -200,15 +240,21 @@ def rolling_charts_html(report: dict, order: Sequence[str]) -> str:
     if not panels:
         return ""
     weeks = (report.get("method") or {}).get("rolling_weeks", 52)
+    long_line = any(len(rolling.get(k) or []) > DOT_LIMIT for k in order)
+    evidence = ("The strip under each line is solid where that year&#39;s reading cleared the same "
+                "evidence bar as the headline reading, faint where it was tentative, and empty "
+                "where it could not be told apart from zero. The line goes back as far as every "
+                "holding has prices, up to ten years; the headline reading still uses the last "
+                "three." if long_line else
+                "Filled dots cleared the same evidence bar as the headline reading, open dots were "
+                "tentative, and stretches with no dots could not be told apart from zero.")
     return (
         '<div class="uar">'
         f'<div class="uac-grid">{"".join(panels)}</div>'
         f'<div class="uar-sub">Each point is the sensitivity measured over the {weeks} weeks ending '
         f'that week, re-measured every month. The shaded band is its 90% range: where the band '
-        f'crosses the dashed zero line, that year&#39;s reading could be noise. Filled dots cleared '
-        f'the same evidence bar as the headline reading, open dots were tentative, and stretches '
-        f'with no dots could not be told apart from zero. This shows how the relationship has '
-        f'moved; it does not show where it goes next.</div></div>')
+        f'crosses the dashed zero line, that year&#39;s reading could be noise. {evidence} This '
+        f'shows how the relationship has moved; it does not show where it goes next.</div></div>')
 
 
 # ── 2. what each force itself did ──────────────────────────────────────────

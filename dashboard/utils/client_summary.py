@@ -140,12 +140,13 @@ def summary_html(report: dict, name: str, prepared_for: str = "",
         points = (report.get("rolling") or {}).get(k)
         if not points or len(points) < 3:
             continue
+        since = charts._date(points[0]["end"])
         words = (f"{readings[k]['label']} sensitivity over rolling years, from "
-                 f"{ui.fmt_pct(points[0]['impact'])} to {ui.fmt_pct(points[-1]['impact'])}.")
+                 f"{ui.fmt_pct(points[0]['impact'])} in {since} to {ui.fmt_pct(points[-1]['impact'])} now.")
         minis.append(
             f'<div><div class="uac-sub"><b>{escape(readings[k]["label"])}</b></div>'
             f'{charts.sparkline_svg([p["impact"] for p in points], ui.FACTOR_COLORS.get(k, "#3b7ddd"), words)}'
-            f'<div class="uac-sub">{ui.fmt_pct(points[0]["impact"])} → {ui.fmt_pct(points[-1]["impact"])}</div></div>')
+            f'<div class="uac-sub">{escape(since)}: {ui.fmt_pct(points[0]["impact"])} → now {ui.fmt_pct(points[-1]["impact"])}</div></div>')
 
     method = report.get("method") or {}
     who = []
