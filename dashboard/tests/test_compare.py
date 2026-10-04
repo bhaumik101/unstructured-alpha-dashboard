@@ -174,3 +174,52 @@ def test_the_open_dropdown_is_themed_where_it_actually_renders():
     assert rules
     assert not any(".stApp" in line for line in rules), rules
     assert '[data-baseweb="select"] > div' in PRODUCT_CSS
+
+
+# ── benchmarks ──────────────────────────────────────────────────────────────
+
+def test_benchmarks_are_real_mixes_and_not_the_market_itself():
+    """The S&P 500's own readings are zero by construction (every reading is
+    beyond the market), so it is not offered; each benchmark is a mix that
+    adds to 100."""
+    from utils import exposure as ex
+
+    assert ex.DEFAULT_BENCHMARK in ex.BENCHMARK_PORTFOLIOS
+    for name, rows in ex.BENCHMARK_PORTFOLIOS.items():
+        assert sum(r["weight_pct"] for r in rows) == 100, name
+        assert [r["ticker"] for r in rows] != [ex.MARKET_TICKER], name
+
+
+def test_a_benchmark_can_be_chosen_as_a_side(monkeypatch, synthetic_engine):
+    from utils import exposure as ex
+
+    at = _page(monkeypatch, state={"uar_holdings": HOLDINGS, "uar_name": "Client IRA"})
+    at.radio(key="cmp_src_B").set_value("A benchmark").run()
+    at.button(key="cmp_go").click().run()
+    assert not at.exception, "\n".join(str(e) for e in at.exception)
+    _rows_a, _name_a, rows_b, name_b = at.session_state["cmp_pending"]
+    assert name_b == ex.DEFAULT_BENCHMARK
+    assert rows_b == ex.BENCHMARK_PORTFOLIOS[ex.DEFAULT_BENCHMARK]
+
+
+def test_the_report_opens_straight_into_a_benchmark_comparison(monkeypatch, synthetic_engine):
+    import streamlit as st
+    from streamlit.testing.v1 import AppTest
+
+    from tests.conftest import DASHBOARD_ROOT
+    from utils import exposure as ex
+
+    monkeypatch.setattr(st, "page_link", lambda *a, **k: None)
+    monkeypatch.setattr(st, "switch_page",
+                        lambda p, *a, **k: st.session_state.__setitem__("_test_switch_page", p))
+    at = AppTest.from_file(str(DASHBOARD_ROOT / "pages/60_Exposure_Report.py"), default_timeout=120)
+    at.session_state["uar_holdings"] = HOLDINGS
+    at.session_state["uar_name"] = "Client IRA"
+    at.run()
+    assert not at.exception, "\n".join(str(e) for e in at.exception)
+    at.button(key="uar_to_benchmark").click().run()
+    rows_a, name_a, rows_b, name_b = at.session_state["cmp_pending"]
+    assert name_a == "Client IRA"
+    assert sorted(r["ticker"] for r in rows_a) == sorted(h["ticker"] for h in HOLDINGS)
+    assert (rows_b, name_b) == (ex.BENCHMARK_PORTFOLIOS[ex.DEFAULT_BENCHMARK], ex.DEFAULT_BENCHMARK)
+    assert at.session_state["_test_switch_page"].endswith("66_Compare.py")
