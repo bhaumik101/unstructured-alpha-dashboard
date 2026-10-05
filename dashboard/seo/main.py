@@ -703,6 +703,8 @@ def sitemap_xml():
         if _exposure_stocks():   # an empty explorer is noindex
             urls.append(f"  <url><loc>{BASE_URL}/explore</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
+            urls.append(f"  <url><loc>{BASE_URL}/compare</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.6</priority></url>")
     except Exception:
         pass
     try:
@@ -821,6 +823,15 @@ def explore_page():
     except Exception:
         carry = None
     return HTMLResponse(explore_page_html(_exposure_stocks(), BASE_URL, APP_URL, carry))
+
+
+@app.get("/compare", response_class=HTMLResponse)
+def compare_page(a: str = "", b: str = ""):
+    """Two stocks side by side, force by force. Only the bare page is indexable."""
+    from utils.compare_page import compare_page_html
+
+    _get_engine()
+    return HTMLResponse(compare_page_html(_exposure_stocks(), a, b, BASE_URL, APP_URL))
 
 
 @app.get("/evidence", response_class=HTMLResponse)
