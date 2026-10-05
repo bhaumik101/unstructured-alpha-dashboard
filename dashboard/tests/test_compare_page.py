@@ -66,3 +66,11 @@ def test_served_listed_and_linked_from_the_stock_page(client):  # noqa: F811
     assert r.status_code == 200 and "NOPE is not on record yet" in r.text
     assert "/compare</loc>" in c.get("/sitemap.xml").text
     assert 'href="/compare?a=BANK"' in c.get("/exposure/BANK").text
+
+
+def test_the_bare_page_offers_three_examples_that_are_on_record():
+    held = [_stock(t, t, oil=(1.0, "clear")) for t in ("AAPL", "DAL", "CVX", "BAC", "AMT", "XOM")]
+    html = cp.compare_page_html(held, "", "", "https://www.x", "https://app.x")
+    shown = html.count('href="/compare?a=')
+    assert shown == 3 and "a=XOM&amp;b=DAL" in html and "a=CVX&amp;b=DAL" in html
+    assert "a=JPM" not in html and "b=MSFT" not in html           # not on record
