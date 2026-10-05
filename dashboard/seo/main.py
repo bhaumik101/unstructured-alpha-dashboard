@@ -700,6 +700,12 @@ def sitemap_xml():
     except Exception:
         pass  # likewise for the force pages
     try:
+        if _exposure_stocks():   # an empty explorer is noindex
+            urls.append(f"  <url><loc>{BASE_URL}/explore</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
+    except Exception:
+        pass
+    try:
         from utils import track_record as _tr
         _study = _tr.latest()
         if _study and _study.get("available"):   # an unpublished page is noindex
@@ -802,6 +808,21 @@ def exposure_page(symbol: str):
 
 
 # ── Force pages: every stock on record, read one economic force at a time ────
+@app.get("/explore", response_class=HTMLResponse)
+def explore_page():
+    """What if? Move one force, see which stocks moved most with it."""
+    from utils import track_record as tr
+    from utils.explore_page import explore_page_html
+
+    _get_engine()
+    try:
+        r = tr.latest()
+        carry = float(r["shrinkage_slope"]) if r and r.get("available") and r.get("shrinkage_slope") is not None else None
+    except Exception:
+        carry = None
+    return HTMLResponse(explore_page_html(_exposure_stocks(), BASE_URL, APP_URL, carry))
+
+
 @app.get("/evidence", response_class=HTMLResponse)
 def evidence_page():
     """The published track record, as a page anyone can open or index."""

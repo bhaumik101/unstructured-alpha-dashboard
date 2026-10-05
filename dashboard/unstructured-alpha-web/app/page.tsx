@@ -434,6 +434,7 @@ export default function Home() {
                 <h3 className="lp-h3">Stocks and forces</h3>
                 <p className="lp-body">Every S&amp;P 500 company&rsquo;s exposures, measured weekly, and for each force the stocks that moved up and down with it.</p>
                 <a className="lp-link" href="/forces">Browse by force →</a>
+                <a className="lp-link" style={{ display: "block" }} href="/explore">What if? Move a force →</a>
               </div>
               <div className="lp-step">
                 <h3 className="lp-h3">Does it hold up?</h3>
