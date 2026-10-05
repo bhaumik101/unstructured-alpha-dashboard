@@ -24,6 +24,22 @@ from utils import exposure as ex
 from utils.exposure_pages import _date, _shell
 from utils.force_pages import ALL_FORCES, GROUP_LABELS, force_stats
 
+# One percent formatter for every script on the public pages, matching
+# exposure_pages.fmt_pct: two decimals below 0.95%, so a small move never
+# prints as "−0.0%", and a figure that rounds to zero carries no sign.
+JS_PCT = r"""
+  // toFixed rounds an exact tie away from zero; Python rounds it to even. A
+  // tie is exact only if the full binary value ends in 5 then zeros, which
+  // toFixed with spare digits shows exactly (0.005 is really 0.00500...01).
+  function fix(a, d){ var t = a.toFixed(d + 25), tail = t.slice(t.length - 25);
+    if (/^50*$/.test(tail)){ var head = t.slice(0, t.length - 25), last = +head.slice(-1);
+      if (last % 2 === 0) return head; }
+    return a.toFixed(d); }
+  function pct(v){ var a = Math.abs(v), d = a >= 0.95 ? 1 : 2, s = fix(a, d);
+    if (Number(s) === 0) return (0).toFixed(d) + '%';
+    return (v > 0 ? '+' : '−') + s + '%'; }
+"""
+
 UNITS = {"volatility": "pts"}          # everything else follows its transform
 MAX_MULTIPLE = 3.0
 
@@ -53,11 +69,11 @@ def explore_data(stocks: Iterable[dict]) -> dict:
 _SCRIPT = r"""
 (function(){
   var D = JSON.parse(document.getElementById('xp-data').textContent);
+/*PCT*/
   var sel = document.getElementById('xp-force'), sl = document.getElementById('xp-move');
   var out = document.getElementById('xp-out'), say = document.getElementById('xp-say');
   function fmt(v, unit){ var s = (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(unit === '%' ? (Math.abs(v) < 1 ? 1 : 0) : 2);
     return unit === '%' ? s + '%' : s + ' ' + unit; }
-  function pct(v){ var a = Math.abs(v); return (v > 0 ? '+' : v < 0 ? '−' : '') + (a < 10 ? a.toFixed(1) : a.toFixed(0)) + '%'; }
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function bars(rows, k, max, title){
     if (!rows.length) return '<h2>' + title + '</h2><p class="small">No stock on record moved this way in a way that held up.</p>';
@@ -165,7 +181,7 @@ def explore_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/scenarios">Try a move on a '
         'whole portfolio</a><a class="btn btn-secondary" href="/quiz">Daily quiz</a><a class="btn btn-secondary" href="/forces">Every economic force</a></div>'
         f'<script type="application/json" id="xp-data">{payload}</script>'
-        f'<script>{_SCRIPT}</script>')
+        f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
     json_ld = {"@context": "https://schema.org", "@type": "WebApplication", "name": title,
                "description": desc, "url": canonical, "applicationCategory": "FinanceApplication",
                "isAccessibleForFree": True}
@@ -177,12 +193,12 @@ def explore_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
 _STOCK_SCRIPT = r"""
 (function(){
   var D = JSON.parse(document.getElementById('sw-data').textContent);
+/*PCT*/
   var sel = document.getElementById('sw-force'), sl = document.getElementById('sw-move');
   var out = document.getElementById('sw-out');
   function sgn(v){ return v > 0 ? '+' : v < 0 ? '−' : ''; }
   function fmt(v, unit){ var a = Math.abs(v), s = sgn(v) + a.toFixed(unit === '%' ? (a < 1 ? 1 : 0) : 2);
     return unit === '%' ? s + '%' : s + ' ' + unit; }
-  function pct(v){ var a = Math.abs(v); return sgn(v) + (a < 10 ? a.toFixed(1) : a.toFixed(0)) + '%'; }
   function draw(){
     var f = D.forces[sel.selectedIndex], k = parseFloat(sl.value), move = k * f.step;
     document.getElementById('sw-move-label').textContent = f.label + ' ' + fmt(move, f.unit);
@@ -239,4 +255,4 @@ def stock_whatif_html(symbol: str, rec: dict) -> str:
         'straight line with the move and describes the past; it is not a forecast. '
         f'<a id="sw-all" href="/explore#{escape(data["forces"][0]["key"])}">See every stock on record for a move like this</a>.</p>'
         f'<script type="application/json" id="sw-data">{payload}</script>'
-        f'<script>{_STOCK_SCRIPT}</script>')
+        f'<script>{_STOCK_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
