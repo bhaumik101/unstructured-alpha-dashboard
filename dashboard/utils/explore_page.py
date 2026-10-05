@@ -84,10 +84,16 @@ _SCRIPT = r"""
     say.textContent = 'With ' + f.label.toLowerCase() + ' ' + fmt(move, f.unit) + ': ' + up.length + ' stocks shown rising and ' + down.length + ' falling.';
   }
   D.forces.forEach(function(f, i){ var o = document.createElement('option'); o.value = f.key; o.textContent = f.label + ' (' + f.group + ')'; sel.appendChild(o); });
-  var want = (location.hash || '').slice(1), at = D.forces.findIndex(function(f){ return f.key === want; });
+  // The hash carries the force and, optionally, the move: #oil or #oil:-1.5,
+  // so a link opens the same scenario. Anything unreadable falls back.
+  var parts = decodeURIComponent((location.hash || '').slice(1)).split(':'), want = parts[0];
+  var k0 = parseFloat(parts[1]);
+  if (parts.length > 1 && isFinite(k0) && Math.abs(k0) <= parseFloat(sl.max) && Math.round(k0 * 2) === k0 * 2) sl.value = String(k0);
+  var at = D.forces.findIndex(function(f){ return f.key === want; });
   if (at >= 0) sel.selectedIndex = at; else { at = D.forces.findIndex(function(f){ return f.key === 'oil'; }); if (at >= 0) sel.selectedIndex = at; }
-  sel.addEventListener('change', function(){ history.replaceState(null, '', '#' + D.forces[sel.selectedIndex].key); draw(); });
-  sl.addEventListener('input', draw);
+  function remember(){ history.replaceState(null, '', '#' + D.forces[sel.selectedIndex].key + ':' + parseFloat(sl.value)); }
+  sel.addEventListener('change', function(){ remember(); draw(); });
+  sl.addEventListener('input', function(){ remember(); draw(); });
   draw();
 })();
 """
@@ -157,7 +163,7 @@ def explore_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         f'at three times the standard move.{carry_note} Nothing here is a recommendation to buy, sell '
         'or hold any security.</p>'
         f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/scenarios">Try a move on a '
-        'whole portfolio</a><a class="btn btn-secondary" href="/forces">Every economic force</a></div>'
+        'whole portfolio</a><a class="btn btn-secondary" href="/quiz">Daily quiz</a><a class="btn btn-secondary" href="/forces">Every economic force</a></div>'
         f'<script type="application/json" id="xp-data">{payload}</script>'
         f'<script>{_SCRIPT}</script>')
     json_ld = {"@context": "https://schema.org", "@type": "WebApplication", "name": title,

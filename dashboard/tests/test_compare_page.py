@@ -8,6 +8,8 @@ raw input; only the bare page is indexable, every pair is noindex.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from tests.test_explore_page import _stock, client  # noqa: F401  (fixture)
@@ -74,3 +76,61 @@ def test_the_bare_page_offers_three_examples_that_are_on_record():
     shown = html.count('href="/compare?a=')
     assert shown == 3 and "a=XOM&amp;b=DAL" in html and "a=CVX&amp;b=DAL" in html
     assert "a=JPM" not in html and "b=MSFT" not in html           # not on record
+
+
+def test_bars_diverge_from_centre_scale_to_the_largest_move_and_fade_when_weak():
+    html = cp.compare_page_html(STOCKS, "XOM", "DAL", "https://www.x", "https://app.x")
+    bars = re.findall(r'class="cp-bar ([^"]+)" style="(left|right):50%;width:([0-9.]+)%"', html)
+    by = {}
+    for c, side, w in bars:
+        by[(c, side)] = max(by.get((c, side), 0.0), float(w))
+    assert by[("cp-up", "left")] == 50.0                         # XOM oil +2.4, the largest
+    assert by[("cp-down", "right")] == round(50 * 1.9 / 2.4, 1)   # DAL oil -1.9
+    assert any("cp-faint" in c for c, _, _ in bars)               # indistinct rates
+
+
+# ── Most similar profile ──────────────────────────────────────────────────────
+
+def _core(t, rates, inflation, dollar, oil, credit, **extra):
+    return _stock(t, f"{t} Co", rates=(rates, "clear"), inflation=(inflation, "clear"),
+                  dollar=(dollar, "clear"), oil=(oil, "clear"), credit=(credit, "clear"), **extra)
+
+
+def _pool():
+    base = [_core(f"F{i}", 0.1 * i, 0.05 * i, -0.2 * i, 0.3 * (i % 4), -0.1 * (i % 3)) for i in range(10)]
+    return base + [
+        _core("OILA", 0.2, 0.1, -0.3, 3.0, -0.2),
+        _core("OILB", 0.25, 0.1, -0.3, 2.9, -0.2),         # nearly OILA
+        _core("BIGR", 9.0, 0.1, -0.3, 3.0, -0.2),          # OILA but rates far off
+        _stock("PART", "Partial", oil=(3.0, "clear")),     # not measured on all five
+    ]
+
+
+def test_the_nearest_stock_is_the_one_that_moved_most_alike():
+    out = cp.similar("OILA", _pool(), n=3)
+    assert out[0]["ticker"] == "OILB"
+    assert "PART" not in [r["ticker"] for r in out]          # a missing reading is never filled in
+    assert "BIGR" not in [r["ticker"] for r in out[:1]]
+    assert all(r["ticker"] != "OILA" for r in out)
+
+
+def test_each_force_is_scaled_by_its_spread():
+    # Without scaling, a stock 0.6 away on oil (a force with a wide spread) would
+    # look farther than one 0.5 away on credit (a narrow one). Scaled, it is nearer.
+    pool = _pool() + [_core("NEAROIL", 0.2, 0.1, -0.3, 2.4, -0.2), _core("NEARCR", 0.2, 0.1, -0.3, 3.0, 0.3)]
+    order = [r["ticker"] for r in cp.similar("OILA", pool, n=50)]
+    assert order.index("NEAROIL") < order.index("NEARCR")
+
+
+def test_too_small_a_library_gives_no_matches():
+    assert cp.similar("OILA", _pool()[-4:]) == []
+
+
+def test_the_stock_page_lists_matches_with_compare_links():
+    from utils.exposure_pages import stock_page_html
+    rec = _core("OILA", 0.2, 0.1, -0.3, 3.0, -0.2)
+    html = stock_page_html("OILA", rec, [], [], "https://www.x", "https://app.x",
+                           similar=cp.similar("OILA", _pool(), n=3))
+    assert "Stocks with the most similar profile" in html
+    assert 'href="/compare?a=OILA&amp;b=OILB"' in html
+    assert "not in business, size or value" in html

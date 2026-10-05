@@ -199,7 +199,8 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
 
 
 def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[dict],
-                    base_url: str, app_url: str, held: Optional[dict] = None) -> str:
+                    base_url: str, app_url: str, held: Optional[dict] = None,
+                    similar: Optional[List[dict]] = None) -> str:
     """The page for one measured stock. `rec` is its newest stored week.
 
     held: utils.track_record.persistence() of the published study, or None.
@@ -303,6 +304,20 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
                          f'{items}</ul>')
         rel_html = f'<h2>Other stocks exposed to {force}</h2>{rel_html}'
 
+    sim_html = ""
+    if similar:
+        items = "".join(
+            f'<li><a href="/exposure/{escape(r["ticker"])}">{escape(r["ticker"])}'
+            + (f' · {escape(r["name"])}' if r.get("name") else "") + '</a> '
+            f'<a class="small" href="/compare?a={escape(symbol)}&amp;b={escape(r["ticker"])}" '
+            f'aria-label="Compare {escape(symbol)} with {escape(r["ticker"])}">compare</a></li>'
+            for r in similar)
+        sim_html = (f'<h2>Stocks with the most similar profile</h2>'
+                    f'<ul class="related" aria-label="Stocks most like {escape(symbol)}">{items}</ul>'
+                    '<p class="small">Closest across the five core forces, each scaled by how much '
+                    'stocks on record differ on it. Alike in how they moved over three years, not in '
+                    'business, size or value.</p>')
+
     body = (
         f'<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '
         f'<a href="/exposure">Stock exposures</a> › {escape(symbol)}</nav>'
@@ -316,7 +331,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'Open the interactive report for {escape(symbol)}</a>'
         f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure a whole portfolio</a>'
         f'<a class="btn btn-secondary" href="/compare?a={escape(symbol)}">Compare {escape(symbol)} with another stock</a></div>'
-        f'{stock_whatif_html(symbol, rec)}{extra_html}{hist_html}{rel_html}'
+        f'{stock_whatif_html(symbol, rec)}{extra_html}{hist_html}{rel_html}{sim_html}'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> It shows how the '
         'stock has moved alongside five economic forces. Relationships change, and nothing here is a '
         'recommendation to buy, sell or hold any security.</p>'

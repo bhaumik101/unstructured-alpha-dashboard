@@ -20,6 +20,7 @@ from html import escape
 from typing import Iterable, List, Optional, Tuple
 
 from utils.exposure_pages import STANDS_UP, SYMBOL_RE, _chip, _date, _shell, fmt_pct
+from utils import exposure as ex
 from utils.force_pages import ALL_FORCES
 
 # Shown in order, the first three with both stocks on record: the library fills
@@ -49,12 +50,22 @@ def compare_rows(a: dict, b: dict) -> List[dict]:
     return rows
 
 
-def _cell(r: Optional[dict]) -> str:
+def _bar(impact: float, scale: float, strong: bool) -> str:
+    """A diverging bar: right of centre for up, left for down, half-width at
+    the table's largest move. Readings that did not hold up are drawn faint."""
+    w = 50 * min(1.0, abs(impact) / scale) if scale > 0 else 0
+    side = "left:50%" if impact >= 0 else "right:50%"
+    cls = ("cp-up" if impact >= 0 else "cp-down") + ("" if strong else " cp-faint")
+    return (f'<span class="cp-track" aria-hidden="true"><span class="cp-bar {cls}" '
+            f'style="{side};width:{w:.1f}%"></span></span>')
+
+
+def _cell(r: Optional[dict], scale: float = 0.0) -> str:
     if not r:
         return '<td title="Not measured">—</td>'
     strong = r.get("evidence") in STANDS_UP
     v = fmt_pct(r["impact"])
-    return (f'<td><b{"" if strong else " class=v-weak"}>{v}</b>'
+    return (f'<td><b{"" if strong else " class=v-weak"}>{v}</b>{_bar(r["impact"], scale, strong)}'
             f'<span class="shock">{fmt_pct(r["low"])} to {fmt_pct(r["high"])}</span>'
             f'{_chip(r["evidence"])}</td>')
 
@@ -67,6 +78,11 @@ _CSS = """<style>
   padding:0 10px;background:var(--bg);color:var(--ink);text-transform:uppercase}
 .cp-form button{min-height:44px}
 tr.cp-apart th,tr.cp-apart td{background:var(--subtle)}
+.cp-track{display:block;position:relative;height:8px;margin:4px 0 2px;background:var(--subtle);border-radius:4px;max-width:160px}
+.cp-track::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--ink3)}
+.cp-bar{position:absolute;top:0;bottom:0;border-radius:4px}
+.cp-up{background:#2f6fbd}.cp-down{background:#b5651d}.cp-faint{opacity:.35}
+@media (prefers-color-scheme:dark){.cp-up{background:#5a8fd4}.cp-down{background:#c9822f}}
 .cp-mark{display:block;font-size:.8rem;font-weight:700;color:var(--accent)}
 @media (max-width:640px){.cp-form{grid-template-columns:1fr 1fr}.cp-form button{grid-column:1/-1}
   .cp-tab th[scope=row] .shock,.cp-tab .chip{display:none}.cp-tab th,.cp-tab td{padding-left:8px;padding-right:8px}}
@@ -136,11 +152,12 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
         return f'<a href="/exposure/{escape(s["ticker"])}">{escape(s["ticker"])}</a>' + (
             f'<span class="shock">{escape(n)}</span>' if n and n != s["ticker"] else "")
 
+    scale = max((abs(r[s]["impact"]) for r in rows for s in ("a", "b") if r[s]), default=0.0)
     trs = "".join(
         f'<tr{" class=cp-apart" if r["apart"] else ""}><th scope="row"><a href="/forces/{r["key"]}">'
         f'{escape(r["label"])}</a><span class="shock">In weeks when {escape(r["phrase"])}</span>'
         + ('<span class="cp-mark">Clear difference</span>' if r["apart"] else "") + '</th>'
-        f'{_cell(r["a"])}{_cell(r["b"])}</tr>' for r in rows)
+        f'{_cell(r["a"], scale)}{_cell(r["b"], scale)}</tr>' for r in rows)
     newest = max(str(sa.get("as_of") or "")[:10], str(sb.get("as_of") or "")[:10])
     body = (
         head + f'<p class="meta">{escape(a)} vs {escape(b)}'
@@ -161,3 +178,38 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
         '<a class="btn btn-secondary" href="/explore">What if? Move a force</a></div>')
     return _shell(f"{a} vs {b}: exposure to economic forces", lead[:300], canonical, ld, body,
                   app_url, robots="noindex, follow")
+
+
+# ── Nearest neighbours: stocks whose core-five readings look most alike ──────
+
+CORE = tuple(f.key for f in ex.FACTORS)
+MIN_POOL = 10          # below this the spread of each force is too poorly known
+
+
+def similar(symbol: str, stocks: Iterable[dict], n: int = 5) -> List[dict]:
+    """The stocks closest to `symbol` across the five core forces.
+
+    Each force is scaled by its spread across the stocks on record, so a
+    force where everyone moves a lot does not swamp one where small moves are
+    rare. Only stocks measured on all five are compared -- a missing reading
+    is never filled in. Describes the past three years, nothing more.
+    """
+    pool = [s for s in stocks
+            if all(k in (s.get("exposures") or {}) for k in CORE)]
+    me = next((s for s in pool if s["ticker"] == symbol), None)
+    if me is None or len(pool) < MIN_POOL:
+        return []
+    spread = {}
+    for k in CORE:
+        xs = [s["exposures"][k]["impact"] for s in pool]
+        m = sum(xs) / len(xs)
+        sd = (sum((x - m) ** 2 for x in xs) / (len(xs) - 1)) ** 0.5
+        spread[k] = sd if sd > 0 else 1.0
+
+    def dist(s: dict) -> float:
+        return sum(((s["exposures"][k]["impact"] - me["exposures"][k]["impact"]) / spread[k]) ** 2
+                   for k in CORE) ** 0.5
+
+    out = sorted((s for s in pool if s["ticker"] != symbol), key=lambda s: (dist(s), s["ticker"]))
+    return [{"ticker": s["ticker"], "name": s.get("name") or "", "distance": round(dist(s), 3)}
+            for s in out[:n]]
