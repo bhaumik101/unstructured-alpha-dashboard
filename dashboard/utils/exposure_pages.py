@@ -205,6 +205,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     held: utils.track_record.persistence() of the published study, or None.
     """
     from utils import track_record as tr
+    from utils.explore_page import stock_whatif_html
 
     held = held or {}
     name = rec.get("name") or ""
@@ -314,7 +315,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<a class="btn btn-primary" href="{escape(app_url)}/stock?t={escape(symbol)}">'
         f'Open the interactive report for {escape(symbol)}</a>'
         f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure a whole portfolio</a></div>'
-        f'{extra_html}{hist_html}{rel_html}'
+        f'{stock_whatif_html(symbol, rec)}{extra_html}{hist_html}{rel_html}'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> It shows how the '
         'stock has moved alongside five economic forces. Relationships change, and nothing here is a '
         'recommendation to buy, sell or hold any security.</p>'

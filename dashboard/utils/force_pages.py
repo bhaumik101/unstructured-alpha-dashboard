@@ -141,7 +141,8 @@ def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: st
         'here is a recommendation to buy, sell or hold any security.</p>'
         f'{sib_html}'
         '<div class="actions">'
-        f'<a class="btn btn-primary" href="{escape(app_url)}/">Measure your own portfolio</a>'
+        f'<a class="btn btn-primary" href="/explore#{key}">Try a move in {escape(force)}</a>'
+        f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure your own portfolio</a>'
         '<a class="btn btn-secondary" href="/forces">All economic forces</a></div>'
         f'<p class="small"><a href="{escape(app_url)}/methodology">Full methodology</a>.</p>')
 
@@ -182,8 +183,9 @@ def forces_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         'Every other force is measured beyond those five, so it shows only what they don&#39;t '
         'already explain.</p>'
         + "".join(sections)
-        + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/">Measure your own '
-          'portfolio</a><a class="btn btn-secondary" href="/exposure">Every stock on record</a></div>')
+        + f'<div class="actions"><a class="btn btn-primary" href="/explore">What if? Move a force</a>'
+          f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure your own portfolio</a>'
+          '<a class="btn btn-secondary" href="/exposure">Every stock on record</a></div>')
     json_ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": title,
                "description": desc, "url": f"{base_url}/forces"}
     return _shell(title, desc, f"{base_url}/forces", json_ld, body, app_url)
