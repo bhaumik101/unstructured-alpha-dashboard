@@ -75,13 +75,28 @@ def load_constituents(path: Path = CONSTITUENTS) -> List[Target]:
                 for r in csv.DictReader(fh) if r.get("ticker", "").strip()]
 
 
+# The largest index members, roughly by market value. Used ONLY to order
+# never-measured stocks: a run that fills the library a slice at a time used to
+# go alphabetically, so after the first live run A..EBAY were measured and
+# MSFT, JPM, XOM and the rest of the names an adviser looks up first were not.
+# Nothing here is shown or measured differently; an approximate order is fine,
+# and every name must be in cron/sp500.csv (tested).
+PRIORITY = (
+    "NVDA MSFT AAPL AMZN GOOGL GOOG META AVGO TSLA BRK-B JPM LLY V WMT ORCL MA XOM "
+    "NFLX COST JNJ HD PG ABBV BAC PLTR KO UNH CVX PM GE CSCO AMD WFC IBM CRM MS ABT "
+    "LIN MCD GS AXP INTU DIS T MRK PEP VZ NOW TMO CAT RTX ISRG BKNG UBER QCOM ADBE "
+    "PGR SCHW BLK AMGN TXN SPGI NEE C BA"
+).split()
+
+
 def plan_targets(constituents: Iterable[Target], library: Iterable[dict], now: datetime,
-                 fresh_days: int) -> List[Target]:
+                 fresh_days: int, priority: Iterable[str] = PRIORITY) -> List[Target]:
     """What to measure this run, stalest first.
 
     The index plus everything already in the library (a stock someone viewed
-    deserves its weekly row too). Never-measured stocks come first, then the
-    oldest measurement; anything measured within fresh_days is left out.
+    deserves its weekly row too). Never-measured stocks come first -- the
+    largest companies (PRIORITY) ahead of the rest -- then the oldest
+    measurement; anything measured within fresh_days is left out.
     """
     last: Dict[str, str] = {}
     names: Dict[str, str] = {}
@@ -96,8 +111,10 @@ def plan_targets(constituents: Iterable[Target], library: Iterable[dict], now: d
 
     cutoff = (now - timedelta(days=fresh_days)).isoformat()
     due = [(t, n) for t, n in wanted.items() if not last.get(t) or last[t] < cutoff]
-    # An empty timestamp sorts before every real one: never-measured goes first.
-    return sorted(due, key=lambda tn: (last.get(tn[0], ""), tn[0]))
+    rank = {t: i for i, t in enumerate(priority)}
+    # An empty timestamp sorts before every real one: never-measured goes first,
+    # and within a timestamp the largest companies go before the alphabet.
+    return sorted(due, key=lambda tn: (last.get(tn[0], ""), rank.get(tn[0], len(rank)), tn[0]))
 
 
 def memo_series(fetch: Callable[[str, str, str], object]) -> Callable[[str, str, str], object]:
@@ -140,8 +157,10 @@ def measure_batch(batch: List[Target], prices_batch: Callable[[tuple, str, str],
         return {t: held.get(t) for t in tickers}
 
     for ticker, name in batch:
+        # history_weeks=0: the library stores readings, never the rolling line,
+        # and ten years of prices per stock cost the run a quarter of its stocks.
         report = ex.build_exposure_report([{"ticker": ticker, "weight_pct": 100}], prices,
-                                          series, end=end, max_holdings=1)
+                                          series, end=end, max_holdings=1, history_weeks=0)
         yield ticker, name, report
 
 
