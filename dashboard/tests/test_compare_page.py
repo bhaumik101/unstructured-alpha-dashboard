@@ -8,6 +8,8 @@ raw input; only the bare page is indexable, every pair is noindex.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from tests.test_explore_page import _stock, client  # noqa: F401  (fixture)
@@ -74,3 +76,14 @@ def test_the_bare_page_offers_three_examples_that_are_on_record():
     shown = html.count('href="/compare?a=')
     assert shown == 3 and "a=XOM&amp;b=DAL" in html and "a=CVX&amp;b=DAL" in html
     assert "a=JPM" not in html and "b=MSFT" not in html           # not on record
+
+
+def test_bars_diverge_from_centre_scale_to_the_largest_move_and_fade_when_weak():
+    html = cp.compare_page_html(STOCKS, "XOM", "DAL", "https://www.x", "https://app.x")
+    bars = re.findall(r'class="cp-bar ([^"]+)" style="(left|right):50%;width:([0-9.]+)%"', html)
+    by = {}
+    for c, side, w in bars:
+        by[(c, side)] = max(by.get((c, side), 0.0), float(w))
+    assert by[("cp-up", "left")] == 50.0                         # XOM oil +2.4, the largest
+    assert by[("cp-down", "right")] == round(50 * 1.9 / 2.4, 1)   # DAL oil -1.9
+    assert any("cp-faint" in c for c, _, _ in bars)               # indistinct rates

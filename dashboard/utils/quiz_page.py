@@ -79,7 +79,7 @@ def quiz_rounds(stocks: Iterable[dict], day: Optional[date] = None) -> List[list
 
 _SCRIPT = r"""
 (function(){
-  var Q = JSON.parse(document.getElementById('qz-data').textContent), i = 0, score = 0;
+  var Q = JSON.parse(document.getElementById('qz-data').textContent), i = 0, score = 0, marks = [];
   var box = document.getElementById('qz-box'), say = document.getElementById('qz-say');
   var WORD = {up: 'Rose with it', down: 'Fell with it', none: 'No clear link'};
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -96,7 +96,7 @@ _SCRIPT = r"""
     box.querySelector('button').focus();
   }
   function answer(k){
-    var q = Q[i], right = k === q[8]; if (right) score++;
+    var q = Q[i], right = k === q[8]; if (right) score++; marks.push(right ? '🟩' : '⬜');
     var fig = q[8] === 'none'
       ? 'Its typical move was ' + pct(q[5]) + ', but the 90% range (' + pct(q[6]) + ' to ' + pct(q[7]) + ') includes zero: no link that stands apart from noise.'
       : 'It typically moved <b>' + pct(q[5]) + '</b> (90% range ' + pct(q[6]) + ' to ' + pct(q[7]) + '), a Clear reading.';
@@ -114,8 +114,19 @@ _SCRIPT = r"""
       + '<p class="lead">' + none + ' of today&#39;s ' + Q.length + ' had no clear link at all. Across the library that is the usual answer: '
       + 'most stocks show no measurable link to most forces. A new round comes tomorrow.</p>'
       + '<div class="qz-btns"><a class="btn btn-primary" href="/explore">What if? Move a force</a>'
-      + '<a class="btn btn-secondary" href="/compare">Compare two stocks</a></div>';
+      + '<a class="btn btn-secondary" href="/compare">Compare two stocks</a>'
+      + '<button type="button" class="btn btn-secondary" id="qz-copy">Copy your result</button></div>'
+      + '<p class="small" id="qz-copied" aria-live="polite"></p>';
     say.textContent = 'You scored ' + score + ' of ' + Q.length + '.';
+    var text = 'Which way did it move? ' + box.getAttribute('data-day') + ': ' + score + '/' + Q.length
+      + '\n' + marks.join('') + '\n' + box.getAttribute('data-url');
+    document.getElementById('qz-copy').addEventListener('click', function(){
+      var note = document.getElementById('qz-copied');
+      function show(){ note.innerHTML = '<textarea readonly rows="3" aria-label="Your result" style="width:100%;font:inherit">' + esc(text) + '</textarea>'; note.querySelector('textarea').select(); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function(){ note.textContent = 'Copied. No spoilers: it shows only right and wrong.'; }, show);
+      } else show();
+    });
   }
   ask();
 })();
@@ -134,8 +145,13 @@ _CSS = """<style>
 </style>"""
 
 
+def _day_label(day: date) -> str:
+    return f"{day.strftime('%b')} {day.day}, {day.year}"
+
+
 def quiz_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
                    day: Optional[date] = None) -> str:
+    day = day or date.today()
     rounds = quiz_rounds(stocks, day)
     canonical = f"{base_url}/quiz"
     title = "Which way did it move? A daily quiz on stocks and the economy"
@@ -152,7 +168,7 @@ def quiz_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
     body = (
         _CSS + crumb + '<h1>Which way did it move?</h1>'
         f'<p class="lead">{escape(desc)}</p>'
-        '<div class="qz" id="qz-box"><noscript><p class="lead">The quiz needs JavaScript. '
+        f'<div class="qz" id="qz-box" data-day="{escape(_day_label(day))}" data-url="{escape(canonical)}"><noscript><p class="lead">The quiz needs JavaScript. '
         'Every answer is also on the <a href="/forces">economic force pages</a>.</p></noscript></div>'
         '<p aria-live="polite" id="qz-say" style="position:absolute;left:-9999px"></p>'
         '<p class="small">"Rose" and "fell" answers are Clear readings: a stock&#39;s typical same-week '

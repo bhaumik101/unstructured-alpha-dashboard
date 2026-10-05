@@ -82,3 +82,9 @@ def test_no_stock_is_asked_twice_even_when_each_has_many_readings():
     for d in range(1, 15):
         r = qz.quiz_rounds(lib, date(2026, 10, d))
         assert len(r) == qz.ROUNDS and len({x[0] for x in r}) == qz.ROUNDS
+
+
+def test_the_result_can_be_copied_with_the_day_and_link_and_no_answers():
+    html = qz.quiz_page_html(_library(), "https://www.x", "https://app.x", date(2026, 10, 5))
+    assert 'data-day="Oct 5, 2026"' in html and 'data-url="https://www.x/quiz"' in html
+    assert 'id="qz-copy"' in html
