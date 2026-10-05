@@ -164,3 +164,73 @@ def explore_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
                "description": desc, "url": canonical, "applicationCategory": "FinanceApplication",
                "isAccessibleForFree": True}
     return _shell(title, desc, canonical, json_ld, body, app_url)
+
+
+# ── One stock: the same slider, on its own page ──────────────────────────────
+
+_STOCK_SCRIPT = r"""
+(function(){
+  var D = JSON.parse(document.getElementById('sw-data').textContent);
+  var sel = document.getElementById('sw-force'), sl = document.getElementById('sw-move');
+  var out = document.getElementById('sw-out');
+  function sgn(v){ return v > 0 ? '+' : v < 0 ? '−' : ''; }
+  function fmt(v, unit){ var a = Math.abs(v), s = sgn(v) + a.toFixed(unit === '%' ? (a < 1 ? 1 : 0) : 2);
+    return unit === '%' ? s + '%' : s + ' ' + unit; }
+  function pct(v){ var a = Math.abs(v); return sgn(v) + (a < 10 ? a.toFixed(1) : a.toFixed(0)) + '%'; }
+  function draw(){
+    var f = D.forces[sel.selectedIndex], k = parseFloat(sl.value), move = k * f.step;
+    document.getElementById('sw-move-label').textContent = f.label + ' ' + fmt(move, f.unit);
+    document.getElementById('sw-all').href = '/explore#' + f.key;
+    if (k === 0){ out.textContent = 'Move the slider to size the move.'; return; }
+    var a = f.low * k, b = f.high * k;
+    out.innerHTML = 'In weeks like that, ' + D.ticker + ' typically moved <b>' + pct(f.impact * k)
+      + '</b> beyond the market (90% range ' + pct(Math.min(a, b)) + ' to ' + pct(Math.max(a, b)) + ').'
+      + (f.evidence === 'tentative' ? ' The evidence is tentative.' : '');
+  }
+  D.forces.forEach(function(f){ var o = document.createElement('option'); o.value = f.key; o.textContent = f.label; sel.appendChild(o); });
+  sel.addEventListener('change', draw); sl.addEventListener('input', draw);
+  draw();
+})();
+"""
+
+
+def stock_whatif_data(symbol: str, rec: dict) -> dict:
+    """The forces this stock's reading held up on, largest first, with the
+    figures the slider scales. Readings that did not hold up are left out:
+    sizing a move on a figure indistinguishable from zero would invent one."""
+    from utils.exposure_pages import STANDS_UP
+    from utils.force_pages import FORCE_BY_KEY
+    exps = rec.get("exposures") or {}
+    forces = []
+    for key, e in sorted(exps.items(), key=lambda kv: -abs(kv[1].get("impact") or 0)):
+        f = FORCE_BY_KEY.get(key)
+        if f is None or e.get("evidence") not in STANDS_UP:
+            continue
+        forces.append({"key": key, "label": f.label, "step": abs(f.shock), "unit": _unit(f),
+                       "impact": round(float(e["impact"]), 4), "low": round(float(e["low"]), 4),
+                       "high": round(float(e["high"]), 4), "evidence": e["evidence"]})
+    return {"ticker": symbol, "forces": forces}
+
+
+def stock_whatif_html(symbol: str, rec: dict) -> str:
+    """A slider card for the stock page, or "" when no reading held up."""
+    data = stock_whatif_data(symbol, rec)
+    if not data["forces"]:
+        return ""
+    payload = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
+    return (
+        _CSS +
+        '<h2>What if?</h2>'
+        '<form class="xp-form" onsubmit="return false">'
+        '<div><label for="sw-force">Economic force</label><select id="sw-force"></select></div>'
+        '<div><label for="sw-move">Size of the move: <span class="xp-now" id="sw-move-label"></span></label>'
+        f'<input type="range" id="sw-move" min="{-MAX_MULTIPLE:g}" max="{MAX_MULTIPLE:g}" step="0.5" value="2" '
+        'aria-describedby="sw-ticks">'
+        '<div class="xp-ticks" id="sw-ticks"><span>Fell</span><span>No change</span><span>Rose</span></div></div>'
+        '</form>'
+        '<p class="lead" id="sw-out" aria-live="polite"></p>'
+        '<p class="small">Only the forces whose reading held up are offered. The figure scales in a '
+        'straight line with the move and describes the past; it is not a forecast. '
+        f'<a id="sw-all" href="/explore#{escape(data["forces"][0]["key"])}">See every stock on record for a move like this</a>.</p>'
+        f'<script type="application/json" id="sw-data">{payload}</script>'
+        f'<script>{_STOCK_SCRIPT}</script>')

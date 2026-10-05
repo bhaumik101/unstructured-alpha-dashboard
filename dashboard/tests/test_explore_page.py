@@ -90,3 +90,29 @@ def test_served_linked_and_listed_once_there_is_data(client):
     assert "/explore</loc>" in c.get("/sitemap.xml").text
     assert 'href="/explore#short_rates"' in c.get("/forces/short_rates").text
     assert 'href="/explore"' in c.get("/forces").text
+
+
+# ── The same slider on one stock's page ──────────────────────────────────────
+
+def test_a_stock_page_offers_only_forces_whose_reading_held_up():
+    rec = _stock("XOM", "Exxon Mobil", oil=(2.4, "clear"), rates=(0.1, "indistinct"),
+                 gold=(-0.8, "tentative"))
+    d = xp.stock_whatif_data("XOM", rec)
+    assert [f["key"] for f in d["forces"]] == ["oil", "gold"]          # largest first
+    assert d["forces"][0] == {"key": "oil", "label": "Oil and energy", "step": 10.0, "unit": "%",
+                              "impact": 2.4, "low": 1.4, "high": 3.4, "evidence": "clear"}
+
+
+def test_a_stock_with_nothing_that_held_up_gets_no_slider():
+    rec = _stock("KO", "Coca-Cola", oil=(0.05, "indistinct"))
+    assert xp.stock_whatif_html("KO", rec) == ""
+
+
+def test_the_stock_page_carries_the_slider_and_its_data():
+    from utils.exposure_pages import stock_page_html
+    rec = _stock("XOM", "Exxon Mobil", oil=(2.4, "clear"))
+    html = stock_page_html("XOM", rec, [], [], "https://www.x", "https://app.x")
+    assert 'id="sw-move"' in html and 'for="sw-force"' in html and 'href="/explore#oil"' in html
+    blob = re.search(r'<script type="application/json" id="sw-data">(.*?)</script>', html, re.S).group(1)
+    assert json.loads(blob)["forces"][0]["key"] == "oil"
+    assert "it is not a forecast" in html
