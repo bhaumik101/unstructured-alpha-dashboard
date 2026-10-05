@@ -255,3 +255,49 @@ def test_the_library_does_not_fetch_ten_years_per_stock():
                                     max_holdings=1)
     assert lib_report["portfolio"]["readings"] == full["portfolio"]["readings"]
     assert lib_report["extras"]["readings"] == full["extras"]["readings"]
+
+
+# ── memory: stop on the run's own trend (live: 75 of 426 at 422MB, guard 390) ─
+
+def _rss_seq(start, per_batch):
+    """rss() is read before and after each batch; memory grows per_batch each."""
+    state = {"v": start, "reads": 0}
+
+    def rss():
+        state["reads"] += 1
+        if state["reads"] % 2 == 0:          # the read after a batch
+            state["v"] += per_batch
+        return state["v"]
+    return rss
+
+
+def test_a_flat_run_is_not_stopped_by_the_old_390mb_guard(store):
+    targets = [(f"T{i}", f"Co {i}") for i in range(8)]
+    prices_batch, sf, _ = _world_with({t for t, _ in targets})
+    stats = _run(targets, prices_batch, sf, max_rss_mb=ml.DEFAULT_MAX_RSS_MB,
+                 rss=_rss_seq(400.0, 1.0))
+    assert stats["stop"] == "done" and stats["measured"] == 8
+
+
+def test_a_growing_run_stops_before_the_next_batch_would_cross(store):
+    targets = [(f"T{i}", f"Co {i}") for i in range(10)]
+    prices_batch, sf, _ = _world_with({t for t, _ in targets})
+    # 380 -> 410 -> 440: a third batch growing like the first would reach 470+.
+    stats = _run(targets, prices_batch, sf, max_rss_mb=460, rss=_rss_seq(380.0, 30.0))
+    assert stats["stop"] == "memory" and stats["measured"] == 4      # two batches of 2
+
+
+def test_each_batch_is_dropped_from_the_price_cache(store):
+    targets = [(f"T{i}", f"Co {i}") for i in range(6)]
+    prices_batch, sf, _ = _world_with({t for t, _ in targets})
+    cleared = []
+    prices_batch.clear = lambda: cleared.append(1)
+    _run(targets, prices_batch, sf)
+    assert len(cleared) == 3
+
+
+def test_the_ceiling_is_the_librarys_own_and_under_render_s_limit():
+    import inspect
+
+    assert 390 < ml.DEFAULT_MAX_RSS_MB < 512
+    assert "MEASURE_MAX_RSS_MB" in inspect.getsource(ml)

@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import gc
 import os
 import sys
 import time
@@ -52,8 +51,16 @@ _here = Path(__file__).resolve().parent.parent   # dashboard/
 if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
 
+from utils.memory import release_memory  # noqa: E402
+
 CONSTITUENTS = Path(__file__).resolve().parent / "sp500.csv"
-DEFAULT_MAX_RSS_MB = int(os.environ.get("SCORE_MAX_RSS_MB", "390"))
+# Its own ceiling, not the scorer's 390MB. Live on 2026-10-04 the library
+# stopped on that guard after three batches (75 of 426 stocks) at 422MB --
+# still 90MB under Render's 512MB limit -- so at that pace the index took six
+# Sundays. The run now stops on its own trend instead (see run()), below this
+# hard ceiling.
+DEFAULT_MAX_RSS_MB = int(os.environ.get("MEASURE_MAX_RSS_MB", "460"))
+GROWTH_MARGIN = 1.5     # stop when the next batch, grown like the worst one so far, would cross
 
 Target = Tuple[str, str]   # (ticker, name)
 
@@ -172,12 +179,13 @@ def _rss_mb() -> float:
 def run(targets: List[Target], *, prices_batch, series, record, end, batch_size: int,
         deadline: float, max_rss_mb: int, clock=time.monotonic, rss=_rss_mb) -> dict:
     stats = {"targets": len(targets), "measured": 0, "failed": 0, "stop": "done"}
-    for i in range(0, len(targets), batch_size):
+    worst_growth = 0.0
+    for n, i in enumerate(range(0, len(targets), batch_size), 1):
         if clock() > deadline:
             stats["stop"] = "deadline"
             break
         used = rss()
-        if used and used >= max_rss_mb:
+        if used and (used >= max_rss_mb or used + GROWTH_MARGIN * worst_growth >= max_rss_mb):
             stats["stop"] = "memory"
             break
         for ticker, name, report in measure_batch(targets[i:i + batch_size], prices_batch,
@@ -188,7 +196,14 @@ def run(targets: List[Target], *, prices_batch, series, record, end, batch_size:
                 stats["failed"] += 1
                 _log("not_measured", ticker=ticker,
                      reason=str(report.get("message") or "not recorded")[:80])
-        gc.collect()
+        # The batch fetcher is st.cache_data ("MemoryCacheStorageManager" in
+        # the log): without this every batch's prices stay for the whole run.
+        getattr(prices_batch, "clear", lambda: None)()
+        release_memory()
+        after = rss()
+        if used and after:
+            worst_growth = max(worst_growth, after - used)
+        _log("batch", n=n, measured=stats["measured"], rss_mb=round(after or 0, 1))
     stats["remaining"] = stats["targets"] - stats["measured"] - stats["failed"]
     return stats
 
