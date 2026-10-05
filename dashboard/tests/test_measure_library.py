@@ -301,3 +301,18 @@ def test_the_ceiling_is_the_librarys_own_and_under_render_s_limit():
 
     assert 390 < ml.DEFAULT_MAX_RSS_MB < 512
     assert "MEASURE_MAX_RSS_MB" in inspect.getsource(ml)
+
+
+def test_the_weekly_job_runs_after_the_dollar_series_is_published():
+    """A week counts only when all five core series have it, and the dollar
+    (DTWEXBGS, Fed H.10) is published Mondays. Run on Sunday, the 2026-10-04
+    library said "data through Sep 25" with Oct 2's closes already in."""
+    import re
+
+    from tests.conftest import DASHBOARD_ROOT
+
+    yaml = (DASHBOARD_ROOT / "render.yaml").read_text(encoding="utf-8")
+    block = yaml.split("name: unstructured-alpha-grow-universe", 1)[1].split("- type:", 1)[0]
+    minute, hour, _dom, _mon, dow = re.search(r'schedule:\s*"([^"]+)"', block).group(1).split()
+    assert dow == "2", "Tuesday: the first day after Monday's H.10 release"
+    assert int(hour) < 4, "before score-core at 04:10 UTC"

@@ -356,7 +356,13 @@ services:
     name: unstructured-alpha-grow-universe
     runtime: python
     rootDir: dashboard
-    schedule: "0 3 * * 0"
+    # Tuesday, not Sunday. A week only counts once all five core series have
+    # it, and the trade-weighted dollar (DTWEXBGS) comes from the Fed's H.10
+    # release on Mondays (~20:15 UTC). Run on Sunday, every stock page was a
+    # week staler than it had to be: the 2026-10-04 run wrote "data through
+    # Sep 25" while Oct 2's closes were already in. Tuesday 03:00 UTC is after
+    # Monday's release and still before score-core at 04:10.
+    schedule: "0 3 * * 2"
     # Retry without the cache if the cached install fails. A poisoned pip
     # cache entry is otherwise permanent: it is replayed on every build and
     # survives a Python-version change, because pip's HTTP cache is keyed by
@@ -369,7 +375,7 @@ services:
     # which is what the public /exposure pages and the /ticker -> /exposure
     # redirects read. It shares this slot rather than becoming a 17th service
     # (see MAX_CRON_SERVICES): both are weekly, both warm data for the next
-    # visitor, and Sunday 03:00 UTC is after Friday's closes and FRED's dailies.
+    # visitor, and Tuesday 03:00 UTC is after Friday's closes and Monday's H.10 dollar release.
     # It goes first so grow_universe's pre-warm can't eat its memory headroom.
     startCommand: python -m cron.run_group weekly-universe
     envVars:
