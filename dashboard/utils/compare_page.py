@@ -22,7 +22,11 @@ from typing import Iterable, List, Optional, Tuple
 from utils.exposure_pages import STANDS_UP, SYMBOL_RE, _chip, _date, _shell, fmt_pct
 from utils.force_pages import ALL_FORCES
 
-EXAMPLES: Tuple[Tuple[str, str], ...] = (("XOM", "DAL"), ("JPM", "NEE"), ("AAPL", "MSFT"))
+# Shown in order, the first three with both stocks on record: the library fills
+# in over weeks, so a fixed short list can show nothing at all.
+EXAMPLES: Tuple[Tuple[str, str], ...] = (
+    ("XOM", "DAL"), ("JPM", "NEE"), ("AAPL", "MSFT"), ("CVX", "DAL"), ("AAPL", "DAL"),
+    ("BAC", "AMT"), ("COST", "AMZN"), ("ADBE", "CAT"))
 
 
 def clean_symbol(raw: Optional[str]) -> str:
@@ -98,7 +102,7 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
     if not (a or b):
         examples = "".join(
             f'<li><a href="/compare?a={x}&amp;b={y}">{x} vs {y}</a></li>'
-            for x, y in EXAMPLES if x in by and y in by)
+            for x, y in [p for p in EXAMPLES if p[0] in by and p[1] in by][:3])
         body = (head + f'<p class="lead">{escape(desc)}</p>' + _form("", "", tickers)
                 + (f'<h2>Try</h2><ul class="related">{examples}</ul>' if examples else "")
                 + '<p class="small">Any stock on record can be compared: the S&amp;P 500, measured '
