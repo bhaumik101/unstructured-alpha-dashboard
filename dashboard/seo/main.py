@@ -705,6 +705,8 @@ def sitemap_xml():
                         "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/compare</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.6</priority></url>")
+            urls.append(f"  <url><loc>{BASE_URL}/quiz</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>daily</changefreq><priority>0.6</priority></url>")
     except Exception:
         pass
     try:
@@ -823,6 +825,15 @@ def explore_page():
     except Exception:
         carry = None
     return HTMLResponse(explore_page_html(_exposure_stocks(), BASE_URL, APP_URL, carry))
+
+
+@app.get("/quiz", response_class=HTMLResponse)
+def quiz_page():
+    """Which way did it move? Ten questions a day, the same for everyone."""
+    from utils.quiz_page import quiz_page_html
+
+    _get_engine()
+    return HTMLResponse(quiz_page_html(_exposure_stocks(), BASE_URL, APP_URL))
 
 
 @app.get("/compare", response_class=HTMLResponse)

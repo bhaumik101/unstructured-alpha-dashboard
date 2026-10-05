@@ -157,7 +157,7 @@ def explore_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         f'at three times the standard move.{carry_note} Nothing here is a recommendation to buy, sell '
         'or hold any security.</p>'
         f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/scenarios">Try a move on a '
-        'whole portfolio</a><a class="btn btn-secondary" href="/forces">Every economic force</a></div>'
+        'whole portfolio</a><a class="btn btn-secondary" href="/quiz">Daily quiz</a><a class="btn btn-secondary" href="/forces">Every economic force</a></div>'
         f'<script type="application/json" id="xp-data">{payload}</script>'
         f'<script>{_SCRIPT}</script>')
     json_ld = {"@context": "https://schema.org", "@type": "WebApplication", "name": title,
