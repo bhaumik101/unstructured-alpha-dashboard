@@ -40,7 +40,8 @@ def test_every_extra_force_is_named_on_the_page():
 
 
 def test_every_tool_the_page_links_to_exists():
-    for slug in ("scenarios", "evidence"):
-        assert f'url_path="{slug}"' in APP, slug
-        assert f"{{APP_URL}}/{slug}" in PAGE
-    assert 'href="/forces"' in PAGE and 'source: "/forces"' in NEXT
+    assert 'url_path="scenarios"' in APP and "{APP_URL}/scenarios" in PAGE
+    # The track record is linked on www: a public page anyone can open or index
+    # (seo/main.py /evidence), not the in-app page that needs a live session.
+    for path in ("/forces", "/evidence"):
+        assert f'href="{path}"' in PAGE and f'source: "{path}"' in NEXT, path

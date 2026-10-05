@@ -438,7 +438,7 @@ export default function Home() {
               <div className="lp-step">
                 <h3 className="lp-h3">Does it hold up?</h3>
                 <p className="lp-body">How readings measured this way held up over the following year, out of sample, across the S&amp;P 500 — published whatever it shows.</p>
-                <a className="lp-link" href={`${APP_URL}/evidence`}>Read the track record →</a>
+                <a className="lp-link" href="/evidence">Read the track record →</a>
               </div>
             </div>
           </div>
