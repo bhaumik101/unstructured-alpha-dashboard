@@ -691,7 +691,7 @@ def _rolling(frame: pd.DataFrame, factors: Iterable[Factor]) -> Dict[str, List[d
 
 def _history_frame(weekly_full: Mapping[str, pd.Series], weights: Mapping[str, float],
                    market_full: pd.Series, changes_full: Mapping[str, pd.Series],
-                   last: pd.Timestamp) -> pd.DataFrame:
+                   last: pd.Timestamp, weeks: int = HISTORY_WEEKS) -> pd.DataFrame:
     """The portfolio's weekly data as far back as HISTORY_WEEKS, for the rolling line.
 
     Only weeks where every included holding, the market and every active force
@@ -700,7 +700,7 @@ def _history_frame(weekly_full: Mapping[str, pd.Series], weights: Mapping[str, f
     """
     frame = pd.concat({**{t: weekly_full[t] for t in weights}, "__mkt__": market_full,
                        **changes_full}, axis=1).dropna()
-    frame = frame[frame.index <= last].iloc[-HISTORY_WEEKS:]
+    frame = frame[frame.index <= last].iloc[-weeks:]
     frame["__portfolio__"] = sum(frame[t] * w for t, w in weights.items())
     return frame
 
@@ -762,8 +762,13 @@ def build_exposure_report(
     *,
     end: Optional[date] = None,
     max_holdings: int = MAX_HOLDINGS,
+    history_weeks: int = HISTORY_WEEKS,
 ) -> dict:
     """The full exposure report for a portfolio. Never raises; never estimates.
+
+    history_weeks: how far back the rolling line reaches. 0 skips the rolling
+    line and its extra history entirely (the stock library, which stores only
+    the readings, uses that); nothing else in the report depends on it.
 
     prices_fetcher(tickers, start, end) -> {ticker: daily close series}
     series_fetcher(series_id, start, end) -> daily/monthly level series
@@ -775,7 +780,7 @@ def build_exposure_report(
     end_d = end or datetime.now(timezone.utc).date()
     start_d = end_d - timedelta(weeks=WINDOW_WEEKS + 10)
     start_g = end_d - timedelta(days=31 * (GROWTH_WINDOW_MONTHS + 3))
-    start_h = end_d - timedelta(weeks=HISTORY_WEEKS + 10)
+    start_h = end_d - timedelta(weeks=history_weeks + 10) if history_weeks else start_d
     s, e = str(min(start_d, start_g, start_h)), str(end_d)
 
     tickers = [p["ticker"] for p in positions]
@@ -838,7 +843,8 @@ def build_exposure_report(
 
     now = frame.iloc[-WINDOW_WEEKS:]
     portfolio = _fit_on_frame(now, "__portfolio__", active, MIN_WEEKS)
-    history = _history_frame(weekly_full, weights, market_full, changes_full, now.index[-1])
+    history = (_history_frame(weekly_full, weights, market_full, changes_full, now.index[-1],
+                              history_weeks) if history_weeks else None)
     if not portfolio["available"]:
         return _error(f"Exposure couldn't be measured: {portfolio['reason']}.",
                       excluded=excluded, notes=notes)
@@ -915,7 +921,7 @@ def build_exposure_report(
         "contributions": contributions,
         "shifts": _shifts(recent, earlier),
         "recent_moves": _recent_moves(now, portfolio, active),
-        "rolling": _rolling(history, active),
+        "rolling": _rolling(history, active) if history is not None else {},
         "factor_paths": _factor_paths({k: v for k, v in levels_raw.items() if k in changes},
                                       now.index),
         "growth": growth,
@@ -927,7 +933,7 @@ def build_exposure_report(
         "method": {
             "window_weeks": WINDOW_WEEKS, "min_weeks": MIN_WEEKS, "clear_t": CLEAR_T,
             "rolling_weeks": ROLLING_WEEKS, "rolling_step": ROLLING_STEP,
-            "history_weeks": len(history),
+            "history_weeks": len(history) if history is not None else 0,
             "range": "90%", "market_control": MARKET_TICKER, "standard_errors": "Newey-West, 4 lags",
             "factors": [{"label": f.label, "series_id": f.series_id} for f in FACTORS],
             "extra_factors": [{"label": f.label, "series_id": f.series_id, "group": f.group,

@@ -207,3 +207,51 @@ def test_a_price_yahoo_cant_return_does_not_refetch_the_batch_per_stock():
     list(ml.measure_batch([("AAA", ""), ("BBB", ""), ("CCC", ""), ("DDD", "")], prices_batch,
                           ml.memo_series(sf), END))
     assert len(batches) == 1, f"{len(batches)} fetches for one batch"
+
+
+# ── order and cost (after the first live run reached only A..EBAY) ──────────
+
+def test_the_largest_companies_are_measured_before_the_alphabet():
+    index = [("AAA", "A Co"), ("MSFT", "Microsoft"), ("ABC", "ABC Co"), ("JPM", "JPMorgan")]
+    plan = ml.plan_targets(index, [], NOW, fresh_days=6, priority=["MSFT", "JPM"])
+    assert [t for t, _ in plan] == ["MSFT", "JPM", "AAA", "ABC"]
+
+
+def test_priority_never_jumps_ahead_of_a_stale_refresh():
+    """Order only among equals: never-measured still goes before anything
+    measured, and a stale refresh still goes oldest first."""
+    index = [("MSFT", "Microsoft"), ("AAA", "A Co")]
+    library = [{"ticker": "MSFT", "measured_at": "2026-09-01T00:00:00+00:00", "name": "Microsoft"}]
+    plan = ml.plan_targets(index, library, NOW, fresh_days=6, priority=["MSFT"])
+    assert [t for t, _ in plan] == ["AAA", "MSFT"]
+
+
+def test_every_priority_name_is_in_the_index():
+    listed = {t for t, _ in ml.load_constituents()}
+    assert ml.PRIORITY and set(ml.PRIORITY) <= listed
+    assert len(set(ml.PRIORITY)) == len(ml.PRIORITY)
+
+
+def test_the_library_does_not_fetch_ten_years_per_stock():
+    """It stores readings only, so the rolling line's history is skipped: the
+    fetch window stays near the report's own three years (plus the growth
+    reading's), and the readings are identical to a full report's."""
+    from datetime import date as _date
+
+    from utils import exposure as ex
+
+    windows = []
+    pf, sf = _daily_world()
+
+    def prices(tickers, start, end):
+        windows.append((_date.fromisoformat(start), _date.fromisoformat(end)))
+        return pf(tickers, start, end)
+
+    lib_report = list(ml.measure_batch([("XOM", "Exxon")], prices, ml.memo_series(sf), END))[0][2]
+    start, end = windows[0]
+    assert (end - start).days < 5 * 365
+    assert lib_report["rolling"] == {}
+    full = ex.build_exposure_report([{"ticker": "XOM", "weight_pct": 100}], pf, sf, end=END,
+                                    max_holdings=1)
+    assert lib_report["portfolio"]["readings"] == full["portfolio"]["readings"]
+    assert lib_report["extras"]["readings"] == full["extras"]["readings"]
