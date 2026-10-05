@@ -123,12 +123,12 @@ _SCRIPT = r"""
 
 _CSS = """<style>
 .qz{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:10px 0}
-.qz-step{font-size:.85rem;color:var(--ink3);margin:0 0 8px;font-variant-numeric:tabular-nums}
-.qz-q{font-size:1.2rem;line-height:1.45;margin:0 0 14px}
+.qz-step{font-size:.82rem;color:var(--ink3);margin:0 0 8px;font-variant-numeric:tabular-nums}
+.qz-q{font-size:1.25rem;line-height:1.45;margin:0 0 14px}
 .qz-name{color:var(--ink3);font-weight:400}
 .qz-btns{display:flex;flex-wrap:wrap;gap:10px}
 .qz-btns .btn{min-height:44px}
-.qz-verdict{font-size:1.15rem;font-weight:750;margin:0 0 6px}
+.qz-verdict{font-size:1.25rem;font-weight:750;margin:0 0 6px}
 .qz-right{color:#1f7a4d}.qz-wrong{color:#a4501a}
 @media (prefers-color-scheme:dark){.qz-right{color:#5cc28e}.qz-wrong{color:#e0965a}}
 </style>"""
