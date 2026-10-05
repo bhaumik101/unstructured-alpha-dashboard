@@ -63,7 +63,14 @@ def explore_data(stocks: Iterable[dict]) -> dict:
         forces.append({"key": f.key, "label": f.label, "group": GROUP_LABELS.get(f.group, ""),
                        "step": abs(f.shock), "unit": _unit(f), "phrase": f.shock_phrase,
                        "measured": st["measured"], "none": st["none"], "rows": rows})
-    return {"forces": forces, "as_of": newest}
+    # Every stock on record, with one character per force above: "1" if it has
+    # a reading on that force. Lets "Your stocks" tell "no clear link" apart
+    # from "not measured" without shipping every reading.
+    keys = [f["key"] for f in forces]
+    tickers = sorted(
+        [s["ticker"], "".join("1" if k in (s.get("exposures") or {}) else "0" for k in keys)]
+        for s in stocks if s.get("ticker"))
+    return {"forces": forces, "as_of": newest, "tickers": tickers}
 
 
 _SCRIPT = r"""
@@ -85,9 +92,27 @@ _SCRIPT = r"""
         + '<span class="xp-t">' + (r[3] === 'tentative' ? 'tentative' : '') + '</span></li>';
     }).join('') + '</ol>';
   }
+  var mine = document.getElementById('xp-mine'), mineOut = document.getElementById('xp-mine-out');
+  var MASK = {}; (D.tickers || []).forEach(function(t){ MASK[t[0]] = t[1]; });
+  function picks(){ return mine.value.toUpperCase().split(/[\s,;]+/).filter(function(t, i, a){
+    return /^[A-Z0-9][A-Z0-9.\-]{0,14}$/.test(t) && a.indexOf(t) === i; }).slice(0, 10); }
+  function drawMine(f, k){
+    var ts = picks(), fi = D.forces.indexOf(f);
+    if (!ts.length){ mineOut.innerHTML = ''; return; }
+    mineOut.innerHTML = '<ul class="xp-mine-list">' + ts.map(function(t){
+      var r = f.rows.filter(function(x){ return x[0] === t; })[0], m = MASK[t], what;
+      if (r && k !== 0) what = '<b>' + pct(r[2] * k) + '</b>' + (r[3] === 'tentative' ? ' <span class="xp-t">tentative</span>' : '');
+      else if (r) what = 'moves with it';
+      else if (m && m.charAt(fi) === '1') what = 'no clear link';
+      else if (m) what = 'not measured on this force';
+      else what = 'not on record yet';
+      return '<li>' + (m ? '<a href="/exposure/' + encodeURIComponent(t) + '">' + esc(t) + '</a>' : esc(t)) + ' <span>' + what + '</span></li>';
+    }).join('') + '</ul>';
+  }
   function draw(){
     var f = D.forces[sel.selectedIndex], k = parseFloat(sl.value), move = k * f.step;
     document.getElementById('xp-move-label').textContent = f.label + ' ' + fmt(move, f.unit);
+    drawMine(f, k);
     if (k === 0){ out.innerHTML = '<p class="lead">Move the slider to see which stocks moved most with ' + esc(f.label.toLowerCase()) + '.</p>'; say.textContent = ''; return; }
     var rows = f.rows.map(function(r){ return [r[0], r[1], r[2], r[3]]; });
     rows.sort(function(a, b){ return b[2] * k - a[2] * k; });
@@ -110,6 +135,8 @@ _SCRIPT = r"""
   function remember(){ history.replaceState(null, '', '#' + D.forces[sel.selectedIndex].key + ':' + parseFloat(sl.value)); }
   sel.addEventListener('change', function(){ remember(); draw(); });
   sl.addEventListener('input', function(){ remember(); draw(); });
+  try { var saved = localStorage.getItem('xp-mine'); if (saved && !mine.value) mine.value = saved; } catch (e) {}
+  mine.addEventListener('input', function(){ try { localStorage.setItem('xp-mine', mine.value); } catch (e) {} draw(); });
   draw();
 })();
 """
@@ -134,6 +161,12 @@ _CSS = """<style>
 @media (prefers-color-scheme:dark){.xp-up{background:#5a8fd4}.xp-down{background:#c9822f}}
 .xp-v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
 .xp-t{font-size:.78rem;color:var(--ink3)}
+.xp-mine-row{grid-column:1/-1}
+.xp-hint{font-size:.78rem;color:var(--ink3);font-weight:400}
+.xp-form input[type=text]{border:1px solid var(--line);border-radius:10px;padding:0 10px;background:var(--bg);color:var(--ink);text-transform:uppercase}
+.xp-mine-list{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.xp-mine-list li{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:7px 12px;font-variant-numeric:tabular-nums}
+.xp-mine-list li span{color:var(--ink3);margin-left:4px}.xp-mine-list li b{color:var(--ink)}
 @media (max-width:640px){.xp-form{grid-template-columns:1fr}.xp-list li{grid-template-columns:minmax(0,1fr) 64px}.xp-track,.xp-t{display:none}}
 </style>"""
 
@@ -170,7 +203,11 @@ def explore_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         f'<input type="range" id="xp-move" min="{-MAX_MULTIPLE:g}" max="{MAX_MULTIPLE:g}" step="0.5" value="2" '
         'aria-describedby="xp-ticks">'
         '<div class="xp-ticks" id="xp-ticks"><span>Fell</span><span>No change</span><span>Rose</span></div></div>'
+        '<div class="xp-mine-row"><label for="xp-mine">Your stocks <span class="xp-hint">(optional, up to 10)</span></label>'
+        '<input id="xp-mine" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. AAPL, DAL, XOM" '
+        'aria-describedby="xp-mine-note"><span class="xp-hint" id="xp-mine-note">Kept in this browser only.</span></div>'
         '</form>'
+        '<div id="xp-mine-out" aria-live="polite"></div>'
         '<p class="sr-only" aria-live="polite" id="xp-say" style="position:absolute;left:-9999px"></p>'
         '<div id="xp-out"></div>'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Each figure is a '

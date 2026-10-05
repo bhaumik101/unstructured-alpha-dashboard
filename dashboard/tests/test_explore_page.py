@@ -116,3 +116,22 @@ def test_the_stock_page_carries_the_slider_and_its_data():
     blob = re.search(r'<script type="application/json" id="sw-data">(.*?)</script>', html, re.S).group(1)
     assert json.loads(blob)["forces"][0]["key"] == "oil"
     assert "it is not a forecast" in html
+
+
+# ── Your stocks: a few tickers followed alongside the rankings ───────────────
+
+def test_every_stock_on_record_carries_which_forces_it_was_measured_on():
+    d = xp.explore_data(STOCKS)
+    keys = [f["key"] for f in d["forces"]]
+    masks = dict(d["tickers"])
+    assert set(masks) == {"XOM", "DAL", "KO"}
+    assert masks["KO"][keys.index("oil")] == "1"          # measured, no clear link
+    assert masks["DAL"][keys.index("rates")] == "0"       # never measured on rates
+    assert masks["XOM"][keys.index("rates")] == "1"
+    assert all(len(m) == len(keys) for m in masks.values())
+
+
+def test_the_page_has_a_labelled_box_for_your_stocks():
+    html = xp.explore_page_html(STOCKS, "https://www.x", "https://app.x")
+    assert 'for="xp-mine"' in html and 'id="xp-mine-out"' in html
+    assert "Kept in this browser only." in html
