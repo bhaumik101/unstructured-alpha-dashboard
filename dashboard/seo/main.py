@@ -808,7 +808,12 @@ def exposure_page(symbol: str):
         held = _tr.persistence(_tr.latest())
     except Exception:
         held = {}
-    return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL, held))
+    try:
+        from utils.compare_page import similar
+        alike = similar(symbol, _exposure_stocks())
+    except Exception:
+        alike = []
+    return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL, held, alike))
 
 
 # ── Force pages: every stock on record, read one economic force at a time ────

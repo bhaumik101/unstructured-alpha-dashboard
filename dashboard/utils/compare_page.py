@@ -20,6 +20,7 @@ from html import escape
 from typing import Iterable, List, Optional, Tuple
 
 from utils.exposure_pages import STANDS_UP, SYMBOL_RE, _chip, _date, _shell, fmt_pct
+from utils import exposure as ex
 from utils.force_pages import ALL_FORCES
 
 # Shown in order, the first three with both stocks on record: the library fills
@@ -177,3 +178,38 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
         '<a class="btn btn-secondary" href="/explore">What if? Move a force</a></div>')
     return _shell(f"{a} vs {b}: exposure to economic forces", lead[:300], canonical, ld, body,
                   app_url, robots="noindex, follow")
+
+
+# ── Nearest neighbours: stocks whose core-five readings look most alike ──────
+
+CORE = tuple(f.key for f in ex.FACTORS)
+MIN_POOL = 10          # below this the spread of each force is too poorly known
+
+
+def similar(symbol: str, stocks: Iterable[dict], n: int = 5) -> List[dict]:
+    """The stocks closest to `symbol` across the five core forces.
+
+    Each force is scaled by its spread across the stocks on record, so a
+    force where everyone moves a lot does not swamp one where small moves are
+    rare. Only stocks measured on all five are compared -- a missing reading
+    is never filled in. Describes the past three years, nothing more.
+    """
+    pool = [s for s in stocks
+            if all(k in (s.get("exposures") or {}) for k in CORE)]
+    me = next((s for s in pool if s["ticker"] == symbol), None)
+    if me is None or len(pool) < MIN_POOL:
+        return []
+    spread = {}
+    for k in CORE:
+        xs = [s["exposures"][k]["impact"] for s in pool]
+        m = sum(xs) / len(xs)
+        sd = (sum((x - m) ** 2 for x in xs) / (len(xs) - 1)) ** 0.5
+        spread[k] = sd if sd > 0 else 1.0
+
+    def dist(s: dict) -> float:
+        return sum(((s["exposures"][k]["impact"] - me["exposures"][k]["impact"]) / spread[k]) ** 2
+                   for k in CORE) ** 0.5
+
+    out = sorted((s for s in pool if s["ticker"] != symbol), key=lambda s: (dist(s), s["ticker"]))
+    return [{"ticker": s["ticker"], "name": s.get("name") or "", "distance": round(dist(s), 3)}
+            for s in out[:n]]
