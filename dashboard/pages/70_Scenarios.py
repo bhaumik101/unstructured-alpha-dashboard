@@ -121,7 +121,7 @@ with right:
                         unsafe_allow_html=True)
         else:
             record("scenario_run", n_moves=len(moves))
-            st.markdown(sui.headline_html(out), unsafe_allow_html=True)
+            st.markdown(sui.headline_html(out, ui.carry_over()), unsafe_allow_html=True)
             st.markdown(sui.contributions_html(out), unsafe_allow_html=True)
             st.markdown(sui.holdings_html(out), unsafe_allow_html=True)
             st.markdown(sui.method_html(out), unsafe_allow_html=True)

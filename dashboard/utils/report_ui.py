@@ -460,6 +460,18 @@ class _NotCacheable(Exception):
 
 
 @st.cache_data(ttl=3600, show_spinner=False, max_entries=1)
+def carry_over() -> Optional[float]:
+    """The published track record's carry-over slope, or None."""
+    from utils import track_record as tr
+
+    try:
+        r = tr.latest()
+        return float(r["shrinkage_slope"]) if r and r.get("available") and r.get("shrinkage_slope") is not None else None
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=3600, show_spinner=False, max_entries=1)
 def held_up() -> dict:
     """How each force's readings held up out of sample, from the newest
     published track-record run ({} when there is none)."""
