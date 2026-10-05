@@ -57,7 +57,7 @@ CONSTITUENTS = Path(__file__).resolve().parent / "sp500.csv"
 # Its own ceiling, not the scorer's 390MB. Live on 2026-10-04 the library
 # stopped on that guard after three batches (75 of 426 stocks) at 422MB --
 # still 90MB under Render's 512MB limit -- so at that pace the index took six
-# Sundays. The run now stops on its own trend instead (see run()), below this
+# weeks. The run now stops on its own trend instead (see run()), below this
 # hard ceiling.
 DEFAULT_MAX_RSS_MB = int(os.environ.get("MEASURE_MAX_RSS_MB", "460"))
 GROWTH_MARGIN = 1.5     # stop when the next batch, grown like the worst one so far, would cross

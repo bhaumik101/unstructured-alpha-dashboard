@@ -53,12 +53,12 @@ CHECKS: dict[str, tuple[str, int, str]] = {
         "measured_at",
         9,
         "the stock library behind the public /exposure pages; refreshed by the "
-        "Sunday weekly-universe job, so 9 days catches a week it measured nothing",
+        "weekly-universe job (Tuesdays), so 9 days catches a week it measured nothing",
     ),
     "research_results": (
         "computed_at",
         37,
-        "the /evidence track record; rerun every 28 days inside the Sunday job "
+        "the /evidence track record; rerun every 28 days inside the weekly job "
         "(cron/track_record.RERUN_DAYS), so 28 + 7 + 2 catches a month it never "
         "published. Its first live run stalled for hours and nothing said so",
     ),
