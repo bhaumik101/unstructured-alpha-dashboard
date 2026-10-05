@@ -199,8 +199,14 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
 
 
 def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[dict],
-                    base_url: str, app_url: str) -> str:
-    """The page for one measured stock. `rec` is its newest stored week."""
+                    base_url: str, app_url: str, held: Optional[dict] = None) -> str:
+    """The page for one measured stock. `rec` is its newest stored week.
+
+    held: utils.track_record.persistence() of the published study, or None.
+    """
+    from utils import track_record as tr
+
+    held = held or {}
     name = rec.get("name") or ""
     who = f"{escape(name)} ({escape(symbol)})" if name and name != symbol else escape(symbol)
     exps = rec.get("exposures") or {}
@@ -214,7 +220,10 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<span class="shock">In weeks when {escape(_FACTOR[k].shock_phrase)}</span></td>'
         f'<td><b{"" if exps[k]["evidence"] in STANDS_UP else " class=v-weak"}>{fmt_pct(exps[k]["impact"])}</b></td>'
         f'<td>{fmt_pct(exps[k]["low"])} to {fmt_pct(exps[k]["high"])}</td>'
-        f'<td>{_chip(exps[k]["evidence"])}</td></tr>'
+        f'<td>{_chip(exps[k]["evidence"])}'
+        + (f'<span class="shock">{escape(line)}</span>'
+           if (line := tr.persistence_short(k, exps[k]["evidence"], held)) else "")
+        + '</td></tr>'
         for k in keys)
     table = (
         # Focusable and labelled: on a phone the table scrolls sideways inside
@@ -225,7 +234,10 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<th scope="col">Evidence</th></tr></thead><tbody>{rows}</tbody></table>'
         '<div class="foot">Each figure is the stock\'s typical same-week move when that force moved by '
         'the stated amount, after accounting for the stock market. It describes the past; it is not '
-        'a forecast.</div></div>')
+        'a forecast.'
+        + (' How often each force&#39;s Clear and Tentative readings held their direction a year '
+           'later comes from the <a href="/evidence">published track record</a>.' if held else "")
+        + '</div></div>')
 
     extra_html = ""
     xkeys = [k for k in _EXTRA if k in exps]

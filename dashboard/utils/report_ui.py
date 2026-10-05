@@ -94,6 +94,7 @@ html[data-ua-theme="light"] .uar-chip-clear{background:#dcf3ea;border-color:#9fd
 .uar-chip-tentative{background:rgba(217,144,24,.16);border-color:rgba(217,144,24,.5);color:#f0bb62;}
 html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:#f1cf95;color:#8a4f00;}
 .uar-driver{font-size:.8rem;color:var(--uar-ink-3);margin-top:4px;}
+.uar-held{font-size:.8rem;color:var(--uar-ink-2);margin-top:4px;}
 .uar-foot{padding:12px 20px;background:var(--uar-subtle);font-size:.8rem;color:var(--uar-ink-3);line-height:1.55;}
 .uar-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.78rem;color:var(--uar-ink-3);align-items:center;}
 .uar-sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
@@ -458,6 +459,18 @@ class _NotCacheable(Exception):
         self.payload = payload
 
 
+@st.cache_data(ttl=3600, show_spinner=False, max_entries=1)
+def held_up() -> dict:
+    """How each force's readings held up out of sample, from the newest
+    published track-record run ({} when there is none)."""
+    from utils import track_record as tr
+
+    try:
+        return tr.persistence(tr.latest())
+    except Exception:
+        return {}
+
+
 @st.cache_data(ttl=6 * 3600, show_spinner=False, max_entries=200)
 def _cached_ok_report(key: tuple, max_holdings: int) -> dict:
     report = ex.build_live_report([{"ticker": t, "weight_pct": w} for t, w in key],
@@ -635,7 +648,11 @@ def exposure_map_html(report: dict) -> str:
         + '</svg></div>')
 
 
-def exposure_table_html(report: dict) -> str:
+def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
+    """held: utils.track_record.persistence() of the published study, or None."""
+    from utils import track_record as tr
+
+    held = held or {}
     p = report["portfolio"]
     readings = p["readings"]
     keys = ordered_keys(report)
@@ -651,8 +668,10 @@ def exposure_table_html(report: dict) -> str:
             f'<div><div class="uar-val">{fmt_pct(r["impact"])}</div>'
             f'<div class="uar-range">range {fmt_pct(r["low"])} to {fmt_pct(r["high"])}</div></div>'
             f'<div class="uar-rowdriver">{evidence_chip(r["evidence"])}'
-            f'<div class="uar-driver">{escape(_driver_text(report, key))}</div></div>'
-            f'</div>'
+            f'<div class="uar-driver">{escape(_driver_text(report, key))}</div>'
+            + (f'<div class="uar-held">{escape(line)}</div>'
+               if (line := tr.persistence_short(key, r["evidence"], held)) else "")
+            + '</div></div>'
         )
     return (
         '<div class="uar"><div class="uar-card"><div class="uar-strip"></div>'
@@ -724,7 +743,9 @@ def extras_html(report: dict, subject: str = "portfolio") -> str:
         '</div></div>')
 
 
-def factor_detail_html(report: dict, key: str) -> str:
+def factor_detail_html(report: dict, key: str, held: Optional[dict] = None) -> str:
+    from utils import track_record as tr
+
     readings = report["portfolio"]["readings"]
     if key not in readings:
         return ""
@@ -737,6 +758,11 @@ def factor_detail_html(report: dict, key: str) -> str:
         f'<div class="uar-sub">{escape(ex.EVIDENCE_EXPLAINED[r["evidence"]])} '
         f'Based on {r["n_obs"]} weeks of data.</div>'
     ]
+    sentence = tr.persistence_sentence(key, r["evidence"], held or {})
+    if sentence:
+        parts.append(f'<div class="uar-note">{escape(sentence)} '
+                     f'<a href="{tr.EVIDENCE_URL}" target="_blank" rel="noopener">How this was '
+                     'measured</a></div>')
     if r.get("hard_to_separate_from"):
         parts.append(
             f'<div class="uar-note uar-note-warn">Over this period {escape(ex.lower_label(r["label"]))} moved '

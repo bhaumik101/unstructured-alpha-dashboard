@@ -793,7 +793,12 @@ def exposure_page(symbol: str):
         ranked = stock_library.ranked(lead, n=6, stocks=_exposure_stocks())
         related = [r for side in ("up", "down")
                    for r in [r for r in ranked[side] if r["ticker"] != symbol][:5]]
-    return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL))
+    try:
+        from utils import track_record as _tr
+        held = _tr.persistence(_tr.latest())
+    except Exception:
+        held = {}
+    return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL, held))
 
 
 # ── Force pages: every stock on record, read one economic force at a time ────
