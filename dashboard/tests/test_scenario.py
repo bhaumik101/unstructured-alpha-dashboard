@@ -27,6 +27,7 @@ if str(_ROOT) not in sys.path:
 from tests.test_extra_forces import END, _world  # noqa: E402
 from utils import exposure as ex  # noqa: E402
 from utils import scenario as sc  # noqa: E402
+from utils import report_ui as ui  # noqa: E402
 from utils import scenario_ui as sui  # noqa: E402
 
 
@@ -178,3 +179,17 @@ def test_a_holdings_range_is_on_the_same_scale_as_its_contribution(mix):
         assert h["c_low"] <= h["contribution"] <= h["c_high"]
         w = h["weight_pct"] / 100
         assert h["c_low"] == pytest.approx(w * h["low"]) and h["c_high"] == pytest.approx(w * h["high"])
+
+
+def test_the_track_record_s_carry_over_sits_beside_the_estimate_not_in_it(mix):
+    """The first published run found readings ~32% as large a year later. The
+    scenario shows that next to its number and never shrinks the number."""
+    out = sc.run(mix, {"market": -10, "oil": 30})
+    plain = sui.headline_html(out)
+    noted = sui.headline_html(out, 0.32)
+    assert "32% as large the following year" in noted and "/evidence" in noted
+    assert "uses the full measured size" in noted
+    assert "as large the following year" not in plain
+    big = ui.fmt_pct(out["impact"])
+    assert big in plain and big in noted                 # the estimate itself is unchanged
+    assert sui.carry_over_html(None) == "" and sui.carry_over_html(-0.2) == ""

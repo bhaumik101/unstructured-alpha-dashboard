@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from html import escape
-from typing import List
+from typing import List, Optional
 
 from utils import report_ui as ui
 from utils import scenario as sc
@@ -20,7 +20,27 @@ def _amount(c: dict) -> str:
     return sc.format_amount(c["amount"], c["unit"])
 
 
-def headline_html(out: dict) -> str:
+def carry_over_html(carry: Optional[float]) -> str:
+    """The track record's carry-over slope beside the estimate, or nothing.
+
+    The published study (utils/track_record.py) found readings measured this
+    way were, on average, a fraction of their size the following year (0.32
+    in the first run). A scenario multiplies those readings by a move, so the
+    reader should see that next to the number -- never a scaled-down number
+    in its place.
+    """
+    if carry is None or not 0 < carry < 1.5:
+        return ""
+    from utils import track_record as tr
+
+    return ('<div class="scn-carry" role="note">In the published track record, sensitivities '
+            f'measured this way were on average about {100 * carry:.0f}% as large the following '
+            'year. The estimate above uses the full measured size. '
+            f'<a href="{tr.EVIDENCE_URL}" target="_blank" rel="noopener">How this was measured</a>'
+            '</div>')
+
+
+def headline_html(out: dict, carry: Optional[float] = None) -> str:
     impact, low, high = out["impact"], out["low"], out["high"]
     scale = ui._nice_scale([low, high, impact])
     direction = "rise" if impact > 0 else "fall"
@@ -39,7 +59,7 @@ def headline_html(out: dict) -> str:
         f'<div class="scn-range">90% range {ui.fmt_pct(low)} to {ui.fmt_pct(high)}</div></div>'
         f'<div class="scn-herobar">{ui.exposure_bar(impact, low, high, scale)}'
         f'<div class="scn-scale"><span>−{scale:g}%</span><span>0</span><span>+{scale:g}%</span></div></div></div>'
-        f'<p class="uar-lead scn-sentence">{escape(sentence)}</p>{warn}'
+        f'<p class="uar-lead scn-sentence">{escape(sentence)}</p>{warn}{carry_over_html(carry)}'
         '</div></div>')
 
 
@@ -114,6 +134,7 @@ SCENARIO_CSS = """<style>
 .scn-herobar .uar-bar{height:22px;}
 .scn-scale{display:flex;justify-content:space-between;font-size:var(--uar-t-micro);color:var(--uar-ink-3);margin-top:4px;}
 .stApp .uar p.scn-sentence{margin:14px 0 0;}
+.scn-carry{margin-top:10px;font-size:var(--uar-t-sm);color:var(--uar-ink-2);}
 .scn-warn{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--uar-sky);
   border-left:3px solid var(--uar-neg);font-size:var(--uar-t-sm);color:var(--uar-ink-2);}
 .scn-list{list-style:none;margin:0;padding:0;}
