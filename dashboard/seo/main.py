@@ -699,6 +699,15 @@ def sitemap_xml():
         urls.extend(force_sitemap_urls(_exposure_stocks(), BASE_URL))
     except Exception:
         pass  # likewise for the force pages
+    try:
+        from utils import track_record as _tr
+        _study = _tr.latest()
+        if _study and _study.get("available"):   # an unpublished page is noindex
+            urls.append(f"  <url><loc>{BASE_URL}/evidence</loc>"
+                        f"<lastmod>{str(_study.get('computed_at') or today)[:10]}</lastmod>"
+                        "<changefreq>monthly</changefreq><priority>0.8</priority></url>")
+    except Exception:
+        pass
 
     # /ticker/* is not listed: those pages are the retired Confluence Score.
     # A measured stock's /ticker URL 301s to its /exposure page (listed above);
@@ -788,6 +797,20 @@ def exposure_page(symbol: str):
 
 
 # ── Force pages: every stock on record, read one economic force at a time ────
+@app.get("/evidence", response_class=HTMLResponse)
+def evidence_page():
+    """The published track record, as a page anyone can open or index."""
+    from utils import track_record as tr
+    from utils.evidence_page import evidence_page_html
+
+    _get_engine()
+    try:
+        result = tr.latest()
+    except Exception:
+        result = None
+    return HTMLResponse(evidence_page_html(result, BASE_URL, APP_URL))
+
+
 @app.get("/forces", response_class=HTMLResponse)
 def forces_hub():
     from utils.force_pages import forces_hub_html
