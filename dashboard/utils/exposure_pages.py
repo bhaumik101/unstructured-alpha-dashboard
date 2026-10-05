@@ -350,22 +350,98 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     return _shell(title, summary[:300], canonical, json_ld, body, app_url)
 
 
+_HUB_SCRIPT = r"""
+(function(){
+  var t = document.getElementById('hub'), body = t.tBodies[0], q = document.getElementById('hub-q');
+  var count = document.getElementById('hub-count'), rows = Array.prototype.slice.call(body.rows);
+  function filter(){
+    var s = q.value.trim().toUpperCase(), n = 0;
+    rows.forEach(function(r){ var hit = !s || r.getAttribute('data-k').indexOf(s) >= 0;
+      r.hidden = !hit; if (hit) n++; });
+    count.textContent = n + ' of ' + rows.length + ' stocks';
+  }
+  t.querySelectorAll('thead button').forEach(function(b){
+    b.addEventListener('click', function(){
+      var col = +b.getAttribute('data-col'), th = b.parentNode;
+      var dir = th.getAttribute('aria-sort') === 'descending' ? 1 : -1;
+      t.querySelectorAll('thead th').forEach(function(h){ h.removeAttribute('aria-sort'); });
+      th.setAttribute('aria-sort', dir < 0 ? 'descending' : 'ascending');
+      function key(r){ var v = r.cells[col].getAttribute('data-v');
+        return col === 0 ? r.cells[0].textContent : (v === null || v === '' ? null : +v); }
+      rows.sort(function(a, z){
+        var x = key(a), y = key(z);
+        if (col === 0) return dir < 0 ? (x < y ? -1 : 1) : (x < y ? 1 : -1);
+        if (x === null) return 1; if (y === null) return -1;   // unmeasured always last
+        return dir * (x - y);
+      });
+      rows.forEach(function(r){ body.appendChild(r); });
+    });
+  });
+  q.addEventListener('input', filter); filter();
+})();
+"""
+
+_HUB_CSS = """<style>
+.hub-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0}
+.hub-bar input{min-height:44px;font:inherit;border:1px solid var(--line);border-radius:10px;padding:0 12px;
+  background:var(--surface);color:var(--ink);flex:1 1 220px;max-width:360px}
+#hub th button{all:unset;cursor:pointer;font-weight:650}
+#hub th button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#hub th[aria-sort=descending] button::after{content:" ↓"}#hub th[aria-sort=ascending] button::after{content:" ↑"}
+#hub td{font-variant-numeric:tabular-nums;white-space:nowrap}
+#hub tbody th,#hub thead th:first-child{position:sticky;left:0;z-index:1;background:var(--surface)}
+@media (max-width:640px){#hub tbody th span{max-width:110px}}
+#hub td.h-up{background:rgba(47,111,189,.14)}#hub td.h-down{background:rgba(181,101,29,.16)}
+#hub tbody th span{display:block;font-weight:400;font-size:.82rem;color:var(--ink3);max-width:220px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>"""
+
+
 def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
-    """Every measured stock, linked. The crawl entry point for the pages above."""
+    """Every measured stock against the core five, sortable and filterable.
+    The crawl entry point for the pages above: every row links to its page,
+    and the table works in full without script, sorted by ticker."""
     stocks = sorted(stocks, key=lambda s: s["ticker"])
-    items = "".join(
-        f'<li><a href="/exposure/{escape(s["ticker"])}">{escape(s["ticker"])}</a>'
-        + (f' <span class="small">{escape(s["name"])}</span>' if s.get("name") else "") + '</li>'
+
+    def cell(e: Optional[dict]) -> str:
+        if not e:
+            return '<td data-v="" title="Not measured">—</td>'
+        strong = e.get("evidence") in STANDS_UP
+        cls = (' class="h-up"' if e["impact"] > 0 else ' class="h-down"') if strong else ""
+        v = fmt_pct(e["impact"])
+        return (f'<td data-v="{e["impact"]:.4f}"{cls}>'
+                + (f"<b>{v}</b>" if strong else f'<span class="v-weak">{v}</span>') + '</td>')
+
+    rows = "".join(
+        f'<tr data-k="{escape((s["ticker"] + " " + (s.get("name") or "")).upper())}">'
+        f'<th scope="row"><a href="/exposure/{escape(s["ticker"])}">{escape(s["ticker"])}</a>'
+        + (f'<span>{escape(s["name"])}</span>' if s.get("name") else "") + '</th>'
+        + "".join(cell((s.get("exposures") or {}).get(k)) for k in _ORDER) + '</tr>'
         for s in stocks)
+    head = ('<th scope="col"><button type="button" data-col="0">Stock</button></th>'
+            + "".join(f'<th scope="col"><button type="button" data-col="{i + 1}" '
+                      f'title="In weeks when {escape(_FACTOR[k].shock_phrase)}">{escape(_FACTOR[k].label)}</button></th>'
+                      for i, k in enumerate(_ORDER)))
     title = "Stock exposure to interest rates, inflation, oil, the dollar and credit"
     desc = (f"How {len(stocks)} U.S. stocks have moved with interest rates, inflation expectations, "
             "the dollar, oil and credit spreads, each with its 90% range and an evidence label.")
+    table = (
+        _HUB_CSS
+        + '<div class="hub-bar"><label for="hub-q" class="small">Find a stock</label>'
+          '<input id="hub-q" type="search" autocomplete="off" spellcheck="false" placeholder="Ticker or name">'
+          '<span class="small" id="hub-count" aria-live="polite"></span></div>'
+        + '<div class="card" tabindex="0" role="region" aria-label="Every stock on record against the five core forces">'
+          f'<table id="hub"><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table>'
+          '<div class="foot">Each figure is the stock&#39;s typical move in a week when that force moved '
+          'by its standard amount (hover a heading for it), after accounting for the stock market. '
+          'Bold, shaded figures held up; grey ones could not be told apart from zero; a dash was not '
+          'measured. Click a heading to sort. It describes the past; it is not a forecast.</div></div>'
+        + f'<script>{_HUB_SCRIPT}</script>')
     body = (
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Stock exposures</nav>'
         f'<h1>Stock exposures</h1><p class="lead">{escape(desc)} Measured weekly over three years, '
         'with the stock market\'s own movement removed first.</p>'
-        + (f'<ul class="grid">{items}</ul>' if items else
-           '<p class="lead">No stock has been measured yet.</p>')
+        + (table if stocks else '<p class="lead">No stock has been measured yet.</p>')
         + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/stock">'
           'Look up any stock</a><a class="btn btn-secondary" href="/forces">Browse by economic '
           'force</a></div>')

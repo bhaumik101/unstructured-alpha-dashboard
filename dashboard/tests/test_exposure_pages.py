@@ -221,3 +221,21 @@ def test_a_library_outage_leaves_the_old_pages_up(monkeypatch):
         raise RuntimeError("database unavailable")
     monkeypatch.setattr(M, "_exposure_stocks", down)
     assert M._measured("XOM") is False
+
+
+# ── the hub: every stock against the core five ───────────────────────────────
+
+def test_the_hub_grid_shows_held_up_readings_shaded_and_the_rest_grey():
+    rec = _rec(oil=(2.4, "clear"), rates=(-0.3, "indistinct"))
+    html = ep.hub_page_html([rec], "https://www.x", "https://app.x")
+    assert 'data-v="2.4000" class="h-up"><b>+2.4%</b>' in html
+    assert 'data-v="-0.3000"><span class="v-weak">−0.30%</span>' in html
+    assert 'data-v="" title="Not measured">—' in html            # a force never measured
+    assert 'href="/exposure/XOM"' in html and 'for="hub-q"' in html
+    assert 'aria-label="Every stock on record against the five core forces"' in html
+
+
+def test_the_hub_filter_key_is_escaped_and_upper_case():
+    rec = _rec(name='Big "Oil" & Co')
+    html = ep.hub_page_html([rec], "https://www.x", "https://app.x")
+    assert 'data-k="XOM BIG &quot;OIL&quot; &amp; CO"' in html
