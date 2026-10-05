@@ -22,6 +22,7 @@ from datetime import date
 from html import escape
 from typing import Iterable, List, Optional
 
+from utils.explore_page import JS_PCT
 from utils.exposure_pages import SYMBOL_RE, _shell
 from utils.force_pages import FORCE_BY_KEY
 
@@ -83,7 +84,7 @@ _SCRIPT = r"""
   var box = document.getElementById('qz-box'), say = document.getElementById('qz-say');
   var WORD = {up: 'Rose with it', down: 'Fell with it', none: 'No clear link'};
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  function pct(v){ var a = Math.abs(v); return (v > 0 ? '+' : v < 0 ? '−' : '') + (a < 10 ? a.toFixed(1) : a.toFixed(0)) + '%'; }
+/*PCT*/
   function ask(){
     if (i >= Q.length) return done();
     var q = Q[i];
@@ -178,5 +179,5 @@ def quiz_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Nothing here is a '
         'recommendation to buy, sell or hold any security.</p>'
         f'<script type="application/json" id="qz-data">{payload}</script>'
-        f'<script>{_SCRIPT}</script>')
+        f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
     return _shell(title, desc, canonical, ld, body, app_url)
