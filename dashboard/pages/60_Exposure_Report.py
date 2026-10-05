@@ -490,7 +490,10 @@ with _summary_col:
                 unsafe_allow_html=True)
 with _map_col:
     st.markdown(ui.exposure_map_html(report), unsafe_allow_html=True)
-st.markdown(ui.exposure_table_html(report), unsafe_allow_html=True)
+# How each force's readings held up out of sample, from the published study
+# (utils/track_record.py). Cached an hour; no study means no line.
+_held = ui.held_up()
+st.markdown(ui.exposure_table_html(report, _held), unsafe_allow_html=True)
 # The question that follows "what is it exposed to": what if those forces move?
 _stress_col, _ = st.columns([1.3, 3])
 if _stress_col.button("Stress-test this portfolio", key="uar_to_scenarios", width="stretch",
@@ -521,7 +524,7 @@ chosen = st.radio(
     key="uar_factor",
     label_visibility="collapsed",
 )
-st.markdown(ui.factor_detail_html(report, chosen), unsafe_allow_html=True)
+st.markdown(ui.factor_detail_html(report, chosen, _held), unsafe_allow_html=True)
 _bars = charts.contribution_bars_svg(report, chosen)
 if _bars:
     st.markdown(f'<div class="uar"><div class="uac-panel">{_bars}</div></div>',

@@ -195,3 +195,45 @@ def latest() -> Optional[dict]:
         return dict(json.loads(row[0]), computed_at=row[1])
     except Exception:
         return None
+
+
+# ── the study, beside each reading ──────────────────────────────────────────
+# A reading labelled Clear on oil and one labelled Clear on rates do not hold up
+# equally well: in the first published run (2026-10-04, 494 companies) rates
+# readings kept their direction a year later 72% of the time and oil 55%,
+# against a 50% coin flip. The report shows that next to each reading, from the
+# newest published run. No run, or too few readings for a force, means no line
+# -- never an estimated one.
+
+MIN_FORCE_READINGS = 30
+EVIDENCE_URL = "https://www.unstructuredalpha.com/evidence"
+
+
+def persistence(result: Optional[dict]) -> Dict[str, dict]:
+    """{force key: {"rate", "n"}} for each core force the published study covers."""
+    if not result or not result.get("available"):
+        return {}
+    out = {}
+    for f in ex.FACTORS:
+        st = (result.get("by_factor") or {}).get(f.key) or {}
+        if st.get("same_direction") is not None and st.get("n", 0) >= MIN_FORCE_READINGS:
+            out[f.key] = {"rate": float(st["same_direction"]), "n": int(st["n"])}
+    return out
+
+
+def persistence_short(key: str, evidence: str, held: Mapping[str, dict]) -> Optional[str]:
+    """One line for a table row, or None. Only Clear and Tentative readings."""
+    p = held.get(key)
+    if not p or evidence not in ("clear", "tentative"):
+        return None
+    return f"Held its direction a year later {100 * p['rate']:.0f}% of the time (coin flip: 50%)"
+
+
+def persistence_sentence(key: str, evidence: str, held: Mapping[str, dict]) -> Optional[str]:
+    p = held.get(key)
+    if not p or evidence not in ("clear", "tentative"):
+        return None
+    f = {x.key: x for x in ex.FACTORS}[key]
+    return (f"Out of sample, {ex.lower_label(f.label)} readings labelled Clear or Tentative kept "
+            f"their direction the following year {100 * p['rate']:.0f}% of the time, across "
+            f"{p['n']:,} readings on S&P 500 companies. A coin flip would be 50%.")
