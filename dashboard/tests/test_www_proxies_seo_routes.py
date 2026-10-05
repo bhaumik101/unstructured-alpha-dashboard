@@ -33,6 +33,7 @@ _NOT_PROXIED = {
     "/healthz",     # ops endpoints belong to the service, not the brand domain
     "/readyz",
     "/version",
+    "/status",
 }
 
 

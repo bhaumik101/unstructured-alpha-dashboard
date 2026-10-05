@@ -614,6 +614,48 @@ def version() -> dict:
     }
 
 
+@app.get("/status")
+def pipeline_status() -> JSONResponse:
+    """Where the weekly pipelines actually are, readable without Render access.
+
+    Added after a run that "succeeded" left the library at 152 of ~500
+    companies, all a week old, and the only way to tell was opening pages one
+    by one. Counts and dates only -- no readings, no prices.
+    """
+    from cron.measure_library import load_constituents
+    from utils import stock_library
+    from utils import track_record as tr
+
+    _get_engine()
+    stocks = stock_library.latest(limit=5000)
+    index = {t for t, _ in load_constituents()}
+    measured = [str(s.get("measured_at") or "") for s in stocks if s.get("measured_at")]
+    data_through = [str(s.get("as_of") or "") for s in stocks if s.get("as_of")]
+    try:
+        study = tr.latest()
+    except Exception:
+        study = None
+    body = {
+        "library": {
+            "stocks": len(stocks),
+            "index_size": len(index),
+            "index_measured": len(index & {s["ticker"] for s in stocks}),
+            "newest_measured_at": max(measured) if measured else None,
+            "oldest_measured_at": min(measured) if measured else None,
+            "data_through": max(data_through) if data_through else None,
+        },
+        "track_record": ({
+            "published": bool(study.get("available")),
+            "computed_at": study.get("computed_at"),
+            "stocks": study.get("n_stocks"),
+            "universe": study.get("universe"),
+            "stopped": study.get("stopped"),
+        } if study else {"published": False}),
+        "commit": (os.getenv("RENDER_GIT_COMMIT", "") or "unknown")[:12],
+    }
+    return JSONResponse(body, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots_txt() -> str:
     return f"""User-agent: *
