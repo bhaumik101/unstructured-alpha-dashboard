@@ -66,6 +66,22 @@ def members_of(sector: str, stocks: Iterable[dict]) -> List[dict]:
     return [s for s in stocks if m.get(s["ticker"]) == sector]
 
 
+def peer_medians(symbol: str, stocks: Iterable[dict]) -> Optional[dict]:
+    """The stock's sector and, per force, the median typical move of its
+    sector PEERS on record (the stock itself left out), where at least
+    MIN_FOR_MEDIAN peers were measured. None outside the index."""
+    sector = sector_by_ticker().get(symbol)
+    if not sector:
+        return None
+    peers = [s for s in members_of(sector, stocks) if s["ticker"] != symbol]
+    medians = {}
+    for f in tuple(ex.FACTORS) + tuple(ex.EXTRA_FACTORS):
+        c = sector_cell(peers, f.key)
+        if c["median"] is not None:
+            medians[f.key] = c["median"]
+    return {"sector": sector, "slug": slug(sector), "medians": medians, "peers": len(peers)}
+
+
 def _cell_html(c: dict) -> str:
     if c["median"] is None:
         return f'<td class="v-weak">{c["n"]} measured</td>' if c["n"] else '<td class="v-weak">—</td>'

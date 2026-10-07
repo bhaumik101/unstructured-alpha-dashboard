@@ -266,7 +266,8 @@ def _site_footer(app_url: str) -> str:
 
 def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[dict],
                     base_url: str, app_url: str, held: Optional[dict] = None,
-                    similar: Optional[List[dict]] = None) -> str:
+                    similar: Optional[List[dict]] = None,
+                    peers: Optional[dict] = None) -> str:
     """The page for one measured stock. `rec` is its newest stored week.
 
     held: utils.track_record.persistence() of the published study, or None.
@@ -287,7 +288,10 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     rows = "".join(
         f'<tr><td><b><a href="/forces/{k}">{escape(_FACTOR[k].label)}</a></b>'
         f'<span class="shock">In weeks when {escape(_FACTOR[k].shock_phrase)}</span></td>'
-        f'<td><b{"" if exps[k]["evidence"] in STANDS_UP else " class=v-weak"}>{fmt_pct(exps[k]["impact"])}</b></td>'
+        f'<td><b{"" if exps[k]["evidence"] in STANDS_UP else " class=v-weak"}>{fmt_pct(exps[k]["impact"])}</b>'
+        + (f'<span class="shock"><a href="/sectors/{peers["slug"]}">{escape(peers["sector"])}</a> '
+           f'median {fmt_pct(peers["medians"][k])}</span>' if peers and k in peers["medians"] else "")
+        + '</td>'
         f'<td>{fmt_pct(exps[k]["low"])} to {fmt_pct(exps[k]["high"])}</td>'
         f'<td>{_chip(exps[k]["evidence"])}'
         + (f'<span class="shock">{escape(line)}</span>'
@@ -314,7 +318,10 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         xrows = "".join(
             f'<tr><td><b><a href="/forces/{k}">{escape(_EXTRA[k].label)}</a></b>'
             f'<span class="shock">In weeks when {escape(_EXTRA[k].shock_phrase)}</span></td>'
-            f'<td><b{"" if exps[k]["evidence"] in STANDS_UP else " class=v-weak"}>{fmt_pct(exps[k]["impact"])}</b></td>'
+            f'<td><b{"" if exps[k]["evidence"] in STANDS_UP else " class=v-weak"}>{fmt_pct(exps[k]["impact"])}</b>'
+            + (f'<span class="shock">{escape(peers["sector"])} median {fmt_pct(peers["medians"][k])}</span>'
+               if peers and k in peers["medians"] else "")
+            + '</td>'
             f'<td>{fmt_pct(exps[k]["low"])} to {fmt_pct(exps[k]["high"])}</td>'
             f'<td>{_chip(exps[k]["evidence"])}</td></tr>'
             for k in xkeys)

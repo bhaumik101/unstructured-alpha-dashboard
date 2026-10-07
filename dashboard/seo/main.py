@@ -859,7 +859,13 @@ def exposure_page(symbol: str):
         alike = similar(symbol, _exposure_stocks())
     except Exception:
         alike = []
-    return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL, held, alike))
+    try:
+        from utils.sector_pages import peer_medians
+        peers = peer_medians(symbol, _exposure_stocks())
+    except Exception:
+        peers = None
+    return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL, held, alike,
+                                        peers))
 
 
 @app.get("/embed/{symbol}", response_class=HTMLResponse)
