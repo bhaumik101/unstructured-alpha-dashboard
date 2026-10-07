@@ -82,6 +82,29 @@ def peer_medians(symbol: str, stocks: Iterable[dict]) -> Optional[dict]:
     return {"sector": sector, "slug": slug(sector), "medians": medians, "peers": len(peers)}
 
 
+def sectors_on_force_html(key: str, stocks: Iterable[dict]) -> str:
+    """For one force page: every sector's median move on that force, largest
+    first, with how many of its stocks held up each way. "" with no data."""
+    stocks = list(stocks)
+    rows = []
+    for sec in sectors():
+        c = sector_cell(members_of(sec, stocks), key)
+        if c["n"]:
+            rows.append((sec, c))
+    if not rows:
+        return ""
+    rows.sort(key=lambda r: (r[1]["median"] is None, -(r[1]["median"] or 0.0), r[0]))
+    body = "".join(
+        f'<tr><th scope="row"><a href="/sectors/{slug(sec)}">{escape(sec)}</a></th>{_cell_html(c)}</tr>'
+        for sec, c in rows)
+    f = next(x for x in tuple(ex.FACTORS) + tuple(ex.EXTRA_FACTORS) if x.key == key)
+    label = f"By sector: {ex.lower_label(f.label)}"
+    return (f'<h2>{escape(label[:1].upper() + label[1:])}</h2>'
+            f'<div class="card" tabindex="0" role="region" aria-label="{escape(label)}">'
+            '<table><thead><tr><th scope="col">Sector</th><th scope="col">Median move</th></tr></thead>'
+            f'<tbody>{body}</tbody></table><div class="foot">{_FOOT}</div></div>')
+
+
 def _cell_html(c: dict) -> str:
     if c["median"] is None:
         return f'<td class="v-weak">{c["n"]} measured</td>' if c["n"] else '<td class="v-weak">—</td>'

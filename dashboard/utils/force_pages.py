@@ -86,12 +86,18 @@ def _rank_table(rows: List[dict], label: str) -> str:
             f'<tbody>{body}</tbody></table></div>')
 
 
+def _by_sector(key: str, stocks: List[dict]) -> str:
+    from utils.sector_pages import sectors_on_force_html
+    return sectors_on_force_html(key, stocks)
+
+
 def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: str,
                     limit: int = 25) -> Optional[str]:
     """The page for one force, or None if the key is not a force."""
     f = FORCE_BY_KEY.get(key)
     if f is None:
         return None
+    stocks = list(stocks)
     st = force_stats(key, stocks)
     force = _lower(f)
     canonical = f"{base_url}/forces/{key}"
@@ -131,7 +137,7 @@ def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: st
         + (f' · data through {_date(st["as_of"])}' if st["as_of"] else "") + '</p>'
         f'<p class="lead">{escape(lead)}</p>'
         f'<p class="lead">{escape(f.why)}</p>'
-        f'{body_tables}'
+        f'{body_tables}{_by_sector(key, stocks)}'
         f'<p class="small">Each figure is a stock&#39;s typical move in a week when {escape(f.shock_phrase)}, '
         f'after accounting for {escape(_control(f))}, over three years of weekly returns. Only readings '
         f'that held up are ranked ({_bar_note(f)}). The '
