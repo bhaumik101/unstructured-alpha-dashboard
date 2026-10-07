@@ -275,6 +275,7 @@ export default function Home() {
             </Link>
             <div className="lp-nav-links">
               <a href="#how-it-works">How it works</a>
+              <a href="/tools">Free tools</a>
               <a href={`${APP_URL}/methodology`}>Methodology</a>
               <a href={`${APP_URL}/research`}>Research</a>
               <a href="#pricing">Pricing</a>
@@ -297,6 +298,7 @@ export default function Home() {
           </div>
           <div id="lp-mobile" className={`lp-mobile${mobileOpen ? " open" : ""}`}>
             <a href="#how-it-works" onClick={() => setMobileOpen(false)}>How it works</a>
+            <a href="/tools">Free tools</a>
             <a href={`${APP_URL}/methodology`}>Methodology</a>
             <a href={`${APP_URL}/research`}>Research</a>
             <a href="#pricing" onClick={() => setMobileOpen(false)}>Pricing</a>

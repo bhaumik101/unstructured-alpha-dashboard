@@ -61,4 +61,5 @@ def test_the_public_stock_page_shows_it_for_readings_that_held_up():
     assert html.count("Held its direction a year later") == 1     # oil only, not the weak rates
     assert "55%" in html and 'href="/evidence"' in html
     bare = ep.stock_page_html("XOM", rec, [rec], [], "https://www.x", "https://app.x")
+    bare = bare.split('<main id="main">')[1].split("</main>")[0]   # the site footer links /evidence everywhere
     assert "Held its direction" not in bare and 'href="/evidence"' not in bare
