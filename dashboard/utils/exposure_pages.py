@@ -236,8 +236,8 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
 # same header and footer so a visitor can reach any of them from anywhere.
 NAV = (("/exposure", "Stocks"), ("/sectors", "Sectors"), ("/forces", "Forces"),
        ("/explore", "What if?"), ("/compare", "Compare"), ("/quiz", "Quiz"))
-MORE = (("/tools", "All free tools"), ("/changes", "What changed this week"),
-        ("/evidence", "Track record"))
+MORE = (("/tools", "All free tools"), ("/learn", "How to read these pages"),
+        ("/changes", "What changed this week"), ("/evidence", "Track record"))
 
 
 def _site_nav(canonical: str) -> str:
@@ -303,7 +303,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<th scope="col">Evidence</th></tr></thead><tbody>{rows}</tbody></table>'
         '<div class="foot">Each figure is the stock\'s typical same-week move when that force moved by '
         'the stated amount, after accounting for the stock market. It describes the past; it is not '
-        'a forecast.'
+        'a forecast. <a href="/learn">How to read this</a>.'
         + (' How often each force&#39;s Clear and Tentative readings held their direction a year '
            'later comes from the <a href="/evidence">published track record</a>.' if held else "")
         + '</div></div>')
@@ -504,7 +504,8 @@ def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record ag
           '<div class="foot">Each figure is the stock&#39;s typical move in a week when that force moved '
           'by its standard amount (hover a heading for it), after accounting for the stock market. '
           'Bold, shaded figures held up; grey ones could not be told apart from zero; a dash was not '
-          'measured. Click a heading to sort. It describes the past; it is not a forecast.</div></div>'
+          'measured. Click a heading to sort. It describes the past; it is not a forecast. '
+          '<a href="/learn">How to read this</a>.</div></div>'
         + f'<script>{_HUB_SCRIPT}</script>')
 
 

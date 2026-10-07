@@ -733,6 +733,8 @@ def sitemap_xml():
         pass
     urls.append(f"  <url><loc>{BASE_URL}/tools</loc><lastmod>{today}</lastmod>"
                 "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
+    urls.append(f"  <url><loc>{BASE_URL}/learn</loc>"
+                "<changefreq>monthly</changefreq><priority>0.7</priority></url>")
     try:
         from utils.sector_pages import members_of as _members, sectors as _sectors, slug as _slug
         _st = _exposure_stocks()
@@ -961,6 +963,13 @@ def changes_page():
     _get_engine()
     return HTMLResponse(changes_page_html(_exposure_stocks(), stock_library.previous(),
                                           BASE_URL, APP_URL))
+
+
+@app.get("/learn", response_class=HTMLResponse)
+def learn_page():
+    from utils.learn_page import learn_page_html
+
+    return HTMLResponse(learn_page_html(BASE_URL, APP_URL))
 
 
 @app.get("/tools", response_class=HTMLResponse)
