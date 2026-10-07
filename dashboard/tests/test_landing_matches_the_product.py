@@ -45,3 +45,11 @@ def test_every_tool_the_page_links_to_exists():
     # (seo/main.py /evidence), not the in-app page that needs a live session.
     for path in ("/forces", "/evidence"):
         assert f'href="{path}"' in PAGE and f'source: "{path}"' in NEXT, path
+
+
+def test_the_hero_looks_up_one_stock_through_the_public_search():
+    """The hero's ticker box submits to /go, which the SEO service serves and www proxies."""
+    assert '<form className="lp-lookup" action="/go" method="get" role="search">' in PAGE
+    assert 'name="t"' in PAGE and 'htmlFor="lp-lookup-t"' in PAGE
+    import seo.main as M
+    assert any(getattr(r, "path", "") == "/go" for r in M.app.routes)
