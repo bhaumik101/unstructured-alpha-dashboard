@@ -175,8 +175,13 @@ def _chip(evidence: str) -> str:
 
 
 def _shell(title: str, description: str, canonical: str, json_ld: dict, body: str,
-           app_url: str, robots: str = "") -> str:
+           app_url: str, robots: str = "", og_image: str = "") -> str:
+    """og_image: a 1200x630 preview for shares; the site's own image when empty."""
     ld = json.dumps(json_ld, separators=(",", ":")).replace("</", "<\\/")
+    if not og_image:
+        from urllib.parse import urlsplit
+        u = urlsplit(canonical)
+        og_image = f"{u.scheme}://{u.netloc}/og-image.png"
     return (
         '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -187,7 +192,9 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         f'<meta property="og:type" content="website"><meta property="og:title" content="{escape(title)}">'
         f'<meta property="og:description" content="{escape(description)}">'
         f'<meta property="og:url" content="{escape(canonical)}"><meta property="og:site_name" content="Unstructured Alpha">'
-        '<meta name="twitter:card" content="summary">'
+        f'<meta property="og:image" content="{escape(og_image)}">'
+        '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'
+        '<meta name="twitter:card" content="summary_large_image">'
         '<link rel="preconnect" href="https://fonts.googleapis.com">'
         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">'
         f'<script type="application/ld+json">{ld}</script>'
@@ -351,7 +358,8 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         "about": {"@type": "Corporation", "name": name or symbol, "tickerSymbol": symbol},
         "isPartOf": {"@type": "WebSite", "name": "Unstructured Alpha", "url": base_url},
     }
-    return _shell(title, summary[:300], canonical, json_ld, body, app_url)
+    return _shell(title, summary[:300], canonical, json_ld, body, app_url,
+                  og_image=f"{base_url}/og/{symbol}.png")
 
 
 _HUB_SCRIPT = r"""
