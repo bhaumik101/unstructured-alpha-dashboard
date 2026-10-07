@@ -817,6 +817,38 @@ def _exposure_stocks() -> list[dict]:
     return stocks
 
 
+@app.get("/exposure.csv")
+def exposure_csv():
+    """Every reading on record, one row per stock and force, for anyone who
+    wants to work with the numbers. Same figures as the pages: nothing
+    unmeasured is filled in, and the evidence label travels with each row."""
+    import csv
+    import io
+
+    from fastapi.responses import Response
+    from utils.force_pages import ALL_FORCES
+    from utils.sector_pages import sector_by_ticker
+
+    _get_engine()
+    order = {f.key: i for i, f in enumerate(ALL_FORCES)}
+    sectors = sector_by_ticker()
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator="\n")
+    w.writerow(["ticker", "name", "sector", "data_through", "force", "force_label", "shock",
+                "typical_weekly_move_pct", "range90_low_pct", "range90_high_pct", "evidence"])
+    labels = {f.key: (f.label, f.shock_phrase) for f in ALL_FORCES}
+    for s in sorted(_exposure_stocks(), key=lambda s: s["ticker"]):
+        for key, e in sorted((s.get("exposures") or {}).items(), key=lambda kv: order.get(kv[0], 99)):
+            if key not in labels:
+                continue
+            w.writerow([s["ticker"], s.get("name") or "", sectors.get(s["ticker"], ""),
+                        str(s.get("as_of") or "")[:10], key, labels[key][0], labels[key][1],
+                        f'{e["impact"]:.4f}', f'{e["low"]:.4f}', f'{e["high"]:.4f}', e.get("evidence") or ""])
+    return Response(buf.getvalue(), media_type="text/csv; charset=utf-8", headers={
+        "Content-Disposition": 'attachment; filename="unstructured-alpha-exposures.csv"',
+        "Cache-Control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400"})
+
+
 @app.get("/exposure", response_class=HTMLResponse)
 def exposure_hub():
     from utils.exposure_pages import hub_page_html

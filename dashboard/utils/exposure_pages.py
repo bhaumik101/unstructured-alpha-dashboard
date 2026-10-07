@@ -533,6 +533,7 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/stock">'
           'Look up any stock</a><a class="btn btn-secondary" href="/forces">Browse by economic '
           'force</a><a class="btn btn-secondary" href="/sectors">By sector</a>'
+          '<a class="btn btn-secondary" href="/exposure.csv" download>Download all (CSV)</a>'
           '<a class="btn btn-secondary" href="/changes">What changed this week</a></div>')
     json_ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": title,
                "description": desc, "url": f"{base_url}/exposure"}
