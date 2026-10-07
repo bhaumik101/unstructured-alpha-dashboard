@@ -709,6 +709,8 @@ def sitemap_xml():
                         "<changefreq>daily</changefreq><priority>0.6</priority></url>")
     except Exception:
         pass
+    urls.append(f"  <url><loc>{BASE_URL}/tools</loc><lastmod>{today}</lastmod>"
+                "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
     try:
         from utils.sector_pages import members_of as _members, sectors as _sectors, slug as _slug
         _st = _exposure_stocks()
@@ -937,6 +939,33 @@ def changes_page():
     _get_engine()
     return HTMLResponse(changes_page_html(_exposure_stocks(), stock_library.previous(),
                                           BASE_URL, APP_URL))
+
+
+@app.get("/tools", response_class=HTMLResponse)
+def tools_page():
+    from utils.tools_page import tools_page_html
+
+    _get_engine()
+    return HTMLResponse(tools_page_html(_exposure_stocks(), BASE_URL, APP_URL))
+
+
+@app.get("/go")
+def go(t: str = ""):
+    """The header's ticker box. A stock on record opens its page; any other
+    ticker opens the app, which measures it (and files it here); anything
+    that is not a ticker goes to the list of stocks on record."""
+    from urllib.parse import quote
+
+    from fastapi.responses import RedirectResponse
+    from utils.exposure_pages import SYMBOL_RE
+
+    sym = (t or "").strip().upper().replace(".", "-")
+    if not SYMBOL_RE.match(sym):
+        return RedirectResponse("/exposure", status_code=302)
+    _get_engine()
+    if any(s["ticker"] == sym for s in _exposure_stocks()):
+        return RedirectResponse(f"/exposure/{sym}", status_code=302)
+    return RedirectResponse(f"{APP_URL}/stock?t={quote(sym)}", status_code=302)
 
 
 @app.get("/sectors", response_class=HTMLResponse)

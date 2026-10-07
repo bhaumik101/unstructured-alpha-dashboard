@@ -131,6 +131,26 @@ a{color:var(--accent)}
 .bar-in{max-width:980px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .brand{color:#fff;font-weight:800;letter-spacing:-.01em;text-decoration:none}.brand span{color:var(--bright)}
 .bar a.cta{background:var(--bright);color:#13213a;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:10px;font-size:.88rem}
+.bar-in{flex-wrap:wrap}
+.site-nav{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;flex:1 1 auto;justify-content:center}
+.site-nav a{color:#d6e2f3;text-decoration:none;font-size:.88rem;font-weight:600;padding:6px 0;border-bottom:2px solid transparent}
+.site-nav a:hover{color:#fff}.site-nav a[aria-current=page]{color:#fff;border-bottom-color:var(--bright)}
+.go{display:flex;gap:6px}.go input{width:118px;min-height:36px;border-radius:9px;border:1px solid #3a5a80;
+  background:#0f2440;color:#fff;padding:0 10px;font:inherit;font-size:.88rem;text-transform:uppercase}
+.go input::placeholder{color:#9fb3cc;text-transform:none}
+.go button{min-height:36px;border-radius:9px;border:0;background:#2a4b74;color:#fff;font:inherit;font-size:.88rem;
+  font-weight:650;padding:0 10px;cursor:pointer}
+@media (max-width:760px){.bar-in{padding:10px 16px;row-gap:6px}.bar a.cta{display:none}
+  .site-nav{order:3;flex-basis:100%;flex-wrap:nowrap;justify-content:flex-start;gap:16px;overflow-x:auto;
+    scrollbar-width:none;margin:0 -16px;padding:0 16px}
+  .site-nav::-webkit-scrollbar{display:none}.site-nav a{white-space:nowrap}
+  .go input{width:96px}}
+.site-foot{border-top:1px solid var(--line);background:var(--subtle)}
+.site-foot-in{max-width:980px;margin:0 auto;padding:22px 16px 30px;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px}
+.site-foot h2{font-size:.82rem;margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)}
+.site-foot ul{list-style:none}.site-foot li{margin:3px 0}.site-foot a{color:var(--ink2);font-size:.92rem;text-decoration:none}
+.site-foot a:hover{text-decoration:underline}.site-foot p{font-size:.82rem;color:var(--ink3)}
 main{max-width:980px;margin:0 auto;padding:28px 16px 48px}
 .crumb{font-size:.82rem;color:var(--ink3);margin-bottom:10px}.crumb a{color:var(--ink3)}
 h1{font-size:1.7rem;line-height:1.25;letter-spacing:-.02em;margin-bottom:6px}
@@ -202,9 +222,46 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         '<a class="skip" href="#main">Skip to content</a>'
         '<header class="bar"><div class="bar-in">'
         '<a class="brand" href="/">UNSTRUCTURED <span>ALPHA</span></a>'
+        f'{_site_nav(canonical)}'
+        '<form class="go" action="/go" method="get" role="search">'
+        '<label for="go-t" class="sr-only" style="position:absolute;left:-9999px">Find a stock</label>'
+        '<input id="go-t" name="t" placeholder="Ticker" autocomplete="off" spellcheck="false" maxlength="15">'
+        '<button type="submit">Go</button></form>'
         f'<a class="cta" href="{escape(app_url)}/">Measure a portfolio</a>'
         '</div></header>'
-        f'<main id="main">{body}</main></body></html>')
+        f'<main id="main">{body}</main>{_site_footer(app_url)}</body></html>')
+
+
+# The public tools, in the order the header shows them. Every page carries the
+# same header and footer so a visitor can reach any of them from anywhere.
+NAV = (("/exposure", "Stocks"), ("/sectors", "Sectors"), ("/forces", "Forces"),
+       ("/explore", "What if?"), ("/compare", "Compare"), ("/quiz", "Quiz"))
+MORE = (("/tools", "All free tools"), ("/changes", "What changed this week"),
+        ("/evidence", "Track record"))
+
+
+def _site_nav(canonical: str) -> str:
+    from urllib.parse import urlsplit
+    path = urlsplit(canonical).path or "/"
+
+    def link(href: str, label: str) -> str:
+        here = path == href or path.startswith(href + "/")
+        return f'<a href="{href}"' + (' aria-current="page"' if here else "") + f'>{escape(label)}</a>'
+    return '<nav class="site-nav" aria-label="Site">' + "".join(link(h, t) for h, t in NAV) + '</nav>'
+
+
+def _site_footer(app_url: str) -> str:
+    def ul(items) -> str:
+        return "<ul>" + "".join(f'<li><a href="{h}">{escape(t)}</a></li>' for h, t in items) + "</ul>"
+    return (
+        '<footer class="site-foot"><div class="site-foot-in">'
+        f'<div><h2>Explore</h2>{ul(NAV)}</div>'
+        f'<div><h2>More</h2>{ul(MORE)}</div>'
+        f'<div><h2>Your portfolio</h2>{ul(((escape(app_url) + "/", "Measure a portfolio"), (escape(app_url) + "/scenarios", "Stress-test it"), (escape(app_url) + "/methodology", "Methodology")))}</div>'
+        '<div><h2>Unstructured Alpha</h2><p>How U.S. stocks have moved with interest rates, inflation, '
+        'the dollar, oil and more, measured weekly. It describes the past and is not a forecast or '
+        'investment advice.</p></div>'
+        '</div></footer>')
 
 
 def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[dict],
