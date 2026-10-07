@@ -91,6 +91,28 @@ from seo.track_api import router as track_router  # noqa: E402
 app.include_router(track_router)
 
 
+# ── Edge caching for the public pages ─────────────────────────────────────────
+# Every page here was rendered on every request (0.45-0.9s measured at www on
+# 2026-10-07, x-vercel-cache: MISS every time) although the data under them
+# changes once a week. Vercel's edge may now keep a public HTML page for a few
+# minutes and serve a stale copy while it fetches a fresh one, so a visitor
+# almost never waits on the render; browsers still revalidate every time.
+# Only successful GET HTML with no Authorization header, and never over a
+# route's own Cache-Control (/status says no-store, /og a day).
+PAGE_CACHE = "public, max-age=0, s-maxage=600, stale-while-revalidate=86400"
+
+
+@app.middleware("http")
+async def _edge_cache_public_pages(request, call_next):
+    response = await call_next(request)
+    if (request.method == "GET" and response.status_code == 200
+            and "authorization" not in request.headers
+            and response.headers.get("content-type", "").startswith("text/html")
+            and "cache-control" not in response.headers):
+        response.headers["Cache-Control"] = PAGE_CACHE
+    return response
+
+
 # ── Structured logging + per-request correlation id ───────────────────────────
 # Installs the JSON stdout handler (idempotent) and tags every request with a
 # short correlation id so all log lines for one HTTP request share a `cid`.
