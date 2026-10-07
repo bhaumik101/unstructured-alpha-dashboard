@@ -41,6 +41,7 @@ const nextConfig: NextConfig = {
       { source: "/compare", destination: `${SEO_ORIGIN}/compare` },
       { source: "/quiz", destination: `${SEO_ORIGIN}/quiz` },
       { source: "/embed/:symbol", destination: `${SEO_ORIGIN}/embed/:symbol` },
+      { source: "/og/:name", destination: `${SEO_ORIGIN}/og/:name` },
       { source: "/forces", destination: `${SEO_ORIGIN}/forces` },
       { source: "/forces/:key", destination: `${SEO_ORIGIN}/forces/:key` },
       { source: "/signal/:id", destination: `${SEO_ORIGIN}/signal/:id` },

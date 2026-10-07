@@ -836,6 +836,44 @@ def embed_card(symbol: str):
     return HTMLResponse(embed_card_html(canonical, history[0], BASE_URL))
 
 
+_og_cache: dict = {}
+
+
+@app.get("/og/{name}")
+def og_image(name: str):
+    """The 1200x630 preview a stock page shows when shared. Cached in memory
+    per stock and week (a few dozen KB each, capped), and by browsers and
+    link-preview crawlers for a day."""
+    from fastapi.responses import Response
+    from utils import stock_library
+    from utils.exposure_pages import SYMBOL_RE
+    from utils.og_image import stock_og_png
+
+    if not name.endswith(".png"):
+        raise HTTPException(status_code=404, detail="Not an image.")
+    symbol = name[:-4]
+    canonical = symbol.upper().strip()
+    if not SYMBOL_RE.match(canonical):
+        raise HTTPException(status_code=404, detail="Not a ticker symbol.")
+    if symbol != canonical:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/og/{canonical}.png", status_code=301)
+    _get_engine()
+    history = stock_library.history(canonical)
+    if not history:
+        raise HTTPException(status_code=404, detail=f"{canonical} has not been measured yet.")
+    rec = history[0]
+    key = (canonical, str(rec.get("as_of")))
+    png = _og_cache.get(key)
+    if png is None:
+        png = stock_og_png(canonical, rec)
+        if len(_og_cache) >= 64:
+            _og_cache.pop(next(iter(_og_cache)))
+        _og_cache[key] = png
+    return Response(png, media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=86400"})
+
+
 # ── Force pages: every stock on record, read one economic force at a time ────
 @app.get("/explore", response_class=HTMLResponse)
 def explore_page():
