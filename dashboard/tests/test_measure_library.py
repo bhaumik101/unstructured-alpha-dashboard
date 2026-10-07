@@ -173,7 +173,7 @@ def test_a_run_that_measures_nothing_fails(monkeypatch, store):
     monkeypatch.setattr(db, "init_db", lambda: None)
     monkeypatch.setattr(fetchers, "fetch_prices_batch", lambda *a: {})
     monkeypatch.setattr(ml, "load_constituents", lambda: [("AAA", "A Co")])
-    assert ml.main(["--budget", "1"]) == 1
+    assert ml.main(["--budget", "1", "--passes", "1"]) == 1
 
 
 def test_it_refuses_to_run_without_the_production_database(monkeypatch):
@@ -316,3 +316,109 @@ def test_the_weekly_job_runs_after_the_dollar_series_is_published():
     minute, hour, _dom, _mon, dow = re.search(r'schedule:\s*"([^"]+)"', block).group(1).split()
     assert dow == "2", "Tuesday: the first day after Monday's H.10 release"
     assert int(hour) < 4, "before score-core at 04:10 UTC"
+
+
+# ── passes: fresh processes until the index is fresh ────────────────────────
+
+def _passes(statuses, deadline_min=40, passes=12, skip="", clock=None):
+    """Drive _supervise with scripted pass results; returns (rc, calls)."""
+    calls = []
+    script = iter(statuses)
+
+    def run_pass(argv, timeout_s):
+        calls.append(argv)
+        return next(script)
+
+    args = ml._parse(["--passes", str(passes), "--deadline-min", str(deadline_min), "--skip", skip])
+    rc = ml._supervise(args, run_pass=run_pass, clock=clock or (lambda: 0.0))
+    return rc, calls
+
+
+def test_passes_continue_until_everything_is_fresh():
+    """The live run stopped on memory after 75 stocks in 3 of its 40 minutes."""
+    rc, calls = _passes([
+        {"targets": 300, "measured": 75, "failed": 0, "stop": "memory"},
+        {"targets": 225, "measured": 75, "failed": 0, "stop": "memory"},
+        {"targets": 150, "measured": 150, "failed": 0, "stop": "done"},
+        {"targets": 0, "measured": 0, "failed": 0, "stop": "fresh"},
+    ])
+    assert rc == 0 and len(calls) == 4
+    assert all("--passes" in c and c[c.index("--passes") + 1] == "1" for c in calls)
+
+
+def test_a_stock_that_failed_is_skipped_by_later_passes():
+    rc, calls = _passes([
+        {"targets": 100, "measured": 50, "failed": 2, "failed_tickers": ["BAD1", "BAD2"]},
+        {"targets": 48, "measured": 47, "failed": 1, "failed_tickers": ["BAD3"]},
+        {"targets": 0, "measured": 0},
+    ], skip="OLD")
+    assert "--skip" not in calls[0][:-2] or calls[0][calls[0].index("--skip") + 1] == "OLD"
+    assert calls[1][calls[1].index("--skip") + 1] == "OLD,BAD1,BAD2"
+    assert calls[2][calls[2].index("--skip") + 1] == "OLD,BAD1,BAD2,BAD3"
+
+
+def test_a_pass_that_measures_nothing_stops_the_run():
+    rc, calls = _passes([
+        {"targets": 300, "measured": 75},
+        {"targets": 225, "measured": 0, "stop": "memory"},
+        {"targets": 225, "measured": 75},          # never reached
+    ])
+    assert rc == 0 and len(calls) == 2
+
+
+def test_an_outage_from_the_first_pass_fails_the_run():
+    rc, calls = _passes([{"targets": 300, "measured": 0, "failed": 300}])
+    assert rc == 1 and len(calls) == 1
+
+
+def test_a_week_with_nothing_to_do_is_not_a_failure():
+    rc, calls = _passes([{"targets": 0, "measured": 0, "stop": "fresh"}])
+    assert rc == 0
+
+
+def test_a_pass_that_died_stops_the_run():
+    rc, calls = _passes([{"targets": 300, "measured": 75}, None, {"targets": 1, "measured": 1}])
+    assert rc == 0 and len(calls) == 2
+
+
+def test_the_deadline_is_shared_and_each_pass_gets_what_is_left():
+    t = iter([0, 0, 600, 2370])         # seconds: start, before pass 1, before pass 2, before pass 3
+    rc, calls = _passes([{"targets": 300, "measured": 75}, {"targets": 225, "measured": 75}],
+                        deadline_min=40, clock=lambda: next(t))
+    assert len(calls) == 2
+    assert calls[0][calls[0].index("--deadline-min") + 1] == "40"
+    assert calls[1][calls[1].index("--deadline-min") + 1] == "30"
+
+
+def test_a_pass_writes_its_status_for_the_supervisor(monkeypatch, store, tmp_path):
+    import json
+
+    import utils.db as db
+    import utils.fetchers as fetchers
+
+    monkeypatch.setenv("DATABASE_URL", "sqlite://")
+    monkeypatch.setattr(db, "init_db", lambda: None)
+    monkeypatch.setattr(fetchers, "fetch_prices_batch", lambda *a: {})
+    monkeypatch.setattr(ml, "load_constituents", lambda: [("AAA", "A Co"), ("BBB", "B Co")])
+    path = tmp_path / "status.json"
+    assert ml.main(["--passes", "1", "--skip", "BBB", "--status-file", str(path)]) == 1
+    st = json.loads(path.read_text())
+    assert st["targets"] == 1 and st["measured"] == 0 and st["failed_tickers"] == ["AAA"]
+
+
+@pytest.mark.slow     # spawns a real interpreter
+def test_a_pass_that_dies_before_writing_its_status_reads_as_dead():
+    assert ml._run_pass_subprocess(["--no-such-flag"], timeout_s=60) is None
+
+
+def test_the_group_runs_passes_by_default():
+    assert ml._parse(None).passes == ml.DEFAULT_PASSES > 1
+
+
+def test_main_supervises_unless_it_is_one_pass(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "sqlite://")
+    monkeypatch.setattr(ml, "_supervise", lambda args: 41)
+    monkeypatch.setattr(ml, "_one_pass", lambda args: 42)
+    assert ml.main([]) == 41                                    # the group's call
+    assert ml.main(["--passes", "1"]) == 42
+    assert ml.main(["--status-file", "/tmp/x.json"]) == 42      # a pass never spawns passes
