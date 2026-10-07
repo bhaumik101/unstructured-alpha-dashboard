@@ -99,3 +99,16 @@ def test_the_stock_route_passes_its_peers(client, monkeypatch):  # noqa: F811
     monkeypatch.setattr(M, "_exposure_stocks", lambda: real() + peers)
     from utils.exposure_pages import fmt_pct
     assert f'<a href="/sectors/energy">Energy</a> median {fmt_pct(2.0)}' in c.get("/exposure/BANK").text
+
+
+def test_a_force_page_ranks_sectors_by_their_median(energy):
+    from utils.force_pages import force_page_html
+    stocks = energy + [_stock("BANK", "Bank", oil=(-1.0, "clear"))]
+    sp_map = sp.sector_by_ticker()
+    assert sp_map["BANK"] == "Financials"
+    html = force_page_html("oil", iter(stocks), "https://www.x", "https://app.x")
+    assert "By sector: oil and energy" in html
+    energy_at, fin_at = html.index('href="/sectors/energy"'), html.index('href="/sectors/financials"')
+    assert energy_at < fin_at                     # +1.55% median ranks above a single -1.0% reading
+    assert "1 measured" in html                   # Financials: too few for a median
+    assert 'href="/exposure/XOM"' in html         # the stock ranking still renders from the same iterator
