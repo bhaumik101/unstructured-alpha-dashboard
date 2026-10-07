@@ -152,6 +152,39 @@ def latest(limit: int = 500) -> List[dict]:
     return [dict(h, exposures=by_ticker.get(h["ticker"], {})) for h in heads]
 
 
+def previous() -> List[dict]:
+    """For every stock with at least two stored weeks, the week before its
+    newest, with its exposures -- what latest() is compared against."""
+    try:
+        newest = (select(stock_measurements.c.ticker,
+                         func.max(stock_measurements.c.as_of).label("as_of"))
+                  .group_by(stock_measurements.c.ticker).subquery())
+        prev = (select(stock_measurements.c.ticker,
+                       func.max(stock_measurements.c.as_of).label("as_of"))
+                .join(newest, and_(stock_measurements.c.ticker == newest.c.ticker,
+                                   stock_measurements.c.as_of < newest.c.as_of))
+                .group_by(stock_measurements.c.ticker).subquery())
+        with db.engine.begin() as conn:
+            heads = conn.execute(
+                select(stock_measurements).join(
+                    prev, and_(stock_measurements.c.ticker == prev.c.ticker,
+                               stock_measurements.c.as_of == prev.c.as_of))
+            ).mappings().all()
+            if not heads:
+                return []
+            exp = conn.execute(
+                select(stock_exposures).join(
+                    prev, and_(stock_exposures.c.ticker == prev.c.ticker,
+                               stock_exposures.c.as_of == prev.c.as_of))
+            ).mappings().all()
+    except Exception:
+        return []
+    by_ticker: Dict[str, Dict[str, dict]] = {}
+    for e in exp:
+        by_ticker.setdefault(e["ticker"], {})[e["factor"]] = dict(e)
+    return [dict(h, exposures=by_ticker.get(h["ticker"], {})) for h in heads]
+
+
 def count() -> int:
     """How many distinct stocks are on record. 0 when the database is unavailable."""
     try:

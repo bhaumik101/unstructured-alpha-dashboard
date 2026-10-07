@@ -710,6 +710,15 @@ def sitemap_xml():
     except Exception:
         pass
     try:
+        from utils import stock_library as _lib
+        from utils.changes_page import changes as _changes
+        _c = _changes(_exposure_stocks(), _lib.previous())
+        if _c["compared"]:   # with nothing to compare the page is noindex
+            urls.append(f"  <url><loc>{BASE_URL}/changes</loc><lastmod>{_c['as_of']}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.6</priority></url>")
+    except Exception:
+        pass
+    try:
         from utils import track_record as _tr
         _study = _tr.latest()
         if _study and _study.get("available"):   # an unpublished page is noindex
@@ -906,6 +915,17 @@ def compare_page(a: str = "", b: str = ""):
 
     _get_engine()
     return HTMLResponse(compare_page_html(_exposure_stocks(), a, b, BASE_URL, APP_URL))
+
+
+@app.get("/changes", response_class=HTMLResponse)
+def changes_page():
+    """What changed in this week's measurements, stock by stock."""
+    from utils import stock_library
+    from utils.changes_page import changes_page_html
+
+    _get_engine()
+    return HTMLResponse(changes_page_html(_exposure_stocks(), stock_library.previous(),
+                                          BASE_URL, APP_URL))
 
 
 @app.get("/evidence", response_class=HTMLResponse)

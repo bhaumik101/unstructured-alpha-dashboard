@@ -456,7 +456,7 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         + (table if stocks else '<p class="lead">No stock has been measured yet.</p>')
         + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/stock">'
           'Look up any stock</a><a class="btn btn-secondary" href="/forces">Browse by economic '
-          'force</a></div>')
+          'force</a><a class="btn btn-secondary" href="/changes">What changed this week</a></div>')
     json_ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": title,
                "description": desc, "url": f"{base_url}/exposure"}
     return _shell(title, desc, f"{base_url}/exposure", json_ld, body, app_url)
