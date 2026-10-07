@@ -70,7 +70,7 @@ def _get_engine():
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 BASE_URL      = os.environ.get("SEO_BASE_URL", "https://seo.unstructuredalpha.com")
-APP_URL       = os.environ.get("APP_URL", "https://unstructuredalpha.com")
+APP_URL       = os.environ.get("APP_URL", "https://app.unstructuredalpha.com")
 SITE_NAME     = "Unstructured Alpha"
 BRAND_COLOR   = "#7C3AED"
 GREEN         = "#00875A"

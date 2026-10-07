@@ -678,8 +678,12 @@ services:
       # consolidation would achieve nothing.
       - key: SEO_BASE_URL
         value: "https://www.unstructuredalpha.com"
+      # The Streamlit app. Not the apex: unstructuredalpha.com now redirects to
+      # the www landing page, so every "Open the interactive report",
+      # "Methodology" and "Stress-test it" link on these pages was a 404 and
+      # "Measure a portfolio" landed on the marketing homepage (found 2026-10-07).
       - key: APP_URL
-        value: "https://unstructuredalpha.com"
+        value: "https://app.unstructuredalpha.com"
 
   # ── Monthly macro nowcast: the forward record ───────────────────────────────
   #
