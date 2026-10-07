@@ -155,6 +155,8 @@ td b{color:var(--ink)}
 .btn-primary{background:var(--accent);color:#fff}
 @media (prefers-color-scheme:dark){.btn-primary{color:#0b1422}}
 .btn-secondary{background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+details.embed{margin:24px 0 8px}details.embed summary{cursor:pointer;font-weight:650}
+details.embed textarea{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .related{display:flex;flex-wrap:wrap;gap:8px;list-style:none}
 .related a{display:inline-block;padding:7px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);
   color:var(--ink);text-decoration:none;font-size:.92rem}
@@ -206,6 +208,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     held: utils.track_record.persistence() of the published study, or None.
     """
     from utils import track_record as tr
+    from utils.embed_page import embed_box_html
     from utils.explore_page import stock_whatif_html
 
     held = held or {}
@@ -332,6 +335,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure a whole portfolio</a>'
         f'<a class="btn btn-secondary" href="/compare?a={escape(symbol)}">Compare {escape(symbol)} with another stock</a></div>'
         f'{stock_whatif_html(symbol, rec)}{extra_html}{hist_html}{rel_html}{sim_html}'
+        f'{embed_box_html(symbol, base_url)}'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> It shows how the '
         'stock has moved alongside five economic forces. Relationships change, and nothing here is a '
         'recommendation to buy, sell or hold any security.</p>'

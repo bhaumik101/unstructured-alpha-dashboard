@@ -816,6 +816,26 @@ def exposure_page(symbol: str):
     return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL, held, alike))
 
 
+@app.get("/embed/{symbol}", response_class=HTMLResponse)
+def embed_card(symbol: str):
+    """A small, script-free card for one stock that other sites can iframe."""
+    from utils import stock_library
+    from utils.embed_page import embed_card_html
+    from utils.exposure_pages import SYMBOL_RE
+
+    canonical = symbol.upper().strip()
+    if not SYMBOL_RE.match(canonical):
+        raise HTTPException(status_code=404, detail="Not a ticker symbol.")
+    if symbol != canonical:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/embed/{canonical}", status_code=301)
+    _get_engine()
+    history = stock_library.history(canonical)
+    if not history:
+        raise HTTPException(status_code=404, detail=f"{canonical} has not been measured yet.")
+    return HTMLResponse(embed_card_html(canonical, history[0], BASE_URL))
+
+
 # ── Force pages: every stock on record, read one economic force at a time ────
 @app.get("/explore", response_class=HTMLResponse)
 def explore_page():
