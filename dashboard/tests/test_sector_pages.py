@@ -75,3 +75,27 @@ def test_routes_sitemap_and_the_stock_page_link(client, energy):  # noqa: F811
     assert "/sectors/financials</loc>" in sm and "/sectors/energy</loc>" not in sm
     assert c.get("/sectors/financials").status_code == 200
     assert 'href="/sectors/financials">Financials</a>' in c.get("/exposure/BANK").text
+
+
+def test_a_stock_page_shows_its_sector_peers_median(energy):
+    from utils.exposure_pages import fmt_pct, stock_page_html
+    p = sp.peer_medians("XOM", energy)
+    assert p["sector"] == "Energy" and p["peers"] == 3          # XOM itself left out
+    assert p["medians"]["oil"] == 1.2                           # median of 1.9, 1.2, -0.2
+    assert "rates" not in p["medians"]                          # too few peers measured
+    html = stock_page_html("XOM", energy[0], [], [], "https://www.x", "https://app.x", peers=p)
+    assert f'<a href="/sectors/energy">Energy</a> median {fmt_pct(1.2)}' in html
+    assert sp.peer_medians("ZZZ", energy) is None               # outside the index
+
+
+def test_the_stock_route_passes_its_peers(client, monkeypatch):  # noqa: F811
+    c, _one, lib, M = client
+    peers = [_stock(t, t, oil=(v, "clear")) for t, v in (("P1", 1.0), ("P2", 2.0), ("P3", 3.0))]
+    monkeypatch.setattr(sp, "sector_by_ticker", lambda: {"BANK": "Energy", "P1": "Energy",
+                                                         "P2": "Energy", "P3": "Energy"})
+    assert lib.record(_one("BANK"), "Bank Co")
+    M._exposure_cache.clear()
+    real = M._exposure_stocks
+    monkeypatch.setattr(M, "_exposure_stocks", lambda: real() + peers)
+    from utils.exposure_pages import fmt_pct
+    assert f'<a href="/sectors/energy">Energy</a> median {fmt_pct(2.0)}' in c.get("/exposure/BANK").text
