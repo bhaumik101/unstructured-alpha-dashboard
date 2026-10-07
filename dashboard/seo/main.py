@@ -710,6 +710,17 @@ def sitemap_xml():
     except Exception:
         pass
     try:
+        from utils.sector_pages import members_of as _members, sectors as _sectors, slug as _slug
+        _st = _exposure_stocks()
+        _live = [x for x in _sectors() if _members(x, _st)]
+        if _live:   # an empty sector page is noindex; don't advertise it
+            urls.append(f"  <url><loc>{BASE_URL}/sectors</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.7</priority></url>")
+            urls.extend(f"  <url><loc>{BASE_URL}/sectors/{_slug(x)}</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.6</priority></url>" for x in _live)
+    except Exception:
+        pass
+    try:
         from utils import stock_library as _lib
         from utils.changes_page import changes as _changes
         _c = _changes(_exposure_stocks(), _lib.previous())
@@ -926,6 +937,28 @@ def changes_page():
     _get_engine()
     return HTMLResponse(changes_page_html(_exposure_stocks(), stock_library.previous(),
                                           BASE_URL, APP_URL))
+
+
+@app.get("/sectors", response_class=HTMLResponse)
+def sectors_hub():
+    from utils.sector_pages import sectors_hub_html
+
+    _get_engine()
+    return HTMLResponse(sectors_hub_html(_exposure_stocks(), BASE_URL, APP_URL))
+
+
+@app.get("/sectors/{name}", response_class=HTMLResponse)
+def sector_page(name: str):
+    from utils.sector_pages import by_slug, sector_page_html
+
+    sector = by_slug(name.strip().lower())
+    if sector is None:
+        raise HTTPException(status_code=404, detail="Not an S&P 500 sector.")
+    if name != name.strip().lower():
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/sectors/{name.strip().lower()}", status_code=301)
+    _get_engine()
+    return HTMLResponse(sector_page_html(sector, _exposure_stocks(), BASE_URL, APP_URL))
 
 
 @app.get("/evidence", response_class=HTMLResponse)

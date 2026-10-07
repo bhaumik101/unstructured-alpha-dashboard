@@ -314,6 +314,10 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
                          f'{items}</ul>')
         rel_html = f'<h2>Other stocks exposed to {force}</h2>{rel_html}'
 
+    from utils.sector_pages import sector_by_ticker, slug as sector_slug
+    sector = sector_by_ticker().get(symbol)
+    sector_html = (f'<a href="/sectors/{sector_slug(sector)}">{escape(sector)}</a> · ' if sector else "")
+
     sim_html = ""
     if similar:
         items = "".join(
@@ -332,8 +336,8 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '
         f'<a href="/exposure">Stock exposures</a> › {escape(symbol)}</nav>'
         f'<h1>{who}: economic exposure</h1>'
-        f'<p class="meta">Data through {_date(rec["as_of"])} · weekly returns, the stock market\'s own '
-        f'movement removed first</p>'
+        f'<p class="meta">{sector_html}Data through {_date(rec["as_of"])} · weekly returns, the stock '
+        f'market\'s own movement removed first</p>'
         f'<p class="lead">{escape(summary)}</p>'
         f'<h2>Exposure to each economic force</h2>{table}'
         '<div class="actions">'
@@ -409,10 +413,9 @@ _HUB_CSS = """<style>
 </style>"""
 
 
-def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
-    """Every measured stock against the core five, sortable and filterable.
-    The crawl entry point for the pages above: every row links to its page,
-    and the table works in full without script, sorted by ticker."""
+def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record against the five core forces") -> str:
+    """The sortable, filterable table of stocks against the core five; works
+    in full without script, sorted by ticker."""
     stocks = sorted(stocks, key=lambda s: s["ticker"])
 
     def cell(e: Optional[dict]) -> str:
@@ -434,21 +437,29 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
             + "".join(f'<th scope="col"><button type="button" data-col="{i + 1}" '
                       f'title="In weeks when {escape(_FACTOR[k].shock_phrase)}">{escape(_FACTOR[k].label)}</button></th>'
                       for i, k in enumerate(_ORDER)))
-    title = "Stock exposure to interest rates, inflation, oil, the dollar and credit"
-    desc = (f"How {len(stocks)} U.S. stocks have moved with interest rates, inflation expectations, "
-            "the dollar, oil and credit spreads, each with its 90% range and an evidence label.")
-    table = (
+    return (
         _HUB_CSS
         + '<div class="hub-bar"><label for="hub-q" class="small">Find a stock</label>'
           '<input id="hub-q" type="search" autocomplete="off" spellcheck="false" placeholder="Ticker or name">'
           '<span class="small" id="hub-count" aria-live="polite"></span></div>'
-        + '<div class="card" tabindex="0" role="region" aria-label="Every stock on record against the five core forces">'
+        + f'<div class="card" tabindex="0" role="region" aria-label="{escape(label)}">'
           f'<table id="hub"><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table>'
           '<div class="foot">Each figure is the stock&#39;s typical move in a week when that force moved '
           'by its standard amount (hover a heading for it), after accounting for the stock market. '
           'Bold, shaded figures held up; grey ones could not be told apart from zero; a dash was not '
           'measured. Click a heading to sort. It describes the past; it is not a forecast.</div></div>'
         + f'<script>{_HUB_SCRIPT}</script>')
+
+
+def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
+    """Every measured stock against the core five, sortable and filterable.
+    The crawl entry point for the pages above: every row links to its page,
+    and the table works in full without script, sorted by ticker."""
+    stocks = sorted(stocks, key=lambda s: s["ticker"])
+    title = "Stock exposure to interest rates, inflation, oil, the dollar and credit"
+    desc = (f"How {len(stocks)} U.S. stocks have moved with interest rates, inflation expectations, "
+            "the dollar, oil and credit spreads, each with its 90% range and an evidence label.")
+    table = hub_grid_html(stocks)
     body = (
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Stock exposures</nav>'
         f'<h1>Stock exposures</h1><p class="lead">{escape(desc)} Measured weekly over three years, '
@@ -456,7 +467,8 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         + (table if stocks else '<p class="lead">No stock has been measured yet.</p>')
         + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/stock">'
           'Look up any stock</a><a class="btn btn-secondary" href="/forces">Browse by economic '
-          'force</a><a class="btn btn-secondary" href="/changes">What changed this week</a></div>')
+          'force</a><a class="btn btn-secondary" href="/sectors">By sector</a>'
+          '<a class="btn btn-secondary" href="/changes">What changed this week</a></div>')
     json_ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": title,
                "description": desc, "url": f"{base_url}/exposure"}
     return _shell(title, desc, f"{base_url}/exposure", json_ld, body, app_url)
