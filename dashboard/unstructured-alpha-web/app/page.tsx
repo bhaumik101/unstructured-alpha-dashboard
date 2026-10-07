@@ -323,6 +323,14 @@ export default function Home() {
               <a href={appUrl("/", "hero_own")} onClick={() => recordAppOpen("hero_own")}
                  className="lp-btn lp-btn-ghost">Use my own holdings</a>
             </div>
+            <form className="lp-lookup" action="/go" method="get" role="search">
+              <label htmlFor="lp-lookup-t">Or look up one stock</label>
+              <div className="lp-lookup-row">
+                <input id="lp-lookup-t" name="t" placeholder="Ticker, e.g. AAPL" autoComplete="off"
+                       spellCheck={false} maxLength={15} />
+                <button type="submit">See its exposure</button>
+              </div>
+            </form>
             <ul className="lp-hero-facts">
               <li>Free</li>
               <li>No account for your first report</li>

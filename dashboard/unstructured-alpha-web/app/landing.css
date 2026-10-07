@@ -130,6 +130,15 @@
 .lp-hero-facts li { display: flex; align-items: center; gap: 7px; }
 .lp-hero-facts li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--lp-bright); }
 .lp-hero-art { text-align: center; }
+.lp-lookup { margin-top: 22px; max-width: 460px; }
+.lp-lookup label { display: block; font-size: 13.5px; font-weight: 600; color: rgba(238, 243, 250, 0.84); margin-bottom: 6px; }
+.lp-lookup-row { display: flex; gap: 8px; }
+.lp-lookup input { flex: 1 1 auto; min-width: 0; min-height: 46px; border-radius: 10px; border: 1px solid rgba(238, 243, 250, 0.28);
+  background: rgba(8, 22, 40, 0.55); color: #ffffff; padding: 0 14px; font: inherit; font-size: 15px; text-transform: uppercase; }
+.lp-lookup input::placeholder { color: rgba(238, 243, 250, 0.6); text-transform: none; }
+.lp-lookup button { min-height: 46px; border-radius: 10px; border: 1px solid rgba(238, 243, 250, 0.35); background: transparent;
+  color: #ffffff; font: inherit; font-size: 15px; font-weight: 650; padding: 0 16px; cursor: pointer; white-space: nowrap; }
+.lp-lookup button:hover { border-color: #ffffff; }
 .lp-map { width: 100%; max-width: 520px; height: auto; }
 .lp-map-core { fill: #ffffff; font-size: 19px; font-weight: 700; }
 .lp-map-sub { fill: rgba(238, 243, 250, 0.72); font-size: 14px; }
