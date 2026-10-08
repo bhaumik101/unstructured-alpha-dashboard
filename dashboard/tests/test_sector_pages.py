@@ -112,3 +112,53 @@ def test_a_force_page_ranks_sectors_by_their_median(energy):
     assert energy_at < fin_at                     # +1.55% median ranks above a single -1.0% reading
     assert "1 measured" in html                   # Financials: too few for a median
     assert 'href="/exposure/XOM"' in html         # the stock ranking still renders from the same iterator
+
+
+@pytest.fixture
+def two_sectors(monkeypatch):
+    sp.sector_by_ticker.cache_clear()
+    monkeypatch.setattr(sp, "sector_by_ticker", lambda: {
+        "XOM": "Energy", "CVX": "Energy", "COP": "Energy",
+        "JPM": "Financials", "BAC": "Financials", "WFC": "Financials"})
+    return [_stock("XOM", "Exxon", oil=(2.4, "clear")),
+            _stock("CVX", "Chevron", oil=(2.0, "clear")),
+            _stock("COP", "Conoco", oil=(-0.3, "indistinct")),
+            _stock("JPM", "JPMorgan", oil=(-0.5, "indistinct"), rates=(1.0, "clear")),
+            _stock("BAC", "BofA", oil=(-0.6, "tentative")),
+            _stock("WFC", "Wells", oil=(-0.4, "indistinct")),
+            _stock("ZZZ", "Not in the index", oil=(9.0, "clear"))]
+
+
+def test_the_hub_is_a_heatmap_shaded_by_size_against_the_largest_median(two_sectors):
+    import re
+    hub = sp.sectors_hub_html(two_sectors, "https://www.x", "https://app.x")
+    # Energy on oil has the largest median (+2.0%): full strength, blue.
+    assert re.search(r'<td data-v="2\.0000" class="hm hm-up" style="--a:1\.00">'
+                     r'<a class="hm-a" href="/sectors/energy#f-oil">', hub)
+    # Financials on oil (-0.5%) a quarter of that, orange.
+    assert 'class="hm hm-down" style="--a:0.25"><a class="hm-a" href="/sectors/financials#f-oil">' in hub
+    # Too few readings: a count, no shade and nothing to open.
+    assert '<td class="v-weak">1 measured</td>' in hub
+    assert "Shading is darker the larger the median move" in hub
+
+
+def test_each_hub_cell_opens_the_stocks_behind_it(two_sectors):
+    import json
+    import re
+    hub = sp.sectors_hub_html(two_sectors, "https://www.x", "https://app.x")
+    data = json.loads(re.search(r'<script type="application/json" id="hm-data">(.*?)</script>', hub).group(1))
+    assert data["k"] == ["rates", "inflation", "dollar", "oil", "credit"]
+    energy = data["s"]["energy"]
+    assert energy[0] == "Energy" and [r[0] for r in energy[1]] == ["COP", "CVX", "XOM"]
+    oil = data["k"].index("oil")
+    by = {r[0]: r[2] for r in energy[1]}
+    assert by["XOM"][oil] == [2.4, 1] and by["COP"][oil] == [-0.3, 0]   # held up, or not
+    assert by["XOM"][data["k"].index("rates")] is None                  # not measured: null, never 0
+    assert "ZZZ" not in hub.split('id="hm-data"')[1].split("</script>")[0]
+    assert 'id="hm-panel"' in hub and "pct(" in hub and "/*PCT*/" not in hub
+
+
+def test_a_sector_page_anchors_each_force_for_the_heatmap_links(two_sectors):
+    page = sp.sector_page_html("Energy", two_sectors, "https://www.x", "https://app.x")
+    assert '<tr id="f-oil">' in page
+    assert 'class="hm hm-up" style="--a:1.00"' in page

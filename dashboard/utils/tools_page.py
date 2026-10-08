@@ -15,8 +15,8 @@ from utils.exposure_pages import _shell
 TOOLS = (
     ("/exposure", "Stocks", "Every stock on record against rates, inflation, the dollar, oil and credit. "
      "Sort by any force, filter by name."),
-    ("/sectors", "Sectors", "How each S&P 500 sector has moved with each force: the median move and "
-     "how many stocks held up each way."),
+    ("/sectors", "Sectors", "A heatmap of how each S&P 500 sector has moved with each force. Pick "
+     "a cell to see the stocks behind it."),
     ("/forces", "Economic forces", "Nineteen forces, from oil and gold to the yen and bitcoin, and the "
      "stocks that moved up and down with each."),
     ("/explore", "What if?", "Pick a force, drag the size of the move, and see which stocks rose and "
