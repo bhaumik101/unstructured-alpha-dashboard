@@ -725,6 +725,8 @@ def sitemap_xml():
         if _exposure_stocks():   # an empty explorer is noindex
             urls.append(f"  <url><loc>{BASE_URL}/explore</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
+            urls.append(f"  <url><loc>{BASE_URL}/map</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.7</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/compare</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.6</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/quiz</loc><lastmod>{today}</lastmod>"
@@ -959,6 +961,15 @@ def og_image(name: str):
 
 
 # ── Force pages: every stock on record, read one economic force at a time ────
+@app.get("/map", response_class=HTMLResponse)
+def map_page():
+    """The stock map: every stock placed on any two forces at once."""
+    from utils.map_page import map_page_html
+
+    _get_engine()
+    return HTMLResponse(map_page_html(_exposure_stocks(), BASE_URL, APP_URL))
+
+
 @app.get("/explore", response_class=HTMLResponse)
 def explore_page():
     """What if? Move one force, see which stocks moved most with it."""
