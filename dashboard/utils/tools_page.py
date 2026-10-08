@@ -19,6 +19,8 @@ TOOLS = (
      "a cell to see the stocks behind it."),
     ("/forces", "Economic forces", "Nineteen forces, from oil and gold to the yen and bitcoin, and the "
      "stocks that moved up and down with each."),
+    ("/map", "Stock map", "Every stock placed on two forces at once: rates against oil, the dollar "
+     "against credit, any pair. Light up a sector, find a ticker."),
     ("/explore", "What if?", "Pick a force, drag the size of the move, and see which stocks rose and "
      "fell most in weeks like it. Follow your own tickers too."),
     ("/compare", "Compare two stocks", "Two stocks side by side, force by force, and where they clearly "

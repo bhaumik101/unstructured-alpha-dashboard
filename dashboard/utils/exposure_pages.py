@@ -235,7 +235,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
 # The public tools, in the order the header shows them. Every page carries the
 # same header and footer so a visitor can reach any of them from anywhere.
 NAV = (("/exposure", "Stocks"), ("/sectors", "Sectors"), ("/forces", "Forces"),
-       ("/explore", "What if?"), ("/compare", "Compare"), ("/quiz", "Quiz"))
+       ("/map", "Map"), ("/explore", "What if?"), ("/compare", "Compare"), ("/quiz", "Quiz"))
 MORE = (("/tools", "All free tools"), ("/learn", "How to read these pages"),
         ("/changes", "What changed this week"), ("/evidence", "Track record"))
 
