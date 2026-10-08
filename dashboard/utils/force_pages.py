@@ -86,6 +86,105 @@ def _rank_table(rows: List[dict], label: str) -> str:
             f'<tbody>{body}</tbody></table></div>')
 
 
+SWARM_W, SWARM_R, SWARM_GAP = 600, 4.5, 1.0
+
+
+def swarm_layout(values: List[float], span: float, w: int = SWARM_W, r: float = SWARM_R) -> List[tuple]:
+    """A beeswarm: each value at its x on a symmetric scale of +/- span, nudged
+    up or down (closest free offset first) until it touches no dot already
+    placed. Returns (x, y-offset) per value, in the input order."""
+    d = 2 * r + SWARM_GAP
+    order = sorted(range(len(values)), key=lambda i: (values[i], i))
+    placed: List[tuple] = []
+    out: List[Optional[tuple]] = [None] * len(values)
+    for i in order:
+        x = w / 2 + (w / 2 - r) * max(-1.0, min(1.0, values[i] / span))
+        near = [(px, py) for px, py in placed if abs(px - x) < d]
+        k = 0
+        while True:
+            y = ((k + 1) // 2) * d * (1 if k % 2 else -1) * 0.5 if k else 0.0
+            if all((px - x) ** 2 + (py - y) ** 2 >= d * d for px, py in near):
+                break
+            k += 1
+        placed.append((x, y))
+        out[i] = (round(x, 1), round(y, 1))
+    return out
+
+
+_SWARM_CSS = """<style>
+.fs{padding:14px 16px 10px;margin:6px 0 14px}
+.fs svg{display:block;width:100%;height:auto}
+.fs .fs-z{stroke:var(--ink3);stroke-width:1.5}
+.fs circle{stroke-width:1.5;cursor:pointer}
+.fs .fs-u{fill:#2f6fbd;stroke:#2f6fbd}.fs .fs-d{fill:#b5651d;stroke:#b5651d}
+.fs .fs-n{fill:var(--surface);stroke:var(--ink3)}
+.fs circle:hover,.fs circle.on{stroke:var(--ink);stroke-width:3}
+@media (prefers-color-scheme:dark){.fs .fs-u{fill:#5a8fd4;stroke:#5a8fd4}.fs .fs-d{fill:#c9822f;stroke:#c9822f}}
+.fs-ax{display:flex;justify-content:space-between;font-size:.78rem;color:var(--ink3);margin-top:2px}
+.fs-say{min-height:1.4em;margin:6px 0 0}
+.fs-key{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.78rem;color:var(--ink3);margin-top:6px}
+.fs-key svg{display:inline;width:12px;height:12px;vertical-align:-2px;margin-right:5px}
+</style>"""
+
+_SWARM_SCRIPT = r"""
+(function(){
+  var box = document.getElementById('fs'), say = document.getElementById('fs-say'), on = null, base = say.textContent;
+  function show(c){ if (on) on.classList.remove('on'); on = c; c.classList.add('on');
+    say.textContent = c.getAttribute('data-say'); }
+  box.addEventListener('pointerover', function(e){ var c = e.target.closest('circle[data-t]'); if (c) show(c); });
+  box.addEventListener('pointerleave', function(){ if (on) on.classList.remove('on'); on = null; say.textContent = base; });
+  box.addEventListener('click', function(e){
+    var c = e.target.closest('circle[data-t]'); if (!c) return;
+    if (on === c || !matchMedia('(hover: none)').matches) location.href = '/exposure/' + encodeURIComponent(c.getAttribute('data-t'));
+    else show(c);
+  });
+})();
+"""
+
+
+def swarm_html(key: str, stocks: List[dict]) -> str:
+    """Every stock on record with a reading on this force, one dot each, on
+    one scale: coloured where the reading held up, hollow where it could not
+    be told apart from zero. Hover (or tap) names a dot; click opens it.
+    Decorative for screen readers: the tables below list the held-up ones,
+    and the summary above counts the rest."""
+    rows = [(s["ticker"], s.get("name") or "", s["exposures"][key]) for s in stocks
+            if key in (s.get("exposures") or {})]
+    if len(rows) < 2:
+        return ""
+    vals = [float(e["impact"]) for _, _, e in rows]
+    span = max(abs(v) for v in vals) * 1.05 or 1.0
+    # Smaller dots as the library fills in, so 500 stocks stay a strip, not a tower.
+    r = round(max(2.6, min(SWARM_R, SWARM_R * (250 / len(vals)) ** 0.5)), 2)
+    pts = swarm_layout(vals, span, r=r)
+    top = max(abs(y) for _, y in pts) + r + 3
+    h = 2 * top
+    dots = []
+    for (t, name, e), (x, y) in zip(rows, pts):
+        strong = e.get("evidence") in STANDS_UP
+        cls = ("fs-u" if e["impact"] > 0 else "fs-d") if strong else "fs-n"
+        label = ex.EVIDENCE_LABELS.get(e.get("evidence"), "")
+        said = f'{t}{" · " + name if name and name != t else ""}: {fmt_pct(e["impact"])} ({label.lower()})'
+        dots.append(f'<circle class="{cls}" cx="{x}" cy="{top + y:.1f}" r="{r}" '
+                    f'data-t="{escape(t)}" data-say="{escape(said)}"><title>{escape(said)}</title></circle>')
+    tick = fmt_pct(span)
+    held = sum(1 for _, _, e in rows if e.get("evidence") in STANDS_UP)
+    hint = f"Each dot is one of the {len(rows)} stocks on record. Hover or tap a dot to name it; select it to open its page."
+    dot = '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" class="{}" stroke-width="1.5"/></svg>'
+    return (_SWARM_CSS
+            + '<figure class="card fs" id="fs">'
+            + f'<svg viewBox="0 0 {SWARM_W} {h:.0f}" aria-hidden="true">'
+              f'<line class="fs-z" x1="{SWARM_W / 2}" x2="{SWARM_W / 2}" y1="0" y2="{h:.0f}"/>{"".join(dots)}</svg>'
+            + f'<div class="fs-ax" aria-hidden="true"><span>−{tick[1:]}</span><span>0</span><span>{tick}</span></div>'
+            + f'<p class="small fs-say" id="fs-say" aria-live="polite">{escape(hint)}</p>'
+            + '<figcaption class="fs-key">'
+              f'<span>{dot.format("fs-u")}Moved up, held up</span>'
+              f'<span>{dot.format("fs-d")}Moved down, held up</span>'
+              f'<span>{dot.format("fs-n")}Could not be told apart from zero ({len(rows) - held})</span>'
+              '</figcaption></figure>'
+            + f'<script>{_SWARM_SCRIPT}</script>')
+
+
 def _by_sector(key: str, stocks: List[dict]) -> str:
     from utils.sector_pages import sectors_on_force_html
     return sectors_on_force_html(key, stocks)
@@ -137,7 +236,7 @@ def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: st
         + (f' · data through {_date(st["as_of"])}' if st["as_of"] else "") + '</p>'
         f'<p class="lead">{escape(lead)}</p>'
         f'<p class="lead">{escape(f.why)}</p>'
-        f'{body_tables}{_by_sector(key, stocks)}'
+        f'{swarm_html(key, stocks)}{body_tables}{_by_sector(key, stocks)}'
         f'<p class="small">Each figure is a stock&#39;s typical move in a week when {escape(f.shock_phrase)}, '
         f'after accounting for {escape(_control(f))}, over three years of weekly returns. Only readings '
         f'that held up are ranked ({_bar_note(f)}). The '

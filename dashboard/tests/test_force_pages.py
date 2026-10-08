@@ -64,7 +64,8 @@ def test_a_long_side_says_it_was_cut():
     many = [_stock(f"S{i:03d}", oil=(1 + i / 100, "clear")) for i in range(40)]
     html = fp.force_page_html("oil", many, B, A, limit=25)
     assert "Showing the 25 largest of 40." in html
-    assert "S039" in html and "S000" not in html
+    tables = html.split('id="fs"')[1].split("</figure>", 1)[1]   # the dot strip shows every stock
+    assert "S039" in tables and "S000" not in tables
 
 
 def test_a_force_with_no_readings_is_noindex_and_not_in_the_sitemap():
