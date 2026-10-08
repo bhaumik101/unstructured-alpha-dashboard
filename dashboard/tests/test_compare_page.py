@@ -134,3 +134,41 @@ def test_the_stock_page_lists_matches_with_compare_links():
     assert "Stocks with the most similar profile" in html
     assert 'href="/compare?a=OILA&amp;b=OILB"' in html
     assert "not in business, size or value" in html
+
+
+# ── The two stocks on one scale ──────────────────────────────────────────────
+
+def _lanes(html):
+    return {m[0]: m[1] for m in re.findall(
+        r'<div class="du-row"><span class="du-l">([^<]+)(?:<span class="cp-mark">[^<]*</span>)?</span>'
+        r'<span class="du-t">(.*?)</span></div>', html)}
+
+
+def test_both_stocks_share_one_scale_on_the_core_five():
+    rows = cp.compare_rows(XOM, DAL)
+    html = cp.duel_chart_html(rows, "XOM", "DAL")
+    lanes = _lanes(html)
+    assert set(lanes) == {"Oil and energy", "Interest rates"}          # gold is not core: table only
+    # Span = widest range end (3.4) * 1.05 = 3.57.
+    assert 'class="du-m du-a" style="left:83.61%"' in lanes["Oil and energy"]     # XOM +2.4
+    assert 'class="du-m du-b" style="left:23.39%"' in lanes["Oil and energy"]     # DAL -1.9
+    assert 'class="du-r du-a" style="left:69.61%;width:28.01%"' in lanes["Oil and energy"]
+    assert "−3.6%" in html and "+3.6%" in html
+
+
+def test_weak_readings_are_hollow_and_clear_differences_labelled():
+    html = cp.duel_chart_html(cp.compare_rows(XOM, DAL), "XOM", "DAL")
+    lanes = _lanes(html)
+    assert lanes["Interest rates"].count("du-f") == 4                 # both weak: range + marker each
+    assert "du-f" not in lanes["Oil and energy"]
+    assert re.search(r'Oil and energy<span class="cp-mark">Clear difference</span>', html)
+    assert not re.search(r'Interest rates<span class="cp-mark">', html)
+
+
+def test_a_one_sided_row_draws_only_the_stock_measured_and_the_page_carries_the_chart():
+    rows = cp.compare_rows(XOM, CVX)
+    lanes = _lanes(cp.duel_chart_html(rows, "XOM", "CVX"))
+    assert "du-a" in lanes["Interest rates"] and "du-b" not in lanes["Interest rates"]
+    page = cp.compare_page_html(STOCKS, "XOM", "DAL", "https://www.x", "https://app.x")
+    assert page.index('<figure class="card du">') < page.index('class="card cp-tab"')
+    assert cp.duel_chart_html([], "XOM", "DAL") == ""

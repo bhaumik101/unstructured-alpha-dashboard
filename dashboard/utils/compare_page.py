@@ -89,6 +89,72 @@ tr.cp-apart th,tr.cp-apart td{background:var(--subtle)}
 </style>"""
 
 
+_DUEL_CSS = """<style>
+.du{padding:14px 16px;margin:4px 0 14px}
+.du-row{display:grid;grid-template-columns:minmax(110px,180px) minmax(0,1fr);gap:14px;align-items:center;padding:6px 0}
+.du-row+.du-row{border-top:1px solid var(--line)}
+.du-l{font-weight:600;font-size:.92rem;color:var(--ink)}
+.du-l .cp-mark{font-size:.78rem}
+.du-t{position:relative;height:34px}
+.du-t::before{content:"";position:absolute;left:0;right:0;top:16px;height:2px;background:var(--subtle)}
+.du-z{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--ink3)}
+.du-r{position:absolute;height:6px;border-radius:3px;opacity:.4}
+.du-m{position:absolute;width:14px;height:14px;margin-left:-7px;border:2px solid var(--surface)}
+.du-a{top:2px}.du-b{top:18px}
+.du-r.du-a{top:6px}.du-r.du-b{top:22px}
+.du-r.du-a,.du-m.du-a{background:#2f6fbd}.du-m.du-a{border-radius:50%}
+.du-r.du-b,.du-m.du-b{background:#7a4fb0}.du-m.du-b{border-radius:2px}
+.du-f.du-m{background:var(--surface)!important;border-color:var(--ink3)}
+.du-f.du-r{background:var(--ink3)!important;opacity:.25}
+@media (prefers-color-scheme:dark){.du-r.du-a,.du-m.du-a{background:#5a8fd4}.du-r.du-b,.du-m.du-b{background:#a98ad6}}
+.du-ax{display:grid;grid-template-columns:minmax(110px,180px) minmax(0,1fr);gap:14px;font-size:.78rem;color:var(--ink3)}
+.du-ax span:nth-child(2){display:flex;justify-content:space-between}
+.du-key{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.78rem;color:var(--ink3);margin-top:8px}
+.du-key i{display:inline-block;width:12px;height:12px;vertical-align:-2px;margin-right:5px}
+@media (max-width:640px){.du-row,.du-ax{grid-template-columns:92px minmax(0,1fr);gap:8px}.du-l{font-size:.82rem}}
+</style>"""
+
+
+def duel_chart_html(rows: List[dict], a: str, b: str) -> str:
+    """The core five for both stocks on one shared scale: a round marker and
+    range for the first stock, a square one for the second, each on its own
+    lane; readings that did not hold up hollow and grey. Rows whose ranges do
+    not overlap are labelled. Decorative: the table below has every figure."""
+    core = {f.key for f in ex.FACTORS}
+    rows = [r for r in rows if r["key"] in core and (r["a"] or r["b"])]
+    if not rows:
+        return ""
+    ends = [abs(r[s][e]) for r in rows for s in ("a", "b") if r[s] for e in ("low", "high")]
+    span = max(ends + [0.5]) * 1.05
+
+    def pos(v: float) -> str:
+        return f"{50 + 50 * v / span:.2f}%"
+
+    def lane(e: Optional[dict], cls: str) -> str:
+        if not e:
+            return ""
+        faint = "" if e.get("evidence") in STANDS_UP else " du-f"
+        lo, hi = min(e["low"], e["high"]), max(e["low"], e["high"])
+        return (f'<span class="du-r {cls}{faint}" style="left:{pos(lo)};width:{50 * (hi - lo) / span:.2f}%"></span>'
+                f'<span class="du-m {cls}{faint}" style="left:{pos(e["impact"])}"></span>')
+    body = "".join(
+        f'<div class="du-row"><span class="du-l">{escape(r["label"])}'
+        + ('<span class="cp-mark">Clear difference</span>' if r["apart"] else "") + '</span>'
+        f'<span class="du-t"><span class="du-z" style="left:50%"></span>'
+        f'{lane(r["a"], "du-a")}{lane(r["b"], "du-b")}</span></div>'
+        for r in rows)
+    tick = fmt_pct(span)
+    return (_DUEL_CSS
+            + f'<figure class="card du"><div aria-hidden="true">{body}'
+            + f'<div class="du-ax"><span></span><span><span>−{tick[1:]}</span><span>0</span>'
+              f'<span>{tick}</span></span></div></div>'
+            + '<figcaption class="du-key">'
+              f'<span><i class="du-m du-a" style="position:static;margin:0 5px 0 0"></i>{escape(a)}</span>'
+              f'<span><i class="du-m du-b" style="position:static;margin:0 5px 0 0"></i>{escape(b)}</span>'
+              '<span>Bars: 90% ranges. Hollow: could not be told apart from zero.</span>'
+              '<span>Same figures in the table below.</span></figcaption></figure>')
+
+
 def _form(a: str, b: str, tickers: List[str]) -> str:
     opts = "".join(f'<option value="{escape(t)}">' for t in tickers)
     return (
@@ -164,7 +230,8 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
         + (f' · data through {_date(newest)}' if newest else "") + '</p>'
         + _form(a, b, tickers)
         + f'<p class="lead">{escape(lead)}</p>'
-        f'<div class="card cp-tab" tabindex="0" role="region" aria-label="{escape(a)} and {escape(b)}, force by force">'
+        + duel_chart_html(rows, a, b)
+        + f'<div class="card cp-tab" tabindex="0" role="region" aria-label="{escape(a)} and {escape(b)}, force by force">'
         f'<table><thead><tr><th scope="col">Economic force</th><th scope="col">{who(sa)}</th>'
         f'<th scope="col">{who(sb)}</th></tr></thead><tbody>{trs}</tbody></table>'
         '<div class="foot">Each figure is the stock&#39;s typical move in a week when the force moved by '
