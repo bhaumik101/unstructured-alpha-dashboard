@@ -264,6 +264,78 @@ def _site_footer(app_url: str) -> str:
         '</div></footer>')
 
 
+_RC_CSS = """<style>
+.rc{margin:4px 0 14px;padding:14px 16px}
+.rc-row{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 64px;gap:14px;align-items:center;padding:7px 0}
+.rc-row+.rc-row{border-top:1px solid var(--line)}
+.rc-l{font-weight:600;color:var(--ink);font-size:.92rem}
+.rc-t{position:relative;height:22px}
+.rc-t::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:var(--subtle)}
+.rc-z{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--ink3)}
+.rc-r{position:absolute;top:6px;height:10px;border-radius:5px}
+.rc-r.u{background:rgba(47,111,189,.35)}.rc-r.d{background:rgba(181,101,29,.38)}
+.rc-d{position:absolute;top:4px;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2px solid var(--surface)}
+.rc-d.u{background:#2f6fbd}.rc-d.d{background:#b5651d}
+.rc-p{position:absolute;top:-3px;width:0;height:0;margin-left:-5px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid var(--ink)}
+.rc-v{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.rc-f .rc-v{font-weight:400;color:var(--ink3)}
+.rc-ax{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 64px;gap:14px;font-size:.78rem;color:var(--ink3)}
+.rc-ax span:nth-child(2){display:flex;justify-content:space-between}
+.rc-key{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.78rem;color:var(--ink3);margin-top:8px}
+.rc-key i{display:inline-block;vertical-align:-2px;margin-right:5px}
+@media (prefers-color-scheme:dark){.rc-d.u{background:#5a8fd4}.rc-d.d{background:#c9822f}
+  .rc-r.u{background:rgba(90,143,212,.4)}.rc-r.d{background:rgba(201,130,47,.4)}}
+.rc-f .rc-r{background:var(--line)}.rc-f .rc-d{background:var(--surface);border:2px solid var(--ink3)}
+@media (max-width:640px){.rc-row,.rc-ax{grid-template-columns:96px minmax(0,1fr) 56px;gap:8px}.rc-l{font-size:.82rem}}
+</style>"""
+
+
+def range_chart_html(exps: dict, keys: List[str], peers: Optional[dict] = None) -> str:
+    """The core readings at a glance, drawn to one scale: a dot for the typical
+    move, a bar for its 90% range, the zero line, and the sector peers' median
+    as a small triangle above the line. Held-up readings in colour; the rest hollow and grey.
+    Decorative: the table under it carries the same figures."""
+    keys = [k for k in keys if k in exps]
+    if not keys:
+        return ""
+    med = (peers or {}).get("medians") or {}
+    span = max([abs(exps[k]["low"]) for k in keys] + [abs(exps[k]["high"]) for k in keys]
+               + [abs(med[k]) for k in keys if k in med] + [0.5])
+    span *= 1.05
+
+    def pos(v: float) -> str:
+        return f"{50 + 50 * v / span:.2f}%"
+    rows = []
+    for k in keys:
+        e = exps[k]
+        strong = e["evidence"] in STANDS_UP
+        side = "u" if e["impact"] >= 0 else "d"
+        lo, hi = min(e["low"], e["high"]), max(e["low"], e["high"])
+        peer = (f'<span class="rc-p" style="left:{pos(med[k])}"></span>' if k in med else "")
+        rows.append(
+            f'<div class="rc-row{"" if strong else " rc-f"}" title="{escape(_FACTOR[k].label)}: '
+            f'{fmt_pct(e["impact"])}, 90% range {fmt_pct(e["low"])} to {fmt_pct(e["high"])}">'
+            f'<span class="rc-l">{escape(_FACTOR[k].label)}</span>'
+            f'<span class="rc-t"><span class="rc-z" style="left:50%"></span>'
+            f'<span class="rc-r {side}" style="left:{pos(lo)};width:{50 * (hi - lo) / span:.2f}%"></span>'
+            f'{peer}<span class="rc-d {side}" style="left:{pos(e["impact"])}"></span></span>'
+            f'<span class="rc-v">{fmt_pct(e["impact"])}</span></div>')
+    tick = fmt_pct(span)
+    key = ('<span><i style="width:12px;height:12px;border-radius:50%;background:#2f6fbd"></i>'
+           'Typical move (held up)</span>'
+           '<span><i style="width:12px;height:12px;border-radius:50%;border:2px solid var(--ink3)"></i>'
+           'Could not be told apart from zero</span>'
+           '<span><i style="width:22px;height:8px;border-radius:4px;background:rgba(47,111,189,.35)"></i>'
+           '90% range</span>'
+           + (f'<span><i style="border-left:5px solid transparent;border-right:5px solid transparent;'
+              f'border-top:7px solid var(--ink)"></i>{escape(peers["sector"])} median</span>' if med else ""))
+    return (_RC_CSS
+            + '<figure class="card rc"><div aria-hidden="true">' + "".join(rows)
+            + f'<div class="rc-ax"><span></span><span><span>−{tick[1:]}</span><span>0</span>'
+              f'<span>{tick}</span></span><span></span></div></div>'
+            + f'<figcaption class="rc-key">{key}<span>Same figures in the table below.</span></figcaption></figure>')
+
+
 def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[dict],
                     base_url: str, app_url: str, held: Optional[dict] = None,
                     similar: Optional[List[dict]] = None,
@@ -403,7 +475,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<p class="meta">{sector_html}Data through {_date(rec["as_of"])} · weekly returns, the stock '
         f'market\'s own movement removed first</p>'
         f'<p class="lead">{escape(summary)}</p>'
-        f'<h2>Exposure to each economic force</h2>{table}'
+        f'<h2>Exposure to each economic force</h2>{range_chart_html(exps, keys, peers)}{table}'
         '<div class="actions">'
         f'<a class="btn btn-primary" href="{escape(app_url)}/stock?t={escape(symbol)}">'
         f'Open the interactive report for {escape(symbol)}</a>'
