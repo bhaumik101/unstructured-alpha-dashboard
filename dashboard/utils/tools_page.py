@@ -21,6 +21,8 @@ TOOLS = (
      "stocks that moved up and down with each."),
     ("/map", "Stock map", "Every stock placed on two forces at once: rates against oil, the dollar "
      "against credit, any pair. Light up a sector, find a ticker."),
+    ("/mylist", "My list", "Save stocks as you browse and see them side by side, with what an "
+     "equal-weight basket of them did. Kept in your browser; share it by link."),
     ("/explore", "What if?", "Pick a force, drag the size of the move, and see which stocks rose and "
      "fell most in weeks like it. Follow your own tickers too."),
     ("/compare", "Compare two stocks", "Two stocks side by side, force by force, and where they clearly "
