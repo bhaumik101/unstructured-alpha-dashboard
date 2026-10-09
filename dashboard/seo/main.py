@@ -725,6 +725,8 @@ def sitemap_xml():
         if _exposure_stocks():   # an empty explorer is noindex
             urls.append(f"  <url><loc>{BASE_URL}/explore</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
+            urls.append(f"  <url><loc>{BASE_URL}/scenario</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.7</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/map</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.7</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/compare</loc><lastmod>{today}</lastmod>"
@@ -968,6 +970,15 @@ def map_page():
 
     _get_engine()
     return HTMLResponse(map_page_html(_exposure_stocks(), BASE_URL, APP_URL))
+
+
+@app.get("/scenario", response_class=HTMLResponse)
+def scenario_page():
+    """Build a scenario: move all five core forces at once."""
+    from utils.scenario_page import scenario_page_html
+
+    _get_engine()
+    return HTMLResponse(scenario_page_html(_exposure_stocks(), BASE_URL, APP_URL))
 
 
 @app.get("/mylist", response_class=HTMLResponse)
