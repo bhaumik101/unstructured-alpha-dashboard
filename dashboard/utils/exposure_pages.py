@@ -237,7 +237,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
 # same header and footer so a visitor can reach any of them from anywhere.
 NAV = (("/exposure", "Stocks"), ("/sectors", "Sectors"), ("/forces", "Forces"),
        ("/map", "Map"), ("/explore", "What if?"), ("/compare", "Compare"), ("/mylist", "My list"))
-MORE = (("/tools", "All free tools"), ("/quiz", "Daily quiz"), ("/learn", "How to read these pages"),
+MORE = (("/tools", "All free tools"), ("/scenario", "Build a scenario"), ("/quiz", "Daily quiz"), ("/learn", "How to read these pages"),
         ("/changes", "What changed this week"), ("/evidence", "Track record"))
 
 
