@@ -94,7 +94,7 @@ _DUEL_CSS = """<style>
 .du-row{display:grid;grid-template-columns:minmax(110px,180px) minmax(0,1fr);gap:14px;align-items:center;padding:6px 0}
 .du-row+.du-row{border-top:1px solid var(--line)}
 .du-l{font-weight:600;font-size:.92rem;color:var(--ink)}
-.du-l .cp-mark{font-size:.78rem}
+.du-l .cp-mark,.du-ax,.du-key{font-size:.78rem}
 .du-t{position:relative;height:34px}
 .du-t::before{content:"";position:absolute;left:0;right:0;top:16px;height:2px;background:var(--subtle)}
 .du-z{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--ink3)}
@@ -107,9 +107,9 @@ _DUEL_CSS = """<style>
 .du-f.du-m{background:var(--surface)!important;border-color:var(--ink3)}
 .du-f.du-r{background:var(--ink3)!important;opacity:.25}
 @media (prefers-color-scheme:dark){.du-r.du-a,.du-m.du-a{background:#5a8fd4}.du-r.du-b,.du-m.du-b{background:#a98ad6}}
-.du-ax{display:grid;grid-template-columns:minmax(110px,180px) minmax(0,1fr);gap:14px;font-size:.78rem;color:var(--ink3)}
+.du-ax{display:grid;grid-template-columns:minmax(110px,180px) minmax(0,1fr);gap:14px;color:var(--ink3)}
 .du-ax span:nth-child(2){display:flex;justify-content:space-between}
-.du-key{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.78rem;color:var(--ink3);margin-top:8px}
+.du-key{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--ink3);margin-top:8px}
 .du-key i{display:inline-block;width:12px;height:12px;vertical-align:-2px;margin-right:5px}
 @media (max-width:640px){.du-row,.du-ax{grid-template-columns:92px minmax(0,1fr);gap:8px}.du-l{font-size:.82rem}}
 </style>"""

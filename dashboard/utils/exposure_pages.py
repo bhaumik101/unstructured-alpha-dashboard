@@ -128,7 +128,7 @@ a{color:var(--accent)}
 .skip:focus{top:8px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .bar{background:linear-gradient(120deg,var(--navy),var(--navy2));background-color:var(--navy)}
-.bar-in{max-width:980px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bar-in{max-width:1160px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .brand{color:#fff;font-weight:800;letter-spacing:-.01em;text-decoration:none}.brand span{color:var(--bright)}
 .bar a.cta{background:var(--bright);color:#13213a;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:10px;font-size:.88rem}
 .bar-in{flex-wrap:wrap}
@@ -140,7 +140,8 @@ a{color:var(--accent)}
 .go input::placeholder{color:#9fb3cc;text-transform:none}
 .go button{min-height:36px;border-radius:9px;border:0;background:#2a4b74;color:#fff;font:inherit;font-size:.88rem;
   font-weight:650;padding:0 10px;cursor:pointer}
-@media (max-width:760px){.bar-in{padding:10px 16px;row-gap:6px}.bar a.cta{display:none}
+@media (max-width:1120px){.bar a.cta{display:none}}
+@media (max-width:940px){.bar-in{padding:10px 16px;row-gap:6px}
   .site-nav{order:3;flex-basis:100%;flex-wrap:nowrap;justify-content:flex-start;gap:16px;overflow-x:auto;
     scrollbar-width:none;margin:0 -16px;padding:0 16px}
   .site-nav::-webkit-scrollbar{display:none}.site-nav a{white-space:nowrap}
@@ -235,8 +236,8 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
 # The public tools, in the order the header shows them. Every page carries the
 # same header and footer so a visitor can reach any of them from anywhere.
 NAV = (("/exposure", "Stocks"), ("/sectors", "Sectors"), ("/forces", "Forces"),
-       ("/map", "Map"), ("/explore", "What if?"), ("/compare", "Compare"), ("/quiz", "Quiz"))
-MORE = (("/tools", "All free tools"), ("/learn", "How to read these pages"),
+       ("/map", "Map"), ("/explore", "What if?"), ("/compare", "Compare"), ("/mylist", "My list"))
+MORE = (("/tools", "All free tools"), ("/quiz", "Daily quiz"), ("/learn", "How to read these pages"),
         ("/changes", "What changed this week"), ("/evidence", "Track record"))
 
 
@@ -347,6 +348,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     from utils import track_record as tr
     from utils.embed_page import embed_box_html
     from utils.explore_page import stock_whatif_html
+    from utils.list_page import save_button_html
 
     held = held or {}
     name = rec.get("name") or ""
@@ -480,7 +482,8 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<a class="btn btn-primary" href="{escape(app_url)}/stock?t={escape(symbol)}">'
         f'Open the interactive report for {escape(symbol)}</a>'
         f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure a whole portfolio</a>'
-        f'<a class="btn btn-secondary" href="/compare?a={escape(symbol)}">Compare {escape(symbol)} with another stock</a></div>'
+        f'<a class="btn btn-secondary" href="/compare?a={escape(symbol)}">Compare {escape(symbol)} with another stock</a>'
+        f'{save_button_html(symbol)}</div>'
         f'{stock_whatif_html(symbol, rec)}{extra_html}{hist_html}{rel_html}{sim_html}'
         f'{embed_box_html(symbol, base_url)}'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> It shows how the '

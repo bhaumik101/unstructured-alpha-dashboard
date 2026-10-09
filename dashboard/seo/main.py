@@ -970,6 +970,15 @@ def map_page():
     return HTMLResponse(map_page_html(_exposure_stocks(), BASE_URL, APP_URL))
 
 
+@app.get("/mylist", response_class=HTMLResponse)
+def my_list_page():
+    """My list: saved stocks side by side, kept in the visitor's browser."""
+    from utils.list_page import list_page_html
+
+    _get_engine()
+    return HTMLResponse(list_page_html(_exposure_stocks(), BASE_URL, APP_URL))
+
+
 @app.get("/explore", response_class=HTMLResponse)
 def explore_page():
     """What if? Move one force, see which stocks moved most with it."""
