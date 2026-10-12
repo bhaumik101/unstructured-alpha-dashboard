@@ -115,7 +115,7 @@ _SCRIPT = r"""
       + '<p class="lead">' + none + ' of today&#39;s ' + Q.length + ' had no clear link at all. Across the library that is the usual answer: '
       + 'most stocks show no measurable link to most forces. A new round comes tomorrow.</p>'
       + '<div class="qz-btns"><a class="btn btn-primary" href="/explore">What if? Move a force</a>'
-      + '<a class="btn btn-secondary" href="/compare">Compare two stocks</a>'
+      + '<a class="btn btn-secondary" href="/guess">Whose fingerprint?</a>'
       + '<button type="button" class="btn btn-secondary" id="qz-copy">Copy your result</button></div>'
       + '<p class="small" id="qz-copied" aria-live="polite"></p>';
     say.textContent = 'You scored ' + score + ' of ' + Q.length + '.';

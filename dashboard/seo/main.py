@@ -731,6 +731,8 @@ def sitemap_xml():
                         "<changefreq>weekly</changefreq><priority>0.7</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/compare</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.6</priority></url>")
+            urls.append(f"  <url><loc>{BASE_URL}/guess</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>daily</changefreq><priority>0.6</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/quiz</loc><lastmod>{today}</lastmod>"
                         "<changefreq>daily</changefreq><priority>0.6</priority></url>")
     except Exception:
@@ -1015,6 +1017,15 @@ def explore_page():
     except Exception:
         carry = None
     return HTMLResponse(explore_page_html(_exposure_stocks(), BASE_URL, APP_URL, carry))
+
+
+@app.get("/guess", response_class=HTMLResponse)
+def guess_page():
+    """Whose fingerprint? Match a mystery stock's profile, five rounds a day."""
+    from utils.guess_page import guess_page_html
+
+    _get_engine()
+    return HTMLResponse(guess_page_html(_exposure_stocks(), BASE_URL, APP_URL))
 
 
 @app.get("/quiz", response_class=HTMLResponse)

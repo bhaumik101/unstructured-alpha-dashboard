@@ -31,6 +31,8 @@ TOOLS = (
      "differ."),
     ("/quiz", "Daily quiz", "Ten questions a day: when a force moved, did a stock rise, fall, or show "
      "no clear link?"),
+    ("/guess", "Whose fingerprint?", "Five rounds a day: see a mystery stock's profile against the "
+     "economy and pick it out of four."),
     ("/changes", "What changed this week", "Readings that started or stopped holding up in the latest "
      "week, and the largest shifts."),
     ("/evidence", "Track record", "How readings measured this way held up over the following year, out "
