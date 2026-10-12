@@ -50,3 +50,18 @@ def test_my_list_and_compare_hand_their_stocks_to_the_app():
     html = cp.compare_page_html(STOCKS, "XOM", "DAL", "https://www.x", "https://app.x")
     assert f"https://app.x/?{HOLDINGS_PARAM}=XOM%2CDAL&amp;utm_source=public_tools" in html
     assert "Measure XOM and DAL together" in html
+
+
+def test_no_public_page_links_into_the_app_without_saying_where_from():
+    # Buttons into the app go through app_link (utm_content names the page),
+    # so which tools lead to reports can be measured. Methodology is reading,
+    # not a conversion, and stays a plain link.
+    import re
+    from pathlib import Path
+    utils = Path(__file__).resolve().parent.parent / "utils"
+    bad = []
+    for f in sorted(utils.glob("*.py")):
+        for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            if re.search(r'href="\{escape\(app_url\)\}/(?!methodology)', line):
+                bad.append(f"{f.name}:{n}")
+    assert not bad, "plain app links (use app_link): " + ", ".join(bad)

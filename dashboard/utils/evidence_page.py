@@ -15,7 +15,7 @@ from html import escape
 from typing import Optional
 
 from utils import exposure as ex
-from utils.exposure_pages import _date, _shell
+from utils.exposure_pages import _date, _shell, app_link
 
 LABELS = (("clear", "Clear"), ("tentative", "Tentative"),
           ("indistinct", "Not distinguishable from zero"))
@@ -99,7 +99,7 @@ def evidence_page_html(result: Optional[dict], base_url: str, app_url: str) -> s
         'test. The study reruns monthly and every run is kept.</p>'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Nothing here '
         'is a recommendation to buy, sell or hold any security.</p>'
-        f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/">Measure your own '
+        f'<div class="actions"><a class="btn btn-primary" href="{escape(app_link(app_url, "/", canonical))}">Measure your own '
         'portfolio</a><a class="btn btn-secondary" href="/forces">Every economic force</a></div>')
     json_ld = {"@context": "https://schema.org", "@type": "Dataset", "name": title,
                "description": desc, "url": canonical,

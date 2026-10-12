@@ -28,7 +28,7 @@ from html import escape
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from utils import exposure as ex
-from utils.exposure_pages import STANDS_UP, _chip, _date, _shell, fmt_pct
+from utils.exposure_pages import STANDS_UP, _chip, _date, _shell, fmt_pct, app_link
 
 GROUP_LABELS: Dict[str, str] = {"core": "The core five", **ex.EXTRA_GROUPS}
 ALL_FORCES: Tuple[ex.Factor, ...] = tuple(ex.FACTORS) + tuple(ex.EXTRA_FACTORS)
@@ -247,7 +247,7 @@ def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: st
         f'{sib_html}'
         '<div class="actions">'
         f'<a class="btn btn-primary" href="/explore#{key}">Try a move in {escape(force)}</a>'
-        f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure your own portfolio</a>'
+        f'<a class="btn btn-secondary" href="{escape(app_link(app_url, "/", canonical))}">Measure your own portfolio</a>'
         '<a class="btn btn-secondary" href="/forces">All economic forces</a></div>'
         f'<p class="small"><a href="{escape(app_url)}/methodology">Full methodology</a>.</p>')
 
@@ -289,7 +289,7 @@ def forces_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         'already explain.</p>'
         + "".join(sections)
         + f'<div class="actions"><a class="btn btn-primary" href="/explore">What if? Move a force</a>'
-          f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure your own portfolio</a>'
+          f'<a class="btn btn-secondary" href="{escape(app_link(app_url, "/", base_url + "/forces"))}">Measure your own portfolio</a>'
           '<a class="btn btn-secondary" href="/exposure">Every stock on record</a></div>')
     json_ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": title,
                "description": desc, "url": f"{base_url}/forces"}

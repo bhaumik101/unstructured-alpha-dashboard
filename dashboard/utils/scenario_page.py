@@ -26,7 +26,7 @@ from typing import Iterable
 
 from utils import exposure as ex
 from utils.explore_page import _CSS as XP_CSS, JS_PCT, MAX_MULTIPLE, _unit
-from utils.exposure_pages import STANDS_UP, _date, _shell
+from utils.exposure_pages import STANDS_UP, _date, _shell, app_link
 
 # Moves in multiples of each force's standard move. Hypothetical, not forecasts.
 PRESETS = (
@@ -181,7 +181,7 @@ def scenario_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> s
         'means; no range is shown, because combining ranges needs more than these pages carry. Stocks '
         'saved to <a href="/mylist">My list</a> are marked ★. Nothing here is a recommendation to buy, '
         'sell or hold any security.</p>'
-        f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/scenarios">Run it on a whole '
+        f'<div class="actions"><a class="btn btn-primary" href="{escape(app_link(app_url, "/scenarios", canonical))}">Run it on a whole '
         'portfolio, with ranges</a><a class="btn btn-secondary" href="/explore">One force at a time</a></div>'
         f'<script type="application/json" id="sc-data">{payload}</script>'
         f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')

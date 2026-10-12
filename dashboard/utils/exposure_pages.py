@@ -236,7 +236,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         '<label for="go-t" class="sr-only" style="position:absolute;left:-9999px">Find a stock</label>'
         '<input id="go-t" name="t" placeholder="Ticker" autocomplete="off" spellcheck="false" maxlength="15">'
         '<button type="submit">Go</button></form>'
-        f'<a class="cta" href="{escape(app_url)}/">Measure a portfolio</a>'
+        f'<a class="cta" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '</div></header>'
         f'<main id="main">{body}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}</body></html>')
 
@@ -525,9 +525,9 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<p class="lead">{escape(summary)}</p>'
         f'<h2>Exposure to each economic force</h2>{range_chart_html(exps, keys, peers)}{table}'
         '<div class="actions">'
-        f'<a class="btn btn-primary" href="{escape(app_url)}/stock?t={escape(symbol)}">'
+        f'<a class="btn btn-primary" href="{escape(app_link(app_url, "/stock", canonical, t=symbol))}">'
         f'Open the interactive report for {escape(symbol)}</a>'
-        f'<a class="btn btn-secondary" href="{escape(app_url)}/">Measure a whole portfolio</a>'
+        f'<a class="btn btn-secondary" href="{escape(app_link(app_url, "/", canonical))}">Measure a whole portfolio</a>'
         f'<a class="btn btn-secondary" href="/compare?a={escape(symbol)}">Compare {escape(symbol)} with another stock</a>'
         f'{save_button_html(symbol)}</div>'
         f'{stock_whatif_html(symbol, rec)}{extra_html}{hist_html}{rel_html}{sim_html}'
@@ -694,7 +694,7 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         f'<h1>Stock exposures</h1><p class="lead">{escape(desc)} Measured weekly over three years, '
         'with the stock market\'s own movement removed first.</p>'
         + (table if stocks else '<p class="lead">No stock has been measured yet.</p>')
-        + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/stock">'
+        + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_link(app_url, "/stock", base_url + "/exposure"))}">'
           'Look up any stock</a><a class="btn btn-secondary" href="/forces">Browse by economic '
           'force</a><a class="btn btn-secondary" href="/sectors">By sector</a>'
           '<a class="btn btn-secondary" href="/exposure.csv" download>Download all (CSV)</a>'
