@@ -43,8 +43,13 @@ def test_every_tool_the_page_links_to_exists():
     assert 'url_path="scenarios"' in APP and "{APP_URL}/scenarios" in PAGE
     # The track record is linked on www: a public page anyone can open or index
     # (seo/main.py /evidence), not the in-app page that needs a live session.
-    for path in ("/forces", "/evidence"):
-        assert f'href="{path}"' in PAGE and f'source: "{path}"' in NEXT, path
+    assert 'href="/evidence"' in PAGE and 'source: "/evidence"' in NEXT
+    # The free-tools grid: every tile must be a page www actually proxies.
+    import re
+    tiles = re.findall(r'\{ href: "(/[a-z]+)", title:', PAGE)
+    assert len(tiles) >= 6, tiles
+    for path in tiles:
+        assert f'source: "{path}"' in NEXT, path
 
 
 def test_the_hero_looks_up_one_stock_through_the_public_search():
