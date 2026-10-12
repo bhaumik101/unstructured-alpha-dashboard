@@ -21,7 +21,7 @@ from html import escape
 from typing import Iterable, Optional
 
 from utils import exposure as ex
-from utils.exposure_pages import _date, _shell
+from utils.exposure_pages import _date, _shell, app_link
 from utils.force_pages import ALL_FORCES, GROUP_LABELS, force_stats
 
 # One percent formatter for every script on the public pages, matching
@@ -215,7 +215,7 @@ def explore_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         'times the size of the move you chose — so it scales in a straight line, and the slider stops '
         f'at three times the standard move.{carry_note} Nothing here is a recommendation to buy, sell '
         'or hold any security.</p>'
-        f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/scenarios">Try a move on a '
+        f'<div class="actions"><a class="btn btn-primary" href="{escape(app_link(app_url, "/scenarios", canonical))}">Try a move on a '
         'whole portfolio</a><a class="btn btn-secondary" href="/scenario">Move several at once</a><a class="btn btn-secondary" href="/forces">Every economic force</a></div>'
         f'<script type="application/json" id="xp-data">{payload}</script>'
         f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
