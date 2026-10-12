@@ -50,7 +50,8 @@ def test_overlapping_everywhere_says_so():
 ])
 def test_bad_input_gets_a_plain_answer(a, b, said):
     html = cp.compare_page_html(STOCKS, a, b, "https://www.x", "https://app.x")
-    assert said in html and "<script>" not in html.split("<body")[-1].replace("<script type=", "")
+    main = html.split('<main id="main">')[1].split("</main>")[0]     # the site's own band script sits outside
+    assert said in html and "<script>" not in main.replace("<script type=", "")
     assert 'content="noindex' in html
 
 

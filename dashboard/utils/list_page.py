@@ -22,7 +22,7 @@ from html import escape
 from typing import Iterable
 
 from utils import exposure as ex
-from utils.exposure_pages import STANDS_UP, _date, _shell
+from utils.exposure_pages import STANDS_UP, _date, _shell, app_link
 from utils.explore_page import JS_PCT
 
 STORE_KEY = "ua-list"
@@ -172,6 +172,10 @@ _SCRIPT = r"""
     if (gone.length) html += '<p class="small">Not on record any more, kept in case it returns: ' + esc(gone.join(', ')) + '.</p>';
     out.innerHTML = html;
     share.hidden = !l.length;
+    // The product: the same measurement for the list as one portfolio.
+    var go = $('ls-measure');
+    if (go){ var u = new URL(go.href); if (l.length) u.searchParams.set('h', l.join(',')); else u.searchParams.delete('h'); go.href = u.toString();
+      go.textContent = l.length > 1 ? 'Measure these ' + l.length + ' as a portfolio' : 'Measure a portfolio'; }
     var link = location.origin + location.pathname + '#t=' + l.join(',');
     $('ls-link').value = link;
     $('ls-count').textContent = l.length ? l.length + ' of ' + MAX : '';
@@ -236,7 +240,7 @@ def list_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Bold figures held up; '
         'grey ones could not be told apart from zero. Nothing here is a recommendation to buy, sell or '
         'hold any security.</p>'
-        f'<div class="actions"><a class="btn btn-primary" href="{escape(app_url)}/">Measure it as a portfolio</a>'
+        f'<div class="actions"><a class="btn btn-primary" id="ls-measure" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '<a class="btn btn-secondary" href="/map">Stock map</a><a class="btn btn-secondary" href="/explore">What if?</a></div>'
         f'<script type="application/json" id="ls-data">{payload}</script>'
         f'<script>{script}</script>')

@@ -146,6 +146,14 @@ a{color:var(--accent)}
     scrollbar-width:none;margin:0 -16px;padding:0 16px}
   .site-nav::-webkit-scrollbar{display:none}.site-nav a{white-space:nowrap}
   .go input{width:96px}}
+.pband{background:linear-gradient(120deg,var(--navy),var(--navy2));background-color:var(--navy);color:#eef3fa;margin-top:36px}
+.pband-in{max-width:980px;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px 32px;align-items:center}
+.pband h2{color:#fff;margin:0 0 6px}.pband p{color:rgba(238,243,250,.84);margin:0;max-width:560px}
+.pband-cta{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+.pband-go{background:var(--bright);color:#13213a}.pband-go:hover{filter:brightness(1.06)}
+.pband-ghost{border:1px solid rgba(255,255,255,.45);color:#fff}.pband-ghost:hover{background:rgba(255,255,255,.08)}
+.pband a[hidden]{display:none}
+@media (max-width:760px){.pband-in{grid-template-columns:1fr}.pband-cta{justify-content:flex-start}}
 .site-foot{border-top:1px solid var(--line);background:var(--subtle)}
 .site-foot-in{max-width:980px;margin:0 auto;padding:22px 16px 30px;display:grid;
   grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px}
@@ -230,7 +238,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         '<button type="submit">Go</button></form>'
         f'<a class="cta" href="{escape(app_url)}/">Measure a portfolio</a>'
         '</div></header>'
-        f'<main id="main">{body}</main>{_site_footer(app_url)}</body></html>')
+        f'<main id="main">{body}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}</body></html>')
 
 
 # The public tools, in the order the header shows them. Every page carries the
@@ -249,6 +257,44 @@ def _site_nav(canonical: str) -> str:
         here = path == href or path.startswith(href + "/")
         return f'<a href="{href}"' + (' aria-current="page"' if here else "") + f'>{escape(label)}</a>'
     return '<nav class="site-nav" aria-label="Site">' + "".join(link(h, t) for h, t in NAV) + '</nav>'
+
+
+def app_link(app_url: str, path: str, canonical: str, **params: str) -> str:
+    """A link into the app that says which public page sent the visitor."""
+    from urllib.parse import urlencode, urlsplit
+    page = urlsplit(canonical).path.strip("/").split("/")[0] or "home"
+    q = dict(params, utm_source="public_tools", utm_medium="owned", utm_content=page)
+    return f"{app_url}{path}?{urlencode(q)}"
+
+
+# Every public page ends on the product: the same measurement, for a whole
+# portfolio. When the visitor has saved stocks to My list, the band offers to
+# measure exactly those (the app opens a report from ?h=XOM,DAL).
+_BAND_SCRIPT = r"""
+(function(){
+  var a = document.getElementById('pb-mine'); if (!a) return;
+  var l = []; try { l = JSON.parse(localStorage.getItem('ua-list') || '[]'); } catch (e) {}
+  l = (Array.isArray(l) ? l : []).filter(function(t){ return /^[A-Z0-9][A-Z0-9.\-]{0,14}$/.test(t); }).slice(0, 25);
+  if (l.length < 2) return;
+  var u = new URL(a.href); u.searchParams.set('h', l.join(',')); a.href = u.toString();
+  a.textContent = 'Measure your ' + l.length + ' saved stocks as a portfolio'; a.hidden = false;
+  document.getElementById('pb-own').hidden = true;
+})();
+"""
+
+
+def _product_band(app_url: str, canonical: str) -> str:
+    return (
+        '<section class="pband" aria-labelledby="pband-h"><div class="pband-in">'
+        '<div><h2 id="pband-h">Your portfolio, measured the same way</h2>'
+        '<p>Every figure on these pages is one stock at a time. The app measures a whole portfolio: '
+        'which forces it is exposed to, which holdings cause it, and how sure the reading is. '
+        'Free, no account for the first report.</p></div>'
+        '<div class="pband-cta">'
+        f'<a class="btn pband-go" id="pb-mine" hidden href="{escape(app_link(app_url, "/", canonical))}">Measure your saved stocks</a>'
+        f'<a class="btn pband-go" id="pb-own" href="{escape(app_link(app_url, "/", canonical))}">Measure your holdings</a>'
+        f'<a class="btn pband-ghost" href="{escape(app_link(app_url, "/", canonical, sample="balanced"))}">See a sample report</a>'
+        f'</div></div><script>{_BAND_SCRIPT}</script></section>')
 
 
 def _site_footer(app_url: str) -> str:
