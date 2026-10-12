@@ -821,6 +821,18 @@ def _exposure_stocks() -> list[dict]:
     return stocks
 
 
+@app.get("/landing.json")
+def landing_json():
+    """The landing page's live demo: per core force, the stocks that moved
+    most each way in a way that held up. Small, cached at the edge."""
+    from fastapi.responses import JSONResponse
+    from utils.landing_data import landing_data
+
+    _get_engine()
+    return JSONResponse(landing_data(_exposure_stocks()), headers={
+        "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=86400"})
+
+
 @app.get("/exposure.csv")
 def exposure_csv():
     """Every reading on record, one row per stock and force, for anyone who
