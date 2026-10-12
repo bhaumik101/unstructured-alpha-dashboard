@@ -136,6 +136,11 @@ a.hm-a{display:block;color:var(--ink);text-decoration:none;border-radius:6px;mar
 a.hm-a:hover,a.hm-a:focus-visible{outline:2px solid var(--accent);outline-offset:0}
 a.hm-a[aria-current]{outline:2px solid var(--accent);background:var(--surface)}
 tr:target{outline:2px solid var(--accent)}
+.hm-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.hm-tabs button{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.hm-tabs button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.hm-tabs:not([hidden])~.hm-g .hm-gh{position:absolute;left:-9999px}
 .hm-panel{padding:16px 18px;margin-top:12px}
 .hm-panel h2{margin:0 0 4px}.hm-panel .hm-x{float:right;margin-left:12px}
 .hm-list{list-style:none;margin:10px 0 0;padding:0}
@@ -188,7 +193,15 @@ _HM_SCRIPT = r"""
   function close(){ panel.hidden = true; panel.innerHTML = '';
     if (cur){ cur.removeAttribute('aria-current'); cur.focus(); cur = null; }
     try { history.replaceState(null, '', location.pathname); } catch (e) {} }
-  document.getElementById('hm').addEventListener('click', function(e){
+  // Tabs over the force groups: one table shown at a time once script runs.
+  var wrap = document.getElementById('hm-wrap'), tabs = wrap.querySelectorAll('[role=tab]'), cards = wrap.querySelectorAll('.hm-g');
+  function tab(g){ tabs.forEach(function(t){ var on = t.getAttribute('data-g') === g; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+    cards.forEach(function(c){ c.hidden = c.getAttribute('data-g') !== g; }); }
+  if (tabs.length){ wrap.querySelector('[role=tablist]').hidden = false; tab(tabs[0].getAttribute('data-g'));
+    tabs.forEach(function(t, i){ t.addEventListener('click', function(){ if (cur) close(); tab(t.getAttribute('data-g')); });
+      t.addEventListener('keydown', function(e){ var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!d) return;
+        var n = tabs[(i + d + tabs.length) % tabs.length]; n.focus(); n.click(); }); }); }
+  wrap.addEventListener('click', function(e){
     var a = e.target.closest && e.target.closest('a.hm-a');
     if (!a || e.metaKey || e.ctrlKey || e.shiftKey) return;
     if (open(a, true)){ e.preventDefault();
@@ -196,18 +209,20 @@ _HM_SCRIPT = r"""
   });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !panel.hidden) close(); });
   var h = /^#([a-z0-9-]+):([a-z0-9_]+)$/.exec(location.hash);
-  if (h){ var a = document.querySelector('a.hm-a[href="/sectors/' + h[1] + '#f-' + h[2] + '"]'); if (a) open(a, true); }
+  if (h){ var a = document.querySelector('a.hm-a[href="/sectors/' + h[1] + '#f-' + h[2] + '"]');
+    if (a){ var g = a.closest('.hm-g'); if (g && tabs.length) tab(g.getAttribute('data-g')); open(a, true); } }
 })();
 """
 
 
 def _hm_script(grid) -> str:
     """The data behind every cell: each sector's stocks with their readings
-    on the core five ([impact, held up] or null), and the script that opens it."""
+    on every force ([impact, held up] or null), and the script that opens it."""
     import json
     from utils.explore_page import JS_PCT
-    keys = [f.key for f in ex.FACTORS]
-    data = {"k": keys, "f": [[f.label, f.shock_phrase] for f in ex.FACTORS],
+    forces = tuple(ex.FACTORS) + tuple(ex.EXTRA_FACTORS)
+    keys = [f.key for f in forces]
+    data = {"k": keys, "f": [[f.label, f.shock_phrase] for f in forces],
             "s": {slug(sec): [sec, [[m["ticker"], m.get("name") or "",
                                      [([round(float(e["impact"]), 4), 1 if e.get("evidence") in STANDS_UP else 0]
                                        if (e := (m.get("exposures") or {}).get(k)) else None) for k in keys]]
@@ -231,16 +246,33 @@ def sectors_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str
     for sec in sectors():
         mem = members_of(sec, stocks)
         newest = max([newest] + [str(m.get("as_of") or "")[:10] for m in mem])
-        grid.append((sec, mem, [sector_cell(mem, f.key) for f in ex.FACTORS]))
-    scale = max((abs(c["median"]) for _, _, cs in grid for c in cs if c["median"] is not None), default=0.0)
-    rows = []
-    for sec, mem, cs in grid:
-        cells = "".join(_cell_html(c, scale, f"/sectors/{slug(sec)}#f-{f.key}")
-                        for f, c in zip(ex.FACTORS, cs))
-        rows.append(f'<tr><th scope="row"><a href="/sectors/{slug(sec)}">{escape(sec)}</a>'
-                    f'<span class="shock">{len(mem)} stocks on record</span></th>{cells}</tr>')
-    head = "".join(f'<th scope="col" title="In weeks when {escape(f.shock_phrase)}">{escape(f.label)}</th>'
-                   for f in ex.FACTORS)
+        grid.append((sec, mem, None))
+    groups = [("core", "The core five", tuple(ex.FACTORS))] + [
+        (g, label, tuple(f for f in ex.EXTRA_FACTORS if f.group == g)) for g, label in ex.EXTRA_GROUPS.items()]
+    tables = []
+    for g, glabel, forces in groups:
+        if not forces:
+            continue
+        cells_by_sec = [(sec, mem, [sector_cell(mem, f.key) for f in forces]) for sec, mem, _ in grid]
+        if not any(c["n"] for _, _, cs in cells_by_sec for c in cs) and g != "core":
+            continue
+        # Each group shaded to its own largest median: forces differ in scale.
+        scale = max((abs(c["median"]) for _, _, cs in cells_by_sec for c in cs if c["median"] is not None),
+                    default=0.0)
+        rows = "".join(
+            f'<tr><th scope="row"><a href="/sectors/{slug(sec)}">{escape(sec)}</a>'
+            f'<span class="shock">{len(mem)} stocks on record</span></th>'
+            + "".join(_cell_html(c, scale, f"/sectors/{slug(sec)}#f-{f.key}") for f, c in zip(forces, cs))
+            + '</tr>' for sec, mem, cs in cells_by_sec)
+        head = "".join(f'<th scope="col" title="In weeks when {escape(f.shock_phrase)}">{escape(f.label)}</th>'
+                       for f in forces)
+        tables.append((g, glabel, f'<div class="hm-g" data-g="{g}" role="tabpanel" aria-label="{escape(glabel)}"><h2 class="hm-gh">{escape(glabel)}</h2>'
+                       f'<div class="card" tabindex="0" role="region" aria-label="Each sector against {escape(glabel.lower())}">'
+                       f'<table class="hm-t"><thead><tr><th scope="col">Sector</th>{head}</tr></thead>'
+                       f'<tbody>{rows}</tbody></table></div></div>'))
+    tablist = ('<div class="hm-tabs" role="tablist" aria-label="Groups of forces" hidden>'
+               + "".join(f'<button type="button" role="tab" data-g="{g}" aria-selected="false">{escape(gl)}</button>'
+                         for g, gl, _ in tables) + '</div>')
     title = "Which sectors move with interest rates, oil, the dollar and credit"
     desc = ("How each S&P 500 sector's stocks have moved with interest rates, inflation expectations, "
             "the dollar, oil and credit spreads: the median move, and how many held up each way.")
@@ -250,10 +282,10 @@ def sectors_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str
         + (f'<p class="meta">Data through {_date(newest)}</p>' if newest else "")
         + f'<p class="lead">{escape(desc)}</p>'
         + _HM_CSS +
-        '<p class="small hm-tip">Pick any figure to see the stocks behind it.</p>'
-        '<div class="card" tabindex="0" role="region" aria-label="Each sector against the five core forces">'
-        f'<table id="hm"><thead><tr><th scope="col">Sector</th>{head}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
-        f'<div class="foot">{_FOOT} {_SHADE}</div></div>'
+        '<p class="small hm-tip">Pick any figure to see the stocks behind it. The core five come first; '
+        'the tabs hold the other forces, from gold and bitcoin to the yen.</p>'
+        f'<div id="hm-wrap">{tablist}{"".join(t for _, _, t in tables)}</div>'
+        f'<p class="small">{_FOOT} {_SHADE} Each group is shaded to its own largest median.</p>'
         '<section id="hm-panel" class="card hm-panel" aria-live="polite" hidden></section>'
         + _hm_script(grid)
         + '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Nothing here is a '

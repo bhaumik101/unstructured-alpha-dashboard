@@ -147,7 +147,9 @@ def test_each_hub_cell_opens_the_stocks_behind_it(two_sectors):
     import re
     hub = sp.sectors_hub_html(two_sectors, "https://www.x", "https://app.x")
     data = json.loads(re.search(r'<script type="application/json" id="hm-data">(.*?)</script>', hub).group(1))
-    assert data["k"] == ["rates", "inflation", "dollar", "oil", "credit"]
+    from utils import exposure as ex
+    assert data["k"][:5] == ["rates", "inflation", "dollar", "oil", "credit"]
+    assert data["k"][5:] == [f.key for f in ex.EXTRA_FACTORS]           # every force, for every tab
     energy = data["s"]["energy"]
     assert energy[0] == "Energy" and [r[0] for r in energy[1]] == ["COP", "CVX", "XOM"]
     oil = data["k"].index("oil")
@@ -162,3 +164,24 @@ def test_a_sector_page_anchors_each_force_for_the_heatmap_links(two_sectors):
     page = sp.sector_page_html("Energy", two_sectors, "https://www.x", "https://app.x")
     assert '<tr id="f-oil">' in page
     assert 'class="hm hm-up" style="--a:1.00"' in page
+
+
+def test_each_force_group_is_its_own_tab_shaded_to_its_own_scale(two_sectors):
+    import re
+    hub = sp.sectors_hub_html(two_sectors, "https://www.x", "https://app.x")
+    groups = re.findall(r'<div class="hm-g" data-g="([a-z]+)" role="tabpanel"', hub)
+    assert groups[0] == "core"
+    assert re.findall(r'role="tab" data-g="([a-z]+)"', hub) == groups
+    assert 'class="hm-tabs" role="tablist" aria-label="Groups of forces" hidden' in hub   # shown by script only
+    # A group whose forces have readings is shaded against its own largest median,
+    # not against the core five's.
+    for s in two_sectors[:3]:
+        s["exposures"]["gold"] = dict(s["exposures"]["oil"], impact=0.1)
+    hub = sp.sectors_hub_html(two_sectors, "https://www.x", "https://app.x")
+    commodities = hub.split('data-g="commodities" role="tabpanel"')[1].split('<div class="hm-g"')[0]
+    assert 'href="/sectors/energy#f-gold"' in commodities
+    assert re.search(r'class="hm hm-up" style="--a:1\.00"><a class="hm-a" href="/sectors/energy#f-gold"', commodities)
+
+
+def test_a_link_to_a_cell_opens_its_tab():
+    assert "var g = a.closest('.hm-g'); if (g && tabs.length) tab(g.getAttribute('data-g'));" in sp._HM_SCRIPT
