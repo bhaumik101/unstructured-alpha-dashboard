@@ -19,7 +19,7 @@ from __future__ import annotations
 from html import escape
 from typing import Iterable, List, Optional, Tuple
 
-from utils.exposure_pages import STANDS_UP, SYMBOL_RE, _chip, _date, _shell, fmt_pct
+from utils.exposure_pages import STANDS_UP, SYMBOL_RE, _chip, _date, _shell, app_link, fmt_pct
 from utils import exposure as ex
 from utils.force_pages import ALL_FORCES
 
@@ -241,7 +241,8 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Relationships '
         'change, and nothing here is a recommendation to buy, sell or hold any security.</p>'
         '<div class="actions">'
-        f'<a class="btn btn-primary" href="{escape(app_url)}/">Measure a whole portfolio</a>'
+        f'<a class="btn btn-primary" href="{escape(app_link(app_url, "/", canonical, h=f"{a},{b}"))}">'
+        f'Measure {escape(a)} and {escape(b)} together</a>'
         '<a class="btn btn-secondary" href="/explore">What if? Move a force</a></div>')
     return _shell(f"{a} vs {b}: exposure to economic forces", lead[:300], canonical, ld, body,
                   app_url, robots="noindex, follow")
