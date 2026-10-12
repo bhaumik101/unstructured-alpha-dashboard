@@ -50,8 +50,8 @@ def _registered_routes() -> set[str]:
     return routes
 
 
-# Links to features that were RETIRED (they live only in pages/retired/, which
-# is not shipped). These are not URL bugs -- the destination genuinely no longer
+# Links to features that were RETIRED (they lived in pages/retired/, never
+# shipped and since deleted). These are not URL bugs -- the destination genuinely no longer
 # exists, so the surrounding marketing copy has to be rewritten or removed, which
 # is a product decision rather than a find-and-replace. Tracked here so they
 # cannot be forgotten and so no NEW ones can be added quietly.
@@ -160,5 +160,5 @@ def test_no_email_advertises_a_feature_that_no_longer_exists():
     assert not found, (
         "these emails name features the product no longer has: "
         + ", ".join(found)
-        + "\nthe pages exist only in pages/retired/, which is not shipped"
+        + "\nthose pages were retired and deleted (see git history for pages/retired/)"
     )
