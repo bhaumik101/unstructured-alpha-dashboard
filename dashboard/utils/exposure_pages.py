@@ -187,6 +187,11 @@ td b{color:var(--ink)}
 details.embed{margin:24px 0 8px}details.embed summary{cursor:pointer;font-weight:650}
 details.embed textarea{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .related{display:flex;flex-wrap:wrap;gap:8px;list-style:none}
+.st-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:10px 0 4px}
+.st-top .btn{min-height:40px}
+.jump{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}.jump ul{display:flex;flex-wrap:wrap;gap:4px 14px;list-style:none;margin:0;padding:0}
+.jump a{font-weight:600}
+h2[id]{scroll-margin-top:12px}
 .related a{display:inline-block;padding:7px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);
   color:var(--ink);text-decoration:none;font-size:.92rem}
 .caveat{border-left:3px solid var(--accent);background:var(--subtle);padding:10px 14px;color:var(--ink2);margin:26px 0 10px;font-size:.92rem}
@@ -446,7 +451,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
             f'<td>{_chip(exps[k]["evidence"])}</td></tr>'
             for k in xkeys)
         extra_html = (
-            '<h2>More forces, beyond the core five</h2>'
+            '<h2 id="more">More forces, beyond the core five</h2>'
             '<div class="card" tabindex="0" role="region" aria-label="More forces, beyond the core five">'
             '<table><thead><tr><th scope="col">Force</th>'
             '<th scope="col">Typical weekly move</th><th scope="col">90% range</th>'
@@ -471,7 +476,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
             f'<tr><th scope="row">{_date(h["as_of"])}</th>{"".join(cell(h, k) for k in cols)}</tr>'
             for h in history[:12])
         hist_html = (
-            f'<h2>{escape(symbol)} week by week</h2>'
+            f'<h2 id="history">{escape(symbol)} week by week</h2>'
             f'<div class="card" tabindex="0" role="region" aria-label="{escape(symbol)} week by week">'
             f'<table><thead><tr><th scope="col">Data through</th>{head}</tr></thead>'
             f'<tbody>{body_rows}</tbody></table>'
@@ -496,7 +501,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
             rel_html += (f'<h3>{label} {force}</h3>'
                          f'<ul class="related" aria-label="Other stocks that {label.lower()} {force}">'
                          f'{items}</ul>')
-        rel_html = f'<h2>Other stocks exposed to {force}</h2>{rel_html}'
+        rel_html = f'<h2 id="related">Other stocks exposed to {force}</h2>{rel_html}'
 
     from utils.sector_pages import sector_by_ticker, slug as sector_slug
     sector = sector_by_ticker().get(symbol)
@@ -510,12 +515,21 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
             f'<a class="small" href="/compare?a={escape(symbol)}&amp;b={escape(r["ticker"])}" '
             f'aria-label="Compare {escape(symbol)} with {escape(r["ticker"])}">compare</a></li>'
             for r in similar)
-        sim_html = (f'<h2>Stocks with the most similar profile</h2>'
+        sim_html = (f'<h2 id="similar">Stocks with the most similar profile</h2>'
                     f'<ul class="related" aria-label="Stocks most like {escape(symbol)}">{items}</ul>'
                     '<p class="small">Closest across the five core forces, each scaled by how much '
                     'stocks on record differ on it. Alike in how they moved over three years, not in '
                     'business, size or value.</p>')
 
+    # Jump links to the sections this stock's page actually has.
+    whatif = stock_whatif_html(symbol, rec)
+    sections = [("exposure", "Exposure", True), ("whatif", "What if?", bool(whatif)),
+                ("more", "More forces", bool(extra_html)), ("history", "Week by week", bool(hist_html)),
+                ("similar", "Similar stocks", bool(sim_html)), ("related", "Moved the same way", bool(rel_html)),
+                ("embed", "Embed", True)]
+    jump = ('<nav aria-label="On this page" class="jump"><span class="small">On this page:</span><ul>'
+            + "".join(f'<li><a href="#{k}">{escape(t)}</a></li>' for k, t, on in sections if on)
+            + '</ul></nav>')
     body = (
         f'<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '
         f'<a href="/exposure">Stock exposures</a> › {escape(symbol)}</nav>'
@@ -523,14 +537,14 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<p class="meta">{sector_html}Data through {_date(rec["as_of"])} · weekly returns, the stock '
         f'market\'s own movement removed first</p>'
         f'<p class="lead">{escape(summary)}</p>'
-        f'<h2>Exposure to each economic force</h2>{range_chart_html(exps, keys, peers)}{table}'
+        f'<div class="st-top">{jump}<span>{save_button_html(symbol)}</span></div>'
+        f'<h2 id="exposure">Exposure to each economic force</h2>{range_chart_html(exps, keys, peers)}{table}'
         '<div class="actions">'
         f'<a class="btn btn-primary" href="{escape(app_link(app_url, "/stock", canonical, t=symbol))}">'
         f'Open the interactive report for {escape(symbol)}</a>'
         f'<a class="btn btn-secondary" href="{escape(app_link(app_url, "/", canonical))}">Measure a whole portfolio</a>'
-        f'<a class="btn btn-secondary" href="/compare?a={escape(symbol)}">Compare {escape(symbol)} with another stock</a>'
-        f'{save_button_html(symbol)}</div>'
-        f'{stock_whatif_html(symbol, rec)}{extra_html}{hist_html}{rel_html}{sim_html}'
+        f'<a class="btn btn-secondary" href="/compare?a={escape(symbol)}">Compare {escape(symbol)} with another stock</a></div>'
+        f'{whatif}{extra_html}{hist_html}{rel_html}{sim_html}'
         f'{embed_box_html(symbol, base_url)}'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> It shows how the '
         'stock has moved alongside five economic forces. Relationships change, and nothing here is a '

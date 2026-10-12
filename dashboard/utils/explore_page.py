@@ -279,7 +279,7 @@ def stock_whatif_html(symbol: str, rec: dict) -> str:
     payload = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
     return (
         _CSS +
-        '<h2>What if?</h2>'
+        '<h2 id="whatif">What if?</h2>'
         '<form class="xp-form" onsubmit="return false">'
         '<div><label for="sw-force">Economic force</label><select id="sw-force"></select></div>'
         '<div><label for="sw-move">Size of the move: <span class="xp-now" id="sw-move-label"></span></label>'
