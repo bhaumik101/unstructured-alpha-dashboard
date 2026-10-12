@@ -54,3 +54,14 @@ def test_no_readings_no_chart_and_the_page_carries_it():
     assert range_chart_html({}, ["oil"]) == ""
     page = stock_page_html("XOM", _rec(), [], [], "https://www.x", "https://app.x")
     assert page.index('<figure class="card rc">') < page.index('aria-label="Exposure to each economic force"')
+
+
+def test_jump_links_point_only_at_sections_the_page_has():
+    import re
+    page = stock_page_html("XOM", _rec(), [], [], "https://www.x", "https://app.x")
+    targets = re.findall(r'<li><a href="#([a-z]+)">', page.split('class="jump"')[1].split("</nav>")[0])
+    assert targets[0] == "exposure" and "embed" in targets
+    for t in targets:
+        assert f'id="{t}"' in page, t
+    assert "similar" not in targets and "history" not in targets      # none passed in, so no section
+    assert page.index('id="ls-save"') < page.index('id="exposure"')   # save sits up top now

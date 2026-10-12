@@ -97,7 +97,7 @@ def embed_box_html(symbol: str, base_url: str) -> str:
     """The collapsible "Embed this card" box on the stock page, with a copy button."""
     code = embed_code(symbol, base_url)
     return (
-        '<details class="embed"><summary>Embed this card on your site</summary>'
+        '<details class="embed" id="embed"><summary>Embed this card on your site</summary>'
         f'<p class="small">Paste this where you want {escape(symbol)}&#39;s card to appear. It updates '
         'when the stock is re-measured each week.</p>'
         f'<textarea readonly rows="3" aria-label="Embed code for {escape(symbol)}" '
