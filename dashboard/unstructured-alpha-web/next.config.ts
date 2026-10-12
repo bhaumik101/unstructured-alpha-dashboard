@@ -47,6 +47,8 @@ const nextConfig: NextConfig = {
       { source: "/tools", destination: `${SEO_ORIGIN}/tools` },
       { source: "/learn", destination: `${SEO_ORIGIN}/learn` },
       { source: "/exposure.csv", destination: `${SEO_ORIGIN}/exposure.csv` },
+      // The landing page's live demo reads this; same-origin, so no CORS.
+      { source: "/landing.json", destination: `${SEO_ORIGIN}/landing.json` },
       { source: "/go", destination: `${SEO_ORIGIN}/go` },
       { source: "/sectors", destination: `${SEO_ORIGIN}/sectors` },
       { source: "/sectors/:name", destination: `${SEO_ORIGIN}/sectors/:name` },

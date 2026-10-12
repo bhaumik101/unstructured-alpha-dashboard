@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import './landing.css';
+import LiveMovers from './LiveMovers';
 
 const APP_URL = "https://app.unstructuredalpha.com";
 const PILOT_EMAIL = "support@unstructuredalpha.com";
@@ -345,6 +346,9 @@ export default function Home() {
       </div>
 
       <main id="main">
+        {/* ── Live demo: real stocks, the newest data week ───────────────── */}
+        <LiveMovers />
+
         {/* ── Sample report ─────────────────────────────────────────────── */}
         <section className="lp-band lp-band-sky" aria-labelledby="sample-title">
           <div className="lp-wrap">
