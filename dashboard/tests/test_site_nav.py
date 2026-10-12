@@ -57,3 +57,14 @@ def test_the_ticker_box_goes_to_the_right_place(client):  # noqa: F811
     assert where("bank") == "/exposure/BANK"
     assert where(" brk.b ") == f"{M.APP_URL}/stock?t=BRK-B"          # not on record: the app measures it
     assert where("<script>") == "/exposure" and where("") == "/exposure"
+
+
+def test_every_tool_has_a_group_and_an_icon_and_counts_are_not_hard_coded():
+    from utils import tools_page as tp
+    from utils.force_pages import ALL_FORCES
+    groups = {g for g, _, _ in tp.GROUPS}
+    assert all(t[3] in groups for t in tp._TOOLS)
+    assert all(h in tp._ICON for h, _, _ in tp.TOOLS)
+    html = tp.tools_page_html([], "https://www.x", "https://app.x")
+    assert f"{len(ALL_FORCES)} forces" in html and "Nineteen" not in html
+    assert html.count('<section class="tg">') == len(tp.GROUPS)
