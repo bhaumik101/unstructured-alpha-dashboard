@@ -509,11 +509,26 @@ _HUB_SCRIPT = r"""
 (function(){
   var t = document.getElementById('hub'), body = t.tBodies[0], q = document.getElementById('hub-q');
   var count = document.getElementById('hub-count'), rows = Array.prototype.slice.call(body.rows);
+  // Optional filters (the hub page has them): sector, and "held up moving
+  // up/down with a force". data-h carries one character per force: u or d
+  // where the reading held up that way, n where it did not, - not measured.
+  var sec = document.getElementById('hub-sec'), held = document.getElementById('hub-held');
   function filter(){
-    var s = q.value.trim().toUpperCase(), n = 0;
-    rows.forEach(function(r){ var hit = !s || r.getAttribute('data-k').indexOf(s) >= 0;
+    var s = q.value.trim().toUpperCase(), n = 0, sv = sec ? sec.value : '', hv = held ? held.value : '';
+    var hi = hv ? +hv.split(':')[0] : -1, hd = hv ? hv.split(':')[1] : '';
+    rows.forEach(function(r){ var hit = (!s || r.getAttribute('data-k').indexOf(s) >= 0)
+        && (!sv || r.getAttribute('data-s') === sv)
+        && (hi < 0 || (r.getAttribute('data-h') || '').charAt(hi) === hd);
       r.hidden = !hit; if (hit) n++; });
     count.textContent = n + ' of ' + rows.length + ' stocks';
+    if (sec || held){ var h = [sv && 's=' + sv, hv && 'h=' + hv, s && 'q=' + encodeURIComponent(s)].filter(Boolean).join('&');
+      try { history.replaceState(null, '', h ? '#' + h : location.pathname); } catch (e) {} }
+  }
+  if (sec || held){
+    location.hash.slice(1).split('&').forEach(function(p){ var kv = p.split('='), v = decodeURIComponent(kv[1] || '');
+      if (kv[0] === 's' && sec) sec.value = v; if (kv[0] === 'h' && held) held.value = v; if (kv[0] === 'q') q.value = v; });
+    if (sec && sec.selectedIndex < 0) sec.value = ''; if (held && held.selectedIndex < 0) held.value = '';
+    [sec, held].forEach(function(el){ if (el) el.addEventListener('change', filter); });
   }
   t.querySelectorAll('thead button').forEach(function(b){
     b.addEventListener('click', function(){
@@ -538,8 +553,12 @@ _HUB_SCRIPT = r"""
 
 _HUB_CSS = """<style>
 .hub-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0}
+.hub-f{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}.hub-fq{flex:1 1 260px;max-width:420px}
+.hub-f select{min-width:0;flex:1 1 auto}.hub-f label{white-space:nowrap}
+.hub-bar select{min-height:44px;font:inherit;border:1px solid var(--line);border-radius:10px;padding:0 10px;
+  background:var(--surface);color:var(--ink);max-width:100%}
 .hub-bar input{min-height:44px;font:inherit;border:1px solid var(--line);border-radius:10px;padding:0 12px;
-  background:var(--surface);color:var(--ink);flex:1 1 220px;max-width:360px}
+  background:var(--surface);color:var(--ink);flex:1 1 160px;min-width:0}
 #hub th button{all:unset;cursor:pointer;font-weight:650}
 #hub th button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #hub th[aria-sort=descending] button::after{content:" ↓"}#hub th[aria-sort=ascending] button::after{content:" ↑"}
@@ -552,10 +571,21 @@ _HUB_CSS = """<style>
 </style>"""
 
 
-def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record against the five core forces") -> str:
+def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record against the five core forces",
+                  filters: bool = False) -> str:
     """The sortable, filterable table of stocks against the core five; works
-    in full without script, sorted by ticker."""
+    in full without script, sorted by ticker. filters: add the sector and
+    held-up filters (the hub page; a sector page is one sector already)."""
+    from utils.sector_pages import sector_by_ticker, sectors as all_sectors, slug as sector_slug
     stocks = sorted(stocks, key=lambda s: s["ticker"])
+    secs = sector_by_ticker()
+
+    def mark(e: Optional[dict]) -> str:
+        if not e:
+            return "-"
+        if e.get("evidence") not in STANDS_UP:
+            return "n"
+        return "u" if e["impact"] > 0 else "d"
 
     def cell(e: Optional[dict]) -> str:
         if not e:
@@ -567,7 +597,9 @@ def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record ag
                 + (f"<b>{v}</b>" if strong else f'<span class="v-weak">{v}</span>') + '</td>')
 
     rows = "".join(
-        f'<tr data-k="{escape((s["ticker"] + " " + (s.get("name") or "")).upper())}">'
+        f'<tr data-k="{escape((s["ticker"] + " " + (s.get("name") or "")).upper())}"'
+        f' data-s="{sector_slug(secs[s["ticker"]]) if s["ticker"] in secs else ""}"'
+        f' data-h="{"".join(mark((s.get("exposures") or {}).get(k)) for k in _ORDER)}">'
         f'<th scope="row"><a href="/exposure/{escape(s["ticker"])}">{escape(s["ticker"])}</a>'
         + (f'<span>{escape(s["name"])}</span>' if s.get("name") else "") + '</th>'
         + "".join(cell((s.get("exposures") or {}).get(k)) for k in _ORDER) + '</tr>'
@@ -576,11 +608,22 @@ def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record ag
             + "".join(f'<th scope="col"><button type="button" data-col="{i + 1}" '
                       f'title="In weeks when {escape(_FACTOR[k].shock_phrase)}">{escape(_FACTOR[k].label)}</button></th>'
                       for i, k in enumerate(_ORDER)))
+    extra = ""
+    if filters:
+        sec_opts = "".join(f'<option value="{sector_slug(x)}">{escape(x)}</option>' for x in all_sectors())
+        held_opts = "".join(
+            f'<option value="{i}:{d}">{w} {escape(ex.lower_label(_FACTOR[k].label))}</option>'
+            for i, k in enumerate(_ORDER) for d, w in (("u", "Moved up with"), ("d", "Moved down with")))
+        extra = ('<span class="hub-f"><label for="hub-sec" class="small">Sector</label>'
+                 f'<select id="hub-sec"><option value="">All sectors</option>{sec_opts}</select></span>'
+                 '<span class="hub-f"><label for="hub-held" class="small">Held up</label>'
+                 f'<select id="hub-held"><option value="">Any reading</option>{held_opts}</select></span>')
     return (
         _HUB_CSS
-        + '<div class="hub-bar"><label for="hub-q" class="small">Find a stock</label>'
-          '<input id="hub-q" type="search" autocomplete="off" spellcheck="false" placeholder="Ticker or name">'
-          '<span class="small" id="hub-count" aria-live="polite"></span></div>'
+        + '<div class="hub-bar"><span class="hub-f hub-fq"><label for="hub-q" class="small">Find a stock</label>'
+          '<input id="hub-q" type="search" autocomplete="off" spellcheck="false" placeholder="Ticker or name"></span>'
+        + extra
+        + '<span class="small" id="hub-count" aria-live="polite"></span></div>'
         + f'<div class="card" tabindex="0" role="region" aria-label="{escape(label)}">'
           f'<table id="hub"><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table>'
           '<div class="foot">Each figure is the stock&#39;s typical move in a week when that force moved '
@@ -599,7 +642,7 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     title = "Stock exposure to interest rates, inflation, oil, the dollar and credit"
     desc = (f"How {len(stocks)} U.S. stocks have moved with interest rates, inflation expectations, "
             "the dollar, oil and credit spreads, each with its 90% range and an evidence label.")
-    table = hub_grid_html(stocks)
+    table = hub_grid_html(stocks, filters=True)
     body = (
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Stock exposures</nav>'
         f'<h1>Stock exposures</h1><p class="lead">{escape(desc)} Measured weekly over three years, '
