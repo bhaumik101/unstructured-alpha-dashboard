@@ -95,13 +95,18 @@ def test_the_page_canonicalises_to_the_specific_note(client):
     )
 
 
-def test_the_brief_is_in_the_sitemap(client, monkeypatch):
+def test_the_brief_is_an_archive_served_but_not_indexed(client, monkeypatch):
+    # The brief belongs to the retired macro-signal product (it ends with a
+    # portfolio "bottom line", which the current product does not give). It
+    # stays reachable for subscriber emails, but is noindex, carries the
+    # archive notice, and is not in the sitemap; nor are the signal pages.
     monkeypatch.setattr(_M, "_get_config", lambda: ({"AAPL": {}}, {"s1": {"name": "S"}}))
     xml = client.get("/sitemap.xml").text
-    assert "/brief</loc>" in xml, "the brief index is not in the sitemap"
-    assert len(re.findall(r"/brief/\d+</loc>", xml)) == 2, (
-        "archived briefs are not listed, so only the newest is discoverable"
-    )
+    assert "/brief" not in xml and "/signals/report" not in xml and "/signal/" not in xml
+    r = client.get("/brief")
+    assert r.status_code == 200
+    assert '<meta name="robots" content="noindex, follow">' in r.text
+    assert "earlier macro-signal" in r.text and 'href="/tools"' in r.text
 
 
 def test_no_published_note_is_a_503_not_a_crash(client, monkeypatch):

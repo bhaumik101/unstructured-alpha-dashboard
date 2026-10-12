@@ -191,7 +191,13 @@ def _html_head(
     canonical: str,
     json_ld: str = "",
     robots: str = "",
+    archive: bool = False,
 ) -> str:
+    """archive: a page from the retired macro-signal product -- kept for old
+    links and subscriber emails, noindex, with a notice pointing to the
+    current product."""
+    if archive:
+        robots = _NOINDEX
     robots_meta = f'\n  <meta name="robots" content="{robots}">' if robots else ""
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -445,7 +451,18 @@ def _html_head(
   <span class="nav-brand">Unstructured Alpha</span>
   <a href="{APP_URL}" class="nav-cta">Open App →</a>
 </nav>
-"""
+""" + (_ARCHIVE_NOTICE if archive else "")
+
+
+_ARCHIVE_NOTICE = (
+    '<aside role="note" style="max-width:780px;margin:18px auto 0;padding:14px 18px;border:1px solid #3a4a6b;'
+    'border-radius:12px;background:#121a2c;color:#c9d4ea;font-size:0.9rem;line-height:1.6">'
+    '<b style="color:#fff">Archive.</b> This page is from Unstructured Alpha&#39;s earlier macro-signal '
+    'product. It is kept for existing links and is not part of the current product, which measures how '
+    'stocks and portfolios have moved with interest rates, inflation, the dollar, oil and credit, with '
+    'the uncertainty shown. Nothing here is a recommendation. '
+    '<a href="/tools" style="color:#9ec1f7">See the current tools</a> · '
+    '<a href="/exposure" style="color:#9ec1f7">Every stock&#39;s exposure</a></aside>')
 
 
 def _html_foot() -> str:
@@ -689,24 +706,14 @@ Sitemap: {BASE_URL}/sitemap.xml
 
 @app.get("/sitemap.xml")
 def sitemap_xml():
-    TICKERS, SIGNALS = _get_config()
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     urls = [
         f"  <url><loc>{BASE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>",
-        f"  <url><loc>{BASE_URL}/signals/report</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>",
-        f"  <url><loc>{BASE_URL}/brief</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>",
     ]
-    try:
-        engine, _, _ = _get_engine()
-        for _n in _brief_rows(engine):
-            urls.append(
-                f"  <url><loc>{BASE_URL}/brief/{_n['id']}</loc>"
-                f"<lastmod>{str(_n['note_date'])[:10]}</lastmod>"
-                f"<changefreq>monthly</changefreq><priority>0.6</priority></url>"
-            )
-    except Exception:
-        pass  # a sitemap missing the archive still beats a 500
+    # The macro-signal pages (/signals/report, /signal/*, /brief) are the
+    # retired product: still served for old links and subscriber emails, but
+    # noindex and not listed. See _ARCHIVE_NOTICE.
 
     try:
         _get_engine()
@@ -773,14 +780,7 @@ def sitemap_xml():
 
     # /ticker/* is not listed: those pages are the retired Confluence Score.
     # A measured stock's /ticker URL 301s to its /exposure page (listed above);
-    # the rest are noindex. See ticker_page.
-    for sig_id in sorted(SIGNALS.keys()):
-        urls.append(
-            f"  <url><loc>{BASE_URL}/signal/{sig_id}</loc>"
-            f"<lastmod>{today}</lastmod>"
-            f"<changefreq>daily</changefreq>"
-            f"<priority>0.7</priority></url>"
-        )
+    # the rest are noindex. See ticker_page. /signal/* likewise: archive pages.
 
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -1286,7 +1286,7 @@ def ticker_page(symbol: str):
             '</div>'
         )
 
-    html = _html_head(page_title, seo_desc, canonical, json_ld, robots=_NOINDEX)
+    html = _html_head(page_title, seo_desc, canonical, json_ld, archive=True)
     html += f"""
 <div class="container">
 
@@ -1455,7 +1455,7 @@ def signal_page(signal_id: str):
         f'{ACTIVE_SIGNAL_COUNT}; it measures macro context, not a full investment thesis.</p>'
     )
 
-    html = _html_head(page_title, seo_desc, canonical, json_ld)
+    html = _html_head(page_title, seo_desc, canonical, json_ld, archive=True)
     html += f"""
 <div class="container">
 
@@ -1598,7 +1598,7 @@ def _render_brief(note: dict, archive: list[dict]) -> str:
 }}
 </script>"""
 
-    html = _html_head(page_title, seo_desc, canonical, json_ld)
+    html = _html_head(page_title, seo_desc, canonical, json_ld, archive=True)
     html += f"""
 <div class="container">
   <div class="hero">
@@ -1704,7 +1704,7 @@ def signals_report():
             </tr>"""
         return rows
 
-    html = _html_head(page_title, seo_desc, canonical, json_ld)
+    html = _html_head(page_title, seo_desc, canonical, json_ld, archive=True)
     html += f"""
 <div class="container">
 
@@ -1769,7 +1769,7 @@ def brief_latest():
         return HTMLResponse(
             _html_head("Weekly Macro Brief — " + SITE_NAME,
                        "The weekly macro brief has not been published yet.",
-                       f"{BASE_URL}/brief")
+                       f"{BASE_URL}/brief", archive=True)
             + '<div class="container"><div class="hero"><h1 class="hero-name">'
               'No brief published yet</h1><div style="color:#6B7A95;margin-top:10px;">'
               'The weekly note is generated each Sunday. Check back shortly.</div>'
