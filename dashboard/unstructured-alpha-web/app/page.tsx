@@ -251,6 +251,26 @@ function evidenceClass(label: string): string {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// The public tools, mirroring utils/tools_page.py (same hrefs and icons).
+const FREE_TOOLS: { href: string; title: string; blurb: string; icon: React.ReactNode }[] = [
+  { href: "/exposure", title: "Stocks", blurb: "Every stock against rates, inflation, the dollar, oil and credit. Filter by sector or by what held up.",
+    icon: <path d="M4 6h16M4 12h16M4 18h10" /> },
+  { href: "/sectors", title: "Sector heatmap", blurb: "How each sector moved with each force. Click a cell for the stocks behind it.",
+    icon: <><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></> },
+  { href: "/map", title: "Stock map", blurb: "Every stock on any two forces at once. Light up a sector, find a ticker.",
+    icon: <><circle cx="8" cy="15" r="2" /><circle cx="15" cy="8" r="2" /><circle cx="17" cy="16" r="2" /><path d="M4 4v16h16" /></> },
+  { href: "/scenario", title: "Build a scenario", blurb: "Move all five forces at once, or pick one like an inflation scare.",
+    icon: <><path d="M5 6h14M5 12h14M5 18h14" /><circle cx="9" cy="6" r="2" /><circle cx="15" cy="12" r="2" /><circle cx="11" cy="18" r="2" /></> },
+  { href: "/compare", title: "Compare two stocks", blurb: "Two stocks on one scale, and where they clearly differ.",
+    icon: <><path d="M8 4v16M16 4v16" /><circle cx="8" cy="9" r="2" /><circle cx="16" cy="15" r="2" /></> },
+  { href: "/mylist", title: "My list", blurb: "Save stocks as you browse, then measure them as one portfolio.",
+    icon: <path d="M12 4l2.4 5 5.6.8-4 3.9.9 5.5L12 16.6 7.1 19.2l.9-5.5-4-3.9 5.6-.8z" /> },
+  { href: "/guess", title: "Whose fingerprint?", blurb: "A daily game: match a mystery stock to its economic profile.",
+    icon: <><path d="M7 11a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0z" /><path d="M10 11v2M14 11v2" /></> },
+  { href: "/learn", title: "How to read it", blurb: "The typical move, the 90% range and the labels, with a playground.",
+    icon: <><path d="M4 6l8-3 8 3-8 3z" /><path d="M8 8v5c0 1.5 2 3 4 3s4-1.5 4-3V8" /></> },
+];
+
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleTheme = () => {
@@ -427,8 +447,8 @@ export default function Home() {
         <section id="tools" className="lp-band">
           <div className="lp-wrap">
             <p className="lp-eyebrow">What you can do with it</p>
-            <h2 className="lp-h2">One measurement, five ways to use it</h2>
-            <div className="lp-grid-3">
+            <h2 className="lp-h2">One measurement, four ways to use it</h2>
+            <div className="lp-grid-2x2">
               <div className="lp-step">
                 <h3 className="lp-h3">Exposure report</h3>
                 <p className="lp-body">What a portfolio has moved with, force by force, with a range, an evidence label and a heatmap of the holdings behind each one.</p>
@@ -445,20 +465,38 @@ export default function Home() {
                 <a className="lp-link" href={`${APP_URL}/`}>See it in the report →</a>
               </div>
               <div className="lp-step">
-                <h3 className="lp-h3">Stocks and forces</h3>
-                <p className="lp-body">Every S&amp;P 500 company&rsquo;s exposures, measured weekly, and for each force the stocks that moved up and down with it.</p>
-                <a className="lp-link" href="/forces">Browse by force →</a>
-                <a className="lp-link" style={{ display: "block" }} href="/map">Stock map: any two forces at once →</a>
-                <a className="lp-link" style={{ display: "block" }} href="/explore">What if? Move a force →</a>
-                <a className="lp-link" style={{ display: "block" }} href="/compare">Compare two stocks →</a>
-                <a className="lp-link" style={{ display: "block" }} href="/quiz">Daily quiz: which way did it move? →</a>
-              </div>
-              <div className="lp-step">
                 <h3 className="lp-h3">Does it hold up?</h3>
                 <p className="lp-body">How readings measured this way held up over the following year, out of sample, across the S&amp;P 500 — published whatever it shows.</p>
                 <a className="lp-link" href="/evidence">Read the track record →</a>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ── Free tools: the same measurement, one stock at a time ─────── */}
+        <section className="lp-band lp-band-sky" aria-labelledby="free-title">
+          <div className="lp-wrap">
+            <p className="lp-eyebrow">Free, no account</p>
+            <h2 id="free-title" className="lp-h2">The same measurement, one stock at a time</h2>
+            <p className="lp-lead lp-free-lead">
+              S&amp;P 500 companies, measured weekly with the same engine. Look one up, try a move,
+              or test what you think you know &mdash; then measure your own portfolio the same way.
+            </p>
+            <ul className="lp-free">
+              {FREE_TOOLS.map((t) => (
+                <li key={t.href}>
+                  <a href={t.href}>
+                    <span className="lp-free-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.8}
+                           strokeLinecap="round" strokeLinejoin="round">{t.icon}</svg>
+                    </span>
+                    <b>{t.title}</b>
+                    <span>{t.blurb}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <a className="lp-link" href="/tools">All free tools →</a>
           </div>
         </section>
 
