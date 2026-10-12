@@ -21,6 +21,39 @@ from utils.exposure_pages import _chip, _shell
 
 SECTIONS = ("move", "market", "range", "evidence", "extras", "limits")
 
+# The label rule, in the page's script. Mirrors utils.exposure.evidence_for
+# (with enough weeks): a test runs it in Node against the Python.
+LABEL_JS = r"""
+  function label(m, h){            // m: typical move; h: half-width of its 90% range
+    var se = h / Z90, t = se > 0 ? m / se : 0;
+    return [Math.abs(t) >= CLEAR ? 'clear' : Math.abs(t) >= Z90 ? 'tentative' : 'indistinct', t];
+  }
+"""
+
+_PLAY_SCRIPT = r"""
+(function(){
+  var Z90 = __Z90__, CLEAR = __CLEAR__, SPAN = 5;
+/*LABEL*/
+  var m = document.getElementById('lp-m'), h = document.getElementById('lp-h'), out = document.getElementById('lp-out');
+  var rng = document.getElementById('lp-rng'), dot = document.getElementById('lp-dot'), chip = document.getElementById('lp-chip');
+  var NAMES = {clear: ['chip-clear', 'Clear'], tentative: ['chip-tentative', 'Tentative'], indistinct: ['chip-zero', 'Not distinguishable from zero']};
+  function f(v){ return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%'; }
+  function pos(v){ return Math.max(0, Math.min(100, 50 + 50 * v / SPAN)); }
+  function draw(){
+    var mv = parseFloat(m.value), hv = parseFloat(h.value), r = label(mv, hv), lo = mv - hv, hi = mv + hv;
+    document.getElementById('lp-mv').textContent = f(mv); document.getElementById('lp-hv').textContent = '±' + hv.toFixed(1) + '%';
+    rng.style.left = pos(lo) + '%'; rng.style.width = (pos(hi) - pos(lo)) + '%'; dot.style.left = pos(mv) + '%';
+    chip.className = 'chip ' + NAMES[r[0]][0]; chip.textContent = NAMES[r[0]][1];
+    var crosses = r[0] === 'indistinct';   // the label decides, so text and chip never disagree
+    out.textContent = 'Range ' + f(lo) + ' to ' + f(hi) + ' · |t| = ' + Math.abs(r[1]).toFixed(2) + '. '
+      + (crosses ? 'The range crosses zero, so no link can be told apart from noise.'
+         : r[0] === 'tentative' ? 'The range clears zero, but |t| is short of the ' + CLEAR.toFixed(2) + ' needed for Clear.'
+         : 'Far enough from zero, for its noise, to count as Clear.');
+  }
+  m.addEventListener('input', draw); h.addEventListener('input', draw); draw();
+})();
+"""
+
 
 def learn_page_html(base_url: str, app_url: str) -> str:
     canonical = f"{base_url}/learn"
@@ -49,6 +82,23 @@ def learn_page_html(base_url: str, app_url: str) -> str:
         '<div class="lx-ticks"><span>−4%</span><span>0</span><span>+4%</span></div>'
         '<figcaption>Illustration, not a real stock: a typical move of <b>+2.4%</b> in weeks when oil rose '
         '10%, with a 90% range of +1.4% to +3.4%. The whole range sits above zero.</figcaption></figure>')
+    playground = (
+        '<figure class="card lp-play"><div class="lp-ctl">'
+        '<label for="lp-m">Typical move <b id="lp-mv">+1.6%</b></label>'
+        '<input type="range" id="lp-m" min="-3" max="3" step="0.1" value="1.6">'
+        '<label for="lp-h">90% range <b id="lp-hv">±1.2%</b></label>'
+        '<input type="range" id="lp-h" min="0.2" max="3" step="0.1" value="1.2"></div>'
+        '<div class="lx-axis" aria-hidden="true"><span class="lx-zero" style="left:50%"></span>'
+        '<span class="lx-range" id="lp-rng" style="left:58%;width:24%"></span>'
+        '<span class="lx-dot" id="lp-dot" style="left:66%"></span></div>'
+        '<div class="lx-ticks" aria-hidden="true"><span>−5%</span><span>0</span><span>+5%</span></div>'
+        f'<p class="lp-res">{_chip("tentative").replace('class="chip', 'id="lp-chip" class="chip')} '
+        '<span id="lp-out" aria-live="polite">Range +0.4% to +2.8% · |t| = 2.19. The range clears zero, but |t| is '
+        f'short of the {ex.CLEAR_T:.2f} needed for Clear.</span></p>'
+        '<figcaption class="small">A playground, not a real stock. The label follows the same rule as every '
+        f'reading on the site: Clear at |t| ≥ {ex.CLEAR_T:.2f}, Tentative at |t| ≥ {ex.Z90:.2f}, where |t| is the '
+        'figure divided by its noise (the 90% range is ±1.645 times that noise).</figcaption></figure>'
+        f'<script>{_PLAY_SCRIPT.replace("/*LABEL*/", LABEL_JS).replace("__Z90__", repr(ex.Z90)).replace("__CLEAR__", repr(ex.CLEAR_T))}</script>')
     body = (
         '<style>.lx{margin:14px 0 18px;max-width:560px}.lx-axis{position:relative;height:28px}'
         '.lx-axis::before{content:"";position:absolute;left:0;right:0;top:13px;height:2px;background:var(--line)}'
@@ -59,7 +109,12 @@ def learn_page_html(base_url: str, app_url: str) -> str:
         '.lx figcaption{font-size:.92rem;color:var(--ink2);margin-top:6px}'
         '.toc{list-style:none;display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 10px}'
         '.learn h2{scroll-margin-top:16px}.learn p,.learn ul{max-width:760px;margin-bottom:12px;color:var(--ink2)}'
-        '.learn ul{padding-left:20px}</style>'
+        '.learn ul{padding-left:20px}'
+        '.lp-play{padding:16px 18px;max-width:640px;margin:10px 0 16px}.lp-play .lx-axis{margin-top:12px}'
+        '.lp-ctl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center}'
+        '.lp-ctl label{white-space:nowrap}.lp-ctl b{font-variant-numeric:tabular-nums;color:var(--ink)}'
+        '.lp-ctl input{width:100%;min-height:32px}.lp-res{margin:10px 0 6px}'
+        '@media (max-width:520px){.lp-ctl{grid-template-columns:1fr}}</style>'
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › How to read these pages</nav>'
         '<h1>How to read these pages</h1>'
         f'<p class="lead">{escape(desc)}</p>'
@@ -88,7 +143,8 @@ def learn_page_html(base_url: str, app_url: str) -> str:
         'data cannot rule out that the stock has no link to that force at all.</p>'
         '<h2 id="evidence">Clear, Tentative, or not</h2>'
         '<p>Every reading carries one of three labels, from how far the figure sits from zero relative to '
-        'its own noise:</p><ul>'
+        'its own noise. Try it: move the figure and widen or narrow its range.</p>'
+        f'{playground}<ul>'
         f'<li>{_chip("clear")} The figure is far enough from zero that chance is an unlikely explanation, '
         f'even allowing for the fact that five forces are tested at once (|t| ≥ {ex.CLEAR_T:.2f}).</li>'
         f'<li>{_chip("tentative")} The 90% range excludes zero, but the bar for Clear is not met '
