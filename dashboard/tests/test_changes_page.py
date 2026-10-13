@@ -77,3 +77,25 @@ def test_the_library_returns_each_stocks_previous_week(client):  # noqa: F811
     r = c.get("/changes")
     assert r.status_code == 200 and "noindex" not in r.text
     assert "/changes</loc>" in c.get("/sitemap.xml").text
+
+
+def test_the_page_leads_with_counts_and_draws_each_change_on_one_scale():
+    import re
+    html = cp.changes_page_html(NOW, BEFORE, "https://www.x", "https://app.x")
+    tiles = re.findall(r'<li><b>(\d+)</b><span>([^<]+)</span></li>', html)
+    assert tiles == [("2", "stocks compared"), ("2", "readings now hold up"), ("1", "no longer hold up")]
+    # Which forces moved: oil 1 in, gold 1 in, rates 1 out.
+    assert re.search(r'Oil and energy</a><span class="ch-bar"[^>]*>.*?<span class="small">1 in · 0 out', html)
+    assert re.search(r'Interest rates</a><span class="ch-bar"[^>]*>.*?<span class="small">0 in · 1 out', html)
+    # Every row: a before ring and a now dot; weak "now" readings drawn hollow.
+    assert html.count('class="ch-b"') == html.count('class="ch-n') > 0
+    assert 'class="ch-n ch-weak"' in html                       # XOM rates no longer holds up
+
+
+def test_long_sections_show_ten_then_the_rest_on_request():
+    many_now = [_wk(_stock(f"S{i:02d}", "", oil=(1.0 + i / 10, "clear")), "2026-10-02") for i in range(14)]
+    many_before = [_wk(_stock(f"S{i:02d}", "", oil=(0.1, "indistinct")), "2026-09-25") for i in range(14)]
+    html = cp.changes_page_html(many_now, many_before, "https://www.x", "https://app.x")
+    gained = html.split("<h2>Now holding up</h2>")[1].split("<h2>")[0]
+    shown, rest = gained.split('<details class="ch-more">')
+    assert shown.count("<li>") == cp.SHOWN and "Show all 14" in rest and rest.count("<li>") == 14 - cp.SHOWN
