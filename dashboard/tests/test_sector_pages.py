@@ -185,3 +185,36 @@ def test_each_force_group_is_its_own_tab_shaded_to_its_own_scale(two_sectors):
 
 def test_a_link_to_a_cell_opens_its_tab():
     assert "var g = a.closest('.hm-g'); if (g && tabs.length) tab(g.getAttribute('data-g'));" in sp._HM_SCRIPT
+
+
+def test_the_headline_names_the_core_force_most_of_the_sector_shared(energy):
+    mem = sp.members_of("Energy", energy)
+    assert sp.headline("Energy", mem) == ("The clearest shared link in Energy is oil and energy: "
+                                          "3 of 4 stocks moved up with it in a way that held up.")
+    # A style factor shared by everyone does not win: the headline is core five only.
+    for m in mem:
+        m["exposures"]["value"] = dict(m["exposures"]["oil"], impact=1.0, evidence="clear")
+    assert "oil and energy" in sp.headline("Energy", mem)
+
+
+def test_no_majority_is_said_plainly_and_too_few_says_nothing(energy):
+    from tests.test_explore_page import _stock
+    mixed = [_stock(t, "", oil=(v, ev)) for t, v, ev in
+             (("A", 1.0, "clear"), ("B", 0.1, "indistinct"), ("C", -0.1, "indistinct"))]
+    assert sp.headline("X", mixed) == ("No single economic force moved most X stocks in a way that held up. "
+                                       "The most common link: 1 of 3 moved up with oil and energy.")
+    assert sp.headline("X", mixed[:2]) == ""
+
+
+def test_the_fingerprint_draws_median_and_middle_half(energy):
+    import re
+    mem = sp.members_of("Energy", energy)
+    assert sp._quartiles([1.0, 2.0, 3.0, 4.0]) == (1.75, 2.5, 3.25)
+    html = sp.fingerprint_html("Energy", mem)
+    rows = re.findall(r'<div class="rc-row([^"]*)"><span class="rc-l">([^<]+)</span>', html)
+    assert rows == [("", "Oil and energy")]          # only oil has 3+ readings; most held up -> coloured
+    # Oil: -0.2, 1.2, 1.9, 2.4 -> q1 0.85, median 1.55, q3 2.025
+    assert "+1.6%" in html or "+1.5%" in html
+    page = sp.sector_page_html("Energy", energy, "https://www.x", "https://app.x")
+    assert page.index('<figure class="card rc">') < page.index("Median move")
+    assert "The clearest shared link in Energy" in page

@@ -299,6 +299,74 @@ def sectors_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str
                   robots="" if any_measured else "noindex, follow")
 
 
+def _quartiles(xs: List[float]) -> tuple:
+    xs = sorted(xs)
+    def q(p: float) -> float:
+        i = p * (len(xs) - 1)
+        lo = int(i)
+        return xs[lo] + (xs[min(lo + 1, len(xs) - 1)] - xs[lo]) * (i - lo)
+    return q(0.25), q(0.5), q(0.75)
+
+
+def headline(sector: str, mem: List[dict]) -> str:
+    """The core force most of the sector moved with in a way that held up,
+    said plainly -- or that none was shared by most of it. "" with too few.
+    Core five only: the investing-style factors (value, size, momentum) are
+    shared by whole swathes of the market and would win everywhere."""
+    best = None
+    for f in ex.FACTORS:
+        c = sector_cell(mem, f.key)
+        if c["n"] < MIN_FOR_MEDIAN:
+            continue
+        side, k = ("up", c["up"]) if c["up"] >= c["down"] else ("down", c["down"])
+        if best is None or k / c["n"] > best[0]:
+            best = (k / c["n"], f, side, k, c["n"])
+    if best is None:
+        return ""
+    share, f, side, k, n = best
+    if share < 0.5:
+        return (f"No single economic force moved most {sector} stocks in a way that held up. The "
+                f"most common link: {k} of {n} moved {side} with {ex.lower_label(f.label)}.")
+    return (f"The clearest shared link in {sector} is {ex.lower_label(f.label)}: {k} of {n} stocks "
+            f"moved {side} with it in a way that held up.")
+
+
+def fingerprint_html(sector: str, mem: List[dict]) -> str:
+    """The sector on the core five, drawn like a stock's range chart: a dot
+    for the median reading and a bar over the middle half of its stocks'
+    readings. Coloured where most of the measured stocks held up one way."""
+    from utils.exposure_pages import _RC_CSS
+    rows, ends = [], []
+    for f in ex.FACTORS:
+        xs = [m["exposures"][f.key]["impact"] for m in mem if f.key in (m.get("exposures") or {})]
+        if len(xs) < MIN_FOR_MEDIAN:
+            continue
+        c = sector_cell(mem, f.key)
+        q1, med, q3 = _quartiles(xs)
+        rows.append((f, q1, med, q3, max(c["up"], c["down"]) * 2 > c["n"]))
+        ends += [abs(q1), abs(q3)]
+    if not rows:
+        return ""
+    span = max(ends + [0.5]) * 1.05
+
+    def pos(v: float) -> str:
+        return f"{50 + 50 * max(-1.0, min(1.0, v / span)):.2f}%"
+    body = "".join(
+        f'<div class="rc-row{"" if strong else " rc-f"}"><span class="rc-l">{escape(f.label)}</span>'
+        f'<span class="rc-t"><span class="rc-z" style="left:50%"></span>'
+        f'<span class="rc-r {"u" if med >= 0 else "d"}" style="left:{pos(q1)};width:{50 * (q3 - q1) / span:.2f}%"></span>'
+        f'<span class="rc-d {"u" if med >= 0 else "d"}" style="left:{pos(med)}"></span></span>'
+        f'<span class="rc-v">{fmt_pct(med)}</span></div>'
+        for f, q1, med, q3, strong in rows)
+    tick = fmt_pct(span)
+    return (_RC_CSS + '<figure class="card rc"><div aria-hidden="true">' + body
+            + f'<div class="rc-ax"><span></span><span><span>−{tick[1:]}</span><span>0</span><span>{tick}</span></span>'
+              '<span></span></div></div>'
+            + f'<figcaption class="rc-key"><span>Dot: the median {escape(sector)} stock. Bar: the middle half of '
+              'them. Coloured where most held up one way; hollow where most could not be told apart from zero.</span>'
+              '<span>Same medians in the table below.</span></figcaption></figure>')
+
+
 def sector_page_html(sector: str, stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     stocks = list(stocks)
     mem = members_of(sector, stocks)
@@ -333,7 +401,8 @@ def sector_page_html(sector: str, stocks: Iterable[dict], base_url: str, app_url
         f'<p class="meta">{len(mem)} of {total} companies on record'
         + (f' · data through {_date(newest)}' if newest else "") + '</p>'
         f'<p class="lead">{escape(desc)}</p>'
-        f'<h2>The sector as a whole</h2>'
+        + (f'<p class="lead"><b>{escape(head)}</b></p>' if (head := headline(sector, mem)) else "")
+        + f'<h2>The sector as a whole</h2>{fingerprint_html(sector, mem)}'
         f'<div class="card" tabindex="0" role="region" aria-label="{escape(sector)}: median move on each force">'
         f'<table><thead><tr><th scope="col">Economic force</th><th scope="col">Median move</th></tr></thead>'
         f'<tbody>{summary}</tbody></table><div class="foot">{_FOOT} {_SHADE}</div></div>' + _HM_CSS +
