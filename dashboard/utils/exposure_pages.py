@@ -106,6 +106,72 @@ def summary_sentence(symbol: str, rec: dict) -> str:
     return text
 
 
+_SH_CSS = """<style>
+.sh{padding:18px 20px;margin:4px 0 14px}
+.sh-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.sh-tk{display:inline-grid;place-items:center;min-width:56px;height:40px;padding:0 10px;border-radius:10px;
+  background:var(--accent);color:var(--bg);font-weight:800;letter-spacing:.02em}
+.sh h1{margin:0;flex:1 1 280px}
+.sh-chips{display:flex;flex-wrap:wrap;gap:6px 8px;margin:10px 0 0;padding:0;list-style:none}
+.sh-chips li{border:1px solid var(--line);border-radius:999px;padding:2px 10px;background:var(--subtle);color:var(--ink2)}
+.sh-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 0;padding:0;list-style:none}
+.sh-tiles li{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--bg)}
+.sh-tiles .k{display:block;color:var(--ink3)}
+.sh-tiles b{display:block;font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--ink)}
+.sh-tiles .s{display:block;color:var(--ink2)}
+@media (max-width:520px){.sh{padding:14px}.sh-tiles{grid-template-columns:1fr 1fr}.sh-tiles li{padding:8px 10px}}
+</style>"""
+
+
+def stock_header_html(symbol: str, rec: dict, who: str, sector: Optional[str],
+                      peers: Optional[dict], save: str = "") -> str:
+    """The page's header card: ticker badge, name, sector and data date, and
+    four tiles -- the clearest link, how many readings held up, how much the
+    stock moves with the market, and how the clearest link compares with the
+    sector. Every figure comes from the stored record; a tile with nothing
+    honest to say is left out."""
+    from utils.sector_pages import slug as sector_slug
+    exps = rec.get("exposures") or {}
+    core = [k for k in _ORDER if k in exps]
+    held = [k for k in core if exps[k].get("evidence") in STANDS_UP]
+    extra = [k for k in _EXTRA if k in exps]
+    extra_held = [k for k in extra if exps[k].get("evidence") in STANDS_UP]
+    lead = lead_factor(rec)
+    tiles = []
+    if lead:
+        e = exps[lead]
+        tiles.append((f'Clearest link: {escape(_FACTOR[lead].label)}', fmt_pct(e["impact"]),
+                      f'{escape(ex.EVIDENCE_LABELS.get(e["evidence"], ""))} · in weeks when '
+                      f'{escape(_FACTOR[lead].shock_phrase)}'))
+    elif core:
+        tiles.append(('Clearest link', 'None held up',
+                      'No reading on the core five could be told apart from zero'))
+    if core:
+        tiles.append(('Held up', f'{len(held)} of {len(core)}',
+                      'core forces' + (f' · {len(extra_held)} of {len(extra)} more' if extra else '')))
+    beta = rec.get("market_beta")
+    if beta is not None and math.isfinite(beta):
+        tiles.append(('With the market', f'{beta:.2f}×', 'the U.S. stock market&#39;s weekly move, typically'))
+    if lead and peers and lead in (peers.get("medians") or {}):
+        tiles.append((f'{escape(peers["sector"])} median', fmt_pct(peers["medians"][lead]),
+                      f'on {escape(ex.lower_label(_FACTOR[lead].label))}, across {peers["peers"]} peers'))
+    chips = []
+    if sector:
+        chips.append(f'<a href="/sectors/{sector_slug(sector)}">{escape(sector)}</a>')
+    chips.append(f'Data through {_date(rec["as_of"])}')
+    weeks = rec.get("n_obs") or rec.get("window_weeks")
+    chips.append(f'{weeks} weeks of weekly returns' if weeks else 'Three years of weekly returns')
+    chips.append('Market move removed first')
+    return (_SH_CSS + '<header class="card sh">'
+            f'<div class="sh-top"><span class="sh-tk" aria-hidden="true">{escape(symbol)}</span>'
+            f'<h1>{who}: economic exposure</h1>{save}</div>'
+            '<ul class="sh-chips">' + "".join(f'<li>{c}</li>' for c in chips) + '</ul>'
+            + ('<ul class="sh-tiles">' + "".join(
+                f'<li><span class="k">{k}</span><b>{v}</b><span class="s small">{d}</span></li>'
+                for k, v, d in tiles) + '</ul>' if tiles else '')
+            + '</header>')
+
+
 def page_title(symbol: str, name: str) -> str:
     who = f"{name} ({symbol})" if name and name != symbol else symbol
     return f"{who}: exposure to interest rates, inflation, oil and the dollar"
@@ -503,9 +569,8 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
                          f'{items}</ul>')
         rel_html = f'<h2 id="related">Other stocks exposed to {force}</h2>{rel_html}'
 
-    from utils.sector_pages import sector_by_ticker, slug as sector_slug
+    from utils.sector_pages import sector_by_ticker
     sector = sector_by_ticker().get(symbol)
-    sector_html = (f'<a href="/sectors/{sector_slug(sector)}">{escape(sector)}</a> · ' if sector else "")
 
     sim_html = ""
     if similar:
@@ -533,11 +598,9 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     body = (
         f'<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '
         f'<a href="/exposure">Stock exposures</a> › {escape(symbol)}</nav>'
-        f'<h1>{who}: economic exposure</h1>'
-        f'<p class="meta">{sector_html}Data through {_date(rec["as_of"])} · weekly returns, the stock '
-        f'market\'s own movement removed first</p>'
+        f'{stock_header_html(symbol, rec, who, sector, peers, save_button_html(symbol))}'
         f'<p class="lead">{escape(summary)}</p>'
-        f'<div class="st-top">{jump}<span>{save_button_html(symbol)}</span></div>'
+        f'<div class="st-top">{jump}</div>'
         f'<h2 id="exposure">Exposure to each economic force</h2>{range_chart_html(exps, keys, peers)}{table}'
         '<div class="actions">'
         f'<a class="btn btn-primary" href="{escape(app_link(app_url, "/stock", canonical, t=symbol))}">'
