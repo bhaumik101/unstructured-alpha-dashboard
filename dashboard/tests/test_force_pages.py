@@ -163,3 +163,38 @@ def test_unknown_force_is_a_404_and_case_redirects(client):
 def test_the_sitemap_lists_force_pages(client):
     xml = client.get("/sitemap.xml").text
     assert "/forces</loc>" in xml and "/forces/short_rates</loc>" in xml
+
+
+def _tiles(html):
+    return re.findall(r'<li><span class="k">([^<]+)</span><b>(.*?)</b><span class="s small">(.*?)</span></li>', html)
+
+
+def test_the_header_tiles_count_held_up_readings_and_name_the_largest_each_way(monkeypatch):
+    from utils import sector_pages as sp
+    monkeypatch.setattr(sp, "sector_by_ticker", lambda: {})
+    tiles = _tiles(fp.force_page_html("oil", STOCKS, B, A))
+    assert tiles[0] == ("Held up", "3 of 4", "75% of stocks measured")       # MSFT is measured, not held up
+    assert tiles[1][:2] == ("Moved up with it", "2") and '/exposure/XOM">XOM</a> +2.7%' in tiles[1][2]
+    assert tiles[2][:2] == ("Moved down with it", "1") and '/exposure/DAL">DAL</a> −1.9%' in tiles[2][2]
+    assert len(tiles) == 3                     # no sector known: no sector tile, nothing guessed
+
+
+def test_the_most_linked_sector_is_the_highest_share_held_up_among_big_enough_sectors(monkeypatch):
+    from utils import sector_pages as sp
+    big = [_stock(f"E{i}", oil=(1.0, "clear" if i < 3 else "indistinct")) for i in range(5)]     # 3 of 5
+    small = [_stock(f"S{i}", oil=(1.0, "clear")) for i in range(4)]                            # 4 of 4, too few
+    other = [_stock(f"U{i}", oil=(1.0, "clear" if i < 2 else "indistinct")) for i in range(6)]   # 2 of 6
+    secs = {**{s["ticker"]: "Energy" for s in big}, **{s["ticker"]: "Tiny" for s in small},
+            **{s["ticker"]: "Utilities" for s in other}}
+    monkeypatch.setattr(sp, "sector_by_ticker", lambda: secs)
+    assert fp.most_linked_sector("oil", big + small + other) == ("Energy", 3, 5)
+    tiles = _tiles(fp.force_page_html("oil", big + small + other, B, A))
+    assert tiles[-1] == ("Most linked sector", '<a href="/sectors/energy">Energy</a>', "3 of 5 held up")
+    # No sector with a held-up reading: no tile.
+    weak = [dict(s, exposures={"oil": dict(s["exposures"]["oil"], evidence="indistinct")}) for s in big]
+    assert fp.most_linked_sector("oil", weak) is None
+
+
+def test_a_force_with_no_readings_has_a_header_and_no_tiles(monkeypatch):
+    html = fp.force_page_html("oil", [_stock("AAPL")], B, A)
+    assert "<h1>Stocks exposed to" in html and not _tiles(html)
