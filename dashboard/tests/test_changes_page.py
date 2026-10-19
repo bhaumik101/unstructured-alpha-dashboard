@@ -99,3 +99,24 @@ def test_long_sections_show_ten_then_the_rest_on_request():
     gained = html.split("<h2>Now holding up</h2>")[1].split("<h2>")[0]
     shown, rest = gained.split('<details class="ch-more">')
     assert shown.count("<li>") == cp.SHOWN and "Show all 14" in rest and rest.count("<li>") == 14 - cp.SHOWN
+
+
+def test_one_stock_opened_a_week_ahead_does_not_take_over_the_page():
+    # A visitor opens SOXL mid-week: its reading is a week newer than the
+    # library's. The page stays on the week most stocks share (what happened
+    # live on 2026-10-19: "across 1 stocks").
+    ahead = _wk(_stock("SOXL", "Leveraged", oil=(5.0, "clear")), "2026-10-09")
+    ahead_before = _wk(_stock("SOXL", "Leveraged", oil=(1.0, "indistinct")), "2026-10-02")
+    c = cp.changes(NOW + [ahead], BEFORE + [ahead_before])
+    assert c["as_of"] == "2026-10-02" and c["compared"] == 2
+    assert "SOXL" not in {r["ticker"] for r in c["gained"] + c["shifts"]}
+    # Once the weekly job brings the rest up to that week, the newer week wins.
+    caught_up = [_wk(s, "2026-10-09") for s in NOW[:2]]
+    assert cp.changes(caught_up + [ahead], BEFORE + [ahead_before])["as_of"] == "2026-10-09"
+    # A tie goes to the newer week.
+    assert cp.changes([NOW[0], ahead], BEFORE + [ahead_before])["as_of"] == "2026-10-09"
+
+
+def test_one_stock_compared_is_said_in_the_singular():
+    html = cp.changes_page_html([NOW[0]], BEFORE, "https://www.x", "https://app.x")
+    assert "1 stocks" not in html and "1 stock compared" in html
