@@ -653,6 +653,15 @@ _HUB_SCRIPT = r"""
     if (sec && sec.selectedIndex < 0) sec.value = ''; if (held && held.selectedIndex < 0) held.value = '';
     [sec, held].forEach(function(el){ if (el) el.addEventListener('change', filter); });
   }
+  // The overview cards above the table are presets for the held-up filter:
+  // a second click on the active one clears it.
+  var pre = document.querySelectorAll('[data-hv]');
+  function mark(){ pre.forEach(function(a){ var on = held && held.value === a.getAttribute('data-hv');
+    if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current'); }); }
+  pre.forEach(function(a){ a.addEventListener('click', function(e){
+    if (!held) return; e.preventDefault();
+    var v = a.getAttribute('data-hv'); held.value = held.value === v ? '' : v; filter(); mark(); }); });
+  if (held) held.addEventListener('change', mark);
   t.querySelectorAll('thead button').forEach(function(b){
     b.addEventListener('click', function(){
       var col = +b.getAttribute('data-col'), th = b.parentNode;
@@ -670,7 +679,7 @@ _HUB_SCRIPT = r"""
       rows.forEach(function(r){ body.appendChild(r); });
     });
   });
-  q.addEventListener('input', filter); filter();
+  q.addEventListener('input', filter); filter(); if (pre.length) mark();
 })();
 """
 
@@ -757,6 +766,47 @@ def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record ag
         + f'<script>{_HUB_SCRIPT}</script>')
 
 
+_OV_CSS = """<style>
+.ov{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0 6px;padding:0;list-style:none}
+.ov li{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 14px;font-size:.88rem}
+.ov h2{margin:0 0 2px;font-size:inherit;font-weight:700}.ov .small{margin:0 0 8px}
+.ov-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--subtle);margin-bottom:8px}
+.ov i{display:inline-block;height:100%}.ov .u{background:#2f6fbd}.ov .d{background:#b5651d}
+.ov a i{width:8px;height:8px;border-radius:2px;margin-right:7px}
+.ov a{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;margin:0 -8px;border-radius:8px;
+  color:var(--ink);text-decoration:none;min-height:24px;align-items:center}
+.ov a:hover{background:var(--subtle)}.ov a[aria-current]{background:var(--subtle);box-shadow:inset 3px 0 0 var(--accent)}
+.ov a b{font-variant-numeric:tabular-nums}
+</style>"""
+
+
+def hub_overview_html(stocks: Iterable[dict]) -> str:
+    """One card per core force above the hub table: how many stocks moved up
+    and down with it in a way that held up, out of those measured on it.
+    Each count is a preset for the table's held-up filter. Only readings that
+    held up are counted; the rest are reported as "no clear link"."""
+    stocks = list(stocks)
+    cards = []
+    for i, k in enumerate(_ORDER):
+        es = [(s.get("exposures") or {}).get(k) for s in stocks]
+        es = [e for e in es if e]
+        if not es:
+            continue
+        up = sum(1 for e in es if e.get("evidence") in STANDS_UP and e["impact"] > 0)
+        down = sum(1 for e in es if e.get("evidence") in STANDS_UP and e["impact"] <= 0)
+        n = len(es)
+        cards.append(
+            f'<li><h2>{escape(_FACTOR[k].label)}</h2>'
+            f'<p class="small">No clear link: {n - up - down} of {n}</p>'
+            f'<span class="ov-bar" aria-hidden="true"><i class="u" style="width:{100 * up / n:.1f}%"></i>'
+            f'<i style="flex:1"></i><i class="d" style="width:{100 * down / n:.1f}%"></i></span>'
+            f'<a href="#h={i}:u" data-hv="{i}:u">'
+            f'<span><i class="u"></i>Moved up</span><b>{up}</b></a>'
+            f'<a href="#h={i}:d" data-hv="{i}:d">'
+            f'<span><i class="d"></i>Moved down</span><b>{down}</b></a></li>')
+    return _OV_CSS + f'<ul class="ov" aria-label="Stocks with a link that held up, by force">{"".join(cards)}</ul>' if cards else ""
+
+
 def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     """Every measured stock against the core five, sortable and filterable.
     The crawl entry point for the pages above: every row links to its page,
@@ -770,7 +820,7 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Stock exposures</nav>'
         f'<h1>Stock exposures</h1><p class="lead">{escape(desc)} Measured weekly over three years, '
         'with the stock market\'s own movement removed first.</p>'
-        + (table if stocks else '<p class="lead">No stock has been measured yet.</p>')
+        + ((hub_overview_html(stocks) + table) if stocks else '<p class="lead">No stock has been measured yet.</p>')
         + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_link(app_url, "/stock", base_url + "/exposure"))}">'
           'Look up any stock</a><a class="btn btn-secondary" href="/forces">Browse by economic '
           'force</a><a class="btn btn-secondary" href="/sectors">By sector</a>'

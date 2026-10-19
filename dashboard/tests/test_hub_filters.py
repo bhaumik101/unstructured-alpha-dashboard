@@ -60,3 +60,38 @@ def test_the_script_filters_on_the_marks_and_keeps_the_choice_in_the_url():
     assert "(r.getAttribute('data-h') || '').charAt(hi) === hd" in js
     assert "r.getAttribute('data-s') === sv" in js
     assert "history.replaceState" in js
+
+
+def _cards(html):
+    """{force label: (no clear link text, up, down, up preset, down preset)}"""
+    return {m[0]: m[1:] for m in re.findall(
+        r'<li><h2>([^<]+)</h2><p class="small">([^<]+)</p>.*?'
+        r'<a href="#h=[^"]+" data-hv="([^"]+)"><span><i class="u"></i>Moved up</span><b>(\d+)</b></a>'
+        r'<a href="#h=[^"]+" data-hv="([^"]+)"><span><i class="d"></i>Moved down</span><b>(\d+)</b></a></li>', html)}
+
+
+def test_the_overview_counts_only_readings_that_held_up(stocks):
+    cards = _cards(ep.hub_page_html(stocks, "https://www.x", "https://app.x"))
+    order = list(ep._ORDER)
+    oil = ep._FACTOR["oil"].label
+    # XOM up (clear), DAL down (tentative): both held up; nothing else measured on oil.
+    assert cards[oil] == ("No clear link: 0 of 2", f"{order.index('oil')}:u", "1",
+                          f"{order.index('oil')}:d", "1")
+    # XOM's rates reading did not hold up: it is counted as no clear link, not as up.
+    assert cards[ep._FACTOR["rates"].label][0] == "No clear link: 1 of 1"
+    assert cards[ep._FACTOR["rates"].label][2] == "0"
+    # Every core force measured gets a card; the presets match the filter's option values.
+    hub = ep.hub_page_html(stocks, "https://www.x", "https://app.x")
+    for _, up_v, _, down_v, _ in [(c[0], c[1], c[2], c[3], c[4]) for c in cards.values()]:
+        assert f'<option value="{up_v}">' in hub and f'<option value="{down_v}">' in hub
+
+
+def test_a_force_nobody_was_measured_on_gets_no_card(stocks):
+    stocks = [s for s in stocks if s["ticker"] == "ZZZ"]
+    cards = _cards(ep.hub_overview_html(stocks))
+    assert list(cards) == [ep._FACTOR["credit"].label]
+
+
+def test_the_presets_drive_the_held_up_filter():
+    js = ep._HUB_SCRIPT
+    assert "held.value = held.value === v ? '' : v; filter();" in js
