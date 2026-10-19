@@ -65,3 +65,29 @@ def test_jump_links_point_only_at_sections_the_page_has():
         assert f'id="{t}"' in page, t
     assert "similar" not in targets and "history" not in targets      # none passed in, so no section
     assert page.index('id="ls-save"') < page.index('id="exposure"')   # save sits up top now
+
+
+def test_the_header_card_says_only_what_the_record_holds():
+    import re
+    from utils.exposure_pages import stock_header_html
+    rec = dict(_rec(), market_beta=0.62)
+    peers = {"sector": "Energy", "slug": "energy", "medians": {"oil": 3.1}, "peers": 20}
+    html = stock_header_html("XOM", rec, "Exxon (XOM)", "Energy", peers)
+    tiles = re.findall(r'<li><span class="k">([^<]+)</span><b>([^<]+)</b>', html)
+    assert tiles == [("Clearest link: Oil and energy", "+2.0%"), ("Held up", "1 of 2"),
+                     ("With the market", "0.62×"), ("Energy median", "+3.1%")]
+    assert '<h1>Exxon (XOM): economic exposure</h1>' in html and 'href="/sectors/energy"' in html
+    # Nothing held up: say so, never name a "clearest" link; no beta, no peers -> no such tiles.
+    weak = _stock("KO", "Coke", oil=(0.1, "indistinct"), rates=(0.2, "indistinct"))
+    for e in weak["exposures"].values():
+        e["low"], e["high"] = e["impact"] - 1, e["impact"] + 1
+    plain = stock_header_html("KO", weak, "Coke (KO)", None, None)
+    assert re.findall(r'<span class="k">([^<]+)</span>', plain) == ["Clearest link", "Held up"]
+    assert "None held up" in plain and "0 of 2" in plain
+
+
+def test_the_sector_tile_needs_a_median_on_the_same_force():
+    from utils.exposure_pages import stock_header_html
+    peers = {"sector": "Energy", "slug": "energy", "medians": {"rates": 0.4}, "peers": 20}
+    html = stock_header_html("XOM", _rec(), "Exxon (XOM)", "Energy", peers)
+    assert "Energy median" not in html          # the lead force is oil; a rates median says nothing about it
