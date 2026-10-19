@@ -92,7 +92,9 @@ def test_the_hub_lists_every_force_in_its_group():
         assert f'href="/forces/{f.key}"' in html, f.key
     for label in fp.GROUP_LABELS.values():
         assert f"<h2>{label}</h2>" in html
-    assert "3 of 4 stocks with a link that held up" in html
+    oil = html.split('href="/forces/oil"')[1].split('<li class="fh-c">')[0]
+    assert "<span>2 up</span><span>1 no clear link</span><span>1 down</span>" in oil
+    assert oil.index('class="u" href="/exposure/XOM"') < oil.index('class="d" href="/exposure/DAL"')
 
 
 def test_extra_forces_state_their_stricter_bar_and_what_they_are_measured_beyond():
