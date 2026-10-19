@@ -22,6 +22,8 @@ _TOOLS = (
      "a cell to see the stocks behind it.", "look"),
     ("/forces", "Economic forces", f"{len(ALL_FORCES)} forces, from oil and gold to the yen and bitcoin, "
      "and every stock on record laid out on each.", "look"),
+    ("/heatmap", "Market heatmap", "Every stock as a tile in its sector, coloured by how it moved with "
+     "the force you pick.", "look"),
     ("/map", "Stock map", "Every stock placed on two forces at once: rates against oil, the dollar "
      "against credit, any pair. Light up a sector, find a ticker.", "look"),
     ("/explore", "What if?", "Pick a force, drag the size of the move, and see which stocks rose and "
@@ -55,6 +57,8 @@ _ICON = {
     "/sectors": '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/>'
                 '<rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
     "/forces": '<path d="M3 17l5-6 4 4 8-9"/>',
+    "/heatmap": '<rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="4" rx="1"/>'
+                '<rect x="13" y="10" width="8" height="10" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/>',
     "/map": '<circle cx="8" cy="15" r="2"/><circle cx="15" cy="8" r="2"/><circle cx="17" cy="16" r="2"/><path d="M4 4v16h16"/>',
     "/explore": '<path d="M4 12h16"/><circle cx="14" cy="12" r="3"/>',
     "/scenario": '<path d="M5 6h14M5 12h14M5 18h14"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="18" r="2"/>',

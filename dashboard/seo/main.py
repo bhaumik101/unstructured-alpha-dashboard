@@ -734,6 +734,8 @@ def sitemap_xml():
                         "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/scenario</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.7</priority></url>")
+            urls.append(f"  <url><loc>{BASE_URL}/heatmap</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.7</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/map</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.7</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/compare</loc><lastmod>{today}</lastmod>"
@@ -977,6 +979,15 @@ def og_image(name: str):
 
 
 # ── Force pages: every stock on record, read one economic force at a time ────
+@app.get("/heatmap", response_class=HTMLResponse)
+def heatmap_page():
+    """The market heatmap: every stock as a tile, coloured by one force."""
+    from utils.heatmap_page import heatmap_page_html
+
+    _get_engine()
+    return HTMLResponse(heatmap_page_html(_exposure_stocks(), BASE_URL, APP_URL))
+
+
 @app.get("/map", response_class=HTMLResponse)
 def map_page():
     """The stock map: every stock placed on any two forces at once."""
