@@ -290,7 +290,8 @@ def sectors_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str
         + _hm_script(grid)
         + '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Nothing here is a '
         'recommendation to buy, sell or hold any security.</p>'
-        '<div class="actions"><a class="btn btn-primary" href="/exposure">Every stock on record</a>'
+        '<div class="actions"><a class="btn btn-primary" href="/heatmap">Every stock as a heatmap</a>'
+        '<a class="btn btn-secondary" href="/exposure">Every stock on record</a>'
         '<a class="btn btn-secondary" href="/forces">Every economic force</a></div>')
     ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": title,
           "description": desc, "url": f"{base_url}/sectors"}
