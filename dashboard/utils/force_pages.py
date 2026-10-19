@@ -263,30 +263,60 @@ def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: st
                   robots="" if n else "noindex, follow")
 
 
+_HUB_CSS = """<style>
+.fh{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;list-style:none;margin:8px 0 6px;padding:0}
+.fh-c{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.fh-c h3{margin:0}.fh-c h3 a{color:var(--ink);text-decoration:none}.fh-c h3 a:hover{text-decoration:underline}
+.fh-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--subtle)}
+.fh-bar i{display:block;height:100%}.fh-bar .u{background:#2f6fbd}.fh-bar .d{background:#b5651d}
+@media (prefers-color-scheme:dark){.fh-bar .u{background:#5a8fd4}.fh-bar .d{background:#c9822f}}
+.fh-n{display:flex;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
+.fh-top{display:flex;flex-wrap:wrap;gap:4px 6px;margin:2px 0 0;padding:0;list-style:none}
+.fh-top a{display:inline-block;padding:1px 8px;border-radius:999px;border:1px solid var(--line);text-decoration:none;color:var(--ink);font-weight:600}
+.fh-top .u{border-color:#2f6fbd}.fh-top .d{border-color:#b5651d}
+.fh-key{display:flex;flex-wrap:wrap;gap:4px 16px}.fh-key i{display:inline-block;width:12px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+</style>"""
+
+
+def _force_card(f: ex.Factor, st: dict) -> str:
+    n, nu, nd = st["measured"], len(st["up"]), len(st["down"])
+    head = f'<h3><a href="/forces/{f.key}">{escape(f.label)}</a></h3><span class="small">In weeks when {escape(f.shock_phrase)}</span>'
+    if not n:
+        return f'<li class="fh-c">{head}<span class="small">Not measured yet.</span></li>'
+    bar = (f'<span class="fh-bar" aria-hidden="true"><i class="u" style="width:{100 * nu / n:.1f}%"></i>'
+           f'<i style="width:{100 * st["none"] / n:.1f}%"></i><i class="d" style="width:{100 * nd / n:.1f}%"></i></span>')
+    counts = (f'<span class="fh-n small"><span>{nu} up</span><span>{st["none"]} no clear link</span>'
+              f'<span>{nd} down</span></span>')
+    tops = ([("u", r) for r in st["up"][:2]] + [("d", r) for r in st["down"][:2]])
+    chips = ('<ul class="fh-top" aria-label="Largest movers">' + "".join(
+        f'<li><a class="{c}" href="/exposure/{escape(r["ticker"])}" title="{escape(r.get("name") or "")}: '
+        f'{fmt_pct(r["impact"])}">{escape(r["ticker"])} {fmt_pct(r["impact"])}</a></li>' for c, r in tops)
+        + '</ul>') if tops else ""
+    return f'<li class="fh-c">{head}{bar}{counts}{chips}</li>'
+
+
 def forces_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     stocks = list(stocks)
     sections = []
     for group, label in GROUP_LABELS.items():
-        items = []
-        for f in (g for g in ALL_FORCES if g.group == group):
-            st = force_stats(f.key, stocks)
-            held = len(st["up"]) + len(st["down"])
-            note = (f'{held} of {st["measured"]} stocks with a link that held up'
-                    if st["measured"] else "not measured yet")
-            items.append(f'<li><a href="/forces/{f.key}">{escape(f.label)}</a>'
-                         f'<span class="shock">{escape(note)}</span></li>')
-        sections.append(f'<h2>{escape(label)}</h2><ul class="forces">{"".join(items)}</ul>')
+        cards = "".join(_force_card(f, force_stats(f.key, stocks)) for f in ALL_FORCES if f.group == group)
+        sections.append(f'<h2>{escape(label)}</h2><ul class="fh">{cards}</ul>')
     total = len(ALL_FORCES)
     title = "Which stocks move with rates, oil, gold, the dollar and more"
     desc = (f"{total} economic forces, from interest rates and oil to gold, bitcoin and the yen, "
             "and the U.S. stocks that have moved with each — with a 90% range and an evidence label "
             "on every reading.")
     body = (
+        _HUB_CSS +
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Economic forces</nav>'
         f'<h1>Economic forces</h1><p class="lead">{escape(desc)}</p>'
         '<p class="lead">The core five are measured together, with the stock market held fixed. '
         'Every other force is measured beyond those five, so it shows only what they don&#39;t '
         'already explain.</p>'
+        + '<p class="fh-key small"><span><i style="background:#2f6fbd"></i>Moved up with it, held up</span>'
+          '<span><i style="background:var(--subtle)"></i>No link that could be told apart from zero</span>'
+          '<span><i style="background:#b5651d"></i>Moved down with it, held up</span>'
+          '<span>Chips: the largest movers each way.</span></p>'
         + "".join(sections)
         + f'<div class="actions"><a class="btn btn-primary" href="/explore">What if? Move a force</a>'
           f'<a class="btn btn-secondary" href="{escape(app_link(app_url, "/", base_url + "/forces"))}">Measure your own portfolio</a>'
