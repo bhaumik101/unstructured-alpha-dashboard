@@ -45,14 +45,17 @@ def test_each_row_carries_its_sector_and_a_mark_per_force(stocks):
     assert rows["ZZZ"][0] == "" and rows["ZZZ"][1][order.index("credit")] == "u"     # no sector, not a guess
 
 
-def test_the_hub_offers_both_filters_and_a_sector_page_does_not(stocks):
+def test_the_hub_offers_both_filters_and_a_sector_page_only_held_up(stocks):
     hub = ep.hub_page_html(stocks, "https://www.x", "https://app.x")
     assert 'id="hub-sec"' in hub and 'id="hub-held"' in hub
     assert '<option value="energy">Energy</option>' in hub
     oil = list(ep._ORDER).index("oil")
     assert f'<option value="{oil}:u">Moved up with oil and energy</option>' in hub
     page = sp.sector_page_html("Energy", stocks, "https://www.x", "https://app.x")
-    assert 'id="hub-sec"' not in page and 'id="hub-held"' not in page
+    # A sector page is one sector already: it filters by held-up only, and its
+    # overview cards are presets for that filter.
+    assert 'id="hub-sec"' not in page and 'id="hub-held"' in page
+    assert f'data-hv="{oil}:u"' in page
 
 
 def test_the_script_filters_on_the_marks_and_keeps_the_choice_in_the_url():
@@ -66,8 +69,8 @@ def _cards(html):
     """{force label: (no clear link text, up, down, up preset, down preset)}"""
     return {m[0]: m[1:] for m in re.findall(
         r'<li><h2>([^<]+)</h2><p class="small">([^<]+)</p>.*?'
-        r'<a href="#h=[^"]+" data-hv="([^"]+)"><span><i class="u"></i>Moved up</span><b>(\d+)</b></a>'
-        r'<a href="#h=[^"]+" data-hv="([^"]+)"><span><i class="d"></i>Moved down</span><b>(\d+)</b></a></li>', html)}
+        r'(?:<a href="#h=[^"]+" data-hv="([^"]+)">|<p class="ov-z">)<span><i class="u"></i>Moved up</span><b>(\d+)</b></(?:a|p)>'
+        r'(?:<a href="#h=[^"]+" data-hv="([^"]+)">|<p class="ov-z">)<span><i class="d"></i>Moved down</span><b>(\d+)</b></(?:a|p)></li>', html)}
 
 
 def test_the_overview_counts_only_readings_that_held_up(stocks):
@@ -79,11 +82,12 @@ def test_the_overview_counts_only_readings_that_held_up(stocks):
                           f"{order.index('oil')}:d", "1")
     # XOM's rates reading did not hold up: it is counted as no clear link, not as up.
     assert cards[ep._FACTOR["rates"].label][0] == "No clear link: 1 of 1"
-    assert cards[ep._FACTOR["rates"].label][2] == "0"
+    assert cards[ep._FACTOR["rates"].label][1:] == ("", "0", "", "0")      # zero: shown, not a filter
     # Every core force measured gets a card; the presets match the filter's option values.
     hub = ep.hub_page_html(stocks, "https://www.x", "https://app.x")
-    for _, up_v, _, down_v, _ in [(c[0], c[1], c[2], c[3], c[4]) for c in cards.values()]:
-        assert f'<option value="{up_v}">' in hub and f'<option value="{down_v}">' in hub
+    for _, up_v, _, down_v, _ in cards.values():
+        for v in filter(None, (up_v, down_v)):
+            assert f'<option value="{v}">' in hub
 
 
 def test_a_force_nobody_was_measured_on_gets_no_card(stocks):
