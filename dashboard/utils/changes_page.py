@@ -9,8 +9,11 @@
 #
 # RULES
 #   * Only like with like: a stock is compared only when its newest reading is
-#     from the newest data week on record, against its own previous reading
-#     (whose date is shown -- it may be more than a week earlier).
+#     from the page's data week, against its own previous reading (whose date
+#     is shown -- it may be more than a week earlier). The page's week is the
+#     one the most stocks can be compared in, not simply the newest date: a
+#     stock a visitor opens mid-week is a week ahead of the library, and must
+#     not turn the page into a report on that one stock.
 #   * A reading crossing the evidence line is reported as exactly that; the
 #     page says such crossings are usually of readings already near the line.
 #   * Past, not forecast; no advice.
@@ -33,8 +36,14 @@ def changes(latest: Iterable[dict], previous: Iterable[dict]) -> dict:
     each row has ticker, name, key, now, before, before_as_of.
     """
     latest = list(latest)
-    newest = max((str(s.get("as_of") or "")[:10] for s in latest), default="")
     prev: Dict[str, dict] = {p["ticker"]: p for p in previous}
+    weeks: Dict[str, int] = {}
+    for s in latest:
+        if s["ticker"] in prev:
+            w = str(s.get("as_of") or "")[:10]
+            weeks[w] = weeks.get(w, 0) + 1
+    # Most comparable stocks wins; a tie goes to the newer week.
+    newest = max(weeks, key=lambda w: (weeks[w], w), default="")
     gained, lost, shifts = [], [], []
     compared = 0
     for s in latest:
@@ -148,6 +157,10 @@ def _label(e: dict) -> str:
     return ex.EVIDENCE_LABELS.get(e.get("evidence"), str(e.get("evidence") or "")).lower()
 
 
+def _n(n: int, word: str) -> str:
+    return f"{n} {word}{'' if n == 1 else 's'}"
+
+
 def changes_page_html(latest: Iterable[dict], previous: Iterable[dict],
                       base_url: str, app_url: str) -> str:
     c = changes(latest, previous)
@@ -162,15 +175,15 @@ def changes_page_html(latest: Iterable[dict], previous: Iterable[dict],
         return _shell(title, desc, canonical, ld, body, app_url, robots="noindex, follow")
 
     ng, nl = len(c["gained"]), len(c["lost"])
-    desc = (f"Data through {_date(c['as_of'])}: across {c['compared']} stocks, {ng} readings now "
+    desc = (f"Data through {_date(c['as_of'])}: across {_n(c['compared'], 'stock')}, {ng} readings now "
             f"hold up that did not before and {nl} no longer do.")
     every = c["gained"] + c["lost"] + c["shifts"]
     scale = max([abs(r[w]["impact"]) for r in every for w in ("before", "now")] + [0.5]) * 1.05
     parts = [_CSS, crumb, '<h1>What changed this week</h1>',
-             f'<p class="meta">Data through {_date(c["as_of"])} · {c["compared"]} stocks compared with '
+             f'<p class="meta">Data through {_date(c["as_of"])} · {_n(c["compared"], "stock")} compared with '
              'their previous reading</p>', f'<p class="lead">{escape(desc)}</p>',
              '<ul class="ch-tiles">'
-             f'<li><b>{c["compared"]}</b><span>stocks compared</span></li>'
+             f'<li><b>{c["compared"]}</b><span>{"stock" if c["compared"] == 1 else "stocks"} compared</span></li>'
              f'<li><b>{ng}</b><span>readings now hold up</span></li>'
              f'<li><b>{nl}</b><span>no longer hold up</span></li></ul>',
              '<p class="lead">Each reading spans three years of weekly returns, so one new week moves '
