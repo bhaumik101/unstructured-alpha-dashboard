@@ -28,7 +28,7 @@ from html import escape
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from utils import exposure as ex
-from utils.exposure_pages import STANDS_UP, _chip, _date, _shell, fmt_pct, app_link
+from utils.exposure_pages import _SH_CSS, STANDS_UP, _chip, _date, _shell, fmt_pct, app_link
 
 GROUP_LABELS: Dict[str, str] = {"core": "The core five", **ex.EXTRA_GROUPS}
 ALL_FORCES: Tuple[ex.Factor, ...] = tuple(ex.FACTORS) + tuple(ex.EXTRA_FACTORS)
@@ -190,6 +190,66 @@ def _by_sector(key: str, stocks: List[dict]) -> str:
     return sectors_on_force_html(key, stocks)
 
 
+MIN_SECTOR = 5   # a sector needs this many stocks measured on the force to be named the most linked
+
+
+def most_linked_sector(key: str, stocks: Iterable[dict]) -> Optional[Tuple[str, int, int]]:
+    """(sector, held up, measured) for the sector whose stocks most often had a
+    reading on this force that held up, among sectors with at least MIN_SECTOR
+    measured; None when no sector qualifies or none held up at all."""
+    from utils.sector_pages import sector_by_ticker
+    secs = sector_by_ticker()
+    tally: Dict[str, List[int]] = {}
+    for s in stocks:
+        e = (s.get("exposures") or {}).get(key)
+        if not e or s["ticker"] not in secs:
+            continue
+        t = tally.setdefault(secs[s["ticker"]], [0, 0])
+        t[1] += 1
+        t[0] += e.get("evidence") in STANDS_UP
+    best = max(((k, h, m) for k, (h, m) in tally.items() if m >= MIN_SECTOR and h),
+               key=lambda x: (x[1] / x[2], x[1], x[0]), default=None)
+    return best
+
+
+def force_header_html(f: ex.Factor, st: dict, stocks: List[dict]) -> str:
+    """The page's header card: the force, its group and data date, and tiles
+    for how many readings held up, the largest move each way and the sector
+    most often linked. Every figure is counted from the stored readings."""
+    from utils.sector_pages import slug as sector_slug
+    n, up, down = st["measured"], st["up"], st["down"]
+    chips = [escape(GROUP_LABELS.get(f.group, ""))]
+    if st["as_of"]:
+        chips.append(f'Data through {_date(st["as_of"])}')
+    chips.append(f'In weeks when {escape(f.shock_phrase)}')
+    tiles = []
+    if n:
+        held = len(up) + len(down)
+        tiles.append(("Held up", f"{held} of {n}", f"{round(100 * held / n)}% of stocks measured"))
+
+        def side(rows, word):
+            if not rows:
+                return (f"Moved {word} with it", "0", "none held up")
+            r = rows[0]
+            return (f"Moved {word} with it", str(len(rows)),
+                    f'Largest: <a href="/exposure/{escape(r["ticker"])}">{escape(r["ticker"])}</a> '
+                    f'{fmt_pct(r["impact"])}')
+        tiles += [side(up, "up"), side(down, "down")]
+        best = most_linked_sector(f.key, stocks)
+        if best:
+            sec, h, m = best
+            tiles.append(("Most linked sector",
+                          f'<a href="/sectors/{sector_slug(sec)}">{escape(sec)}</a>',
+                          f"{h} of {m} held up"))
+    return (_SH_CSS + '<header class="card sh">'
+            f'<div class="sh-top"><h1>Stocks exposed to {escape(_lower(f))}</h1></div>'
+            '<ul class="sh-chips">' + "".join(f'<li>{c}</li>' for c in chips if c) + '</ul>'
+            + ('<ul class="sh-tiles">' + "".join(
+                f'<li><span class="k">{k}</span><b>{v}</b><span class="s small">{d}</span></li>'
+                for k, v, d in tiles) + '</ul>' if tiles else '')
+            + '</header>')
+
+
 def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: str,
                     limit: int = 25) -> Optional[str]:
     """The page for one force, or None if the key is not a force."""
@@ -231,10 +291,8 @@ def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: st
     body = (
         f'<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '
         f'<a href="/forces">Economic forces</a> › {escape(f.label)}</nav>'
-        f'<h1>Stocks exposed to {escape(force)}</h1>'
-        f'<p class="meta">{escape(GROUP_LABELS.get(f.group, ""))}'
-        + (f' · data through {_date(st["as_of"])}' if st["as_of"] else "") + '</p>'
-        f'<p class="lead">{escape(lead)}</p>'
+        + force_header_html(f, st, stocks)
+        + f'<p class="lead">{escape(lead)}</p>'
         f'<p class="lead">{escape(f.why)}</p>'
         f'{swarm_html(key, stocks)}{body_tables}{_by_sector(key, stocks)}'
         f'<p class="small">Each figure is a stock&#39;s typical move in a week when {escape(f.shock_phrase)}, '
