@@ -26,7 +26,7 @@ from statistics import median
 from typing import Dict, Iterable, List, Optional
 
 from utils import exposure as ex
-from utils.exposure_pages import STANDS_UP, _date, _shell, fmt_pct, hub_grid_html
+from utils.exposure_pages import STANDS_UP, _date, _shell, fmt_pct, hub_grid_html, hub_overview_html
 
 INDEX_CSV = Path(__file__).resolve().parent.parent / "cron" / "sp500.csv"
 MIN_FOR_MEDIAN = 3
@@ -408,7 +408,8 @@ def sector_page_html(sector: str, stocks: Iterable[dict], base_url: str, app_url
         f'<table><thead><tr><th scope="col">Economic force</th><th scope="col">Median move</th></tr></thead>'
         f'<tbody>{summary}</tbody></table><div class="foot">{_FOOT} {_SHADE}</div></div>' + _HM_CSS +
         f'<h2>Every {escape(sector)} stock on record</h2>'
-        + hub_grid_html(mem, f"{sector} stocks against the five core forces")
+        + hub_overview_html(mem)
+        + hub_grid_html(mem, f"{sector} stocks against the five core forces", filters="held")
         + '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Nothing here is a '
           'recommendation to buy, sell or hold any security.</p>'
         f'<h2>Other sectors</h2><ul class="related">{others}</ul>')

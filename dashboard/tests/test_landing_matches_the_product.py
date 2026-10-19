@@ -50,6 +50,8 @@ def test_every_tool_the_page_links_to_exists():
     assert len(tiles) >= 6, tiles
     for path in tiles:
         assert f'source: "{path}"' in NEXT, path
+    # The reading guide stays one click from the landing page, tile or not.
+    assert 'href="/learn"' in PAGE and 'source: "/learn"' in NEXT
 
 
 def test_the_hero_looks_up_one_stock_through_the_public_search():

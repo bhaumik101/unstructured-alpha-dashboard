@@ -316,7 +316,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
 # same header and footer so a visitor can reach any of them from anywhere.
 NAV = (("/exposure", "Stocks"), ("/sectors", "Sectors"), ("/forces", "Forces"),
        ("/map", "Map"), ("/explore", "What if?"), ("/compare", "Compare"), ("/mylist", "My list"))
-MORE = (("/tools", "All free tools"), ("/scenario", "Build a scenario"), ("/quiz", "Daily quiz"), ("/guess", "Whose fingerprint?"), ("/learn", "How to read these pages"),
+MORE = (("/tools", "All free tools"), ("/scenario", "Build a scenario"), ("/heatmap", "Market heatmap"), ("/quiz", "Daily quiz"), ("/guess", "Whose fingerprint?"), ("/learn", "How to read these pages"),
         ("/changes", "What changed this week"), ("/evidence", "Track record"))
 
 
@@ -704,10 +704,11 @@ _HUB_CSS = """<style>
 
 
 def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record against the five core forces",
-                  filters: bool = False) -> str:
+                  filters: bool | str = False) -> str:
     """The sortable, filterable table of stocks against the core five; works
-    in full without script, sorted by ticker. filters: add the sector and
-    held-up filters (the hub page; a sector page is one sector already)."""
+    in full without script, sorted by ticker. filters: True adds the sector and
+    held-up filters (the hub page); "held" only the held-up filter (a sector
+    page is one sector already)."""
     from utils.sector_pages import sector_by_ticker, sectors as all_sectors, slug as sector_slug
     stocks = sorted(stocks, key=lambda s: s["ticker"])
     secs = sector_by_ticker()
@@ -742,14 +743,15 @@ def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record ag
                       for i, k in enumerate(_ORDER)))
     extra = ""
     if filters:
-        sec_opts = "".join(f'<option value="{sector_slug(x)}">{escape(x)}</option>' for x in all_sectors())
         held_opts = "".join(
             f'<option value="{i}:{d}">{w} {escape(ex.lower_label(_FACTOR[k].label))}</option>'
             for i, k in enumerate(_ORDER) for d, w in (("u", "Moved up with"), ("d", "Moved down with")))
-        extra = ('<span class="hub-f"><label for="hub-sec" class="small">Sector</label>'
-                 f'<select id="hub-sec"><option value="">All sectors</option>{sec_opts}</select></span>'
-                 '<span class="hub-f"><label for="hub-held" class="small">Held up</label>'
-                 f'<select id="hub-held"><option value="">Any reading</option>{held_opts}</select></span>')
+        if filters != "held":
+            sec_opts = "".join(f'<option value="{sector_slug(x)}">{escape(x)}</option>' for x in all_sectors())
+            extra = ('<span class="hub-f"><label for="hub-sec" class="small">Sector</label>'
+                     f'<select id="hub-sec"><option value="">All sectors</option>{sec_opts}</select></span>')
+        extra += ('<span class="hub-f"><label for="hub-held" class="small">Held up</label>'
+                  f'<select id="hub-held"><option value="">Any reading</option>{held_opts}</select></span>')
     return (
         _HUB_CSS
         + '<div class="hub-bar"><span class="hub-f hub-fq"><label for="hub-q" class="small">Find a stock</label>'
@@ -772,11 +774,11 @@ _OV_CSS = """<style>
 .ov h2{margin:0 0 2px;font-size:inherit;font-weight:700}.ov .small{margin:0 0 8px}
 .ov-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--subtle);margin-bottom:8px}
 .ov i{display:inline-block;height:100%}.ov .u{background:#2f6fbd}.ov .d{background:#b5651d}
-.ov a i{width:8px;height:8px;border-radius:2px;margin-right:7px}
-.ov a{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;margin:0 -8px;border-radius:8px;
+.ov span i{width:8px;height:8px;border-radius:2px;margin-right:7px}
+.ov a,.ov-z{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;margin:0 -8px;border-radius:8px;
   color:var(--ink);text-decoration:none;min-height:24px;align-items:center}
 .ov a:hover{background:var(--subtle)}.ov a[aria-current]{background:var(--subtle);box-shadow:inset 3px 0 0 var(--accent)}
-.ov a b{font-variant-numeric:tabular-nums}
+.ov a b,.ov-z b{font-variant-numeric:tabular-nums}.ov .ov-z{color:var(--ink3)}
 </style>"""
 
 
@@ -786,6 +788,12 @@ def hub_overview_html(stocks: Iterable[dict]) -> str:
     Each count is a preset for the table's held-up filter. Only readings that
     held up are counted; the rest are reported as "no clear link"."""
     stocks = list(stocks)
+
+    def preset(i: int, d: str, words: str, n: int) -> str:
+        inner = f'<span><i class="{d}"></i>{words}</span><b>{n}</b>'
+        # A count of zero is not a filter worth offering: it would empty the table.
+        return f'<a href="#h={i}:{d}" data-hv="{i}:{d}">{inner}</a>' if n else f'<p class="ov-z">{inner}</p>'
+
     cards = []
     for i, k in enumerate(_ORDER):
         es = [(s.get("exposures") or {}).get(k) for s in stocks]
@@ -800,10 +808,7 @@ def hub_overview_html(stocks: Iterable[dict]) -> str:
             f'<p class="small">No clear link: {n - up - down} of {n}</p>'
             f'<span class="ov-bar" aria-hidden="true"><i class="u" style="width:{100 * up / n:.1f}%"></i>'
             f'<i style="flex:1"></i><i class="d" style="width:{100 * down / n:.1f}%"></i></span>'
-            f'<a href="#h={i}:u" data-hv="{i}:u">'
-            f'<span><i class="u"></i>Moved up</span><b>{up}</b></a>'
-            f'<a href="#h={i}:d" data-hv="{i}:d">'
-            f'<span><i class="d"></i>Moved down</span><b>{down}</b></a></li>')
+            + preset(i, "u", "Moved up", up) + preset(i, "d", "Moved down", down) + '</li>')
     return _OV_CSS + f'<ul class="ov" aria-label="Stocks with a link that held up, by force">{"".join(cards)}</ul>' if cards else ""
 
 

@@ -267,8 +267,8 @@ const FREE_TOOLS: { href: string; title: string; blurb: string; icon: React.Reac
     icon: <path d="M12 4l2.4 5 5.6.8-4 3.9.9 5.5L12 16.6 7.1 19.2l.9-5.5-4-3.9 5.6-.8z" /> },
   { href: "/guess", title: "Whose fingerprint?", blurb: "A daily game: match a mystery stock to its economic profile.",
     icon: <><path d="M7 11a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0z" /><path d="M10 11v2M14 11v2" /></> },
-  { href: "/learn", title: "How to read it", blurb: "The typical move, the 90% range and the labels, with a playground.",
-    icon: <><path d="M4 6l8-3 8 3-8 3z" /><path d="M8 8v5c0 1.5 2 3 4 3s4-1.5 4-3V8" /></> },
+  { href: "/heatmap", title: "Market heatmap", blurb: "Every stock as a tile, coloured by how it moved with oil, rates or any force.",
+    icon: <><rect x="3" y="4" width="10" height="7" rx="1" /><rect x="15" y="4" width="6" height="7" rx="1" /><rect x="3" y="13" width="6" height="7" rx="1" /><rect x="11" y="13" width="10" height="7" rx="1" /></> },
 ];
 
 export default function Home() {
@@ -517,6 +517,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <a className="lp-link" href="/learn">How to read a result, with a playground →</a>
           </div>
         </section>
 
