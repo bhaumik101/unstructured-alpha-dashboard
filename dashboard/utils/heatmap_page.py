@@ -25,7 +25,7 @@ from html import escape
 from typing import Iterable
 
 from utils.explore_page import JS_PCT
-from utils.exposure_pages import _date, _shell
+from utils.exposure_pages import _shell, data_chips, tool_header_html
 from utils.map_page import map_data
 
 DEFAULT_FORCE = "oil"
@@ -152,11 +152,10 @@ def heatmap_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> st
     default = DEFAULT_FORCE if DEFAULT_FORCE in keys else keys[0]
     payload = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
     body = (
-        _CSS + crumb + '<h1>Market heatmap</h1>'
-        f'<p class="meta">{len(data["s"]):,} stocks on record'
-        + (f' · data through {_date(data["as_of"])}' if data["as_of"] else "") + '</p>'
-        f'<p class="lead">{escape(desc)}</p>'
-        '<div class="hx-bar"><label for="hx-force">Economic force</label><select id="hx-force"></select>'
+        _CSS + crumb
+        + tool_header_html("Market heatmap", data_chips(len(data["s"]), "stocks on record", data["as_of"]),
+                           escape(desc))
+        + '<div class="hx-bar"><label for="hx-force">Economic force</label><select id="hx-force"></select>'
         '<span class="hx-scale small" aria-hidden="true"><span id="hx-lo"></span><span class="hx-ramp"></span>'
         '<span id="hx-hi"></span></span></div>'
         '<p class="small">Each tile is one stock&#39;s typical weekly move, beyond the market, in weeks when '

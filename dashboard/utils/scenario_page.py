@@ -26,7 +26,7 @@ from typing import Iterable
 
 from utils import exposure as ex
 from utils.explore_page import _CSS as XP_CSS, JS_PCT, MAX_MULTIPLE, _unit
-from utils.exposure_pages import STANDS_UP, _date, _shell, app_link, data_week
+from utils.exposure_pages import STANDS_UP, _shell, app_link, data_chips, data_week, tool_header_html
 
 # Moves in multiples of each force's standard move. Hypothetical, not forecasts.
 PRESETS = (
@@ -163,12 +163,10 @@ def scenario_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> s
         return _shell(title, desc, canonical, ld, body, app_url, robots="noindex, follow")
     payload = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
     body = (
-        XP_CSS + _SC_CSS + crumb +
-        '<h1>Build a scenario</h1>'
-        f'<p class="meta">{len(data["s"]):,} stocks measured on all five'
-        + (f' · data through {_date(data["as_of"])}' if data["as_of"] else "") + '</p>'
-        f'<p class="lead">{escape(desc)}</p>'
-        '<div class="sc-pre" id="sc-pre" role="group" aria-label="Scenarios"></div>'
+        XP_CSS + _SC_CSS + crumb
+        + tool_header_html("Build a scenario", data_chips(len(data["s"]), "stocks measured on all five",
+                                                           data["as_of"]), escape(desc))
+        + '<div class="sc-pre" id="sc-pre" role="group" aria-label="Scenarios"></div>'
         '<p class="small">Scenarios are hypothetical moves to explore, not forecasts. Each slider is in '
         f'steps of half that force&#39;s standard move, up to {MAX_MULTIPLE:g} times it either way.</p>'
         '<div class="sc-grid" id="sc-grid"></div>'

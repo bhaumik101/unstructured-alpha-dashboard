@@ -119,6 +119,7 @@ _SH_CSS = """<style>
 .sh-tiles .k{display:block;color:var(--ink3)}
 .sh-tiles b{display:block;font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--ink)}
 .sh-tiles .s{display:block;color:var(--ink2)}
+.sh-lead{margin:12px 0 0;color:var(--ink2);max-width:72ch}
 @media (max-width:520px){.sh{padding:14px}.sh-tiles{grid-template-columns:1fr 1fr}.sh-tiles li{padding:8px 10px}}
 </style>"""
 
@@ -170,6 +171,24 @@ def stock_header_html(symbol: str, rec: dict, who: str, sector: Optional[str],
                 f'<li><span class="k">{k}</span><b>{v}</b><span class="s small">{d}</span></li>'
                 for k, v, d in tiles) + '</ul>' if tiles else '')
             + '</header>')
+
+
+def tool_header_html(title: str, chips: Iterable[str], lead: str = "") -> str:
+    """The header card the tool pages share (map, scenario, heatmap, what
+    changed): the title, a row of facts about the data, and the lead. chips
+    and lead are HTML; callers escape what they put in."""
+    chips = [c for c in chips if c]
+    return (_SH_CSS + '<header class="card sh">'
+            f'<div class="sh-top"><h1>{escape(title)}</h1></div>'
+            + ('<ul class="sh-chips">' + "".join(f'<li>{c}</li>' for c in chips) + '</ul>' if chips else '')
+            + (f'<p class="sh-lead">{lead}</p>' if lead else '')
+            + '</header>')
+
+
+def data_chips(n: int, what: str, as_of: str) -> List[str]:
+    """The usual facts for a tool page: how many stocks, through when, and how."""
+    return [f"{n:,} {what}", f"Data through {_date(as_of)}" if as_of else "",
+            "Market move removed first", "Three years of weekly returns"]
 
 
 def page_title(symbol: str, name: str) -> str:
