@@ -19,7 +19,7 @@ from __future__ import annotations
 from html import escape
 from typing import Iterable, List, Optional, Tuple
 
-from utils.exposure_pages import STANDS_UP, SYMBOL_RE, _chip, _date, _shell, app_link, fmt_pct
+from utils.exposure_pages import STANDS_UP, SYMBOL_RE, _chip, _date, _shell, app_link, fmt_pct, tool_header_html
 from utils import exposure as ex
 from utils.force_pages import ALL_FORCES
 
@@ -177,7 +177,10 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
     desc = ("Put two U.S. stocks side by side and see how each has moved with interest rates, "
             "oil, the dollar, gold and every other economic force measured here.")
     crumb = '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Compare</nav>'
-    head = _CSS + crumb + '<h1>Compare two stocks</h1>'
+    facts = [f"{len(stocks):,} stocks on record", "Market move removed first", "Three years of weekly returns"]
+
+    def head(lead: str, h1: str = "Compare two stocks", chips=facts) -> str:
+        return _CSS + crumb + tool_header_html(h1, chips, lead)
     ld = {"@context": "https://schema.org", "@type": "WebPage", "name": title, "url": canonical,
           "description": desc}
 
@@ -185,7 +188,7 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
         examples = "".join(
             f'<li><a href="/compare?a={x}&amp;b={y}">{x} vs {y}</a></li>'
             for x, y in [p for p in EXAMPLES if p[0] in by and p[1] in by][:3])
-        body = (head + f'<p class="lead">{escape(desc)}</p>' + _form("", "", tickers)
+        body = (head(escape(desc)) + _form("", "", tickers)
                 + (f'<h2>Try</h2><ul class="related">{examples}</ul>' if examples else "")
                 + '<p class="small">Any stock on record can be compared: the S&amp;P 500, measured '
                   'weekly, plus any stock a visitor has opened.</p>')
@@ -198,7 +201,7 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
                'not on record yet. Opening a stock in the app measures it and adds it here.'
                if missing else f"Pick a second stock to compare with {escape(a or b)}."
                if bool(a) != bool(b) else "Pick two different stocks.")
-        body = head + f'<p class="lead">{why}</p>' + _form(a, b, tickers)
+        body = head(why) + _form(a, b, tickers)
         return _shell(title, desc, canonical, ld, body, app_url, robots="noindex, follow")
 
     sa, sb = by[a], by[b]
@@ -224,12 +227,15 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
         f'{escape(r["label"])}</a><span class="shock">In weeks when {escape(r["phrase"])}</span>'
         + ('<span class="cp-mark">Clear difference</span>' if r["apart"] else "") + '</th>'
         f'{_cell(r["a"], scale)}{_cell(r["b"], scale)}</tr>' for r in rows)
-    newest = max(str(sa.get("as_of") or "")[:10], str(sb.get("as_of") or "")[:10])
+    da, db = str(sa.get("as_of") or "")[:10], str(sb.get("as_of") or "")[:10]
+    # One date when they share a data week; each its own when they don't --
+    # never the newer of the two for both.
+    dates = ([f"Data through {_date(da)}"] if da == db and da else
+             [f"{escape(t)} data through {_date(d)}" for t, d in ((a, da), (b, db)) if d])
+    chips = [f"{len(apart)} of {len(rows)} forces clearly differ"] + dates + ["Market move removed first"]
     body = (
-        head + f'<p class="meta">{escape(a)} vs {escape(b)}'
-        + (f' · data through {_date(newest)}' if newest else "") + '</p>'
+        head(escape(lead), f"{a} vs {b}", chips)
         + _form(a, b, tickers)
-        + f'<p class="lead">{escape(lead)}</p>'
         + duel_chart_html(rows, a, b)
         + f'<div class="card cp-tab" tabindex="0" role="region" aria-label="{escape(a)} and {escape(b)}, force by force">'
         f'<table><thead><tr><th scope="col">Economic force</th><th scope="col">{who(sa)}</th>'

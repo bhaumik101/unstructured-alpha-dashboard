@@ -57,7 +57,7 @@ def test_a_shared_link_is_offered_not_applied(stocks):
 
 def test_the_page_is_noindex_and_carries_the_data(stocks):
     html = lp.list_page_html(stocks, "https://www.x", "https://app.x")
-    assert 'content="noindex' in html and "<h1>My list</h1>" in html
+    assert 'content="noindex' in html and '<header class="card sh"><div class="sh-top"><h1>My list</h1>' in html
     payload = json.loads(re.search(r'<script type="application/json" id="ls-data">(.*?)</script>', html).group(1))
     assert set(payload["s"]) == {"XOM", "JPM"}
     assert "/*PCT*/" not in html and "__KEY__" not in html and "__APP__" not in html
