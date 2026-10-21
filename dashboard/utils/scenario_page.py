@@ -26,7 +26,7 @@ from typing import Iterable
 
 from utils import exposure as ex
 from utils.explore_page import _CSS as XP_CSS, JS_PCT, MAX_MULTIPLE, _unit
-from utils.exposure_pages import STANDS_UP, _date, _shell, app_link
+from utils.exposure_pages import STANDS_UP, _date, _shell, app_link, data_week
 
 # Moves in multiples of each force's standard move. Hypothetical, not forecasts.
 PRESETS = (
@@ -41,7 +41,7 @@ PRESETS = (
 
 def scenario_data(stocks: Iterable[dict]) -> dict:
     keys = [f.key for f in ex.FACTORS]
-    rows, newest, partial = [], "", 0
+    rows, dates, partial = [], [], 0
     for s in stocks:
         exps = s.get("exposures") or {}
         if not s.get("ticker") or not exps:
@@ -49,14 +49,14 @@ def scenario_data(stocks: Iterable[dict]) -> dict:
         if not all(k in exps for k in keys):
             partial += 1
             continue
-        newest = max(newest, str(s.get("as_of") or "")[:10])
+        dates.append(str(s.get("as_of") or "")[:10])
         rows.append([s["ticker"], s.get("name") or "",
                      [round(float(exps[k]["impact"]), 4) for k in keys],
                      "".join("1" if exps[k].get("evidence") in STANDS_UP else "0" for k in keys)])
     rows.sort(key=lambda r: r[0])
     return {"f": [{"key": f.key, "label": f.label, "step": abs(f.shock), "unit": _unit(f),
                    "phrase": f.shock_phrase, "lower": ex.lower_label(f.label)} for f in ex.FACTORS],
-            "s": rows, "partial": partial, "as_of": newest,
+            "s": rows, "partial": partial, "as_of": data_week(dates),
             "presets": [[name, {k: v for k, v in moves.items()}] for name, moves in PRESETS]}
 
 

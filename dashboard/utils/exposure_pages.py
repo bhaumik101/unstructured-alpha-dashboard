@@ -836,6 +836,19 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     return _shell(title, desc, f"{base_url}/exposure", json_ld, body, app_url)
 
 
+def data_week(dates: Iterable[str]) -> str:
+    """The data week a set of readings shares: the date the most of them are
+    through, a tie going to the newer. Not simply the newest date -- a stock a
+    visitor opens mid-week is a week ahead of the library, and one stock must
+    not make a page of hundreds claim to be fresher than it is."""
+    counts: Dict[str, int] = {}
+    for d in dates:
+        d = str(d or "")[:10]
+        if d:
+            counts[d] = counts.get(d, 0) + 1
+    return max(counts, key=lambda d: (counts[d], d), default="")
+
+
 def sitemap_urls(stocks: Iterable[dict], base_url: str) -> List[str]:
     """<url> entries: the hub, then one per measured stock with its real lastmod."""
     stocks = list(stocks)

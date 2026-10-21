@@ -28,7 +28,7 @@ from html import escape
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from utils import exposure as ex
-from utils.exposure_pages import _SH_CSS, STANDS_UP, _chip, _date, _shell, fmt_pct, app_link
+from utils.exposure_pages import _SH_CSS, STANDS_UP, _chip, _date, _shell, data_week, fmt_pct, app_link
 
 GROUP_LABELS: Dict[str, str] = {"core": "The core five", **ex.EXTRA_GROUPS}
 ALL_FORCES: Tuple[ex.Factor, ...] = tuple(ex.FACTORS) + tuple(ex.EXTRA_FACTORS)
@@ -42,21 +42,21 @@ def _lower(f: ex.Factor) -> str:
 def force_stats(key: str, stocks: Iterable[dict]) -> dict:
     """Every stock on record with a reading on this force, sorted into up,
     down and no measurable link."""
-    measured, up, down = [], [], []
-    newest = ""
+    measured, up, down, dates = [], [], [], []
     for s in stocks:
         e = (s.get("exposures") or {}).get(key)
         if not e:
             continue
         row = dict(e, ticker=s["ticker"], name=s.get("name") or "")
         measured.append(row)
-        newest = max(newest, str(e.get("as_of") or s.get("as_of") or "")[:10])
+        dates.append(str(e.get("as_of") or s.get("as_of") or "")[:10])
         if e.get("evidence") in STANDS_UP:
             (up if e["impact"] > 0 else down).append(row)
     up.sort(key=lambda r: -r["impact"])
     down.sort(key=lambda r: r["impact"])
     return {"measured": len(measured), "up": up, "down": down,
-            "none": len(measured) - len(up) - len(down), "as_of": newest}
+            "none": len(measured) - len(up) - len(down),
+            "as_of": data_week(dates), "newest": max(dates, default="")}
 
 
 def _plural(n: int, word: str) -> str:
@@ -392,9 +392,9 @@ def force_sitemap_urls(stocks: Iterable[dict], base_url: str) -> List[str]:
         st = force_stats(f.key, stocks)
         if not st["measured"]:
             continue   # an empty force page is noindex; don't advertise it
-        newest = max(newest, st["as_of"])
+        newest = max(newest, st["newest"])
         urls.append(f"  <url><loc>{base_url}/forces/{f.key}</loc>"
-                    + (f"<lastmod>{st['as_of']}</lastmod>" if st["as_of"] else "")
+                    + (f"<lastmod>{st['newest']}</lastmod>" if st["newest"] else "")
                     + "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
     hub = (f"  <url><loc>{base_url}/forces</loc>" + (f"<lastmod>{newest}</lastmod>" if newest else "")
            + "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
