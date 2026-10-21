@@ -22,7 +22,7 @@ from html import escape
 from typing import Iterable
 
 from utils import exposure as ex
-from utils.exposure_pages import STANDS_UP, _date, _shell, app_link, data_week
+from utils.exposure_pages import STANDS_UP, _date, _shell, app_link, data_week, tool_header_html
 from utils.explore_page import JS_PCT
 
 STORE_KEY = "ua-list"
@@ -223,10 +223,11 @@ def list_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     body = (
         _CSS +
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › My list</nav>'
-        '<h1>My list</h1>'
-        + (f'<p class="meta">Data through {_date(data["as_of"])}</p>' if data["as_of"] else "")
-        + f'<p class="lead">{escape(desc)} Kept in this browser only: no account, nothing sent anywhere.</p>'
-        '<form class="ls-add" id="ls-form"><div><label for="ls-t">Add stocks</label>'
+        + tool_header_html("My list", [f"Up to {MAX_ITEMS} stocks",
+                                       f"Data through {_date(data['as_of'])}" if data["as_of"] else "",
+                                       "Market move removed first"],
+                           f'{escape(desc)} Kept in this browser only: no account, nothing sent anywhere.')
+        + '<form class="ls-add" id="ls-form"><div><label for="ls-t">Add stocks</label>'
         '<input id="ls-t" list="ls-tickers" autocomplete="off" spellcheck="false" placeholder="e.g. AAPL, XOM"></div>'
         f'<button class="btn btn-primary" type="submit">Add</button><span class="small" id="ls-count"></span>'
         f'<datalist id="ls-tickers">{opts}</datalist></form>'

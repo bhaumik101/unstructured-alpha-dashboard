@@ -173,3 +173,24 @@ def test_a_one_sided_row_draws_only_the_stock_measured_and_the_page_carries_the_
     page = cp.compare_page_html(STOCKS, "XOM", "DAL", "https://www.x", "https://app.x")
     assert page.index('<figure class="card du">') < page.index('class="card cp-tab"')
     assert cp.duel_chart_html([], "XOM", "DAL") == ""
+
+
+def _header(html):
+    h = html[html.index('<header class="card sh">'):]
+    return h[:h.index("</header>")]
+
+
+def test_the_header_names_the_pair_and_how_many_forces_clearly_differ():
+    html = cp.compare_page_html(STOCKS, "XOM", "DAL", "https://www.x", "https://app.x")
+    head = _header(html)
+    assert "<h1>XOM vs DAL</h1>" in head and html.count("<h1>") == 1
+    n = sum(r["apart"] for r in cp.compare_rows(XOM, DAL))
+    assert f"<li>{n} of {len(cp.compare_rows(XOM, DAL))} forces clearly differ</li>" in head
+    assert "<li>Data through Sep 25, 2026</li>" in head                 # same week: one date
+
+
+def test_two_stocks_on_different_weeks_each_show_their_own_date():
+    ahead = dict(DAL, as_of="2026-10-02")
+    head = _header(cp.compare_page_html([XOM, ahead], "XOM", "DAL", "https://www.x", "https://app.x"))
+    assert "<li>XOM data through Sep 25, 2026</li>" in head and "<li>DAL data through Oct 2, 2026</li>" in head
+    assert "<li>Data through" not in head                               # never the newer date for both
