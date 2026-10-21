@@ -63,3 +63,14 @@ def test_sector_pages_show_the_shared_week(monkeypatch):
     assert "data through Oct 2, 2026" in page and "Oct 9, 2026" not in page
     hub = sp.sectors_hub_html(STOCKS, "https://www.x", "https://app.x")
     assert "Data through Oct 2, 2026" in hub
+
+
+def test_tool_pages_share_one_header_card_with_the_shared_week():
+    from utils import heatmap_page as hp
+    for html in (mp.map_page_html(STOCKS, "https://www.x", "https://app.x"),
+                 scp.scenario_page_html(STOCKS, "https://www.x", "https://app.x"),
+                 hp.heatmap_page_html(STOCKS, "https://www.x", "https://app.x")):
+        head = html[html.index('<header class="card sh">'):]
+        head = head[:head.index("</header>")]
+        assert head.count("<h1>") == 1 and html.count("<h1>") == 1
+        assert "<li>Data through Oct 2, 2026</li>" in head and "Oct 9" not in head

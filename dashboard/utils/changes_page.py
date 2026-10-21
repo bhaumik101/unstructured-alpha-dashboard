@@ -23,7 +23,7 @@ from __future__ import annotations
 from html import escape
 from typing import Dict, Iterable, List
 
-from utils.exposure_pages import STANDS_UP, _date, _shell, fmt_pct
+from utils.exposure_pages import STANDS_UP, _date, _shell, fmt_pct, tool_header_html
 from utils.force_pages import FORCE_BY_KEY
 
 SHIFTS_SHOWN = 15
@@ -179,9 +179,11 @@ def changes_page_html(latest: Iterable[dict], previous: Iterable[dict],
             f"hold up that did not before and {nl} no longer do.")
     every = c["gained"] + c["lost"] + c["shifts"]
     scale = max([abs(r[w]["impact"]) for r in every for w in ("before", "now")] + [0.5]) * 1.05
-    parts = [_CSS, crumb, '<h1>What changed this week</h1>',
-             f'<p class="meta">Data through {_date(c["as_of"])} · {_n(c["compared"], "stock")} compared with '
-             'their previous reading</p>', f'<p class="lead">{escape(desc)}</p>',
+    parts = [_CSS, crumb,
+             tool_header_html("What changed this week",
+                              [f'{_n(c["compared"], "stock")} compared',
+                               f'Data through {_date(c["as_of"])}', "Each reading spans three years"],
+                              escape(desc)),
              '<ul class="ch-tiles">'
              f'<li><b>{c["compared"]}</b><span>{"stock" if c["compared"] == 1 else "stocks"} compared</span></li>'
              f'<li><b>{ng}</b><span>readings now hold up</span></li>'

@@ -25,7 +25,7 @@ from typing import Iterable
 
 from utils import exposure as ex
 from utils.explore_page import JS_PCT
-from utils.exposure_pages import STANDS_UP, _date, _shell, data_week
+from utils.exposure_pages import STANDS_UP, _shell, data_chips, data_week, tool_header_html
 from utils.force_pages import ALL_FORCES
 
 DEFAULT_X, DEFAULT_Y = "rates", "oil"
@@ -223,12 +223,10 @@ def map_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     script = script.replace("__X__", x).replace("__Y__", y)
     dot = '<svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" class="mp-dot {}"/></svg>'
     body = (
-        _CSS + crumb +
-        '<h1>Stock map</h1>'
-        f'<p class="meta">{len(data["s"]):,} U.S. stocks on record'
-        + (f' · data through {_date(data["as_of"])}' if data["as_of"] else "") + '</p>'
-        f'<p class="lead">{escape(desc)}</p>'
-        '<form class="mp-form" onsubmit="return false">'
+        _CSS + crumb
+        + tool_header_html("Stock map", data_chips(len(data["s"]), "U.S. stocks on record", data["as_of"]),
+                           escape(desc))
+        + '<form class="mp-form" onsubmit="return false">'
         '<div><label for="mp-x">Across</label><select id="mp-x"></select></div>'
         '<div><label for="mp-y">Up</label><select id="mp-y"></select></div>'
         '<div><label for="mp-sec">Light up a sector</label><select id="mp-sec"></select></div>'
