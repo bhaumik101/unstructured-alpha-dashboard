@@ -25,7 +25,7 @@ from typing import Iterable
 
 from utils import exposure as ex
 from utils.explore_page import JS_PCT
-from utils.exposure_pages import STANDS_UP, _date, _shell
+from utils.exposure_pages import STANDS_UP, _date, _shell, data_week
 from utils.force_pages import ALL_FORCES
 
 DEFAULT_X, DEFAULT_Y = "rates", "oil"
@@ -41,17 +41,17 @@ def map_data(stocks: Iterable[dict]) -> dict:
     forces = [f for f in ALL_FORCES if any(f.key in (s.get("exposures") or {}) for s in stocks)]
     secs = sectors()
     by_t = sector_by_ticker()
-    rows, newest = [], ""
+    rows, dates = [], []
     for s in sorted(stocks, key=lambda s: s["ticker"]):
         exps = s.get("exposures") or {}
-        newest = max(newest, str(s.get("as_of") or "")[:10])
+        dates.append(str(s.get("as_of") or "")[:10])
         sec = by_t.get(s["ticker"])
         rows.append([s["ticker"], s.get("name") or "", secs.index(sec) if sec in secs else -1,
                      [round(float(exps[f.key]["impact"]), 4) if f.key in exps else None for f in forces],
                      "".join(("1" if exps[f.key].get("evidence") in STANDS_UP else "0") if f.key in exps
                              else "-" for f in forces)])
     return {"f": [[f.key, f.label, f.shock_phrase, ex.lower_label(f.label)] for f in forces], "sec": secs,
-            "s": rows, "as_of": newest}
+            "s": rows, "as_of": data_week(dates)}
 
 
 _CSS = """<style>

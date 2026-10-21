@@ -26,7 +26,7 @@ from statistics import median
 from typing import Dict, Iterable, List, Optional
 
 from utils import exposure as ex
-from utils.exposure_pages import STANDS_UP, _date, _shell, fmt_pct, hub_grid_html, hub_overview_html
+from utils.exposure_pages import STANDS_UP, _date, _shell, data_week, fmt_pct, hub_grid_html, hub_overview_html
 
 INDEX_CSV = Path(__file__).resolve().parent.parent / "cron" / "sp500.csv"
 MIN_FOR_MEDIAN = 3
@@ -242,10 +242,10 @@ _FOOT = ('Each figure is the median typical weekly move of the sector&#39;s stoc
 
 def sectors_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     stocks = list(stocks)
-    grid, newest = [], ""
+    grid, dates = [], []
     for sec in sectors():
         mem = members_of(sec, stocks)
-        newest = max([newest] + [str(m.get("as_of") or "")[:10] for m in mem])
+        dates += [str(m.get("as_of") or "")[:10] for m in mem]
         grid.append((sec, mem, None))
     groups = [("core", "The core five", tuple(ex.FACTORS))] + [
         (g, label, tuple(f for f in ex.EXTRA_FACTORS if f.group == g)) for g, label in ex.EXTRA_GROUPS.items()]
@@ -279,7 +279,7 @@ def sectors_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str
     body = (
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Sectors</nav>'
         '<h1>Economic exposure by sector</h1>'
-        + (f'<p class="meta">Data through {_date(newest)}</p>' if newest else "")
+        + (f'<p class="meta">Data through {_date(week)}</p>' if (week := data_week(dates)) else "")
         + f'<p class="lead">{escape(desc)}</p>'
         + _HM_CSS +
         '<p class="small hm-tip">Pick any figure to see the stocks behind it. The core five come first; '
@@ -374,7 +374,7 @@ def sector_page_html(sector: str, stocks: Iterable[dict], base_url: str, app_url
     total = sum(1 for v in sector_by_ticker().values() if v == sector)
     canonical = f"{base_url}/sectors/{slug(sector)}"
     title = f"{sector} stocks: exposure to interest rates, oil, the dollar and more"
-    newest = max((str(m.get("as_of") or "")[:10] for m in mem), default="")
+    newest = data_week(m.get("as_of") for m in mem)
     if not mem:
         desc = f"How {sector} stocks have moved with economic forces."
         body = ('<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '

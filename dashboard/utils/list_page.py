@@ -22,7 +22,7 @@ from html import escape
 from typing import Iterable
 
 from utils import exposure as ex
-from utils.exposure_pages import STANDS_UP, _date, _shell, app_link
+from utils.exposure_pages import STANDS_UP, _date, _shell, app_link, data_week
 from utils.explore_page import JS_PCT
 
 STORE_KEY = "ua-list"
@@ -35,16 +35,16 @@ def list_data(stocks: Iterable[dict]) -> dict:
     from utils.sector_pages import sector_by_ticker
     secs = sector_by_ticker()
     keys = [f.key for f in ex.FACTORS]
-    out, newest = {}, ""
+    out, dates = {}, []
     for s in stocks:
         if not s.get("ticker"):
             continue
         exps = s.get("exposures") or {}
-        newest = max(newest, str(s.get("as_of") or "")[:10])
+        dates.append(str(s.get("as_of") or "")[:10])
         out[s["ticker"]] = [s.get("name") or "", secs.get(s["ticker"], ""),
                             [[round(float(exps[k]["impact"]), 4), 1 if exps[k].get("evidence") in STANDS_UP else 0]
                              if k in exps else None for k in keys]]
-    return {"f": [[f.key, f.label, f.shock_phrase] for f in ex.FACTORS], "s": out, "as_of": newest}
+    return {"f": [[f.key, f.label, f.shock_phrase] for f in ex.FACTORS], "s": out, "as_of": data_week(dates)}
 
 
 # The save button on a stock page. Works on any page that has the shell.
