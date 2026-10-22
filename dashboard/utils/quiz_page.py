@@ -23,7 +23,7 @@ from html import escape
 from typing import Iterable, List, Optional
 
 from utils.explore_page import JS_PCT
-from utils.exposure_pages import SYMBOL_RE, _shell
+from utils.exposure_pages import SYMBOL_RE, _shell, tool_header_html
 from utils.force_pages import FORCE_BY_KEY
 
 ROUNDS = 10
@@ -167,9 +167,11 @@ def quiz_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         return _shell(title, desc, canonical, ld, body, app_url, robots="noindex, follow")
     payload = json.dumps(rounds, separators=(",", ":")).replace("</", "<\\/")
     body = (
-        _CSS + crumb + '<h1>Which way did it move?</h1>'
-        f'<p class="lead">{escape(desc)}</p>'
-        f'<div class="qz" id="qz-box" data-day="{escape(_day_label(day))}" data-url="{escape(canonical)}"><noscript><p class="lead">The quiz needs JavaScript. '
+        _CSS + crumb
+        + tool_header_html("Which way did it move?", [f"{len(rounds)} questions today",
+                                                      escape(_day_label(day)), "Same questions for everyone"],
+                           escape(desc))
+        + f'<div class="qz" id="qz-box" data-day="{escape(_day_label(day))}" data-url="{escape(canonical)}"><noscript><p class="lead">The quiz needs JavaScript. '
         'Every answer is also on the <a href="/forces">economic force pages</a>.</p></noscript></div>'
         '<p aria-live="polite" id="qz-say" style="position:absolute;left:-9999px"></p>'
         '<p class="small">"Rose" and "fell" answers are Clear readings: a stock&#39;s typical same-week '

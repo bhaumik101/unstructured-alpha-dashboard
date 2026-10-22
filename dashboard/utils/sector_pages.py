@@ -26,7 +26,7 @@ from statistics import median
 from typing import Dict, Iterable, List, Optional
 
 from utils import exposure as ex
-from utils.exposure_pages import STANDS_UP, _date, _shell, data_week, fmt_pct, hub_grid_html, hub_overview_html
+from utils.exposure_pages import STANDS_UP, _date, _shell, data_week, fmt_pct, hub_grid_html, hub_overview_html, data_chips, tool_header_html
 
 INDEX_CSV = Path(__file__).resolve().parent.parent / "cron" / "sp500.csv"
 MIN_FOR_MEDIAN = 3
@@ -278,9 +278,9 @@ def sectors_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str
             "the dollar, oil and credit spreads: the median move, and how many held up each way.")
     body = (
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Sectors</nav>'
-        '<h1>Economic exposure by sector</h1>'
-        + (f'<p class="meta">Data through {_date(week)}</p>' if (week := data_week(dates)) else "")
-        + f'<p class="lead">{escape(desc)}</p>'
+        + tool_header_html("Economic exposure by sector",
+                           data_chips(len(dates), "S&amp;P 500 stocks on record", data_week(dates))[:3],
+                           escape(desc))
         + _HM_CSS +
         '<p class="small hm-tip">Pick any figure to see the stocks behind it. The core five come first; '
         'the tabs hold the other forces, from gold and bitcoin to the yen.</p>'
@@ -398,10 +398,9 @@ def sector_page_html(sector: str, stocks: Iterable[dict], base_url: str, app_url
     body = (
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '
         f'<a href="/sectors">Sectors</a> › {escape(sector)}</nav>'
-        f'<h1>{escape(sector)}</h1>'
-        f'<p class="meta">{len(mem)} of {total} companies on record'
-        + (f' · data through {_date(newest)}' if newest else "") + '</p>'
-        f'<p class="lead">{escape(desc)}</p>'
+        + tool_header_html(sector, [f"{len(mem)} of {total} companies on record",
+                                    f"Data through {_date(newest)}" if newest else "",
+                                    "Market move removed first"], escape(desc))
         + (f'<p class="lead"><b>{escape(head)}</b></p>' if (head := headline(sector, mem)) else "")
         + f'<h2>The sector as a whole</h2>{fingerprint_html(sector, mem)}'
         f'<div class="card" tabindex="0" role="region" aria-label="{escape(sector)}: median move on each force">'

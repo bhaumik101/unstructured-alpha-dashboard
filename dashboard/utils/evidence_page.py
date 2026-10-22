@@ -15,7 +15,7 @@ from html import escape
 from typing import Optional
 
 from utils import exposure as ex
-from utils.exposure_pages import _date, _shell, app_link
+from utils.exposure_pages import _date, _shell, app_link, tool_header_html
 
 LABELS = (("clear", "Clear"), ("tentative", "Tentative"),
           ("indistinct", "Not distinguishable from zero"))
@@ -68,11 +68,12 @@ def evidence_page_html(result: Optional[dict], base_url: str, app_url: str) -> s
 
     body = (
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Track record</nav>'
-        '<h1>Does it hold up?</h1>'
-        f'<p class="meta">Latest run {escape(when)} · {stocks:,} of {universe:,} S&amp;P 500 companies</p>'
-        f'<p class="lead">Every reading the product shows is measured on three years of weekly data. '
-        'This is how readings measured that way held up over the year that followed — a year the '
-        'first measurement never saw. It is published whatever it shows.</p>'
+        + tool_header_html("Does it hold up?", [f"Latest run {escape(when)}",
+                                                f"{stocks:,} of {universe:,} S&amp;P 500 companies",
+                                                "Published whatever it shows"],
+                           'Every reading the product shows is measured on three years of weekly data. '
+                           'This is how readings measured that way held up over the year that followed '
+                           '— a year the first measurement never saw.')
         + partial +
         '<h2>Did the direction and the size last?</h2>'
         '<div class="card" tabindex="0" role="region" aria-label="Results by evidence label"><table><thead><tr><th scope="col">Label the reading carried</th>'

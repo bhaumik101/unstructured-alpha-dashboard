@@ -21,7 +21,7 @@ from html import escape
 from typing import Iterable, Optional
 
 from utils import exposure as ex
-from utils.exposure_pages import _date, _shell, app_link
+from utils.exposure_pages import _shell, app_link, data_chips, tool_header_html
 from utils.force_pages import ALL_FORCES, GROUP_LABELS, force_stats
 
 # One percent formatter for every script on the public pages, matching
@@ -193,11 +193,9 @@ def explore_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
     body = (
         _CSS +
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › What if?</nav>'
-        '<h1>What if?</h1>'
-        f'<p class="meta">{n_stocks:,} U.S. stocks on record'
-        + (f' · data through {_date(data["as_of"])}' if data["as_of"] else "") + '</p>'
-        f'<p class="lead">{escape(desc)}</p>'
-        '<form class="xp-form" onsubmit="return false">'
+        + tool_header_html("What if?", data_chips(n_stocks, "U.S. stocks on record", data["as_of"]),
+                           escape(desc))
+        + '<form class="xp-form" onsubmit="return false">'
         '<div><label for="xp-force">Economic force</label><select id="xp-force"></select></div>'
         '<div><label for="xp-move">Size of the move: <span class="xp-now" id="xp-move-label"></span></label>'
         f'<input type="range" id="xp-move" min="{-MAX_MULTIPLE:g}" max="{MAX_MULTIPLE:g}" step="0.5" value="2" '

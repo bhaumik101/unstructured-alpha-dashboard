@@ -60,7 +60,7 @@ def test_the_map_scenario_and_list_feeds_carry_the_shared_week():
 def test_sector_pages_show_the_shared_week(monkeypatch):
     monkeypatch.setattr(sp, "sector_by_ticker", lambda: {s["ticker"]: "Energy" for s in STOCKS})
     page = sp.sector_page_html("Energy", STOCKS, "https://www.x", "https://app.x")
-    assert "data through Oct 2, 2026" in page and "Oct 9, 2026" not in page
+    assert "<li>Data through Oct 2, 2026</li>" in page and "Oct 9, 2026" not in page
     hub = sp.sectors_hub_html(STOCKS, "https://www.x", "https://app.x")
     assert "Data through Oct 2, 2026" in hub
 
@@ -74,3 +74,27 @@ def test_tool_pages_share_one_header_card_with_the_shared_week():
         head = head[:head.index("</header>")]
         assert head.count("<h1>") == 1 and html.count("<h1>") == 1
         assert "<li>Data through Oct 2, 2026</li>" in head and "Oct 9" not in head
+
+
+def test_every_public_page_has_one_h1_and_it_is_in_the_header_card(monkeypatch):
+    from datetime import date
+    from utils import explore_page as xp, exposure_pages as ep, guess_page as gp, learn_page, quiz_page as qp, tools_page as tp
+    monkeypatch.setattr(sp, "sector_by_ticker", lambda: {s["ticker"]: "Energy" for s in STOCKS})
+    pages = {
+        "hub": ep.hub_page_html(STOCKS, "https://www.x", "https://app.x"),
+        "sectors": sp.sectors_hub_html(STOCKS, "https://www.x", "https://app.x"),
+        "sector": sp.sector_page_html("Energy", STOCKS, "https://www.x", "https://app.x"),
+        "tools": tp.tools_page_html(STOCKS, "https://www.x", "https://app.x"),
+        "learn": learn_page.learn_page_html("https://www.x", "https://app.x"),
+        "quiz": qp.quiz_page_html(STOCKS, "https://www.x", "https://app.x", day=date(2026, 10, 22)),
+        "guess": gp.guess_page_html(STOCKS, "https://www.x", "https://app.x", day=date(2026, 10, 22)),
+        "forces": fp.forces_hub_html(STOCKS, "https://www.x", "https://app.x"),
+        "whatif": xp.explore_page_html(STOCKS, "https://www.x", "https://app.x"),
+    }
+    for name, html in pages.items():
+        if '<header class="card sh">' not in html:
+            assert "Not enough stocks" in html, name    # an empty state (too few stocks for a game)
+            continue
+        assert html.count("<h1>") == 1, name
+        card = html.index('<header class="card sh">')
+        assert card < html.index("<h1>") < html.index("</header>", card), name
