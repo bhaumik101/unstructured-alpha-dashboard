@@ -10,7 +10,7 @@ from __future__ import annotations
 from html import escape
 from typing import Iterable
 
-from utils.exposure_pages import _shell
+from utils.exposure_pages import _shell, tool_header_html
 
 from utils.force_pages import ALL_FORCES
 
@@ -98,9 +98,10 @@ def tools_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         '.td{grid-column:1/-1;color:var(--ink2);align-self:start}.tg{margin-top:22px}.tg h2{margin-bottom:2px}'
         '@media (prefers-reduced-motion:reduce){.tools a{transition:none}.tools a:hover{transform:none}}</style>'
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Free tools</nav>'
-        '<h1>Free tools</h1>'
-        f'<p class="lead">{escape(desc)}</p>'
-        f'{sections}'
+        + tool_header_html("Free tools", [f"{len(_TOOLS)} tools", f"{n:,} U.S. stocks",
+                                          f"{len(ALL_FORCES)} economic forces", "No account needed"],
+                           escape(desc))
+        + f'{sections}'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Nothing here is a '
         'recommendation to buy, sell or hold any security.</p>')
     ld = {"@context": "https://schema.org", "@type": "CollectionPage", "name": title,

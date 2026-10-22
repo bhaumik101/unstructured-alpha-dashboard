@@ -17,7 +17,7 @@ from __future__ import annotations
 from html import escape
 
 from utils import exposure as ex
-from utils.exposure_pages import _chip, _shell
+from utils.exposure_pages import _chip, _shell, tool_header_html
 
 SECTIONS = ("move", "market", "range", "evidence", "extras", "limits")
 
@@ -116,9 +116,10 @@ def learn_page_html(base_url: str, app_url: str) -> str:
         '.lp-ctl input{width:100%;min-height:32px}.lp-res{margin:10px 0 6px}'
         '@media (max-width:520px){.lp-ctl{grid-template-columns:1fr}}</style>'
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › How to read these pages</nav>'
-        '<h1>How to read these pages</h1>'
-        f'<p class="lead">{escape(desc)}</p>'
-        f'<ul class="toc" aria-label="On this page">{toc}</ul>'
+        + tool_header_html("How to read these pages", [f"{years} years of weekly returns",
+                                                       "Market move removed first", "Four evidence labels",
+                                                       "With a playground"], escape(desc))
+        + f'<ul class="toc" aria-label="On this page">{toc}</ul>'
         '<div class="learn">'
         '<h2 id="move">The typical weekly move</h2>'
         f'<p>Each reading answers one question: <b>in a week when this force moved by a set amount, how '

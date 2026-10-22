@@ -28,7 +28,7 @@ from html import escape
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from utils import exposure as ex
-from utils.exposure_pages import _SH_CSS, STANDS_UP, _chip, _date, _shell, data_week, fmt_pct, app_link
+from utils.exposure_pages import _SH_CSS, STANDS_UP, _chip, _date, _shell, data_week, fmt_pct, app_link, tool_header_html
 
 GROUP_LABELS: Dict[str, str] = {"core": "The core five", **ex.EXTRA_GROUPS}
 ALL_FORCES: Tuple[ex.Factor, ...] = tuple(ex.FACTORS) + tuple(ex.EXTRA_FACTORS)
@@ -367,8 +367,9 @@ def forces_hub_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     body = (
         _HUB_CSS +
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Economic forces</nav>'
-        f'<h1>Economic forces</h1><p class="lead">{escape(desc)}</p>'
-        '<p class="lead">The core five are measured together, with the stock market held fixed. '
+        + tool_header_html("Economic forces", [f"{len(ALL_FORCES)} forces", "The core five measured together",
+                                               "Market move removed first"], escape(desc))
+        + '<p class="lead">The core five are measured together, with the stock market held fixed. '
         'Every other force is measured beyond those five, so it shows only what they don&#39;t '
         'already explain.</p>'
         + '<p class="fh-key small"><span><i style="background:#2f6fbd"></i>Moved up with it, held up</span>'

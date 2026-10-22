@@ -27,7 +27,7 @@ from typing import Iterable, List, Optional
 
 from utils import exposure as ex
 from utils.explore_page import JS_PCT
-from utils.exposure_pages import _RC_CSS, STANDS_UP, SYMBOL_RE, _shell
+from utils.exposure_pages import _RC_CSS, STANDS_UP, SYMBOL_RE, _shell, tool_header_html
 
 ROUNDS = 5
 CHOICES = 4
@@ -207,9 +207,10 @@ def guess_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         return _shell(title, desc, canonical, ld, body, app_url, robots="noindex, follow")
     payload = json.dumps(rounds, separators=(",", ":")).replace("</", "<\\/")
     body = (
-        QZ_CSS + _RC_CSS + _CSS + crumb + '<h1>Whose fingerprint?</h1>'
-        f'<p class="lead">{escape(desc)}</p>'
-        f'<div class="qz" id="gs-box" data-day="{escape(_day_label(day))}" data-url="{escape(canonical)}">'
+        QZ_CSS + _RC_CSS + _CSS + crumb
+        + tool_header_html("Whose fingerprint?", [f"{len(rounds)} rounds today", escape(_day_label(day)),
+                                                  "Same rounds for everyone"], escape(desc))
+        + f'<div class="qz" id="gs-box" data-day="{escape(_day_label(day))}" data-url="{escape(canonical)}">'
         '<noscript><p class="lead">The game needs JavaScript. Every profile is on its '
         '<a href="/exposure">stock page</a>.</p></noscript></div>'
         '<p aria-live="polite" id="gs-say" style="position:absolute;left:-9999px"></p>'

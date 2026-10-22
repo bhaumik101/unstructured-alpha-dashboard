@@ -842,8 +842,9 @@ def hub_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
     table = hub_grid_html(stocks, filters=True)
     body = (
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Stock exposures</nav>'
-        f'<h1>Stock exposures</h1><p class="lead">{escape(desc)} Measured weekly over three years, '
-        'with the stock market\'s own movement removed first.</p>'
+        + tool_header_html("Stock exposures", data_chips(len(stocks), "U.S. stocks on record",
+                                                         data_week(s.get("as_of") for s in stocks)),
+                           escape(desc))
         + ((hub_overview_html(stocks) + table) if stocks else '<p class="lead">No stock has been measured yet.</p>')
         + f'<div class="actions"><a class="btn btn-primary" href="{escape(app_link(app_url, "/stock", base_url + "/exposure"))}">'
           'Look up any stock</a><a class="btn btn-secondary" href="/forces">Browse by economic '
