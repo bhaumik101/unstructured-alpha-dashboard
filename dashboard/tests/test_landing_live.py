@@ -22,6 +22,8 @@ from utils.landing_data import PER_SIDE, landing_data
 
 WEB = Path(__file__).resolve().parent.parent / "unstructured-alpha-web"
 LIVE = (WEB / "app" / "LiveMovers.tsx").read_text(encoding="utf-8")
+STATS = (WEB / "app" / "LiveStats.tsx").read_text(encoding="utf-8")
+FEED = (WEB / "app" / "feed.ts").read_text(encoding="utf-8")
 
 
 def test_only_held_up_readings_largest_first_with_counts():
@@ -38,7 +40,16 @@ def test_only_held_up_readings_largest_first_with_counts():
 
 
 def test_an_empty_library_gives_no_forces():
-    assert landing_data([])["forces"] == []
+    assert landing_data([])["forces"] == [] and landing_data([])["forces_measured"] == 0
+
+
+def test_the_force_count_is_counted_from_the_readings_not_written_in():
+    # The stats strip says how many forces have readings; it comes from the
+    # library, so a force with no reading anywhere is not counted.
+    d = landing_data([_stock("A", "", oil=(1.0, "clear"), gold=(0.2, "indistinct")),
+                      _stock("B", "", oil=(0.5, "indistinct"))])
+    assert d["forces_measured"] == 2
+    assert "forces_measured" in STATS and not re.search(r"'\d+ economic forces'", STATS)
 
 
 def test_route_is_cached_and_proxied(client):  # noqa: F811
@@ -53,8 +64,11 @@ def test_route_is_cached_and_proxied(client):  # noqa: F811
 def test_the_page_renders_the_demo_and_hides_it_without_data():
     page = (WEB / "app" / "page.tsx").read_text(encoding="utf-8")
     assert "import LiveMovers from './LiveMovers';" in page and "<LiveMovers />" in page
-    assert "if (!feed) return null;" in LIVE                       # no data, no demo
-    assert "d.forces.length" in LIVE                               # an empty feed counts as no data
+    assert "<LiveStats />" in page
+    for part in (LIVE, STATS):
+        assert "getFeed()" in part and "if (!feed) return null;" in part   # no data, nothing shown
+    assert "d.forces.length" in FEED and ".catch(() => null)" in FEED      # empty or failed: no data
+    assert FEED.count("fetch(") == 1 and "pending ??=" in FEED            # one request, shared
     for href in ("/explore#", "/scenario#", "/map", "/exposure/"):
         assert href in LIVE
     assert "it is not a forecast" in LIVE

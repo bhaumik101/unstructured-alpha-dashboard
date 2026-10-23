@@ -19,7 +19,7 @@ from typing import Iterable
 
 from utils import exposure as ex
 from utils.explore_page import _unit
-from utils.force_pages import force_stats
+from utils.force_pages import ALL_FORCES, force_stats
 
 PER_SIDE = 6
 
@@ -40,4 +40,7 @@ def landing_data(stocks: Iterable[dict]) -> dict:
                        "step": abs(f.shock), "unit": _unit(f), "measured": st["measured"],
                        "none": st["none"], "held_up": len(st["up"]), "held_down": len(st["down"]),
                        "up": rows(st["up"]), "down": rows(st["down"])})
-    return {"as_of": newest, "stocks": len(stocks), "forces": forces}
+    # How many forces (of every group) have at least one reading: the landing's
+    # stats strip states it from here, never as a number written into copy.
+    measured = sum(1 for f in ALL_FORCES if any(f.key in (s.get("exposures") or {}) for s in stocks))
+    return {"as_of": newest, "stocks": len(stocks), "forces_measured": measured, "forces": forces}

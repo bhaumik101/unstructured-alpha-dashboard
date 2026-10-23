@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import './landing.css';
 import LiveMovers from './LiveMovers';
+import LiveStats from './LiveStats';
 
 const APP_URL = "https://app.unstructuredalpha.com";
 const PILOT_EMAIL = "support@unstructuredalpha.com";
@@ -363,6 +364,7 @@ export default function Home() {
             <p className="lp-map-caption">Example: the balanced portfolio below. Thicker line, larger measured exposure.</p>
           </div>
         </header>
+        <LiveStats />
       </div>
 
       <main id="main">
