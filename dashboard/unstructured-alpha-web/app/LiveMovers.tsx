@@ -7,13 +7,7 @@
 // be read the whole section stays hidden rather than show anything invented.
 
 import { useEffect, useState } from 'react';
-
-type Row = [string, string, number, string];
-type Force = {
-  key: string; label: string; lower?: string; phrase: string; step: number; unit: string;
-  measured: number; none: number; held_up: number; held_down: number; up: Row[]; down: Row[];
-};
-type Feed = { as_of: string; stocks: number; forces: Force[] };
+import { date, getFeed, type Feed, type Row } from './feed';
 
 const MAX_MULTIPLE = 3;
 
@@ -32,12 +26,6 @@ function move(v: number, unit: string): string {
   const sign = v > 0 ? '+' : '−';
   const a = Math.abs(v);
   return unit === '%' ? `${sign}${a.toFixed(a < 1 ? 1 : 0)}%` : `${sign}${a.toFixed(2)} ${unit}`;
-}
-
-function date(iso: string): string {
-  const d = new Date(`${iso}T00:00:00Z`);
-  return Number.isNaN(d.getTime()) ? iso
-    : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 function List({ title, rows, k, max }: { title: string; rows: Row[]; k: number; max: number }) {
@@ -74,10 +62,7 @@ export default function LiveMovers() {
 
   useEffect(() => {
     let live = true;
-    fetch('/landing.json')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: Feed | null) => { if (live && d && Array.isArray(d.forces) && d.forces.length) setFeed(d); })
-      .catch(() => { /* the section simply stays hidden */ });
+    getFeed().then((d) => { if (live) setFeed(d); });   // null: the section stays hidden
     return () => { live = false; };
   }, []);
 
