@@ -886,7 +886,8 @@ stock_measurements = Table(
     Column("ticker",       String(16), nullable=False),
     Column("as_of",        String(10), nullable=False),   # last week of data, YYYY-MM-DD
     Column("name",         String(160)),
-    Column("market_beta",  Float),
+    Column("market_beta",  Float),         # the market's coefficient in the joint fit
+    Column("market_beta_total", Float),    # plain beta: returns on the market alone
     Column("r2",           Float),
     Column("n_obs",        Integer),
     Column("window_weeks", Integer),
@@ -1065,6 +1066,29 @@ def _migrate_saved_recommender_screens_table() -> None:
                 ))
 
 
+def _migrate_stock_measurements_table() -> None:
+    """
+    Idempotent ALTER TABLE for stock_measurements, same inspect() pattern.
+
+      market_beta_total FLOAT -- added 2026-10-26. market_beta is the market's
+                        coefficient in the joint fit, which the public pages had
+                        been describing as plain beta. Rows stored before this
+                        are left NULL, and pages omit the figure until the next
+                        weekly measurement fills it in: never a stand-in value.
+    """
+    inspector = inspect(engine)
+    if "stock_measurements" not in inspector.get_table_names():
+        return
+    existing_cols = {c["name"] for c in inspector.get_columns("stock_measurements")}
+    new_cols = [c for c in stock_measurements.columns if c.name not in existing_cols]
+    if not new_cols:
+        return
+    with engine.begin() as conn:
+        for col in new_cols:
+            col_sql_type = "TEXT" if isinstance(col.type, String) else "FLOAT"
+            conn.execute(text(f"ALTER TABLE stock_measurements ADD COLUMN {col.name} {col_sql_type}"))
+
+
 def _migrate_analytics_events_table() -> None:
     """Add privacy-safe visitor fields to databases created before July 2026."""
     inspector = inspect(engine)
@@ -1114,6 +1138,7 @@ def init_db() -> None:
         _migrate_score_snapshots_table()
         _migrate_saved_recommender_screens_table()
         _migrate_analytics_events_table()
+        _migrate_stock_measurements_table()
 
 
 # Probability that any single page load triggers run_periodic_maintenance()

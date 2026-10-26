@@ -70,7 +70,7 @@ def test_jump_links_point_only_at_sections_the_page_has():
 def test_the_header_card_says_only_what_the_record_holds():
     import re
     from utils.exposure_pages import stock_header_html
-    rec = dict(_rec(), market_beta=0.62)
+    rec = dict(_rec(), market_beta=0.05, market_beta_total=0.62)   # the tile shows the plain beta
     peers = {"sector": "Energy", "slug": "energy", "medians": {"oil": 3.1}, "peers": 20}
     html = stock_header_html("XOM", rec, "Exxon (XOM)", "Energy", peers)
     tiles = re.findall(r'<li><span class="k">([^<]+)</span><b>([^<]+)</b>', html)

@@ -586,7 +586,7 @@ def summary_text(report: dict) -> str:
                 f"measured, beyond its movement with the stock market.")
     if none:
         text += f" No measurable link to {_join(none)}."
-    beta = p.get("market_beta")
+    beta = p.get("market_beta_total")   # plain beta; market_beta is the joint fit's term
     if beta is not None and math.isfinite(beta):
         text += (f" It has typically moved {beta:.2f} times as much as the U.S. stock market, "
                  f"which is accounted for separately.")

@@ -145,3 +145,32 @@ def test_recording_never_raises_when_the_database_is_down(monkeypatch, one_stock
     monkeypatch.setattr(db, "engine", Down())
     assert lib.record(one_stock, "Exxon Mobil") is False
     assert lib.history("XOM") == [] and lib.latest() == []
+
+
+def test_the_plain_beta_is_stored_beside_the_joint_coefficient(library, one_stock):
+    pf = one_stock["portfolio"]
+    assert pf["market_beta_total"] is not None
+    assert lib.record(one_stock, "Exxon Mobil")
+    head = lib.history("XOM")[0]
+    assert head["market_beta_total"] == pytest.approx(pf["market_beta_total"])
+    assert head["market_beta"] == pytest.approx(pf["market_beta"])
+
+
+def test_the_migration_adds_the_plain_beta_column_to_an_existing_table(monkeypatch, tmp_path):
+    from sqlalchemy import inspect, text
+    from utils import db
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'old.db'}")
+    with engine.begin() as conn:            # the table as it was before 2026-10-26
+        conn.execute(text("CREATE TABLE stock_measurements (id INTEGER PRIMARY KEY, ticker VARCHAR(16), "
+                          "as_of VARCHAR(10), name VARCHAR(160), market_beta FLOAT, r2 FLOAT, "
+                          "n_obs INTEGER, window_weeks INTEGER, measured_at VARCHAR(64))"))
+        conn.execute(text("INSERT INTO stock_measurements (ticker, as_of, market_beta, measured_at) "
+                          "VALUES ('XOM', '2026-10-16', 0.01, 'x')"))
+    monkeypatch.setattr(db, "engine", engine)
+    db._migrate_stock_measurements_table()
+    db._migrate_stock_measurements_table()                      # idempotent
+    cols = {c["name"] for c in inspect(engine).get_columns("stock_measurements")}
+    assert "market_beta_total" in cols
+    with engine.begin() as conn:            # old rows: NULL, never a stand-in value
+        assert conn.execute(text("SELECT market_beta_total FROM stock_measurements")).scalar() is None

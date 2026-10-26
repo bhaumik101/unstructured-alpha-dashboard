@@ -36,7 +36,7 @@ def _exp(ticker, factor, impact, evidence, as_of="2026-09-11"):
 def _rec(ticker="XOM", name="Exxon Mobil", as_of="2026-09-11", **factors):
     factors = factors or {"oil": (2.7, "clear"), "rates": (-0.04, "indistinct"),
                           "inflation": (0.89, "tentative")}
-    return {"ticker": ticker, "as_of": as_of, "name": name, "market_beta": 0.73,
+    return {"ticker": ticker, "as_of": as_of, "name": name, "market_beta": 0.73, "market_beta_total": 0.73,
             "r2": 0.4, "n_obs": 156, "window_weeks": 156,
             "exposures": {k: _exp(ticker, k, v, e, as_of) for k, (v, e) in factors.items()}}
 
