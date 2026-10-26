@@ -5,7 +5,8 @@ const APP_URL =
   "https://app.unstructuredalpha.com/?utm_source=uranium_landing&utm_medium=organic&utm_campaign=uranium_wedge";
 
 export const metadata: Metadata = {
-  title: "Macro Signals for Uranium & Nuclear Stocks | Unstructured Alpha",
+  // The layout template adds " | Unstructured Alpha"; writing it here too doubled it.
+  title: "Macro Signals for Uranium & Nuclear Stocks",
   description:
     "Track the macro backdrop around uranium and nuclear stocks including CCJ, LEU, UEC, CEG, and VST. See what changed, which holdings are exposed, and why it matters.",
   alternates: { canonical: "https://www.unstructuredalpha.com/uranium" },
