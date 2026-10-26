@@ -485,10 +485,24 @@ def _fit_on_frame(frame: pd.DataFrame, ycol: str, factors: Iterable[Factor],
             "sentence": _sentence(f, impact, low, high, ev, subject, period, control),
         }
 
+    # Two different market numbers, kept apart on purpose:
+    #   market_beta        the market's coefficient in this joint fit -- its effect
+    #                      with the forces held fixed. Credit spreads in particular
+    #                      move with stocks and absorb much of the market's move, so
+    #                      this runs well below the usual beta (KO 0.04, XOM 0.01).
+    #                      Right for attribution, which splits a return across all
+    #                      the terms; wrong for "moved N times as much as the market".
+    #   market_beta_total  the plain slope of returns on the market alone: what
+    #                      "moves N times as much as the U.S. stock market" means.
+    mkt = values[:, 0]
+    var = float(np.var(mkt))
+    total = float(np.cov(y, mkt, bias=True)[0, 1] / var) if var > 0 else float("nan")
+
     return {
         "available": True, "n_obs": n,
         "start": str(frame.index[0].date()), "end": str(frame.index[-1].date()),
-        "r2": r2, "market_beta": float(beta[1]), "readings": readings,
+        "r2": r2, "market_beta": float(beta[1]),
+        "market_beta_total": total if math.isfinite(total) else None, "readings": readings,
     }
 
 

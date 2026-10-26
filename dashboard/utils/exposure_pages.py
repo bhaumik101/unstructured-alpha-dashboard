@@ -99,7 +99,9 @@ def summary_sentence(symbol: str, rec: dict) -> str:
                 f"measured, beyond its movement with the stock market.")
     if none:
         text += f" No measurable link to {_join(none)}."
-    beta = rec.get("market_beta")
+    # The plain beta only: market_beta is the joint fit's coefficient and is not
+    # what this sentence says. A record without it simply leaves the sentence out.
+    beta = rec.get("market_beta_total")
     if beta is not None and math.isfinite(beta):
         text += (f" It has typically moved {beta:.2f} times as much as the U.S. stock market, "
                  f"which is accounted for separately.")
@@ -150,7 +152,7 @@ def stock_header_html(symbol: str, rec: dict, who: str, sector: Optional[str],
     if core:
         tiles.append(('Held up', f'{len(held)} of {len(core)}',
                       'core forces' + (f' · {len(extra_held)} of {len(extra)} more' if extra else '')))
-    beta = rec.get("market_beta")
+    beta = rec.get("market_beta_total")
     if beta is not None and math.isfinite(beta):
         tiles.append(('With the market', f'{beta:.2f}×', 'the U.S. stock market&#39;s weekly move, typically'))
     if lead and peers and lead in (peers.get("medians") or {}):

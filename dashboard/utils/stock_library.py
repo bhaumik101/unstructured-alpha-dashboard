@@ -69,6 +69,7 @@ def record(report: dict, name: str = "") -> bool:
         head = {
             "ticker": ticker, "as_of": as_of, "name": (name or "")[:160] or None,
             "market_beta": _num(pf.get("market_beta")), "r2": _num(pf.get("r2")),
+            "market_beta_total": _num(pf.get("market_beta_total")),
             "n_obs": int(pf["n_obs"]) if pf.get("n_obs") is not None else None,
             "window_weeks": int((report.get("method") or {}).get("window_weeks") or 0) or None,
             "measured_at": datetime.now(timezone.utc).isoformat(),
