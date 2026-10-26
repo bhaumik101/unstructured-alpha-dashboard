@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const SITE_URL = "https://unstructuredalpha.com";
+// The canonical origin. The apex 308-redirects here, so a canonical, og:url or
+// JSON-LD url on the apex would point search engines at a redirect.
+const SITE_URL = "https://www.unstructuredalpha.com";
 const OG_IMAGE = `${SITE_URL}/og-image.png`;
 
 const DESCRIPTION =
@@ -145,7 +147,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebApplication",
               "name": "Unstructured Alpha",
-              "url": "https://unstructuredalpha.com",
+              "url": SITE_URL,
               "applicationCategory": "FinanceApplication",
               "operatingSystem": "Web",
               "description": DESCRIPTION,
@@ -154,7 +156,7 @@ export default function RootLayout({
                 { "@type": "Offer", "name": "Investor Pro", "price": "20", "priceCurrency": "USD", "description": "Save portfolios, up to 25 holdings. Early-access pricing.", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "20", "priceCurrency": "USD", "unitCode": "MON" } }
               ],
               "featureList": ["Interest rate exposure", "Inflation exposure", "U.S. dollar exposure", "Oil exposure", "Credit spread exposure", "Holdings behind each exposure", "Evidence label and 90% range on every number"],
-              "publisher": { "@type": "Organization", "name": "Unstructured Alpha", "url": "https://unstructuredalpha.com" }
+              "publisher": { "@type": "Organization", "name": "Unstructured Alpha", "url": SITE_URL }
             })
           }}
         />
