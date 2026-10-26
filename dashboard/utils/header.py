@@ -3519,11 +3519,38 @@ def _track_page_view(page_label: str) -> None:
             sid = None
 
         _u = st.session_state.get("user") or {}
+        props = {"page": label}
+        # Where the visit came from, on the page view that carries it: the
+        # public pages tag every link into the app (utm_source=public_tools,
+        # utm_content=<the page>), the weekly email its own. Without this an
+        # arrival from the free tools could not be told from any other.
+        try:
+            props.update(utm_props(st.query_params))
+        except Exception:
+            pass
         from utils.analytics import track, Event
         track(Event.PAGE_VIEW, user_id=_u.get("id"),
-              properties={"page": label}, session_id=sid)
+              properties=props, session_id=sid)
     except Exception:
         pass
+
+
+_UTM_VALUE = re.compile(r"[a-z0-9_-]{1,40}")
+
+
+def utm_props(params) -> dict:
+    """utm_source / utm_medium / utm_content / utm_campaign from the query
+    string, kept only when each is a short lowercase token: what gets stored is
+    a campaign label, never free text from a URL someone else wrote."""
+    out = {}
+    for k in ("utm_source", "utm_medium", "utm_content", "utm_campaign"):
+        v = params.get(k)
+        if isinstance(v, list):
+            v = v[0] if v else None
+        v = str(v or "").strip().lower()
+        if v and _UTM_VALUE.fullmatch(v):
+            out[k] = v
+    return out
 
 
 @_lru_cache(maxsize=1)

@@ -67,6 +67,23 @@ try:
 except Exception as exc:
     print(f"  ERROR {exc}")
 
+section("GROWTH — WEEK BY WEEK (is it actually growing?)")
+try:
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils.growth_metrics import table, verdict, weekly
+
+    _events = q("""select event_name, created_at, visitor_id, properties from analytics_events
+                   where event_name in ('page_view', 'app_opened') and created_at >= :d""", d=ago(63))
+    _signups = [r[0] for r in q("select created_at from users where created_at >= :d", d=ago(63))]
+    _rows = weekly(_events, _signups, weeks=9)
+    print(table(_rows))
+    print("\n  Last 4 complete weeks vs the 4 before:")
+    for col, say in verdict(_rows).items():
+        print(f"    {col:16s} {say}")
+except Exception as exc:
+    print(f"  ERROR {exc}")
+
 section("DAILY ACTIVITY (last 21 days)")
 try:
     rows = q("""select substr(created_at, 1, 10) d, count(*),
