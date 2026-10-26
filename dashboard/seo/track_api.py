@@ -43,13 +43,25 @@ ALLOWED_EVENTS = frozenset({Event.PAGE_VIEW, Event.APP_OPENED})
 # Landing pages we recognise. An unknown label is stored as "Other" rather than
 # echoed back into the database, so the page dimension cannot be used to inject
 # arbitrary strings into admin views.
+from utils.exposure_pages import ALL_PAGE_LABELS  # noqa: E402  (the public tool pages)
+
 ALLOWED_PAGES = frozenset(
-    {"Landing", "Uranium", "Pricing", "How It Works", "Other"}
+    {"Landing", "Uranium", "Pricing", "How It Works", "Other"} | ALL_PAGE_LABELS
 )
 
 MAX_BODY_BYTES = 2_048
 
+# Every AppOpenAction the landing page sends (unstructured-alpha-web/app/page.tsx)
+# must be here, or that click is silently dropped: until 2026-10-26 the hero's two
+# buttons, the sample report, Pro and the adviser pilot were, so the landing's
+# most important clicks were never counted. tests/test_growth_metrics.py keeps
+# the two lists in step.
 ALLOWED_ACTIONS = frozenset({
+    "hero_sample",
+    "hero_own",
+    "report_sample",
+    "pro_plan",
+    "advisor_pilot",
     "nav",
     "mobile_nav",
     "hero_ticker",

@@ -293,6 +293,49 @@ def _chip(evidence: str) -> str:
     return f'<span class="chip {cls}">{escape(ex.EVIDENCE_LABELS.get(evidence, evidence))}</span>'
 
 
+# Analytics labels for the public pages: (the section's hub, one of its detail
+# pages). The page-view beacon sends only these, and /api/track (seo/track_api.py)
+# accepts only these -- a public write path stores no free text.
+PAGE_LABELS: Dict[str, tuple] = {
+    "exposure": ("Stocks", "Stock page"), "sectors": ("Sectors", "Sector page"),
+    "forces": ("Forces", "Force page"), "map": ("Map", None), "scenario": ("Scenario", None),
+    "heatmap": ("Heatmap", None), "compare": ("Compare", None), "mylist": ("My list", None),
+    "explore": ("What if", None), "guess": ("Guess", None), "quiz": ("Quiz", None),
+    "learn": ("Learn", None), "tools": ("Tools", None), "changes": ("What changed", None),
+    "evidence": ("Track record", None),
+}
+ALL_PAGE_LABELS = frozenset(x for pair in PAGE_LABELS.values() for x in pair if x)
+
+
+def page_label(canonical: str) -> Optional[str]:
+    """The analytics label for a public page, from its canonical URL; None for
+    anything not listed (no beacon is sent for it)."""
+    from urllib.parse import urlsplit
+    parts = [p for p in urlsplit(canonical).path.split("/") if p]
+    if not parts or parts[0] not in PAGE_LABELS:
+        return None
+    hub, detail = PAGE_LABELS[parts[0]]
+    return detail if len(parts) > 1 and detail else hub
+
+
+# One page view per page load, sent to www's same-origin /api/track relay (which
+# adds the visitor's address and the ingest token; anything posted straight to
+# the SEO origin is refused there, so only canonical www traffic is counted).
+# No cookie, nothing stored in the browser, no third party -- the same beacon as
+# the landing page's (unstructured-alpha-web/app/layout.tsx).
+_TRACK_JS = ('(function(){try{if(window.__uaTrackInit)return;window.__uaTrackInit=1;'
+             'var b=JSON.stringify({event:"page_view",page:__LABEL__});'
+             'if(navigator.sendBeacon){navigator.sendBeacon("/api/track",new Blob([b],{type:"application/json"}));}'
+             'else{fetch("/api/track",{method:"POST",body:b,keepalive:true,'
+             'headers:{"Content-Type":"application/json"}}).catch(function(){});}'
+             '}catch(e){}})()')
+
+
+def _track_script(canonical: str) -> str:
+    label = page_label(canonical)
+    return f'<script>{_TRACK_JS.replace("__LABEL__", json.dumps(label))}</script>' if label else ""
+
+
 def _shell(title: str, description: str, canonical: str, json_ld: dict, body: str,
            app_url: str, robots: str = "", og_image: str = "") -> str:
     """og_image: a 1200x630 preview for shares; the site's own image when empty."""
@@ -328,7 +371,8 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         '<button type="submit">Go</button></form>'
         f'<a class="cta" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '</div></header>'
-        f'<main id="main">{body}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}</body></html>')
+        f'<main id="main">{body}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}'
+        f'{_track_script(canonical)}</body></html>')
 
 
 # The public tools, in the order the header shows them. Every page carries the
