@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from datetime import datetime, timedelta, timezone
@@ -64,7 +65,13 @@ def _get_engine():
     from utils.db import engine, score_snapshots, signal_snapshots
     if not _ENGINE_READY:
         from utils.db import init_db
-        init_db()
+        try:
+            init_db()
+        except Exception as exc:
+            # A fresh process with the database unreachable: 503 (come back),
+            # not a 500 -- and not ready, so the next request tries again.
+            logging.getLogger(__name__).error("init_db failed: %s", str(exc)[:200])
+            raise _db_unavailable() from exc
         _ENGINE_READY = True
     return engine, score_snapshots, signal_snapshots
 
@@ -715,6 +722,9 @@ def sitemap_xml():
     # retired product: still served for old links and subscriber emails, but
     # noindex and not listed. See _ARCHIVE_NOTICE.
 
+    # With the library unreadable, every stock, force and sector URL would drop
+    # out of the list; a 503 keeps search engines on the last good sitemap.
+    _exposure_stocks()
     try:
         _get_engine()
         from utils.exposure_pages import sitemap_urls
@@ -812,6 +822,18 @@ def _measured(symbol: str) -> bool:
         return False   # a library outage must not take the old pages down too
 
 
+# A database outage must never read as "nothing has been measured". The library
+# functions return [] on any error, so an empty answer is checked against the
+# database: if it cannot be reached, the last good copy is served (stale beats a
+# false empty page), and with no copy the answer is 503 + Retry-After -- which
+# tells search engines to come back, where a 404 or an empty 200 tells them the
+# pages are gone. Live on 2026-10-27 the database was unreachable and every
+# stock page answered 404.
+def _db_unavailable() -> HTTPException:
+    return HTTPException(status_code=503, headers={"Retry-After": "600"},
+                         detail="Temporarily unavailable: the data store cannot be reached. Please try again shortly.")
+
+
 def _exposure_stocks() -> list[dict]:
     """Newest stored week of every measured stock, cached for a few minutes."""
     import time
@@ -821,6 +843,10 @@ def _exposure_stocks() -> list[dict]:
         return hit[1]
     from utils import stock_library
     stocks = stock_library.latest(limit=5000)
+    if not stocks and not _check_db(2.0):
+        if hit and hit[1]:
+            return hit[1]
+        raise _db_unavailable()
     _exposure_cache["__all__"] = (time.monotonic(), stocks)
     return stocks
 
@@ -893,6 +919,8 @@ def exposure_page(symbol: str):
     _get_engine()
     history = stock_library.history(symbol)
     if not history:
+        if not _check_db(2.0):
+            raise _db_unavailable()     # an outage is not "not measured"
         raise HTTPException(status_code=404, detail=f"{symbol} has not been measured yet.")
     rec = history[0]
     lead = lead_factor(rec)
