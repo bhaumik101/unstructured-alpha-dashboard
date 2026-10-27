@@ -58,12 +58,12 @@ export async function GET(): Promise<Response> {
   } catch (error) {
     console.error("Unable to compose sitemap from SEO service", error);
 
-    return new Response(fallbackSitemap(), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/xml; charset=utf-8",
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600",
-      },
+    // 503, not a two-URL fallback: a 200 with only the homepage would tell
+    // search engines the other 543 pages are gone. A 503 with Retry-After
+    // keeps them on the last good sitemap until the SEO service is back.
+    return new Response("Sitemap temporarily unavailable", {
+      status: 503,
+      headers: { "Retry-After": "600", "Cache-Control": "no-store" },
     });
   }
 }

@@ -117,6 +117,10 @@ else:
         "pool_size": 5,
         "max_overflow": 10,
         "pool_recycle": 300,
+        # Fail in seconds, not on the OS TCP timeout (~2 min), when the
+        # database cannot be reached: otherwise every request thread hangs.
+        "pool_timeout": 10,
+        "connect_args": {"connect_timeout": 5},
     }
 engine = create_engine(DATABASE_URL, **_engine_kwargs)
 
