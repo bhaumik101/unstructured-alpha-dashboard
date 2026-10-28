@@ -641,6 +641,9 @@ def _check_db(timeout: float = 3.0) -> bool:
 _DB_ERROR: dict = {"kind": None}
 _DB_ERROR_KINDS = (
     ("compute_quota_exceeded", ("compute time quota",)),
+    # Neon's plan-limit wording seen live on 2026-10-27 (which allowance is in
+    # the Neon console: Usage).
+    ("quota_exceeded", ("exceeded the quota",)),
     ("data_transfer_quota_exceeded", ("data transfer quota",)),
     ("storage_quota_exceeded", ("storage quota", "project size limit", "disk full", "no space left")),
     ("endpoint_disabled", ("endpoint is disabled", "endpoint has been disabled", "endpoint is suspended")),
@@ -731,12 +734,13 @@ def pipeline_status() -> JSONResponse:
     from utils import track_record as tr
 
     _get_engine()
-    stocks = stock_library.latest(limit=5000)
+    # Five minutes, not hours: this is what is checked right after a run.
+    stocks = _cached(("status_latest",), lambda: stock_library.latest(limit=5000), ttl=300)
     index = {t for t, _ in load_constituents()}
     measured = [str(s.get("measured_at") or "") for s in stocks if s.get("measured_at")]
     data_through = [str(s.get("as_of") or "") for s in stocks if s.get("as_of")]
     try:
-        study = tr.latest()
+        study = _cached(("status_study",), tr.latest, ttl=300)
     except Exception:
         study = None
     body = {
@@ -832,18 +836,17 @@ def sitemap_xml():
     try:
         from utils import stock_library as _lib
         from utils.changes_page import changes as _changes
-        _c = _changes(_exposure_stocks(), _lib.previous())
+        _c = _changes(_exposure_stocks(), _previous())
         if _c["compared"]:   # with nothing to compare the page is noindex
             urls.append(f"  <url><loc>{BASE_URL}/changes</loc><lastmod>{_c['as_of']}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.6</priority></url>")
     except Exception:
         pass
     try:
-        from utils import track_record as _tr
-        _study = _tr.latest()
-        if _study and _study.get("available"):   # an unpublished page is noindex
+        _run = _study()
+        if _run and _run.get("available"):   # an unpublished page is noindex
             urls.append(f"  <url><loc>{BASE_URL}/evidence</loc>"
-                        f"<lastmod>{str(_study.get('computed_at') or today)[:10]}</lastmod>"
+                        f"<lastmod>{str(_run.get('computed_at') or today)[:10]}</lastmod>"
                         "<changefreq>monthly</changefreq><priority>0.8</priority></url>")
     except Exception:
         pass
@@ -864,8 +867,43 @@ def sitemap_xml():
 # ── Exposure pages: the current product, one crawlable page per measured stock ──
 # Read from the stock library (utils/stock_library.py). Only a stock that has
 # been measured gets a page; anything else is a 404, never an estimated one.
-_EXPOSURE_TTL = 900
+# The library changes once a week (the Tuesday run), so reads are cached for
+# hours, not minutes. On 2026-10-27 Neon refused all connections: "Your account
+# or project has exceeded the quota". With every stock page, preview image and
+# embed querying the database per request and the shared copy expiring every
+# 15 minutes, crawler traffic left the compute almost never idle long enough to
+# scale to zero. A fresh run shows within _LIB_TTL.
+_LIB_TTL = 6 * 3600
+_EXPOSURE_TTL = _LIB_TTL
 _exposure_cache: dict = {}
+
+
+def _cached(key, fn, ttl: float = _LIB_TTL):
+    """fn() through the shared cache. Empty answers are not kept: they may be an
+    outage, and a stock measured a minute later must not stay hidden."""
+    import time
+    hit = _exposure_cache.get(key)
+    if hit and time.monotonic() - hit[0] < ttl:
+        return hit[1]
+    val = fn()
+    if val:
+        _exposure_cache[key] = (time.monotonic(), val)
+    return val
+
+
+def _history(symbol: str) -> list:
+    from utils import stock_library
+    return _cached(("history", symbol), lambda: stock_library.history(symbol))
+
+
+def _study():
+    from utils import track_record as _tr
+    return _cached(("track_record",), _tr.latest)
+
+
+def _previous() -> list:
+    from utils import stock_library
+    return _cached(("previous",), stock_library.previous)
 
 
 _NOINDEX = "noindex, follow"
@@ -998,7 +1036,7 @@ def exposure_page(symbol: str):
         return RedirectResponse(f"/exposure/{canonical}", status_code=301)
     symbol = canonical
     _get_engine()
-    history = stock_library.history(symbol)
+    history = _history(symbol)
     if not history and not _check_db(2.0):
         # An outage is not "not measured": the stored copy if there is one
         # (its newest week only), otherwise 503.
@@ -1014,7 +1052,7 @@ def exposure_page(symbol: str):
                    for r in [r for r in ranked[side] if r["ticker"] != symbol][:5]]
     try:
         from utils import track_record as _tr
-        held = _tr.persistence(_tr.latest())
+        held = _tr.persistence(_study())
     except Exception:
         held = {}
     try:
@@ -1045,7 +1083,7 @@ def embed_card(symbol: str):
         from fastapi.responses import RedirectResponse
         return RedirectResponse(f"/embed/{canonical}", status_code=301)
     _get_engine()
-    history = stock_library.history(canonical)
+    history = _history(canonical)
     if not history:
         raise HTTPException(status_code=404, detail=f"{canonical} has not been measured yet.")
     return HTMLResponse(embed_card_html(canonical, history[0], BASE_URL))
@@ -1074,7 +1112,7 @@ def og_image(name: str):
         from fastapi.responses import RedirectResponse
         return RedirectResponse(f"/og/{canonical}.png", status_code=301)
     _get_engine()
-    history = stock_library.history(canonical)
+    history = _history(canonical)
     if not history:
         raise HTTPException(status_code=404, detail=f"{canonical} has not been measured yet.")
     rec = history[0]
@@ -1175,7 +1213,7 @@ def changes_page():
     from utils.changes_page import changes_page_html
 
     _get_engine()
-    return HTMLResponse(changes_page_html(_exposure_stocks(), stock_library.previous(),
+    return HTMLResponse(changes_page_html(_exposure_stocks(), _previous(),
                                           BASE_URL, APP_URL))
 
 
