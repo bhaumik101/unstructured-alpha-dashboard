@@ -72,3 +72,56 @@ def test_a_fresh_process_with_the_database_down_answers_503_and_retries(monkeypa
     with pytest.raises(HTTPException) as e:
         M._get_engine()
     assert e.value.status_code == 503 and M._ENGINE_READY is False
+
+
+class _FakeRedis:
+    def __init__(self):
+        self.d = {}
+
+    def set(self, k, v):
+        self.d[k] = v
+
+    def get(self, k):
+        return self.d.get(k)
+
+
+def test_the_snapshot_keeps_only_a_complete_library():
+    from utils import library_snapshot as snap
+    r = _FakeRedis()
+    assert not snap.save([{"ticker": "A"}], client=r) and snap.load(client=r) is None
+    stocks = [{"ticker": f"T{i}", "as_of": "2026-10-16", "exposures": {}} for i in range(60)]
+    assert snap.save(stocks, client=r)
+    saved_at, back = snap.load(client=r)
+    assert back == stocks and saved_at
+    assert not snap.save(stocks[:3], client=r) and len(snap.load(client=r)[1]) == 60   # never shrunk
+
+
+def test_after_a_restart_the_stored_copy_is_served_with_a_notice(client, monkeypatch):  # noqa: F811
+    from utils import exposure_pages, library_snapshot
+
+    c, _one, lib, M = client
+    r = _FakeRedis()
+    monkeypatch.setattr(library_snapshot, "_client", lambda: r)
+    monkeypatch.setattr(library_snapshot, "MIN_STOCKS", 1)
+    monkeypatch.setitem(exposure_pages.SITE_NOTICE, "html", "")
+    assert lib.record(_one("BANK"), "Bank")
+    assert c.get("/exposure").status_code == 200 and r.get(library_snapshot.KEY)   # saved on a good read
+    M._exposure_cache.clear()                                                         # a restart
+    _down(M, monkeypatch)
+    hub = c.get("/exposure")
+    assert hub.status_code == 200 and "BANK" in hub.text
+    assert "Live data is temporarily unavailable" in hub.text and 'role="status"' in hub.text
+    page = c.get("/exposure/BANK")
+    assert page.status_code == 200 and "Live data is temporarily unavailable" in page.text
+    assert c.get("/exposure/ZZZZ").status_code == 404        # not in the stored copy either
+
+
+def test_the_notice_goes_once_the_database_is_back(client, monkeypatch):  # noqa: F811
+    from utils import exposure_pages
+
+    c, _one, lib, M = client
+    monkeypatch.setitem(exposure_pages.SITE_NOTICE, "html", "<b>Live data is temporarily unavailable.</b>")
+    assert lib.record(_one("BANK"), "Bank")
+    M._exposure_cache.clear()
+    r = c.get("/exposure")
+    assert r.status_code == 200 and "temporarily unavailable" not in r.text
