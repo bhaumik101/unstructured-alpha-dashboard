@@ -157,3 +157,15 @@ def test_readyz_names_why_the_database_is_down_without_leaking_anything(monkeypa
     r = TestClient(M.app).get("/readyz")
     assert r.status_code == 503 and r.json()["db_error"] == "compute_quota_exceeded"
     assert "neon.tech" not in r.text and "3.1.2.3" not in r.text and "neondb" not in r.text
+
+
+def test_an_unrecognised_error_is_shown_scrubbed_of_every_identifier():
+    import seo.main as M
+    msg = ('(psycopg2.OperationalError) connection to server at "ep-cool-name-123.us-east-2.aws.neon.tech" '
+           '(3.1.2.3), port 5432 failed: FATAL:  something new happened to user "neondb_owner" '
+           'host=db.internal sslmode=require postgresql://u:pw@ep-x.neon.tech/neondb\n'
+           '(Background on this error at: https://sqlalche.me/e/20/e3q8)')
+    out = M.scrub_db_error(RuntimeError(msg))
+    for secret in ("ep-cool", "neon.tech", "3.1.2.3", "5432", "neondb", "db.internal", "pw@", "sqlalche"):
+        assert secret not in out, (secret, out)
+    assert "something new happened" in out and len(out) <= 200
