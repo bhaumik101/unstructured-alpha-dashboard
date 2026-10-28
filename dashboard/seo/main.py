@@ -631,6 +631,7 @@ def _check_db(timeout: float = 3.0) -> bool:
         return False
     except Exception as exc:
         _DB_ERROR["kind"] = db_error_kind(exc)
+        _DB_ERROR["detail"] = scrub_db_error(exc) if _DB_ERROR["kind"].startswith("other") else None
         return False
 
 
@@ -652,6 +653,24 @@ _DB_ERROR_KINDS = (
     ("refused", ("connection refused",)),
     ("timeout", ("timeout expired", "timed out", "timeout")),
 )
+
+
+def scrub_db_error(exc: BaseException) -> str:
+    """The error's own words with every identifier removed: anything quoted,
+    URLs, hostnames, IP addresses, Neon endpoint ids, ports, user= / key=value
+    pairs. Shown only for an unrecognised error, so it can be named and added
+    to _DB_ERROR_KINDS. libpq never puts a password in these messages."""
+    import re as _re
+    s = str(getattr(exc, "orig", None) or exc)
+    s = _re.sub(r"\(Background on this error.*", "", s, flags=_re.S)
+    s = _re.sub(r'"[^"]*"|\'[^\']*\'', "<x>", s)
+    s = _re.sub(r"\b[a-z][a-z0-9+.-]*://\S+", "<url>", s, flags=_re.I)
+    s = _re.sub(r"\b\d{1,3}(?:\.\d{1,3}){3}\b|\b[0-9a-f:]{6,}:[0-9a-f:]+\b", "<ip>", s, flags=_re.I)
+    s = _re.sub(r"\bep-[a-z0-9-]+", "<endpoint>", s, flags=_re.I)
+    s = _re.sub(r"\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b", "<host>", s, flags=_re.I)
+    s = _re.sub(r"\b\w+=\S+", "<kv>", s)
+    s = _re.sub(r"\bport \d+", "port <n>", s, flags=_re.I)
+    return " ".join(s.split())[:200]
 
 
 def db_error_kind(exc: BaseException) -> str:
@@ -684,6 +703,8 @@ def readyz() -> JSONResponse:
     body = {"ready": ready, "db": "up" if db_ok else "down", "redis": redis_state}
     if not db_ok and _DB_ERROR.get("kind"):
         body["db_error"] = _DB_ERROR["kind"]
+        if _DB_ERROR.get("detail"):
+            body["db_error_detail"] = _DB_ERROR["detail"]
     return JSONResponse(body, status_code=200 if ready else 503)
 
 
