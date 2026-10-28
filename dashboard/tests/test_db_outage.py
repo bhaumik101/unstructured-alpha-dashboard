@@ -169,3 +169,41 @@ def test_an_unrecognised_error_is_shown_scrubbed_of_every_identifier():
     for secret in ("ep-cool", "neon.tech", "3.1.2.3", "5432", "neondb", "db.internal", "pw@", "sqlalche"):
         assert secret not in out, (secret, out)
     assert "something new happened" in out and len(out) <= 200
+
+
+def test_the_live_neon_quota_message_is_named():
+    import seo.main as M
+    live = ('connection to server at "ep-x.neon.tech" (3.1.2.3), port 5432 failed: ERROR:  Your account '
+            'or project has exceeded the quota. Upgrade your plan to increase limits.')
+    assert M.db_error_kind(RuntimeError(live)) == "quota_exceeded"
+
+
+def test_crawling_a_stock_page_again_does_not_query_the_database_again(client, monkeypatch):  # noqa: F811
+    from utils import stock_library, track_record
+
+    c, _one, lib, M = client
+    assert lib.record(_one("BANK"), "Bank")
+    calls = {"history": 0, "study": 0}
+    real_history, real_study = stock_library.history, track_record.latest
+
+    def history(t, limit=26):
+        calls["history"] += 1
+        return real_history(t, limit)
+
+    def study():
+        calls["study"] += 1
+        return real_study() or {"available": False}
+    monkeypatch.setattr(stock_library, "history", history)
+    monkeypatch.setattr(track_record, "latest", study)
+    for _ in range(5):
+        assert c.get("/exposure/BANK").status_code == 200
+    assert calls["history"] == 1 and calls["study"] == 1
+    assert M._LIB_TTL >= 3600        # the library changes weekly; minutes would keep Neon awake
+
+
+def test_an_empty_answer_is_not_cached(client, monkeypatch):  # noqa: F811
+    c, _one, lib, M = client
+    monkeypatch.setattr(M, "_check_db", lambda timeout=3.0: True)
+    assert c.get("/exposure/BANK").status_code == 404          # not measured yet
+    assert lib.record(_one("BANK"), "Bank")
+    assert c.get("/exposure/BANK").status_code == 200          # shows at once, not hours later
