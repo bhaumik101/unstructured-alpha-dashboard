@@ -623,9 +623,44 @@ def _check_db(timeout: float = 3.0) -> bool:
 
     try:
         with _cf.ThreadPoolExecutor(max_workers=1) as ex:
-            return bool(ex.submit(_q).result(timeout=timeout))
-    except Exception:
+            ok = bool(ex.submit(_q).result(timeout=timeout))
+        _DB_ERROR["kind"] = None
+        return ok
+    except _cf.TimeoutError:
+        _DB_ERROR["kind"] = "timeout"
         return False
+    except Exception as exc:
+        _DB_ERROR["kind"] = db_error_kind(exc)
+        return False
+
+
+# Why the database is down, as a fixed category: on 2026-10-27 it was down for
+# more than a day and "db: down" was all the service would say. Only the label
+# is ever exposed -- never the message, host, user or anything from the URL.
+_DB_ERROR: dict = {"kind": None}
+_DB_ERROR_KINDS = (
+    ("compute_quota_exceeded", ("compute time quota",)),
+    ("data_transfer_quota_exceeded", ("data transfer quota",)),
+    ("storage_quota_exceeded", ("storage quota", "project size limit", "disk full", "no space left")),
+    ("endpoint_disabled", ("endpoint is disabled", "endpoint has been disabled", "endpoint is suspended")),
+    ("auth_failed", ("password authentication failed", "authentication failed", 'role "', "no pg_hba")),
+    ("project_not_found", ("endpoint could not be found", "endpoint not found", "project not found",
+                           'database "')),
+    ("dns", ("could not translate host name", "name or service not known", "nodename nor servname")),
+    ("too_many_connections", ("too many connections", "too many clients", "remaining connection slots")),
+    ("ssl", ("ssl",)),
+    ("refused", ("connection refused",)),
+    ("timeout", ("timeout expired", "timed out", "timeout")),
+)
+
+
+def db_error_kind(exc: BaseException) -> str:
+    """A fixed label for a database connection error; 'other' if unrecognised."""
+    msg = f"{type(exc).__name__}: {exc}".lower()
+    for kind, needles in _DB_ERROR_KINDS:
+        if any(n in msg for n in needles):
+            return kind
+    return "other:" + type(exc).__name__[:40]
 
 
 @app.get("/healthz")
@@ -647,6 +682,8 @@ def readyz() -> JSONResponse:
     redis_state = "up" if r else ("not_configured" if r is None else "down")
     ready = db_ok  # DB is the hard requirement
     body = {"ready": ready, "db": "up" if db_ok else "down", "redis": redis_state}
+    if not db_ok and _DB_ERROR.get("kind"):
+        body["db_error"] = _DB_ERROR["kind"]
     return JSONResponse(body, status_code=200 if ready else 503)
 
 

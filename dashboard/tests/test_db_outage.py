@@ -125,3 +125,35 @@ def test_the_notice_goes_once_the_database_is_back(client, monkeypatch):  # noqa
     M._exposure_cache.clear()
     r = c.get("/exposure")
     assert r.status_code == 200 and "temporarily unavailable" not in r.text
+
+
+def test_readyz_names_why_the_database_is_down_without_leaking_anything(monkeypatch):
+    import seo.main as M
+    from fastapi.testclient import TestClient
+
+    neon = ('connection to server at "ep-cool-name-123.us-east-2.aws.neon.tech" (3.1.2.3), port 5432 '
+            'failed: ERROR:  Your account or project has exceeded the compute time quota. '
+            'Upgrade your plan to increase limits.')
+    cases = {
+        neon: "compute_quota_exceeded",
+        "ERROR: Your project has exceeded the data transfer quota.": "data_transfer_quota_exceeded",
+        "ERROR: The endpoint has been disabled. Enable it using Neon API and retry.": "endpoint_disabled",
+        'FATAL:  password authentication failed for user "neondb_owner"': "auth_failed",
+        'FATAL:  role "neondb_owner" does not exist': "auth_failed",
+        'FATAL:  database "neondb" does not exist': "project_not_found",
+        'could not translate host name "ep-x.neon.tech" to address': "dns",
+        "timeout expired": "timeout",
+    }
+    for msg, kind in cases.items():
+        assert M.db_error_kind(RuntimeError(msg)) == kind, msg
+    assert M.db_error_kind(ValueError("something new")) == "other:ValueError"
+
+    from utils import db
+
+    class Down:
+        def connect(self):
+            raise RuntimeError(neon)
+    monkeypatch.setattr(db, "engine", Down())
+    r = TestClient(M.app).get("/readyz")
+    assert r.status_code == 503 and r.json()["db_error"] == "compute_quota_exceeded"
+    assert "neon.tech" not in r.text and "3.1.2.3" not in r.text and "neondb" not in r.text
