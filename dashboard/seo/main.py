@@ -834,9 +834,25 @@ def _db_unavailable() -> HTTPException:
                          detail="Temporarily unavailable: the data store cannot be reached. Please try again shortly.")
 
 
+def _set_snapshot_notice(stocks: list[dict] | None) -> None:
+    """Say on every page that the stored copy is being served, and through when."""
+    from utils.exposure_pages import SITE_NOTICE, _date, data_week
+    if stocks is None:
+        SITE_NOTICE["html"] = ""
+        return
+    week = data_week(s.get("as_of") for s in stocks)
+    SITE_NOTICE["html"] = ("<b>Live data is temporarily unavailable.</b> These are the stored readings"
+                           + (f" with data through {_date(week)}" if week else "")
+                           + "; they will update when the service is back.")
+
+
 def _exposure_stocks() -> list[dict]:
-    """Newest stored week of every measured stock, cached for a few minutes."""
+    """Newest stored week of every measured stock, cached for a few minutes.
+    Through a database outage: the in-memory copy, else the last good copy in
+    Redis (utils/library_snapshot.py) with a notice, else 503."""
     import time
+
+    from utils import library_snapshot
 
     hit = _exposure_cache.get("__all__")
     if hit and time.monotonic() - hit[0] < _EXPOSURE_TTL:
@@ -846,8 +862,15 @@ def _exposure_stocks() -> list[dict]:
     if not stocks and not _check_db(2.0):
         if hit and hit[1]:
             return hit[1]
+        snap = library_snapshot.load()
+        if snap:
+            _set_snapshot_notice(snap[1])
+            _exposure_cache["__all__"] = (time.monotonic(), snap[1])
+            return snap[1]
         raise _db_unavailable()
+    _set_snapshot_notice(None)
     _exposure_cache["__all__"] = (time.monotonic(), stocks)
+    library_snapshot.save(stocks)     # refreshed at most once per cache period
     return stocks
 
 
@@ -918,9 +941,11 @@ def exposure_page(symbol: str):
     symbol = canonical
     _get_engine()
     history = stock_library.history(symbol)
+    if not history and not _check_db(2.0):
+        # An outage is not "not measured": the stored copy if there is one
+        # (its newest week only), otherwise 503.
+        history = [s for s in _exposure_stocks() if s.get("ticker") == symbol][:1]
     if not history:
-        if not _check_db(2.0):
-            raise _db_unavailable()     # an outage is not "not measured"
         raise HTTPException(status_code=404, detail=f"{symbol} has not been measured yet.")
     rec = history[0]
     lead = lead_factor(rec)

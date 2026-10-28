@@ -338,6 +338,17 @@ def _track_script(canonical: str) -> str:
     return f'<script>{_TRACK_JS.replace("__LABEL__", json.dumps(label))}</script>' if label else ""
 
 
+# A site-wide notice above every page's content, set by the SEO service while it
+# serves the stored copy of the library during a database outage (and cleared
+# when the database is back). Plain HTML; empty means no notice.
+SITE_NOTICE = {"html": ""}
+
+
+def _notice() -> str:
+    h = SITE_NOTICE.get("html") or ""
+    return f'<p class="caveat" role="status">{h}</p>' if h else ""
+
+
 def _shell(title: str, description: str, canonical: str, json_ld: dict, body: str,
            app_url: str, robots: str = "", og_image: str = "") -> str:
     """og_image: a 1200x630 preview for shares; the site's own image when empty."""
@@ -373,7 +384,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         '<button type="submit">Go</button></form>'
         f'<a class="cta" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '</div></header>'
-        f'<main id="main">{body}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}'
+        f'<main id="main">{_notice()}{body}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}'
         f'{_track_script(canonical)}</body></html>')
 
 
