@@ -213,7 +213,7 @@ services:
   # every two hours keeps Pro alerts timely with 75% fewer invocations than two
   # separate hourly jobs.
   - type: cron
-    name: unstructured-alpha-threshold-alerts
+    name: unstructured-alpha-threshold-alerts   # RETIRED 2026-11: exits at once without touching the DB (utils/retired_jobs.py)
     runtime: python
     rootDir: dashboard
     schedule: "0 */2 * * *"
@@ -291,7 +291,7 @@ services:
   # Dive exactly. Small tier, so the ~sec/ticker cost of the four differentiator
   # fetches is affordable. 04:10 UTC — after grow-universe, off-peak.
   - type: cron
-    name: unstructured-alpha-score-core
+    name: unstructured-alpha-score-core   # RETIRED 2026-11: exits at once without touching the DB (utils/retired_jobs.py)
     runtime: python
     rootDir: dashboard
     schedule: "10 4 * * *"
@@ -323,7 +323,7 @@ services:
   # Monday/Wednesday/Friday; anything a user watches remains in daily CORE.
   # A macro_momentum write can never overwrite a same-day "full" row.
   - type: cron
-    name: unstructured-alpha-score-rest
+    name: unstructured-alpha-score-rest   # RETIRED 2026-11: exits at once without touching the DB (utils/retired_jobs.py)
     runtime: python
     rootDir: dashboard
     schedule: "40 5 * * 1,3,5"
@@ -426,7 +426,7 @@ services:
   # needs a paid API tier and returns 402 on the free one. Drafted for manual
   # review instead. Flip to "true" to re-enable if the account is upgraded.
   - type: cron
-    name: unstructured-alpha-tweet-best-ideas
+    name: unstructured-alpha-tweet-best-ideas   # RETIRED 2026-11: exits at once without touching the DB (utils/retired_jobs.py)
     runtime: python
     rootDir: dashboard
     schedule: "0 14 * * 1,3,5"
@@ -461,7 +461,7 @@ services:
   # AI "what to watch" paragraph (Haiku), Machine's Best Ideas (top 3, public),
   # referral CTA. Designed as a retention anchor AND a viral acquisition engine.
   - type: cron
-    name: unstructured-alpha-weekly-brief
+    name: unstructured-alpha-weekly-brief   # RETIRED 2026-11: exits at once without touching the DB (utils/retired_jobs.py)
     runtime: python
     rootDir: dashboard
     schedule: "0 15 * * 0"   # 15:00 UTC Sunday = 11:00 AM ET
@@ -500,7 +500,7 @@ services:
   # Runs one hour after the Pro brief (15:00 UTC) to avoid overlapping DB load.
   # Requires RESEND_AUDIENCE_ID set to the Resend audience ID for the landing page.
   - type: cron
-    name: unstructured-alpha-brief-subscribers
+    name: unstructured-alpha-brief-subscribers   # RETIRED 2026-11: exits at once without touching the DB (utils/retired_jobs.py)
     runtime: python
     rootDir: dashboard
     schedule: "0 16 * * 0"   # 16:00 UTC Sunday = 12:00 PM ET
@@ -541,7 +541,7 @@ services:
   # Kept rather than deleted so it can be switched back on in one line if the
   # account is upgraded. Flip to "true" to re-enable.
   - type: cron
-    name: unstructured-alpha-tweet-flips
+    name: unstructured-alpha-tweet-flips   # RETIRED 2026-11: exits at once without touching the DB (utils/retired_jobs.py)
     runtime: python
     rootDir: dashboard
     schedule: "0 13 * * 1-5"
@@ -577,7 +577,7 @@ services:
   # are exposed to the flipped signals. De-duplicated via signal_flip_log table
   # (one alert per signal per calendar day max).
   - type: cron
-    name: unstructured-alpha-signal-flip-alerts
+    name: unstructured-alpha-signal-flip-alerts   # RETIRED 2026-11: exits at once without touching the DB (utils/retired_jobs.py)
     runtime: python
     rootDir: dashboard
     schedule: "15 */6 * * *"

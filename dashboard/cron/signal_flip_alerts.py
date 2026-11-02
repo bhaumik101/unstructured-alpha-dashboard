@@ -28,6 +28,10 @@
 
 from __future__ import annotations
 
+if __name__ == "__main__":   # retired: exit before importing anything (utils/retired_jobs.py)
+    from utils.retired_jobs import exit_if_retired
+    exit_if_retired("signal_flip_alerts")
+
 import json
 import os
 import sys

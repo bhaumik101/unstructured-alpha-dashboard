@@ -30,6 +30,10 @@
 #   python -m cron.score_universe --tier core --dry-run
 #   python -m cron.score_universe --tier rest --rotate-days 7
 
+if __name__ == "__main__":   # retired: exit before importing anything (utils/retired_jobs.py)
+    from utils.retired_jobs import exit_if_retired
+    exit_if_retired("score_universe")
+
 import argparse
 import os
 import sys

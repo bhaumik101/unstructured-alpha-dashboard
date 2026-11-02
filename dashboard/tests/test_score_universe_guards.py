@@ -27,7 +27,9 @@ slow = pytest.mark.slow
 
 
 def _run(env_extra: dict[str, str], *args: str) -> str:
-    env = {**os.environ, **env_extra}
+    # The job is retired (utils/retired_jobs.py) but its code is kept so it can
+    # be run again; these tests exercise that code, so they run it anyway.
+    env = {**os.environ, "UA_RUN_RETIRED": "1", **env_extra}
     proc = subprocess.run(
         [sys.executable, "-m", "cron.score_universe", "--dry-run", *args],
         cwd=DASHBOARD, env=env, capture_output=True, text=True, timeout=300,

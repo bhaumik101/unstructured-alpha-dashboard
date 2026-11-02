@@ -11,6 +11,10 @@ monitoring adds neither a Render service nor per-user provider fetches.
 
 from __future__ import annotations
 
+if __name__ == "__main__":   # retired: exit before importing anything (utils/retired_jobs.py)
+    from utils.retired_jobs import exit_if_retired
+    exit_if_retired("send_threshold_alerts")
+
 from datetime import datetime, timezone
 
 from utils.alerts import evaluate_watchlist
