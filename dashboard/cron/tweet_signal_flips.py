@@ -33,6 +33,10 @@
 # or:
 #   python cron/tweet_signal_flips.py
 
+if __name__ == "__main__":   # retired: exit before importing anything (utils/retired_jobs.py)
+    from utils.retired_jobs import exit_if_retired
+    exit_if_retired("tweet_signal_flips")
+
 import os
 import sys
 from datetime import datetime, timedelta, timezone

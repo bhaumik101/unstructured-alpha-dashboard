@@ -23,6 +23,10 @@
 # Run manually from dashboard/:
 #   python -m cron.tweet_best_ideas
 
+if __name__ == "__main__":   # retired: exit before importing anything (utils/retired_jobs.py)
+    from utils.retired_jobs import exit_if_retired
+    exit_if_retired("tweet_best_ideas")
+
 import os
 import sys
 from datetime import datetime, timezone

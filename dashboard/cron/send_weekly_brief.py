@@ -27,6 +27,10 @@
 # Run manually from dashboard/:
 #   python -m cron.send_weekly_brief
 
+if __name__ == "__main__":   # retired: exit before importing anything (utils/retired_jobs.py)
+    from utils.retired_jobs import exit_if_retired
+    exit_if_retired("send_weekly_brief")
+
 import os
 import sys
 from datetime import datetime, timezone, timedelta
