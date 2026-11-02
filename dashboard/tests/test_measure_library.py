@@ -400,6 +400,8 @@ def test_a_pass_writes_its_status_for_the_supervisor(monkeypatch, store, tmp_pat
     monkeypatch.setattr(db, "init_db", lambda: None)
     monkeypatch.setattr(fetchers, "fetch_prices_batch", lambda *a: {})
     monkeypatch.setattr(ml, "load_constituents", lambda: [("AAA", "A Co"), ("BBB", "B Co")])
+    import utils.funds as funds
+    monkeypatch.setattr(funds, "load_funds", lambda: [])     # the index only, for this test
     path = tmp_path / "status.json"
     assert ml.main(["--passes", "1", "--skip", "BBB", "--status-file", str(path)]) == 1
     st = json.loads(path.read_text())

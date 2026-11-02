@@ -255,7 +255,10 @@ def _one_pass(args: argparse.Namespace) -> int:
     init_db()
     now = datetime.now(timezone.utc)
     skip = {t for t in args.skip.split(",") if t}
-    targets = [t for t in plan_targets(load_constituents(), lib.latest(limit=5000), now,
+    from utils.funds import load_funds
+    # The index, then the widely held ETFs (cron/etfs.csv): funds are what most
+    # retail investors actually own.
+    targets = [t for t in plan_targets(load_constituents() + load_funds(), lib.latest(limit=5000), now,
                                        args.fresh_days) if t[0] not in skip][:args.budget]
     _log("start", targets=len(targets), skipped=len(skip), rss_mb=round(_rss_mb(), 1))
     if not targets:

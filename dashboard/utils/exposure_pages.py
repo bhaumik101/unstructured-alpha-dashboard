@@ -30,6 +30,7 @@ from html import escape
 from typing import Dict, Iterable, List, Optional
 
 from utils import exposure as ex
+from utils.funds import is_fund
 
 SYMBOL_RE = re.compile(r"^[A-Z0-9][A-Z0-9.\-]{0,14}$")
 STANDS_UP = ("clear", "tentative")
@@ -697,7 +698,8 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     json_ld = {
         "@context": "https://schema.org", "@type": "WebPage", "name": title,
         "description": summary, "url": canonical, "dateModified": str(rec["as_of"])[:10],
-        "about": {"@type": "Corporation", "name": name or symbol, "tickerSymbol": symbol},
+        "about": {"@type": "InvestmentFund" if is_fund(symbol) else "Corporation",
+                  "name": name or symbol, "tickerSymbol": symbol},
         "isPartOf": {"@type": "WebSite", "name": "Unstructured Alpha", "url": base_url},
     }
     return _shell(title, summary[:300], canonical, json_ld, body, app_url,
@@ -807,7 +809,7 @@ def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record ag
 
     rows = "".join(
         f'<tr data-k="{escape((s["ticker"] + " " + (s.get("name") or "")).upper())}"'
-        f' data-s="{sector_slug(secs[s["ticker"]]) if s["ticker"] in secs else ""}"'
+        f' data-s="{sector_slug(secs[s["ticker"]]) if s["ticker"] in secs else ("etf" if is_fund(s["ticker"]) else "")}"'
         f' data-h="{"".join(mark((s.get("exposures") or {}).get(k)) for k in _ORDER)}">'
         f'<th scope="row"><a href="/exposure/{escape(s["ticker"])}">{escape(s["ticker"])}</a>'
         + (f'<span>{escape(s["name"])}</span>' if s.get("name") else "") + '</th>'
@@ -824,6 +826,8 @@ def hub_grid_html(stocks: Iterable[dict], label: str = "Every stock on record ag
             for i, k in enumerate(_ORDER) for d, w in (("u", "Moved up with"), ("d", "Moved down with")))
         if filters != "held":
             sec_opts = "".join(f'<option value="{sector_slug(x)}">{escape(x)}</option>' for x in all_sectors())
+            if any(is_fund(s["ticker"]) for s in stocks):
+                sec_opts += '<option value="etf">ETFs</option>'
             extra = ('<span class="hub-f"><label for="hub-sec" class="small">Sector</label>'
                      f'<select id="hub-sec"><option value="">All sectors</option>{sec_opts}</select></span>')
         extra += ('<span class="hub-f"><label for="hub-held" class="small">Held up</label>'
