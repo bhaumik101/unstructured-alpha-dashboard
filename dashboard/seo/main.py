@@ -737,6 +737,7 @@ def pipeline_status() -> JSONResponse:
     # Five minutes, not hours: this is what is checked right after a run.
     stocks = _cached(("status_latest",), lambda: stock_library.latest(limit=5000), ttl=300)
     index = {t for t, _ in load_constituents()}
+    from utils.funds import funds as _funds
     measured = [str(s.get("measured_at") or "") for s in stocks if s.get("measured_at")]
     data_through = [str(s.get("as_of") or "") for s in stocks if s.get("as_of")]
     try:
@@ -748,6 +749,8 @@ def pipeline_status() -> JSONResponse:
             "stocks": len(stocks),
             "index_size": len(index),
             "index_measured": len(index & {s["ticker"] for s in stocks}),
+            "funds_size": len(_funds()),
+            "funds_measured": len(set(_funds()) & {s["ticker"] for s in stocks}),
             "newest_measured_at": max(measured) if measured else None,
             "oldest_measured_at": min(measured) if measured else None,
             "data_through": max(data_through) if data_through else None,
