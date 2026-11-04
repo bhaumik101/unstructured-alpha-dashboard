@@ -18,6 +18,8 @@ from utils.force_pages import ALL_FORCES
 _TOOLS = (
     ("/exposure", "Stocks", "Every stock on record against rates, inflation, the dollar, oil and credit. "
      "Sort by any force, filter by sector or by what held up.", "look"),
+    ("/etfs", "ETFs", "Widely held bond, sector, dividend, commodity and international funds against "
+     "rates, inflation, the dollar, oil and credit.", "look"),
     ("/sectors", "Sectors", "A heatmap of how each S&P 500 sector has moved with each force. Pick "
      "a cell to see the stocks behind it.", "look"),
     ("/forces", "Economic forces", f"{len(ALL_FORCES)} forces, from oil and gold to the yen and bitcoin, "
@@ -57,6 +59,7 @@ _ICON = {
     "/sectors": '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/>'
                 '<rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
     "/forces": '<path d="M3 17l5-6 4 4 8-9"/>',
+    "/etfs": '<circle cx="12" cy="12" r="8"/><path d="M12 4v8l6 4"/>',
     "/heatmap": '<rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="4" rx="1"/>'
                 '<rect x="13" y="10" width="8" height="10" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/>',
     "/map": '<circle cx="8" cy="15" r="2"/><circle cx="15" cy="8" r="2"/><circle cx="17" cy="16" r="2"/><path d="M4 4v16h16"/>',
