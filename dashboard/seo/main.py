@@ -821,6 +821,13 @@ def sitemap_xml():
                         "<changefreq>daily</changefreq><priority>0.6</priority></url>")
     except Exception:
         pass
+    try:
+        from utils.funds import funds as _funds
+        if set(_funds()) & {s["ticker"] for s in _exposure_stocks()}:   # an empty /etfs is noindex
+            urls.append(f"  <url><loc>{BASE_URL}/etfs</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
+    except Exception:
+        pass
     urls.append(f"  <url><loc>{BASE_URL}/tools</loc><lastmod>{today}</lastmod>"
                 "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
     urls.append(f"  <url><loc>{BASE_URL}/learn</loc>"
@@ -1252,6 +1259,15 @@ def go(t: str = ""):
     if any(s["ticker"] == sym for s in _exposure_stocks()):
         return RedirectResponse(f"/exposure/{sym}", status_code=302)
     return RedirectResponse(f"{APP_URL}/stock?t={quote(sym)}", status_code=302)
+
+
+@app.get("/etfs", response_class=HTMLResponse)
+def etfs_hub():
+    """Widely held ETFs, by kind, against the five core forces."""
+    from utils.etf_page import etfs_page_html
+
+    _get_engine()
+    return HTMLResponse(etfs_page_html(_exposure_stocks(), BASE_URL, APP_URL))
 
 
 @app.get("/sectors", response_class=HTMLResponse)
