@@ -85,3 +85,9 @@ def test_its_percent_formatter_matches_the_site():
                          capture_output=True, text=True, check=True).stdout
     import json
     assert json.loads(out) == [fmt_pct(v) for v in vals]
+
+
+def test_the_stats_strip_does_not_call_the_funds_stocks():
+    # feed.stocks counts every measured ticker, the 46 ETFs included (PR #349).
+    assert "'U.S. stocks measured'" not in STATS and "Stocks and ETFs measured" in STATS
+    assert 'href: "/etfs"' in (WEB / "app" / "page.tsx").read_text(encoding="utf-8")

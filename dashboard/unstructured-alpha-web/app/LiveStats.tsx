@@ -21,7 +21,7 @@ export default function LiveStats() {
   // The core force with the most stocks whose reading held up, either way.
   const top = [...feed.forces].sort((a, b) => (b.held_up + b.held_down) - (a.held_up + a.held_down))[0];
   const stats: [string, string, string][] = [
-    [feed.stocks.toLocaleString('en-US'), 'U.S. stocks measured', 'updated every week'],
+    [feed.stocks.toLocaleString('en-US'), 'Stocks and ETFs measured', 'updated every week'],
     [date(feed.as_of), 'Data through', 'three years of weekly returns'],
     [`${held.toLocaleString('en-US')} of ${measured.toLocaleString('en-US')}`, 'Core readings held up',
      'the rest: no clear link'],
