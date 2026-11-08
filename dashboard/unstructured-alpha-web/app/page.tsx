@@ -256,6 +256,8 @@ function evidenceClass(label: string): string {
 const FREE_TOOLS: { href: string; title: string; blurb: string; icon: React.ReactNode }[] = [
   { href: "/exposure", title: "Stocks", blurb: "Every stock against rates, inflation, the dollar, oil and credit. Filter by sector or by what held up.",
     icon: <path d="M4 6h16M4 12h16M4 18h10" /> },
+  { href: "/etfs", title: "ETFs", blurb: "Bond, sector, dividend and commodity funds: how each moved with rates, inflation, the dollar, oil and credit.",
+    icon: <><circle cx="12" cy="12" r="8" /><path d="M12 4v8l6 4" /></> },
   { href: "/sectors", title: "Sector heatmap", blurb: "How each sector moved with each force. Click a cell for the stocks behind it.",
     icon: <><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></> },
   { href: "/map", title: "Stock map", blurb: "Every stock on any two forces at once. Light up a sector, find a ticker.",
@@ -266,8 +268,6 @@ const FREE_TOOLS: { href: string; title: string; blurb: string; icon: React.Reac
     icon: <><path d="M8 4v16M16 4v16" /><circle cx="8" cy="9" r="2" /><circle cx="16" cy="15" r="2" /></> },
   { href: "/mylist", title: "My list", blurb: "Save stocks as you browse, then measure them as one portfolio.",
     icon: <path d="M12 4l2.4 5 5.6.8-4 3.9.9 5.5L12 16.6 7.1 19.2l.9-5.5-4-3.9 5.6-.8z" /> },
-  { href: "/guess", title: "Whose fingerprint?", blurb: "A daily game: match a mystery stock to its economic profile.",
-    icon: <><path d="M7 11a5 5 0 0 1 10 0v2a5 5 0 0 1-10 0z" /><path d="M10 11v2M14 11v2" /></> },
   { href: "/heatmap", title: "Market heatmap", blurb: "Every stock as a tile, coloured by how it moved with oil, rates or any force.",
     icon: <><rect x="3" y="4" width="10" height="7" rx="1" /><rect x="15" y="4" width="6" height="7" rx="1" /><rect x="3" y="13" width="6" height="7" rx="1" /><rect x="11" y="13" width="10" height="7" rx="1" /></> },
 ];
