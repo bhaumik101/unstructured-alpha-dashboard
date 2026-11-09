@@ -769,8 +769,12 @@ def pipeline_status() -> JSONResponse:
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots_txt() -> str:
+    # /compare?a=X&b=Y is one page per pair of 545 tickers -- a crawl trap
+    # (2,759 crawler requests in one day, 2026-11-09). Each pair page already
+    # names /compare as its canonical; /compare itself stays crawlable.
     return f"""User-agent: *
 Allow: /
+Disallow: /compare?
 
 Sitemap: {BASE_URL}/sitemap.xml
 """
@@ -883,7 +887,7 @@ def sitemap_xml():
 # embed querying the database per request and the shared copy expiring every
 # 15 minutes, crawler traffic left the compute almost never idle long enough to
 # scale to zero. A fresh run shows within _LIB_TTL.
-_LIB_TTL = 6 * 3600
+_LIB_TTL = 24 * 3600     # the library changes weekly; a Tuesday run shows within a day
 _EXPOSURE_TTL = _LIB_TTL
 _exposure_cache: dict = {}
 
@@ -902,8 +906,14 @@ def _cached(key, fn, ttl: float = _LIB_TTL):
 
 
 def _history(symbol: str) -> list:
+    """One stock's weeks, from a single daily read of every stock's history.
+    Crawlers fetch the 545 stock pages at all hours; a query per page (even
+    cached per stock) kept Neon awake about 60% of the day and on course to
+    exhaust its monthly quota again (measured 2026-11-09). A stock not in the
+    daily copy -- measured since -- is looked up on its own."""
     from utils import stock_library
-    return _cached(("history", symbol), lambda: stock_library.history(symbol))
+    found = _cached(("all_histories",), stock_library.all_histories).get(symbol)
+    return found or _cached(("history", symbol), lambda: stock_library.history(symbol))
 
 
 def _study():

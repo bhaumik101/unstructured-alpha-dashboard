@@ -125,6 +125,32 @@ def history(ticker: str, limit: int = 26) -> List[dict]:
     return [dict(h, exposures=by_week.get(h["as_of"], {})) for h in heads]
 
 
+def all_histories(limit: int = 26) -> Dict[str, List[dict]]:
+    """history() for every stock at once: {ticker: newest-first weeks}, in two
+    queries. The public site serves its stock pages from this one daily read;
+    one query per page let crawler traffic keep the database awake all day."""
+    try:
+        with db.engine.begin() as conn:
+            heads = conn.execute(select(stock_measurements)
+                                 .order_by(stock_measurements.c.ticker, stock_measurements.c.as_of.desc())
+                                 ).mappings().all()
+            if not heads:
+                return {}
+            kept: Dict[str, List[dict]] = {}
+            for h in heads:
+                weeks = kept.setdefault(h["ticker"], [])
+                if len(weeks) < limit:
+                    weeks.append(dict(h))
+            oldest = min(w["as_of"] for ws in kept.values() for w in ws)
+            exp = conn.execute(select(stock_exposures).where(stock_exposures.c.as_of >= oldest)).mappings().all()
+    except Exception:
+        return {}
+    by_key: Dict[tuple, Dict[str, dict]] = {}
+    for e in exp:
+        by_key.setdefault((e["ticker"], e["as_of"]), {})[e["factor"]] = dict(e)
+    return {t: [dict(w, exposures=by_key.get((t, w["as_of"]), {})) for w in ws] for t, ws in kept.items()}
+
+
 def latest(limit: int = 500) -> List[dict]:
     """The newest week of every stock in the library, most recently measured first."""
     try:

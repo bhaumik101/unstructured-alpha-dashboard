@@ -178,27 +178,47 @@ def test_the_live_neon_quota_message_is_named():
     assert M.db_error_kind(RuntimeError(live)) == "quota_exceeded"
 
 
-def test_crawling_a_stock_page_again_does_not_query_the_database_again(client, monkeypatch):  # noqa: F811
+def test_crawling_many_stock_pages_reads_the_database_once(client, monkeypatch):  # noqa: F811
+    """Crawlers fetch every stock page at all hours. Per-page queries kept Neon
+    awake ~60% of the day (2026-11-09); one daily read serves them all."""
     from utils import stock_library, track_record
 
     c, _one, lib, M = client
-    assert lib.record(_one("BANK"), "Bank")
-    calls = {"history": 0, "study": 0}
-    real_history, real_study = stock_library.history, track_record.latest
+    for t in ("BANK", "MINER"):
+        assert lib.record(_one(t), t.title())
+    calls = {"all": 0, "one": 0, "study": 0}
+    real_all, real_one, real_study = stock_library.all_histories, stock_library.history, track_record.latest
 
-    def history(t, limit=26):
-        calls["history"] += 1
-        return real_history(t, limit)
+    def all_h(limit=26):
+        calls["all"] += 1
+        return real_all(limit)
+
+    def one(t, limit=26):
+        calls["one"] += 1
+        return real_one(t, limit)
 
     def study():
         calls["study"] += 1
         return real_study() or {"available": False}
-    monkeypatch.setattr(stock_library, "history", history)
+    monkeypatch.setattr(stock_library, "all_histories", all_h)
+    monkeypatch.setattr(stock_library, "history", one)
     monkeypatch.setattr(track_record, "latest", study)
-    for _ in range(5):
-        assert c.get("/exposure/BANK").status_code == 200
-    assert calls["history"] == 1 and calls["study"] == 1
-    assert M._LIB_TTL >= 3600        # the library changes weekly; minutes would keep Neon awake
+    for _ in range(3):
+        for t in ("BANK", "MINER"):
+            assert c.get(f"/exposure/{t}").status_code == 200
+            assert c.get(f"/embed/{t}").status_code == 200
+    assert calls == {"all": 1, "one": 0, "study": 1}, calls
+    assert M._LIB_TTL >= 12 * 3600       # the library changes weekly
+
+
+def test_all_histories_matches_history_stock_by_stock(client):  # noqa: F811
+    from utils import stock_library
+    c, _one, lib, M = client
+    for t in ("BANK", "MINER"):
+        assert lib.record(_one(t), t.title())
+    every = stock_library.all_histories()
+    for t in ("BANK", "MINER"):
+        assert every[t] == stock_library.history(t)
 
 
 def test_an_empty_answer_is_not_cached(client, monkeypatch):  # noqa: F811
@@ -207,3 +227,10 @@ def test_an_empty_answer_is_not_cached(client, monkeypatch):  # noqa: F811
     assert c.get("/exposure/BANK").status_code == 404          # not measured yet
     assert lib.record(_one("BANK"), "Bank")
     assert c.get("/exposure/BANK").status_code == 200          # shows at once, not hours later
+
+
+def test_robots_keeps_crawlers_out_of_the_pair_pages_but_not_compare_itself(client):  # noqa: F811
+    c, _one, lib, M = client
+    txt = c.get("/robots.txt").text
+    assert "Disallow: /compare?" in txt and "Disallow: /compare\n" not in txt
+    assert "Allow: /" in txt and "/sitemap.xml" in txt
