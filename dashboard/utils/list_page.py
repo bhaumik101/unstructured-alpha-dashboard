@@ -243,6 +243,11 @@ def list_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         'hold any security.</p>'
         f'<div class="actions"><a class="btn btn-primary" id="ls-measure" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '<a class="btn btn-secondary" href="/map">Stock map</a><a class="btn btn-secondary" href="/explore">What if?</a></div>'
+        # The one thing that brings a visitor back: the app's weekly email,
+        # which only an account holder who saved a portfolio could find.
+        '<p class="small" id="ls-weekly"><b>Want to hear when these change?</b> Measure them as a portfolio, '
+        'then a free account saves it and emails you a weekly summary of what changed in its readings. '
+        'Most weeks nothing measurable does, and the email says so.</p>'
         f'<script type="application/json" id="ls-data">{payload}</script>'
         f'<script>{script}</script>')
     ld = {"@context": "https://schema.org", "@type": "WebApplication", "name": title,
