@@ -476,6 +476,12 @@ if user and report.get("status") == "ok":
             st.session_state[_opt_key] = _wants_weekly
             record("exposure_weekly_opt_in" if _wants_weekly else "exposure_weekly_opt_out")
             st.caption("Saved." if _wants_weekly else "Turned off.")
+elif report.get("status") == "ok":
+    # Signed out: the weekly email was invisible, so the one reason to come
+    # back was never offered to the people who could use it.
+    st.caption("**Want to hear when this changes?** A free account saves this portfolio and emails you "
+               "a weekly summary of what changed in its readings. Most weeks nothing measurable does, "
+               "and the email says so. Create one or sign in at the top right.")
 
 if report.get("status") != "ok":
     st.markdown(ui.error_html(report), unsafe_allow_html=True)
