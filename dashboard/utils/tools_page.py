@@ -16,6 +16,8 @@ from utils.force_pages import ALL_FORCES
 
 # (href, title, what it answers, group). The groups are the page's sections.
 _TOOLS = (
+    ("/xray", "Portfolio X-ray", "Click the stocks and funds you own and see, in seconds, how the mix has "
+     "moved with rates, inflation, the dollar, oil and credit.", "try"),
     ("/exposure", "Stocks", "Every stock on record against rates, inflation, the dollar, oil and credit. "
      "Sort by any force, filter by sector or by what held up.", "look"),
     ("/etfs", "ETFs", "Widely held bond, sector, dividend, commodity and international funds against "
@@ -59,6 +61,7 @@ _ICON = {
     "/sectors": '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/>'
                 '<rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
     "/forces": '<path d="M3 17l5-6 4 4 8-9"/>',
+    "/xray": '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 15l3-4 2 2 3-5"/>',
     "/etfs": '<circle cx="12" cy="12" r="8"/><path d="M12 4v8l6 4"/>',
     "/heatmap": '<rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="4" rx="1"/>'
                 '<rect x="13" y="10" width="8" height="10" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/>',

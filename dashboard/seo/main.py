@@ -809,6 +809,8 @@ def sitemap_xml():
         pass  # likewise for the force pages
     try:
         if _exposure_stocks():   # an empty explorer is noindex
+            urls.append(f"  <url><loc>{BASE_URL}/xray</loc><lastmod>{today}</lastmod>"
+                        "<changefreq>weekly</changefreq><priority>0.9</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/explore</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
             urls.append(f"  <url><loc>{BASE_URL}/scenario</loc><lastmod>{today}</lastmod>"
@@ -1269,6 +1271,15 @@ def go(t: str = ""):
     if any(s["ticker"] == sym for s in _exposure_stocks()):
         return RedirectResponse(f"/exposure/{sym}", status_code=302)
     return RedirectResponse(f"{APP_URL}/stock?t={quote(sym)}", status_code=302)
+
+
+@app.get("/xray", response_class=HTMLResponse)
+def xray():
+    """Click holdings; see the mix's economic fingerprint."""
+    from utils.xray_page import xray_page_html
+
+    _get_engine()
+    return HTMLResponse(xray_page_html(_exposure_stocks(), BASE_URL, APP_URL))
 
 
 @app.get("/etfs", response_class=HTMLResponse)

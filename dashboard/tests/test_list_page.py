@@ -73,8 +73,9 @@ def test_every_stock_page_has_the_save_button():
 
 
 def test_route_and_nav(client):  # noqa: F811
-    from utils.exposure_pages import NAV
+    from utils.exposure_pages import MORE, NAV
     c, *_ = client
     r = c.get("/mylist")
     assert r.status_code == 200 and "My list" in r.text and 'content="noindex' in r.text
-    assert ("/mylist", "My list") in NAV
+    # In the More menu since the Portfolio X-ray took its place on the bar.
+    assert ("/mylist", "My list") in NAV + MORE
