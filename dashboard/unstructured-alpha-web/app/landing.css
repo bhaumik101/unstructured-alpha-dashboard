@@ -126,6 +126,7 @@
 .lp-hero .lp-h1 { color: #ffffff; }
 .lp-h1-accent { color: var(--lp-bright); }
 .lp-hero .lp-lead { color: rgba(238, 243, 250, 0.84); }
+.lp-hero .lp-hero-xray { color: var(--lp-bright); margin-top: 14px; }
 .lp-hero-facts { list-style: none; padding: 0; margin: 20px 0 0; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: rgba(238, 243, 250, 0.78); }
 .lp-hero-facts li { display: flex; align-items: center; gap: 7px; }
 .lp-hero-facts li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--lp-bright); }

@@ -305,7 +305,7 @@ PAGE_LABELS: Dict[str, tuple] = {
     "heatmap": ("Heatmap", None), "compare": ("Compare", None), "mylist": ("My list", None),
     "explore": ("What if", None), "guess": ("Guess", None), "quiz": ("Quiz", None),
     "learn": ("Learn", None), "tools": ("Tools", None), "changes": ("What changed", None),
-    "evidence": ("Track record", None), "etfs": ("ETFs", None),
+    "evidence": ("Track record", None), "etfs": ("ETFs", None), "xray": ("X-ray", None),
 }
 ALL_PAGE_LABELS = frozenset(x for pair in PAGE_LABELS.values() for x in pair if x)
 
@@ -391,9 +391,9 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
 
 # The public tools, in the order the header shows them. Every page carries the
 # same header and footer so a visitor can reach any of them from anywhere.
-NAV = (("/exposure", "Stocks"), ("/sectors", "Sectors"), ("/forces", "Forces"),
-       ("/map", "Map"), ("/explore", "What if?"), ("/compare", "Compare"), ("/mylist", "My list"))
-MORE = (("/tools", "All free tools"), ("/etfs", "ETFs"), ("/scenario", "Build a scenario"), ("/heatmap", "Market heatmap"), ("/quiz", "Daily quiz"), ("/guess", "Whose fingerprint?"), ("/learn", "How to read these pages"),
+NAV = (("/xray", "X-ray"), ("/exposure", "Stocks"), ("/sectors", "Sectors"), ("/forces", "Forces"),
+       ("/map", "Map"), ("/explore", "What if?"), ("/compare", "Compare"))
+MORE = (("/tools", "All free tools"), ("/etfs", "ETFs"), ("/mylist", "My list"), ("/scenario", "Build a scenario"), ("/heatmap", "Market heatmap"), ("/quiz", "Daily quiz"), ("/guess", "Whose fingerprint?"), ("/learn", "How to read these pages"),
         ("/changes", "What changed this week"), ("/evidence", "Track record"))
 
 

@@ -254,6 +254,8 @@ function evidenceClass(label: string): string {
 
 // The public tools, mirroring utils/tools_page.py (same hrefs and icons).
 const FREE_TOOLS: { href: string; title: string; blurb: string; icon: React.ReactNode }[] = [
+  { href: "/xray", title: "Portfolio X-ray", blurb: "Click the stocks and funds you own. See in seconds how the mix moves with the economy, and what drives it.",
+    icon: <><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 15l3-4 2 2 3-5" /></> },
   { href: "/exposure", title: "Stocks", blurb: "Every stock against rates, inflation, the dollar, oil and credit. Filter by sector or by what held up.",
     icon: <path d="M4 6h16M4 12h16M4 18h10" /> },
   { href: "/etfs", title: "ETFs", blurb: "Bond, sector, dividend and commodity funds: how each moved with rates, inflation, the dollar, oil and credit.",
@@ -266,8 +268,6 @@ const FREE_TOOLS: { href: string; title: string; blurb: string; icon: React.Reac
     icon: <><path d="M5 6h14M5 12h14M5 18h14" /><circle cx="9" cy="6" r="2" /><circle cx="15" cy="12" r="2" /><circle cx="11" cy="18" r="2" /></> },
   { href: "/compare", title: "Compare two stocks", blurb: "Two stocks on one scale, and where they clearly differ.",
     icon: <><path d="M8 4v16M16 4v16" /><circle cx="8" cy="9" r="2" /><circle cx="16" cy="15" r="2" /></> },
-  { href: "/mylist", title: "My list", blurb: "Save stocks as you browse, then measure them as one portfolio.",
-    icon: <path d="M12 4l2.4 5 5.6.8-4 3.9.9 5.5L12 16.6 7.1 19.2l.9-5.5-4-3.9 5.6-.8z" /> },
   { href: "/heatmap", title: "Market heatmap", blurb: "Every stock as a tile, coloured by how it moved with oil, rates or any force.",
     icon: <><rect x="3" y="4" width="10" height="7" rx="1" /><rect x="15" y="4" width="6" height="7" rx="1" /><rect x="3" y="13" width="6" height="7" rx="1" /><rect x="11" y="13" width="10" height="7" rx="1" /></> },
 ];
@@ -345,6 +345,7 @@ export default function Home() {
               <a href={appUrl("/", "hero_own")} onClick={() => recordAppOpen("hero_own")}
                  className="lp-btn lp-btn-ghost">Use my own holdings</a>
             </div>
+            <a className="lp-link lp-hero-xray" href="/xray">Or X-ray your holdings in seconds, no sign-up →</a>
             <form className="lp-lookup" action="/go" method="get" role="search">
               <label htmlFor="lp-lookup-t">Or look up one stock</label>
               <div className="lp-lookup-row">
