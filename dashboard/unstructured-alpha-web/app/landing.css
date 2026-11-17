@@ -126,7 +126,38 @@
 .lp-hero .lp-h1 { color: #ffffff; }
 .lp-h1-accent { color: var(--lp-bright); }
 .lp-hero .lp-lead { color: rgba(238, 243, 250, 0.84); }
-.lp-hero .lp-hero-xray { color: var(--lp-bright); margin-top: 14px; }
+/* The hero's live X-ray (HeroXray.tsx): a glass card on the navy band. */
+.lp-xr { text-align: left; color: #ffffff; background: rgba(8, 22, 40, 0.55); border: 1px solid rgba(238, 243, 250, 0.18);
+  border-radius: 18px; padding: 20px 22px; box-shadow: 0 20px 50px rgba(3, 10, 22, 0.35); }
+.lp-xr-eyebrow { margin: 0 0 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--lp-bright); }
+.lp-xr-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.lp-xr-presets button { font: inherit; font-size: 13px; color: rgba(238, 243, 250, 0.86); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(238, 243, 250, 0.22); border-radius: 999px; padding: 6px 12px; min-height: 32px; cursor: pointer; }
+.lp-xr-presets button[aria-pressed="true"] { background: var(--lp-bright); color: var(--lp-bright-ink); border-color: var(--lp-bright); font-weight: 700; }
+.lp-xr-presets button:focus-visible, .lp-xr-held button:focus-visible { outline: 2px solid var(--lp-bright); outline-offset: 2px; }
+.lp-xr-held { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; }
+.lp-xr-held li { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px; padding: 3px 4px 3px 9px; }
+.lp-xr-held button { font: inherit; background: none; border: 0; color: rgba(238, 243, 250, 0.7); cursor: pointer; width: 24px; height: 24px; border-radius: 6px; }
+.lp-xr-held button:hover { background: rgba(255, 255, 255, 0.14); color: #ffffff; }
+.lp-xr-add input { width: 84px; font: inherit; font-size: 13px; color: #ffffff; background: transparent; border: 1px dashed rgba(238, 243, 250, 0.4);
+  border-radius: 8px; padding: 4px 8px; }
+.lp-xr-add input::placeholder { color: rgba(238, 243, 250, 0.6); }
+.lp-xr-say { min-height: 18px; margin: 6px 0 0; font-size: 13px; color: rgba(238, 243, 250, 0.72); }
+.lp-xr-head { margin: 8px 0 12px; font-size: 16px; line-height: 1.45; color: rgba(238, 243, 250, 0.92); }
+.lp-xr-head b { color: #ffffff; }
+.lp-xr-bars { list-style: none; margin: 0; padding: 0; }
+.lp-xr-bars li { display: grid; grid-template-columns: 150px 1fr 58px; gap: 10px; align-items: center; padding: 6px 0; font-size: 14px;
+  color: rgba(238, 243, 250, 0.86); }
+.lp-xr-bars b { text-align: right; font-variant-numeric: tabular-nums; color: #ffffff; }
+.lp-xr-track { position: relative; height: 10px; background: rgba(255, 255, 255, 0.08); border-radius: 5px; }
+.lp-xr-track::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: rgba(238, 243, 250, 0.5); }
+.lp-xr-track i { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
+.lp-xr-track i.up { background: #7fb0f5; }
+.lp-xr-track i.down { background: #f0a35e; }
+.lp-xr-note { margin: 10px 0 14px; font-size: 12.5px; line-height: 1.5; color: rgba(238, 243, 250, 0.66); }
+.lp-xr-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 520px) { .lp-xr { padding: 16px; } .lp-xr-bars li { grid-template-columns: 1fr 58px; } .lp-xr-track { grid-column: 1 / -1; order: 3; } }
 .lp-hero-facts { list-style: none; padding: 0; margin: 20px 0 0; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: rgba(238, 243, 250, 0.78); }
 .lp-hero-facts li { display: flex; align-items: center; gap: 7px; }
 .lp-hero-facts li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--lp-bright); }

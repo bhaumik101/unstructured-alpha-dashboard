@@ -55,6 +55,7 @@ const nextConfig: NextConfig = {
       { source: "/sectors", destination: `${SEO_ORIGIN}/sectors` },
       { source: "/etfs", destination: `${SEO_ORIGIN}/etfs` },
       { source: "/xray", destination: `${SEO_ORIGIN}/xray` },
+      { source: "/xray.json", destination: `${SEO_ORIGIN}/xray.json` },
       { source: "/sectors/:name", destination: `${SEO_ORIGIN}/sectors/:name` },
       { source: "/embed/:symbol", destination: `${SEO_ORIGIN}/embed/:symbol` },
       { source: "/og/:name", destination: `${SEO_ORIGIN}/og/:name` },

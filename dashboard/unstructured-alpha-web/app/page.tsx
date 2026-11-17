@@ -5,6 +5,7 @@ import Link from 'next/link';
 import './landing.css';
 import LiveMovers from './LiveMovers';
 import LiveStats from './LiveStats';
+import HeroXray from './HeroXray';
 
 const APP_URL = "https://app.unstructuredalpha.com";
 const PILOT_EMAIL = "support@unstructuredalpha.com";
@@ -335,9 +336,9 @@ export default function Home() {
             <p className="lp-eyebrow lp-eyebrow-bright">Portfolio exposure, measured with the uncertainty shown</p>
             <h1 className="lp-h1">See which economic forces your portfolio is <span className="lp-h1-accent">actually exposed to.</span></h1>
             <p className="lp-lead">
-              Enter your holdings and see how the portfolio has moved with interest rates, inflation,
-              the dollar, oil and credit spreads, which holdings cause it, and how sure we can be.
-              Built for advisers who need to explain portfolio risk to clients.
+              Click the stocks and funds you own and see how the mix has moved with interest rates,
+              inflation, the dollar, oil and credit spreads, which holdings drive it, and how sure we can be.
+              For investors, and for the advisers who explain portfolio risk to clients.
             </p>
             <div className="lp-cta-row">
               <a href={sampleUrl("hero_sample")} onClick={() => recordAppOpen("hero_sample")}
@@ -345,7 +346,6 @@ export default function Home() {
               <a href={appUrl("/", "hero_own")} onClick={() => recordAppOpen("hero_own")}
                  className="lp-btn lp-btn-ghost">Use my own holdings</a>
             </div>
-            <a className="lp-link lp-hero-xray" href="/xray">Or X-ray your holdings in seconds, no sign-up →</a>
             <form className="lp-lookup" action="/go" method="get" role="search">
               <label htmlFor="lp-lookup-t">Or look up one stock</label>
               <div className="lp-lookup-row">
@@ -361,8 +361,10 @@ export default function Home() {
             </ul>
           </div>
           <div className="lp-hero-art">
-            <ExposureMap />
-            <p className="lp-map-caption">Example: the balanced portfolio below. Thicker line, larger measured exposure.</p>
+            <HeroXray fallback={<>
+              <ExposureMap />
+              <p className="lp-map-caption">Example: the balanced portfolio below. Thicker line, larger measured exposure.</p>
+            </>} />
           </div>
         </header>
         <LiveStats />
