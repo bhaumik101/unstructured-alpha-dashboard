@@ -589,8 +589,7 @@ export default function Home() {
             <p className="lp-eyebrow">Pricing</p>
             <h2 className="lp-h2">Early-access pricing</h2>
             <p className="lp-body lp-narrow">
-              These prices are being tested with early users and may change. Features marked &ldquo;in
-              development&rdquo; are not available yet.
+              These prices are being tested with early users and may change.
             </p>
             <div className="lp-prices">
               <div className="lp-price">
@@ -617,11 +616,8 @@ export default function Home() {
                   <li>Save up to 3 portfolios and switch between them</li>
                   <li>A one-page client summary, ready to print or save as a PDF</li>
                   <li>Download the report&rsquo;s numbers as a CSV</li>
+                  <li>Alerts when an exposure crosses a line you set</li>
                   <li>Everything in Free</li>
-                </ul>
-                <div className="lp-price-sub">In development</div>
-                <ul style={{ marginTop: 6 }}>
-                  <li>Exposure threshold alerts</li>
                 </ul>
                 <a href={appUrl("/pricing", "pro_plan")} onClick={() => recordAppOpen("pro_plan")}
                    className="lp-btn lp-btn-secondary">See Investor Pro</a>

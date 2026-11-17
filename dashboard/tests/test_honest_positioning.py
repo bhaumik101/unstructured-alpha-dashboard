@@ -68,13 +68,11 @@ def test_the_landing_page_says_plainly_that_it_is_not_a_forecast():
 
 
 def test_unbuilt_paid_features_are_labelled_as_in_development():
-    """Pricing must not sell what does not exist yet."""
+    """Pricing must not sell what does not exist yet. Everything on it is built
+    as of 2026-11: threshold alerts (utils/exposure_alerts.py) were the last
+    item marked in development, so a new unbuilt item needs its own label."""
     page = (WEB / "page.tsx").read_text(encoding="utf-8")
     pricing = page[page.index('id="pricing"'):page.index('id="faq"')]
-    marker = pricing.index("In development")
-    # The weekly "what changed" email and the one-page PDF summary are built
-    # (2026-09-27); only threshold alerts remain unbuilt.
-    for unbuilt in ("alerts",):
-        assert unbuilt in pricing[marker:], (
-            f"{unbuilt!r} is offered on the pricing page but not marked in development"
-        )
+    assert "Alerts when an exposure crosses a line you set" in pricing
+    from pathlib import Path
+    assert (Path(__file__).resolve().parent.parent / "utils" / "exposure_alerts.py").exists()

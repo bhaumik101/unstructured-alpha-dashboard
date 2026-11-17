@@ -97,8 +97,12 @@ def test_a_portfolio_name_cannot_inject_markup(report):
 # ── the cron ────────────────────────────────────────────────────────────────
 
 def test_only_verified_opted_in_accounts_are_emailed():
-    assert "exposure_email_opted_in.is_(True)" in CRON
+    # Weekly summaries go to verified accounts that opted in; Investor Pro
+    # accounts with an exposure alert are also read, but emailed only when one
+    # fires (tests/test_exposure_alerts.py drives the job end to end).
     assert "email_verified.is_(True)" in CRON
+    assert 'weekly = bool(r["exposure_email_opted_in"])' in CRON
+    assert 'if weekly or (pro and int(r["id"]) in alerting):' in CRON
 
 
 def test_one_send_per_user_per_week_however_often_it_runs():

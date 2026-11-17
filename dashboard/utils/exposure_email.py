@@ -83,8 +83,33 @@ def _row(label: str, key: str, value: str, extra: str) -> str:
     )
 
 
-def build_weekly_email(portfolio_name: str, report: dict, app_base: str = APP_BASE) -> dict:
-    """Returns {subject, html} for one saved portfolio's weekly summary."""
+def alert_subject(portfolio_name: str, fired: list) -> str:
+    from utils.exposure_alerts import describe
+    more = f" (+{len(fired) - 1} more)" if len(fired) > 1 else ""
+    return f"Alert: {portfolio_name}: {describe(fired[0])}{more}"
+
+
+def _alerts_html(fired: list) -> str:
+    """The Pro alerts that fired: each reading with its range and evidence."""
+    from utils.exposure_alerts import describe
+    items = "".join(
+        f'<li style="margin-bottom:8px;"><b>{escape(describe(a)[:1].upper() + describe(a)[1:])}</b>: '
+        f'the reading is now {escape(ui.fmt_pct(a["reading"]["impact"]))} '
+        f'(90% range {escape(ui.fmt_pct(a["reading"]["low"]))} to {escape(ui.fmt_pct(a["reading"]["high"]))}, '
+        f'{escape(ex.EVIDENCE_LABELS.get(a["reading"].get("evidence"), ""))}).</li>'
+        for a in fired)
+    return (f'<div style="margin:18px 0 0;padding:14px 16px;border:1px solid #f2c94c;background:#fff8e1;border-radius:10px;">'
+            f'<div style="font-weight:700;color:{_INK};margin-bottom:8px;">Your alerts</div>'
+            f'<ul style="margin:0;padding-left:20px;color:{_INK_2};line-height:1.6;">{items}</ul>'
+            f'<p style="margin:6px 0 0;color:{_INK_3};">A measured reading crossed a line you set. '
+            f'It describes the past; it is not a forecast or a recommendation.</p></div>')
+
+
+def build_weekly_email(portfolio_name: str, report: dict, app_base: str = APP_BASE,
+                       fired: Optional[list] = None, weekly: bool = True) -> dict:
+    """Returns {subject, html} for one saved portfolio's weekly summary.
+    fired: Investor Pro alerts that crossed this week (lead the email and its
+    subject). weekly: False when the person gets it only for an alert."""
     name = str(portfolio_name or "Your portfolio")
     portfolio = report.get("portfolio") or {}
     readings = portfolio.get("readings") or {}
@@ -129,6 +154,11 @@ def build_weekly_email(portfolio_name: str, report: dict, app_base: str = APP_BA
         for k in order
     )
 
+    alerts = _alerts_html(fired) if fired else ""
+    reason = ("You receive this because you saved a portfolio and turned on the weekly summary. "
+              "Turn it off any time on the exposure report, or in your profile." if weekly else
+              "You receive this because an exposure alert you set on Investor Pro fired. "
+              "Remove the alert on the exposure report to stop these.")
     html = f"""\
 <div style="background:#f4f6fa;padding:24px 0;font-family:Inter,Helvetica,Arial,sans-serif;">
 <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid {_LINE};border-radius:14px;overflow:hidden;">
@@ -136,7 +166,7 @@ def build_weekly_email(portfolio_name: str, report: dict, app_base: str = APP_BA
   <div style="padding:24px 26px;">
     <div style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:{_ACCENT};font-weight:700;">Weekly exposure summary</div>
     <div style="font-size:21px;font-weight:700;color:{_INK};margin-top:6px;">{escape(name)}</div>
-    <div style="font-size:13px;color:{_INK_3};margin-top:4px;">Data through {escape(ui.fmt_date(report.get('as_of')))}</div>
+    <div style="font-size:13px;color:{_INK_3};margin-top:4px;">Data through {escape(ui.fmt_date(report.get('as_of')))}</div>{alerts}
 
     <h2 style="font-size:16px;color:{_INK};margin:22px 0 10px;">What changed</h2>
     {changed}
@@ -158,8 +188,7 @@ def build_weekly_email(portfolio_name: str, report: dict, app_base: str = APP_BA
     </p>
   </div>
   <div style="padding:16px 26px;background:#f4f6fa;color:{_INK_3};font-size:12px;line-height:1.6;">
-    You receive this because you saved a portfolio and turned on the weekly summary.
-    Turn it off any time on the exposure report, or in your profile.<br><br>
+    {reason}<br><br>
     Unstructured Alpha is an educational and informational tool. Nothing here is personalized
     financial, investment, tax or legal advice, or a recommendation to buy, sell or hold any
     security. Exposure figures describe how portfolios have moved in the past; relationships
@@ -168,4 +197,4 @@ def build_weekly_email(portfolio_name: str, report: dict, app_base: str = APP_BA
 </div>
 </div>"""
 
-    return {"subject": subject_for(name, report), "html": html}
+    return {"subject": alert_subject(name, fired) if fired else subject_for(name, report), "html": html}

@@ -125,13 +125,14 @@ def test_what_changed_with_a_portfolio_shows_recent_moves(monkeypatch, synthetic
     assert "the portfolio returned" in _text(at)
 
 
-def test_alerts_page_is_honest_that_alerts_do_not_exist_yet(monkeypatch, synthetic_engine):
+def test_alerts_page_explains_alerts_and_where_to_get_them(monkeypatch, synthetic_engine):
     at = _page(monkeypatch, "pages/62_Alerts.py")
-    assert "in development" in _text(at)
+    assert not at.exception and "Sign in" in _text(at) and "in development" not in _text(at)
     at = _page(monkeypatch, "pages/62_Alerts.py", user={"id": 7, "email": "a@b.c"})
-    at.button(key="alerts_interest").click().run()
+    assert "part of Investor Pro" in _text(at)
+    at.button(key="alerts_to_pro").click().run()
     assert not at.exception
-    assert "on the list" in _text(at)
+    assert at.session_state["_test_switch_page"] == "pages/29_Upgrade.py"
 
 
 def test_pricing_marks_unbuilt_features_and_sells_no_advisor_checkout(monkeypatch, synthetic_engine):
