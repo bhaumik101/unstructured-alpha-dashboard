@@ -1004,6 +1004,18 @@ def landing_json():
         "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=86400"})
 
 
+@app.get("/xray.json")
+def xray_json():
+    """What the landing page's live X-ray needs: every stock and fund's five
+    core readings (with whether each held up) and the S&P 500 trackers."""
+    from fastapi.responses import JSONResponse
+    from utils.xray_page import xray_data
+
+    _get_engine()
+    return JSONResponse(xray_data(_exposure_stocks()), headers={
+        "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"})
+
+
 @app.get("/exposure.csv")
 def exposure_csv():
     """Every reading on record, one row per stock and force, for anyone who
