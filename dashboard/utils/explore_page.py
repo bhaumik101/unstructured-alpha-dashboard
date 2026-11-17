@@ -23,6 +23,7 @@ from typing import Iterable, Optional
 from utils import exposure as ex
 from utils.exposure_pages import _shell, app_link, data_chips, tool_header_html
 from utils.force_pages import ALL_FORCES, GROUP_LABELS, force_stats
+from utils.progress import mark_on, progress_script
 
 # One percent formatter for every script on the public pages, matching
 # exposure_pages.fmt_pct: two decimals below 0.95%, so a small move never
@@ -216,7 +217,8 @@ def explore_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         f'<div class="actions"><a class="btn btn-primary" href="{escape(app_link(app_url, "/scenarios", canonical))}">Try a move on a '
         'whole portfolio</a><a class="btn btn-secondary" href="/scenario">Move several at once</a><a class="btn btn-secondary" href="/forces">Every economic force</a></div>'
         f'<script type="application/json" id="xp-data">{payload}</script>'
-        f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
+        + progress_script() + mark_on("xp-move", "input", "explore")
+        + f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
     json_ld = {"@context": "https://schema.org", "@type": "WebApplication", "name": title,
                "description": desc, "url": canonical, "applicationCategory": "FinanceApplication",
                "isAccessibleForFree": True}

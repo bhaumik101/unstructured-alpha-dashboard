@@ -43,7 +43,7 @@ _TOOLS = (
     ("/guess", "Whose fingerprint?", "Five rounds a day: see a mystery stock's profile against the "
      "economy and pick it out of four.", "play"),
     ("/learn", "How to read these pages", "The typical move, the 90% range and the evidence labels, "
-     "with a playground to try them.", "learn"),
+     "then a five-step path with daily streaks and levels.", "learn"),
     ("/changes", "What changed this week", "Readings that started or stopped holding up in the latest "
      "week, and the largest shifts.", "learn"),
     ("/evidence", "Track record", "How readings measured this way held up over the following year, out "

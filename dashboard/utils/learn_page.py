@@ -18,6 +18,7 @@ from html import escape
 
 from utils import exposure as ex
 from utils.exposure_pages import _chip, _shell, tool_header_html
+from utils.progress import mark_on, track_html
 
 SECTIONS = ("move", "market", "range", "evidence", "extras", "limits")
 
@@ -98,7 +99,8 @@ def learn_page_html(base_url: str, app_url: str) -> str:
         '<figcaption class="small">A playground, not a real stock. The label follows the same rule as every '
         f'reading on the site: Clear at |t| ≥ {ex.CLEAR_T:.2f}, Tentative at |t| ≥ {ex.Z90:.2f}, where |t| is the '
         'figure divided by its noise (the 90% range is ±1.645 times that noise).</figcaption></figure>'
-        f'<script>{_PLAY_SCRIPT.replace("/*LABEL*/", LABEL_JS).replace("__Z90__", repr(ex.Z90)).replace("__CLEAR__", repr(ex.CLEAR_T))}</script>')
+        + mark_on("lp-m", "input", "learn") + mark_on("lp-h", "input", "learn")
+        + f'<script>{_PLAY_SCRIPT.replace("/*LABEL*/", LABEL_JS).replace("__Z90__", repr(ex.Z90)).replace("__CLEAR__", repr(ex.CLEAR_T))}</script>')
     body = (
         '<style>.lx{margin:14px 0 18px;max-width:560px}.lx-axis{position:relative;height:28px}'
         '.lx-axis::before{content:"";position:absolute;left:0;right:0;top:13px;height:2px;background:var(--line)}'
@@ -118,7 +120,8 @@ def learn_page_html(base_url: str, app_url: str) -> str:
         '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › How to read these pages</nav>'
         + tool_header_html("How to read these pages", [f"{years} years of weekly returns",
                                                        "Market move removed first", "Four evidence labels",
-                                                       "With a playground"], escape(desc))
+                                                       "A five-step path"], escape(desc))
+        + track_html()
         + f'<ul class="toc" aria-label="On this page">{toc}</ul>'
         '<div class="learn">'
         '<h2 id="move">The typical weekly move</h2>'

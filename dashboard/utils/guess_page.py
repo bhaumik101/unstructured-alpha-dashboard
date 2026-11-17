@@ -28,6 +28,7 @@ from typing import Iterable, List, Optional
 from utils import exposure as ex
 from utils.explore_page import JS_PCT
 from utils.exposure_pages import _RC_CSS, STANDS_UP, SYMBOL_RE, _shell, tool_header_html
+from utils.progress import progress_script
 
 ROUNDS = 5
 CHOICES = 4
@@ -164,6 +165,7 @@ _SCRIPT = r"""
       + '<button type="button" class="btn btn-secondary" id="gs-copy">Copy your result</button></div>'
       + '<p class="small" id="gs-copied" aria-live="polite"></p>';
     say.textContent = 'You scored ' + score + ' of ' + R.length + '.';
+    if (window.UAP) box.insertAdjacentHTML('beforeend', UAP.line(UAP.record('guess', score, R.length)));
     var text = 'Whose fingerprint? ' + box.getAttribute('data-day') + ': ' + score + '/' + R.length + '\n' + marks.join('') + '\n' + box.getAttribute('data-url');
     document.getElementById('gs-copy').addEventListener('click', function(){
       var note = document.getElementById('gs-copied');
@@ -191,7 +193,8 @@ _CSS = """<style>
 
 def guess_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
                     day: Optional[date] = None) -> str:
-    from utils.quiz_page import _CSS as QZ_CSS, _day_label
+    from utils.quiz_page import _CSS as QZ_CSS
+    from utils.quiz_page import _day_label
     day = day or date.today()
     rounds = guess_rounds(stocks, day)
     canonical = f"{base_url}/guess"
@@ -222,5 +225,6 @@ def guess_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Nothing here is a '
         'recommendation to buy, sell or hold any security.</p>'
         f'<script type="application/json" id="gs-data">{payload}</script>'
-        f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
+        + progress_script()
+        + f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
     return _shell(title, desc, canonical, ld, body, app_url)

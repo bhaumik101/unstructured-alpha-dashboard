@@ -25,6 +25,7 @@ from typing import Iterable, List, Optional
 from utils.explore_page import JS_PCT
 from utils.exposure_pages import SYMBOL_RE, _shell, tool_header_html
 from utils.force_pages import FORCE_BY_KEY
+from utils.progress import progress_script
 
 ROUNDS = 10
 MIX = {"up": 4, "down": 3, "none": 3}     # how a round is split before shuffling
@@ -119,6 +120,7 @@ _SCRIPT = r"""
       + '<button type="button" class="btn btn-secondary" id="qz-copy">Copy your result</button></div>'
       + '<p class="small" id="qz-copied" aria-live="polite"></p>';
     say.textContent = 'You scored ' + score + ' of ' + Q.length + '.';
+    if (window.UAP) box.insertAdjacentHTML('beforeend', UAP.line(UAP.record('quiz', score, Q.length)));
     var text = 'Which way did it move? ' + box.getAttribute('data-day') + ': ' + score + '/' + Q.length
       + '\n' + marks.join('') + '\n' + box.getAttribute('data-url');
     document.getElementById('qz-copy').addEventListener('click', function(){
@@ -181,5 +183,6 @@ def quiz_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Nothing here is a '
         'recommendation to buy, sell or hold any security.</p>'
         f'<script type="application/json" id="qz-data">{payload}</script>'
-        f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
+        + progress_script()
+        + f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
     return _shell(title, desc, canonical, ld, body, app_url)
