@@ -882,6 +882,21 @@ research_results = Table(
 # economic force, one row per data week, so a stock's history accumulates as
 # it is viewed and the main page can rank what has been measured.
 #
+# Investor Pro exposure alerts (utils/exposure_alerts.py): "tell me when this
+# portfolio's <force> reading rises above / falls below <threshold>". last_state
+# is whether the reading was past the line at the last weekly check, so an
+# alert fires once when it crosses, not every week it stays across.
+exposure_alerts = Table(
+    "exposure_alerts", metadata,
+    Column("id",         Integer, primary_key=True),
+    Column("user_id",    Integer, ForeignKey("users.id"), nullable=False),
+    Column("factor",     String(32), nullable=False),
+    Column("direction",  String(8), nullable=False),      # "above" | "below"
+    Column("threshold",  Float, nullable=False),          # % typical weekly move
+    Column("last_state", Integer, nullable=False, default=0),
+    Column("created_at", String(64), nullable=False),
+)
+
 # Only what the engine produced is stored. A force whose economic series
 # failed has no row for that week -- it is never filled in.
 stock_measurements = Table(

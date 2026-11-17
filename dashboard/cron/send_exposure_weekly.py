@@ -45,14 +45,35 @@ APP_BASE = os.environ.get("APP_BASE_URL", "https://app.unstructuredalpha.com").r
 
 
 def _recipients() -> list[dict]:
-    """Verified accounts that opted in. Opt-in is never inferred from activity."""
+    """Verified accounts that opted in (weekly=True), plus verified Investor Pro
+    accounts that set an exposure alert (weekly=False: emailed only when one
+    fires). Opt-in is never inferred from activity; setting an alert is the
+    consent for alert emails."""
+    from utils.exposure_alerts import users_with_alerts
     with engine.begin() as conn:
         rows = conn.execute(
-            select(users.c.id, users.c.email, users.c.subscription_tier)
-            .where(users.c.exposure_email_opted_in.is_(True))
+            select(users.c.id, users.c.email, users.c.subscription_tier, users.c.exposure_email_opted_in)
             .where(users.c.email_verified.is_(True))
         ).mappings().all()
-    return [dict(r) for r in rows]
+    alerting = set(users_with_alerts())
+    out = []
+    for r in rows:
+        pro = str(r["subscription_tier"]) == "pro"
+        weekly = bool(r["exposure_email_opted_in"])
+        if weekly or (pro and int(r["id"]) in alerting):
+            out.append({"id": r["id"], "email": r["email"], "subscription_tier": r["subscription_tier"],
+                        "weekly": weekly, "alerts": pro and int(r["id"]) in alerting})
+    return out
+
+
+def _save_states(states: dict) -> None:
+    if not states:
+        return
+    try:
+        from utils.exposure_alerts import save_states
+        save_states(states)
+    except Exception as exc:
+        print(f"[exposure-email] could not save alert states: {type(exc).__name__}", flush=True)
 
 
 def main() -> int:
@@ -81,7 +102,7 @@ def main() -> int:
         return 1
 
     if not recipients:
-        print("[exposure-email] nobody has opted in yet", flush=True)
+        print("[exposure-email] nobody has opted in or set an alert yet", flush=True)
         return 0
 
     from utils.email import _post_resend_email  # lazy: keeps requests off the import path
@@ -111,7 +132,18 @@ def main() -> int:
             skipped += 1
             continue
 
-        email_body = build_weekly_email("Your saved portfolio", report, app_base=APP_BASE)
+        fired, states = [], {}
+        if person.get("alerts"):
+            from utils.exposure_alerts import evaluate, list_alerts
+            fired, states = evaluate(list_alerts(uid), report)
+        if not person.get("weekly") and not fired:
+            # Alerts only, and none crossed: no email, but the states still move.
+            _save_states(states)
+            skipped += 1
+            continue
+
+        email_body = build_weekly_email("Your saved portfolio", report, app_base=APP_BASE,
+                                        fired=fired, weekly=bool(person.get("weekly")))
         try:
             response = _post_resend_email(
                 api_key=api_key,
@@ -128,6 +160,10 @@ def main() -> int:
                 failed += 1
             else:
                 sent += 1
+                # Only once the email is out: a failed send fires again next week.
+                _save_states(states)
+                if fired:
+                    print(f"[exposure-email] user {uid}: {len(fired)} alert(s) fired", flush=True)
         except Exception as exc:
             print(f"[exposure-email] user {uid}: {type(exc).__name__}", flush=True)
             failed += 1

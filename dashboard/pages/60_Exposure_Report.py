@@ -483,6 +483,45 @@ elif report.get("status") == "ok":
                "a weekly summary of what changed in its readings. Most weeks nothing measurable does, "
                "and the email says so. Create one or sign in at the top right.")
 
+# ── Investor Pro: exposure alerts (utils/exposure_alerts.py) ────────────────
+# Checked by the weekly job after each week's measurement; an alert emails once
+# when this portfolio's reading crosses the line, not every week it stays past.
+if user and is_pro and report.get("status") == "ok":
+    from utils import exposure_alerts as xa
+    with st.expander("Exposure alerts", expanded=False):
+        st.caption("Get an email when this portfolio's reading for a force crosses a line you set. "
+                   "Checked weekly, after the new data. It fires once when the reading crosses, not "
+                   "every week it stays past.")
+        _alerts = xa.list_alerts(int(user["id"]))
+        _readings = (report.get("portfolio") or {}).get("readings") or {}
+        for _a in _alerts:
+            _a_col, _x_col = st.columns([5, 1])
+            _now = _readings.get(_a["factor"], {}).get("impact")
+            _a_col.markdown(f"When **{xa.describe(_a)}**"
+                            + (f" · now {ui.fmt_pct(_now)}" if _now is not None else ""))
+            if _x_col.button("Remove", key=f"uar_alert_del_{_a['id']}"):
+                xa.delete_alert(int(user["id"]), int(_a["id"]))
+                record("exposure_alert_removed")
+                st.rerun()
+        if len(_alerts) < xa.MAX_ALERTS:
+            _f_col, _d_col, _t_col, _b_col = st.columns([3, 2, 2, 1.4])
+            _factor = _f_col.selectbox("Force", list(xa.FORCES), format_func=xa.FORCES.get,
+                                       key="uar_alert_factor")
+            _direction = _d_col.selectbox("When it", list(xa.DIRECTIONS), format_func=xa.DIRECTIONS.get,
+                                          key="uar_alert_dir")
+            _default = float(_readings.get(_factor, {}).get("impact") or 0.0)
+            _threshold = _t_col.number_input("Threshold (%)", value=round(_default, 1), step=0.1,
+                                             format="%.2f", key="uar_alert_thr")
+            _b_col.write("")
+            if _b_col.button("Add alert", key="uar_alert_add", width="stretch"):
+                _ok, _msg = xa.add_alert(int(user["id"]), _factor, _direction, _threshold)
+                if _ok:
+                    record("exposure_alert_added", factor=_factor)
+                    st.rerun()
+                st.warning(_msg)
+elif report.get("status") == "ok" and not is_pro:
+    st.caption("Investor Pro: get an email when an exposure crosses a line you set.")
+
 if report.get("status") != "ok":
     st.markdown(ui.error_html(report), unsafe_allow_html=True)
     if report.get("retryable") and st.button("Try again", key="uar_retry"):

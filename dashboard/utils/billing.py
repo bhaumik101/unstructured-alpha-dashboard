@@ -451,7 +451,7 @@ PRO_FEATURES = [
     "Holdings entered as percentages, dollar values or share counts",
     "The report's numbers as a CSV",
     "A one-page client summary, ready to print or save as a PDF",
-    "In development: alerts when an exposure crosses a threshold you set",
+    "Alerts when an exposure crosses a threshold you set, checked every week",
 ]
 
 # Contextual Pro (Phase 16): each gated page names the SPECIFIC value it unlocks,

@@ -73,7 +73,9 @@ def test_the_upgrade_page_sells_the_product_that_exists():
     assert not present, f"the upgrade page still sells the retired product: {present}"
 
     # And what it does promise has to match the one other place we quote it.
-    assert "IN DEVELOPMENT" in src, "features that do not exist yet must say so"
+    # Alerts were the last feature marked IN DEVELOPMENT; built 2026-11
+    # (utils/exposure_alerts.py), so the page now lists them as included.
+    assert "Alerts when an exposure crosses a threshold you set" in src
     assert str(product_metrics.PRO_PRICE_MONTHLY) not in src or "PRO_PRICE_MONTHLY" in src, (
         "the price must come from product_metrics, not a literal that can drift"
     )
@@ -91,7 +93,9 @@ def test_the_pro_feature_list_describes_features_that_exist():
                  "morning digest", "watchlist"):
         assert gone not in joined, f"PRO_FEATURES still advertises {gone!r}"
     assert any("holdings" in f.lower() for f in PRO_FEATURES)
-    assert any(f.lower().startswith("in development") for f in PRO_FEATURES)
+    # Alerts were the last item "in development"; built 2026-11 (utils/exposure_alerts.py).
+    assert any("alerts when an exposure crosses" in f.lower() for f in PRO_FEATURES)
+    assert not any(f.lower().startswith("in development") for f in PRO_FEATURES)
 
 
 def test_deep_dive_only_loads_optional_score_for_optional_views():
