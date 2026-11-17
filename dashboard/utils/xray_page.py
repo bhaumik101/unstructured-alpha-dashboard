@@ -30,6 +30,7 @@ from utils.explore_page import JS_PCT
 from utils.exposure_pages import _shell, app_link, tool_header_html
 from utils.funds import MARKET_TRACKERS
 from utils.list_page import list_data
+from utils.progress import progress_script
 
 PRESETS = (
     ("Big tech", "AAPL MSFT NVDA GOOGL AMZN META"),
@@ -134,6 +135,7 @@ def xray_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
           'Get the full report, free</a>'
           '<button type="button" class="btn btn-secondary" id="xr-share">Copy a link to this mix</button>'
           '<a class="btn btn-secondary" href="/learn">How to read this</a></div>'
+        + progress_script()
         + f'<script type="application/json" id="xr-data">{payload}</script><script>{script}</script>')
     ld = {"@context": "https://schema.org", "@type": "WebApplication", "name": title, "description": desc,
           "url": canonical, "applicationCategory": "FinanceApplication", "isAccessibleForFree": True}
@@ -208,6 +210,7 @@ _SCRIPT = r"""
   function drawResult(){
     var out = $('xr-out');
     if (!held.length){ out.innerHTML = '<p class="small">Add two or more holdings, or start from a mix above.</p>'; return; }
+    if (held.length >= 2 && window.UAP) UAP.mark('xray');
     var rows = D.f.map(function(f, i){
       var v = 0, ok = true, heldW = 0, parts = [];
       held.forEach(function(t){ var r = vec(t)[i]; if (!r){ ok = false; return; }
