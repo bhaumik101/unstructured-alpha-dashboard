@@ -127,7 +127,8 @@
 .lp-h1-accent { color: var(--lp-bright); }
 .lp-hero .lp-lead { color: rgba(238, 243, 250, 0.84); }
 /* The hero's live X-ray (HeroXray.tsx): a glass card on the navy band. */
-.lp-xr { text-align: left; color: #ffffff; background: rgba(8, 22, 40, 0.55); border: 1px solid rgba(238, 243, 250, 0.18);
+.lp-hero-art { min-width: 0; }
+.lp-xr { box-sizing: border-box; max-width: 100%; min-width: 0; text-align: left; color: #ffffff; background: rgba(8, 22, 40, 0.55); border: 1px solid rgba(238, 243, 250, 0.18);
   border-radius: 18px; padding: 20px 22px; box-shadow: 0 20px 50px rgba(3, 10, 22, 0.35); }
 .lp-xr-eyebrow { margin: 0 0 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--lp-bright); }
 .lp-xr-presets { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -329,7 +330,7 @@
 
 /* ── responsive ────────────────────────────────────────────────────────── */
 @media (max-width: 960px) {
-  .lp-hero { grid-template-columns: 1fr; padding-top: 44px; padding-bottom: 52px; }
+  .lp-hero { grid-template-columns: minmax(0, 1fr); padding-top: 44px; padding-bottom: 52px; }
   .lp-hero-art { max-width: 460px; margin: 0 auto; }
   .lp-closing-inner { grid-template-columns: 1fr; }
   .lp-closing-icons { grid-template-columns: repeat(6, 46px); }
