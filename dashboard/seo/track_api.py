@@ -148,7 +148,15 @@ async def track_landing_event(request: Request) -> Response:
         # landing page and then the app is one visitor, not two.
         from utils.analytics import visitor_context
 
-        identity = visitor_context(headers=headers)
+        # The token proves this came through our relay, which forwards the
+        # visitor's address as x-forwarded-for. Cloudflare (in front of Render)
+        # sets cf-connecting-ip and x-real-ip to whoever opened the connection --
+        # here a Vercel server whose address changes per invocation -- and
+        # visitor_context checks cf-connecting-ip first. Hashing that made every
+        # marketing visitor id last minutes (Nov 2026: none of 279 spanned more
+        # than 11.7 minutes), so returns were invisible and visitors overcounted.
+        relayed = {k: v for k, v in headers.items() if k not in ("cf-connecting-ip", "x-real-ip")}
+        identity = visitor_context(headers=relayed)
         visitor_id = identity.get("visitor_id")
         device_type = identity.get("device_type")
 

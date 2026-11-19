@@ -29,8 +29,8 @@ import json
 from datetime import date, datetime, timedelta
 from typing import Dict, Iterable, List, Optional, Tuple
 
-COLUMNS = ("site_visitors", "tool_views", "tool_users", "app_visitors", "from_tools", "crossed", "app_opens", "signups")
-VERDICT_ON = ("site_visitors", "tool_users", "from_tools", "crossed", "signups")
+COLUMNS = ("site_visitors", "returning", "tool_views", "tool_users", "app_visitors", "from_tools", "crossed", "app_opens", "signups")
+VERDICT_ON = ("site_visitors", "returning", "tool_users", "from_tools", "crossed", "signups")
 
 
 def week_of(ts) -> Optional[date]:
@@ -124,7 +124,16 @@ def weekly(events: Iterable[Tuple], signups: Iterable = (), weeks: int = 8,
         w = week_of(ts)
         if w in counts:
             counts[w]["signups"] += 1
-    return [{"week": w, "partial": w == this_week,
+    # Returning: active this week (site or app) and seen in an earlier week of
+    # the window. Marketing ids are only stable from Nov 19 2026 (seo/track_api
+    # hashed the relay server before), so earlier site returns read as zero.
+    seen_before: set = set()
+    returning: Dict[date, int] = {}
+    for w in starts:
+        now = sets[w]["site"] | sets[w]["app"]
+        returning[w] = len(now & seen_before)
+        seen_before |= now
+    return [{"week": w, "partial": w == this_week, "returning": returning[w],
              "site_visitors": len(sets[w]["site"]), "tool_views": counts[w]["tool_views"],
              "tool_users": len(sets[w]["used"]),
              "app_visitors": len(sets[w]["app"]), "from_tools": len(sets[w]["tools"]),

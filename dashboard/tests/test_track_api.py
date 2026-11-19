@@ -264,3 +264,23 @@ def test_every_tracked_tool_is_a_path_step_or_the_landing_hero():
     assert ALLOWED_TOOLS == {s[0] for s in STEPS} | {"hero_xray"}
     hero = (Path(__file__).resolve().parents[1] / "unstructured-alpha-web" / "app" / "HeroXray.tsx").read_text()
     assert 'tool: "hero_xray"' in hero and hero.count("recordHeroUse()") >= 3
+
+
+def test_the_visitor_is_the_person_not_the_relay_server(client_and_writes):
+    """Render sits behind Cloudflare, which stamps cf-connecting-ip with whoever
+    opened the connection -- for a relayed beacon, a Vercel server whose address
+    changes from one invocation to the next. visitor_context checked that header
+    first, so marketing visitor ids lasted minutes (Nov 2026: none of 279 spanned
+    more than 11.7 minutes, so returns were invisible and visitors overcounted).
+    Once the relay's token is verified, the address it forwards is the one used."""
+    client, writes = client_and_writes
+    for relay in ("3.1.1.1", "54.2.2.2"):                    # two Vercel instances, one person
+        _post(client, {"event": "page_view", "page": "Landing"}, headers={"cf-connecting-ip": relay})
+    assert len(writes) == 2 and writes[0]["visitor_id"] == writes[1]["visitor_id"]
+    from utils.analytics import visitor_context
+    person = visitor_context(headers={"x-forwarded-for": "203.0.113.7",
+                                      "user-agent": "Mozilla/5.0 (Macintosh)"})["visitor_id"]
+    assert writes[0]["visitor_id"] == person                 # same id the app gives that person
+    _post(client, {"event": "page_view", "page": "Landing"},
+          headers={"cf-connecting-ip": "3.1.1.1", "x-forwarded-for": "198.51.100.9"})
+    assert writes[2]["visitor_id"] != person                 # a different person is a different visitor
