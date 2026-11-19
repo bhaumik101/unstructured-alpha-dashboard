@@ -17,6 +17,12 @@ running green CI over stale code. **Archived 2026-08-05.** Vercel now builds thi
 with root directory `dashboard/unstructured-alpha-web`. If you find yourself editing a
 repo called `unstructured-alpha-web`, stop: you are in the archive.
 
+## Growth map
+
+`dashboard/docs/GROWTH_MAP.md` is the living map: funnel, measured numbers per step,
+the current bottleneck, what shipped, next experiments, owner-only actions. When a
+PR moves a funnel step, add it to "Shipped" and refresh the numbers it changes.
+
 ## Tests — measured on an M5 MacBook Pro, use the fast ones
 
 | command | time | when |
