@@ -57,7 +57,8 @@ def test_the_ticker_box_sends_a_tracker_to_its_page(client):  # noqa: F811
         r = client.get(f"/go?t={t}", follow_redirects=False)
         assert r.status_code == 302 and r.headers["location"] == f"/exposure/{t.upper()}"
     r = client.get("/go?t=ZZZZ", follow_redirects=False)
-    assert r.headers["location"].endswith("/stock?t=ZZZZ")                     # others still go to the app
+    loc = r.headers["location"]                                                # others still go to the app,
+    assert "/stock?t=ZZZZ&" in loc and "utm_source=public_tools" in loc and "utm_content=go" in loc  # tagged
 
 
 def test_a_reading_well_behind_the_library_says_it_is_no_longer_updated():

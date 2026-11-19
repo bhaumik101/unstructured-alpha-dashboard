@@ -58,7 +58,7 @@ def test_the_generator_is_committed_so_the_image_can_be_rebuilt():
 def test_the_app_shares_the_same_image():
     """A link to the app previewed with no image at all until 2026-09-20."""
     splash = (DASHBOARD / "scripts" / "inject_boot_splash.py").read_text(encoding="utf-8")
-    assert 'META_IMAGE = "https://unstructuredalpha.com/og-image.png"' in splash
+    assert 'META_IMAGE = "https://www.unstructuredalpha.com/og-image.png"' in splash   # www: no redirect hop
     assert 'property="og:image"' in splash
 
     header = (DASHBOARD / "utils" / "header.py").read_text(encoding="utf-8")

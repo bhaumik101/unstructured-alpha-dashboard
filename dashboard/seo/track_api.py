@@ -38,7 +38,12 @@ router = APIRouter(tags=["analytics"])
 
 # Only these may be written from the public internet. Adding to this list means
 # accepting that anyone can generate that event, so it stays minimal.
-ALLOWED_EVENTS = frozenset({Event.PAGE_VIEW, Event.APP_OPENED})
+ALLOWED_EVENTS = frozenset({Event.PAGE_VIEW, Event.APP_OPENED, Event.TOOL_USED})
+
+# Public tools whose first real use on a page is counted (tool_used): a page
+# view says someone arrived, this says they did something. The learning-path
+# steps (utils/progress.STEPS) plus the landing's live X-ray.
+ALLOWED_TOOLS = frozenset({"learn", "quiz", "guess", "explore", "xray", "hero_xray"})
 
 # Landing pages we recognise. An unknown label is stored as "Other" rather than
 # echoed back into the database, so the page dimension cannot be used to inject
@@ -115,6 +120,11 @@ async def track_landing_event(request: Request) -> Response:
             ticker = str(payload.get("ticker") or "").strip().upper()
             if ticker and re.fullmatch(r"[A-Z0-9.-]{1,10}", ticker):
                 properties["ticker"] = ticker
+        elif event == Event.TOOL_USED:
+            tool = str(payload.get("tool") or "").strip()
+            if tool not in ALLOWED_TOOLS:
+                return _no_content()
+            properties["tool"] = tool
 
         headers = {str(k).lower(): str(v) for k, v in request.headers.items()}
 

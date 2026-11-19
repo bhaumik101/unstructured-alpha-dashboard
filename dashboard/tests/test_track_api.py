@@ -9,6 +9,7 @@ test here pins a rejection rule.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -243,5 +244,23 @@ def test_landing_visitor_id_matches_the_app_for_the_same_person(client_and_write
 
 def test_allowlists_stay_minimal():
     """Widening these is a deliberate decision, not an accident."""
-    assert ALLOWED_EVENTS == {"page_view", "app_opened"}
+    assert ALLOWED_EVENTS == {"page_view", "app_opened", "tool_used"}
     assert "Landing" in ALLOWED_PAGES and "Other" in ALLOWED_PAGES
+
+
+def test_a_tool_use_is_stored_with_its_tool_and_an_unknown_tool_is_dropped(client_and_writes):
+    client, writes = client_and_writes
+    _post(client, {"event": "tool_used", "page": "Quiz", "tool": "quiz"})
+    assert writes and writes[0]["properties"] == {"page": "Quiz", "site": "marketing", "tool": "quiz"}
+    writes.clear()
+    _post(client, {"event": "tool_used", "page": "Quiz", "tool": "<script>"})
+    _post(client, {"event": "tool_used", "page": "Quiz"})
+    assert writes == []
+
+
+def test_every_tracked_tool_is_a_path_step_or_the_landing_hero():
+    from seo.track_api import ALLOWED_TOOLS
+    from utils.progress import STEPS
+    assert ALLOWED_TOOLS == {s[0] for s in STEPS} | {"hero_xray"}
+    hero = (Path(__file__).resolve().parents[1] / "unstructured-alpha-web" / "app" / "HeroXray.tsx").read_text()
+    assert 'tool: "hero_xray"' in hero and hero.count("recordHeroUse()") >= 3

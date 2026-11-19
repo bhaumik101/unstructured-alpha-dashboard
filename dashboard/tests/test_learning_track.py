@@ -148,3 +148,27 @@ def test_every_page_in_the_path_records_its_step():
     for _, title, _, href in pg.STEPS:
         assert f'<a href="{href}"><b>{title}</b></a>' in learn
     assert "not sent anywhere" in learn and "not investing skill" in learn
+
+
+@needs_node
+def test_a_tool_use_is_counted_once_per_page_even_before_the_beacon_loads():
+    """utils/progress queues uses that happen before the page's beacon script
+    (it sits at the end of <body>); the beacon flushes them and sends later
+    ones directly. Repeats on the same page are not counted again."""
+    import json as _json
+    from utils.exposure_pages import _TRACK_JS
+    beacon = _TRACK_JS.replace("__LABEL__", _json.dumps("Quiz"))
+    out = _run("""
+      var sent = [];
+      Object.defineProperty(global, 'navigator', {value: {sendBeacon: function(u, blob){ sent.push(blob); return true; }}, configurable: true});
+      global.Blob = function(parts){ this.text = parts.join(''); };
+      UAP.record('quiz', 4, 10); UAP.record('quiz', 9, 10);    // before the beacon: queued once
+      out.queued = (window.uaQ || []).slice();
+      eval(BEACON);
+      UAP.used('quiz'); UAP.used('guess'); UAP.used('guess');  // after: direct, deduped
+      out.sent = sent.map(function(b){ return JSON.parse(b.text); });
+    """.replace("BEACON", _json.dumps(beacon)))
+    assert out["queued"] == ["quiz"]
+    assert out["sent"] == [{"event": "page_view", "page": "Quiz"},
+                           {"event": "tool_used", "page": "Quiz", "tool": "quiz"},
+                           {"event": "tool_used", "page": "Quiz", "tool": "guess"}]

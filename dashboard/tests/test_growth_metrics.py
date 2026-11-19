@@ -20,6 +20,7 @@ from tests.test_explore_page import _stock
 from tests.test_track_api import _post, client_and_writes  # noqa: F401  (fixture)
 from seo.track_api import ALLOWED_ACTIONS, ALLOWED_PAGES
 from utils import exposure_pages as ep
+from utils import growth_metrics as gm
 from utils.growth_metrics import verdict, weekly
 
 PAGE = (Path(__file__).resolve().parent.parent / "unstructured-alpha-web" / "app" / "page.tsx").read_text(encoding="utf-8")
@@ -59,7 +60,7 @@ def test_a_public_page_view_is_stored_under_its_label(client_and_writes):  # noq
 
 def test_each_public_page_sends_one_labelled_beacon():
     html = ep.hub_page_html([_stock("XOM", "Exxon", oil=(2.0, "clear"))], "https://www.x", "https://app.x")
-    assert html.count('navigator.sendBeacon("/api/track"') == 1
+    assert html.count('event:"page_view"') == 1                    # one page view per load
     assert 'page:"Stocks"' in html and "window.__uaTrackInit" in html
     assert "cookie" not in ep._TRACK_JS and "localStorage" not in ep._TRACK_JS
 
@@ -122,3 +123,16 @@ def test_the_verdict_compares_complete_weeks_and_says_when_there_is_too_little()
     rows[-1]["site_visitors"] = 1000
     assert verdict(rows)["site_visitors"] == "flat"
     assert verdict(weekly([], weeks=5, today=TODAY))["signups"] == "not enough data"
+
+
+def test_tool_users_count_visitors_who_used_a_public_tool_not_just_looked():
+    from datetime import date
+    mk = '{"page": "Quiz", "site": "marketing", "tool": "quiz"}'
+    events = [("page_view", "2026-11-10T10:00:00", "v1", '{"page": "Quiz", "site": "marketing"}'),
+              ("page_view", "2026-11-10T10:00:00", "v2", '{"page": "Quiz", "site": "marketing"}'),
+              ("tool_used", "2026-11-10T10:01:00", "v1", mk),
+              ("tool_used", "2026-11-11T10:01:00", "v1", mk),          # same visitor, same week
+              ("tool_used", "2026-11-11T10:01:00", "v3", '{"page": "Stock exposure", "tool": "quiz"}')]  # not marketing
+    row = gm.weekly(events, today=date(2026, 11, 12))[-1]
+    assert row["site_visitors"] == 2 and row["tool_users"] == 1
+    assert "tool_users" in gm.COLUMNS and "tool_users" in gm.VERDICT_ON

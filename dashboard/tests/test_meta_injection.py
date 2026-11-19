@@ -61,9 +61,10 @@ def test_seo_body_has_real_content_and_internal_links():
     # genuine, keyword-relevant prose a crawler can index
     assert "<noscript>" in out
     assert "economic forces" in out and "90% range" in out
-    # a link graph to the key indexable pages
+    # a link graph to the key app pages -- relative: on the bare domain they
+    # redirected to www, where these routes 404
     for slug in ("methodology", "research", "pricing"):
-        assert f"unstructuredalpha.com/{slug}" in out
+        assert f'href="/{slug}"' in out
 
 
 def test_seo_body_is_idempotent():
