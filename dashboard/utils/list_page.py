@@ -212,6 +212,7 @@ _SCRIPT = r"""
 
 
 def list_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
+    from utils.since_visit import panel_html, panel_script
     data = list_data(stocks)
     canonical = f"{base_url}/mylist"
     title = "My list: the stocks you follow, against rates, oil, the dollar and credit"
@@ -227,6 +228,7 @@ def list_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
                                        f"Data through {_date(data['as_of'])}" if data["as_of"] else "",
                                        "Market move removed first"],
                            f'{escape(desc)} Kept in this browser only: no account, nothing sent anywhere.')
+        + panel_html()
         + '<form class="ls-add" id="ls-form"><div><label for="ls-t">Add stocks</label>'
         '<input id="ls-t" list="ls-tickers" autocomplete="off" spellcheck="false" placeholder="e.g. AAPL, XOM"></div>'
         f'<button class="btn btn-primary" type="submit">Add</button><span class="small" id="ls-count"></span>'
@@ -249,7 +251,7 @@ def list_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         'then a free account saves it and emails you a weekly summary of what changed in its readings. '
         'Most weeks nothing measurable does, and the email says so.</p>'
         f'<script type="application/json" id="ls-data">{payload}</script>'
-        f'<script>{script}</script>')
+        f'<script>{script}</script>' + panel_script())
     ld = {"@context": "https://schema.org", "@type": "WebApplication", "name": title,
           "description": desc, "url": canonical, "applicationCategory": "FinanceApplication",
           "isAccessibleForFree": True}

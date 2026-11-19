@@ -408,6 +408,23 @@ _ME_JS = r"""
 """
 
 
+def _since_head() -> str:
+    """window.UAS (utils/since_visit) first in <body>: stock pages remember
+    what they show, and My list reads it, from inside the page body."""
+    from utils.since_visit import since_js
+    return f"<script>{since_js()}</script>"
+
+
+def _SINCE_CSS() -> str:
+    from utils.since_visit import CARD_CSS
+    return CARD_CSS
+
+
+def _since_card() -> str:
+    from utils.since_visit import CARD_JS
+    return f"<script>{CARD_JS}</script>"
+
+
 def _me_script() -> str:
     from utils.progress import progress_js
     return f"<script>{progress_js()}</script><script>{_ME_JS}</script>"
@@ -446,7 +463,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         '<link rel="preconnect" href="https://fonts.googleapis.com">'
         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">'
         f'<script type="application/ld+json">{ld}</script>'
-        f'<style>{_CSS}</style></head><body>'
+        f'<style>{_CSS}{_SINCE_CSS()}</style></head><body>{_since_head()}'
         '<a class="skip" href="#main">Skip to content</a>'
         '<header class="bar"><div class="bar-in">'
         '<a class="brand" href="/">UNSTRUCTURED <span>ALPHA</span></a>'
@@ -459,7 +476,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         f'<a class="cta" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '</div></header>'
         f'<main id="main">{_notice()}{body}{_signup(canonical)}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}'
-        f'{_me_script()}{_track_script(canonical)}</body></html>')
+        f'{_me_script()}{_since_card()}{_track_script(canonical)}</body></html>')
 
 
 # The public tools, in the order the header shows them. Every page carries the
@@ -619,6 +636,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     from utils.embed_page import embed_box_html
     from utils.explore_page import stock_whatif_html
     from utils.list_page import save_button_html
+    from utils.since_visit import remember_script
     from utils.ticker_fallback import stale_notice_html
 
     held = held or {}
@@ -752,7 +770,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     body = (
         f'<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '
         f'<a href="/exposure">Stock exposures</a> › {escape(symbol)}</nav>'
-        f'{stock_header_html(symbol, rec, who, sector, peers, save_button_html(symbol))}'
+        f'{stock_header_html(symbol, rec, who, sector, peers, save_button_html(symbol))}{remember_script(symbol, rec)}'
         f'{stale_notice_html(rec.get("as_of") or "", library_week)}'
         f'<p class="lead">{escape(summary)}</p>'
         f'<div class="st-top">{jump}</div>'
