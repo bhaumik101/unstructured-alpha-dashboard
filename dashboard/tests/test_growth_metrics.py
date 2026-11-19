@@ -136,3 +136,16 @@ def test_tool_users_count_visitors_who_used_a_public_tool_not_just_looked():
     row = gm.weekly(events, today=date(2026, 11, 12))[-1]
     assert row["site_visitors"] == 2 and row["tool_users"] == 1
     assert "tool_users" in gm.COLUMNS and "tool_users" in gm.VERDICT_ON
+
+
+def test_a_burst_of_page_views_is_a_script_and_is_left_out():
+    """Our own Nov 19 site check: 42 page views in 56 seconds from one visitor."""
+    from datetime import datetime, timedelta
+    t0 = datetime(2026, 11, 10, 2, 46)
+    bot = [("page_view", (t0 + timedelta(seconds=s)).isoformat(), "bot", '{"page": "Quiz", "site": "marketing"}')
+           for s in range(0, 42 * 1, 1)]
+    slow = [("page_view", (t0 + timedelta(minutes=20 * i)).isoformat(), "reader", '{"page": "Quiz", "site": "marketing"}')
+            for i in range(25)]                                       # many pages, but at a reading pace
+    assert gm.automated(bot + slow) == {"bot"}
+    row = gm.weekly(bot + slow, today=date(2026, 11, 12))[-1]
+    assert row["site_visitors"] == 1 and row["tool_views"] == 25

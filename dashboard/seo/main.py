@@ -1406,7 +1406,15 @@ def force_page(key: str):
         from fastapi.responses import RedirectResponse
         return RedirectResponse(f"/forces/{canonical}", status_code=301)
     _get_engine()
-    return HTMLResponse(force_page_html(canonical, _exposure_stocks(), BASE_URL, APP_URL))
+    # Rendered once per force and data week (0.5-3.6s each when built per
+    # request, Nov 2026). Keyed on the week and library size, so a refresh or
+    # a newly measured stock builds a fresh page instead of serving the old one.
+    from utils.exposure_pages import data_week
+    stocks = _exposure_stocks()
+    week = data_week(s.get("as_of") for s in stocks)
+    html = _cached(("force_html", canonical, week, len(stocks)),
+                   lambda: force_page_html(canonical, stocks, BASE_URL, APP_URL))
+    return HTMLResponse(html)
 
 
 @app.get("/ticker/{symbol}", response_class=HTMLResponse)

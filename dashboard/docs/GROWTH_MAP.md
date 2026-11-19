@@ -27,7 +27,7 @@ tool (`tool_used`, added in #360), not just loaded a page.
 
 | Step | Measure | Value | Source |
 |---|---|---|---|
-| Arrive | marketing-site visitors | **51** (record; 17–43 in the 6 weeks before) | `analytics_events` page_view site=marketing |
+| Arrive | marketing-site visitors | **51** (record; 17–43 in the 6 weeks before); **40** in the first 3 days of the week of Nov 16 | `analytics_events` page_view site=marketing, scripted bursts excluded |
 | Arrive | public-tool page views | **36** (2–8 before) | same, page ≠ Landing |
 | Use | tool users | *not measured until #360* | `tool_used` |
 | Report | landing → app clicks | 2 in 14 days (~4% of landing visitors) | `app_opened` |
@@ -52,8 +52,8 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
    Google Search Console is not yet verified, so there is no search data at all.
 2. **Activation.** ~4% of landing visitors click into the app. Whether the live
    hero X-ray engages people was unmeasured until #360.
-3. **Retention.** No reason yet to make an account: the learning streak is
-   browser-only, the weekly email has no subscribers.
+3. **Retention.** The learning streak is browser-only; the weekly public email is
+   built (#363) and waits on one env var to switch on.
 4. **Monetisation.** Pro alerts shipped (#357). The weekly job sends from our own
    verified domain (brief@unstructuredalpha.com) -- no setup needed (#362).
 
@@ -61,6 +61,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 | PR | What | Moves |
 |---|---|---|
+| #365 | Growth report excludes scripted bursts (20+ page views in 5 min): scrapers and our own site checks (one logged 42 views in 56s). Force pages rendered once per data week (were 0.5–3.6s per request) | measurement, speed |
 | #364 | X-ray share cards: a shared mix (`/xray?p=`) previews with its own title and a drawn card of its fingerprint; customers' email addresses masked in logs | discovery, trust |
 | #363 | Weekly public email: sign-up box on Quiz/Guess/Learn/X-ray/What changed, double opt-in, scanner-safe confirm/unsubscribe, weekly "what moved" send. Dark until the SEO service has `RESEND_API_KEY` | retention |
 | #362 | Fix #360's sender guard: it checked the raw variable and would have refused the working built-in sender | monetisation |
@@ -99,8 +100,6 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 - `SHOW_HN_DRAFT.md`, `REDDIT_POSTS.md`, `PRODUCT_HUNT.md` (repo root) pitch the retired
   signals product; use `docs/LAUNCH_KIT.md` instead.
-
 - `lifecycle` and `watchlist-insights` cron groups run daily and complete as no-ops
   (they serve the retired signals product; no Resend key). Candidates to retire.
 - PSKY / KVUE no longer meet the two-year price rule; their pages now say so (#359).
-- Cold force pages take 2–3.6s on first hit.
