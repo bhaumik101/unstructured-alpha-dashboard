@@ -357,6 +357,15 @@ def _notice() -> str:
     return f'<p class="caveat" role="status">{h}</p>' if h else ""
 
 
+def _signup(canonical: str) -> str:
+    """The weekly email's sign-up box, on the pages it fits (utils/public_weekly)."""
+    try:
+        from utils.public_weekly import signup_html
+        return signup_html(page_label(canonical))
+    except Exception:
+        return ""
+
+
 def _shell(title: str, description: str, canonical: str, json_ld: dict, body: str,
            app_url: str, robots: str = "", og_image: str = "") -> str:
     """og_image: a 1200x630 preview for shares; the site's own image when empty."""
@@ -392,7 +401,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         '<button type="submit">Go</button></form>'
         f'<a class="cta" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '</div></header>'
-        f'<main id="main">{_notice()}{body}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}'
+        f'<main id="main">{_notice()}{body}{_signup(canonical)}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}'
         f'{_track_script(canonical)}</body></html>')
 
 

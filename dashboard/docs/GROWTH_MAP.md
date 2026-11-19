@@ -56,6 +56,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 | PR | What | Moves |
 |---|---|---|
+| #363 | Weekly public email: sign-up box on Quiz/Guess/Learn/X-ray/What changed, double opt-in, scanner-safe confirm/unsubscribe, weekly "what moved" send. Dark until the SEO service has `RESEND_API_KEY` | retention |
 | #362 | Fix #360's sender guard: it checked the raw variable and would have refused the working built-in sender | monetisation |
 | #361 | IndexNow: announce the ~600 re-measured pages to Bing/Yandex/Seznam/Naver weekly | discovery |
 | #360 | `tool_used` + `tool_users`; app noindex (crawler sessions); /go utm | measurement, cost |
@@ -73,13 +74,17 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 |---|---|---|---|
 | E0 | **Post the launch kit** (`docs/LAUNCH_KIT.md`): Show HN + three Reddit posts, accurate to today's product, built on measured hooks (only 28% of stock–force readings hold up; Financials mostly *fell* when yields rose) | site visitors, tool users | owner: posting from their accounts |
 | E1 | Verify Google Search Console, submit the sitemap | impressions, indexed pages | owner: verification code |
-| E2 | Email capture on public tools ("next week's quiz and movers"), via the landing's existing Resend audience | weekly subscribers | — |
+| E2 | ~~Email capture on public tools~~ shipped #363; switch on with the owner action below | weekly subscribers (`public_subscribers`, status confirmed) | owner: one env var |
 | E3 | Share cards for a quiz score / an X-ray mix (OG image per result) | shares → arrivals | — |
 | E4 | Sync the learning streak to an account | signups | — |
 | E5 | Bing Webmaster Tools (confirms IndexNow pickup) | Bing indexed pages | owner: optional sign-in |
 
 ## Owner actions (only the owner can do these)
 
+- **Switch on the weekly public email:** in Render, open **unstructured-alpha-seo** →
+  Environment → add `RESEND_API_KEY` with the same value the app service uses. The
+  sign-up box then appears on Quiz, Guess, Learn, X-ray and What changed. (It sends
+  from brief@unstructuredalpha.com, already verified.)
 - Send the Google Search Console verification code (a meta tag is a one-line change).
 - Swap `DATABASE_URL` for the read-only login (scratchpad file from the Nov session).
 - Opt in to the weekly email from your own account, so the first real send goes to you.
@@ -88,9 +93,6 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 - `SHOW_HN_DRAFT.md`, `REDDIT_POSTS.md`, `PRODUCT_HUNT.md` (repo root) pitch the retired
   signals product; use `docs/LAUNCH_KIT.md` instead.
-- `unstructured-alpha-web/app/api/subscribe` is unused by the landing, and when the
-  Resend audience is not configured it logs the address to stdout and reports success.
-  Replace with real capture (E2) and remove.
 
 - `lifecycle` and `watchlist-insights` cron groups run daily with no Resend key; they
   email users of the retired signals product. Candidates to retire.

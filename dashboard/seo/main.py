@@ -97,6 +97,11 @@ from seo.track_api import router as track_router  # noqa: E402
 
 app.include_router(track_router)
 
+# The weekly public email: sign-up, confirmation, unsubscribe (double opt-in).
+from seo.subscribe_api import router as subscribe_router  # noqa: E402
+
+app.include_router(subscribe_router)
+
 
 # ── Edge caching for the public pages ─────────────────────────────────────────
 # Every page here was rendered on every request (0.45-0.9s measured at www on
