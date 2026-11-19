@@ -27,7 +27,8 @@ tool (`tool_used`, added in #360), not just loaded a page.
 
 | Step | Measure | Value | Source |
 |---|---|---|---|
-| Arrive | marketing-site visitors | **51** (record; 17–43 in the 6 weeks before); **40** in the first 3 days of the week of Nov 16 | `analytics_events` page_view site=marketing, scripted bursts excluded |
+| Arrive | marketing-site visitors | 51 last week, 40 in the first 3 days of this week — **overcounted, see below** | `analytics_events` page_view site=marketing, scripted bursts excluded |
+| Return | returning visitors (seen in an earlier week) | app: 8 of 125 came back on another day (6%) over two months; site: **not measurable before #366** | `growth_metrics` `returning` |
 | Arrive | public-tool page views | **36** (2–8 before) | same, page ≠ Landing |
 | Use | tool users | *not measured until #360* | `tool_used` |
 | Report | landing → app clicks | 2 in 14 days (~4% of landing visitors) | `app_opened` |
@@ -36,6 +37,18 @@ tool (`tool_used`, added in #360), not just loaded a page.
 | Keep | accounts | 7 total, last signup Jul 23; no signup attempt since | `users`, `signup_started` |
 | Keep | weekly-email opt-ins | 0 | `users.exposure_email_opted_in` |
 | Pay | Pro | 2 (likely internal) | billing |
+
+**Visitor ids on the marketing site were broken until #366.** The beacon relay goes
+www → SEO service, and Render's Cloudflare front stamps `cf-connecting-ip` with the
+Vercel server that relayed it; the visitor id hashed that changing server address,
+not the person. Evidence: of 279 marketing visitor ids since Sep 20, none spanned
+more than 11.7 minutes (90% were a single event), while app ids span up to 32 days.
+So site visitor counts before Nov 19 are inflated by an unknown factor, and returning
+site visitors were invisible. The trend (more traffic in November) still holds, since
+the error was the same every week. From #366 the id is the visitor's.
+Separately, the SEO service and the app hash with different keys (the SEO service has
+no `ANALYTICS_HASH_SALT`), so one person is two ids across site and app — which is
+why "crossed" has always been 0. That needs the owner action below.
 
 Indexing (Nov 19): stock and sector pages appear in a public web-search index with
 their data; one result was on the origin host (seo.unstructuredalpha.com), whose pages
@@ -61,6 +74,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 | PR | What | Moves |
 |---|---|---|
+| #366 | Marketing visitor ids hash the visitor, not the relay server; `returning` column | measurement |
 | #365 | Growth report excludes scripted bursts (20+ page views in 5 min): scrapers and our own site checks (one logged 42 views in 56s). Force pages rendered once per data week (were 0.5–3.6s per request) | measurement, speed |
 | #364 | X-ray share cards: a shared mix (`/xray?p=`) previews with its own title and a drawn card of its fingerprint; customers' email addresses masked in logs | discovery, trust |
 | #363 | Weekly public email: sign-up box on Quiz/Guess/Learn/X-ray/What changed, double opt-in, scanner-safe confirm/unsubscribe, weekly "what moved" send. Dark until the SEO service has `RESEND_API_KEY` | retention |
@@ -88,6 +102,9 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 ## Owner actions (only the owner can do these)
 
+- **Make site and app visitors one person:** Render → **unstructured-alpha-seo** →
+  Environment → add `ANALYTICS_HASH_SALT` with the same value the app service has.
+  Until then "crossed" (site → app) reads 0 whatever happens.
 - **Switch on the weekly public email:** in Render, open **unstructured-alpha-seo** →
   Environment → add `RESEND_API_KEY` with the same value the app service uses. The
   sign-up box then appears on Quiz, Guess, Learn, X-ray and What changed. (It sends

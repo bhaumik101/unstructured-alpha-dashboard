@@ -149,3 +149,17 @@ def test_a_burst_of_page_views_is_a_script_and_is_left_out():
     assert gm.automated(bot + slow) == {"bot"}
     row = gm.weekly(bot + slow, today=date(2026, 11, 12))[-1]
     assert row["site_visitors"] == 1 and row["tool_views"] == 25
+
+
+def test_returning_counts_people_seen_in_an_earlier_week():
+    mk = '{"page": "Landing", "site": "marketing"}'
+    app = '{"page": "Stock exposure"}'
+    events = [("page_view", "2026-11-03T10:00:00", "ann", mk),
+              ("page_view", "2026-11-03T10:00:00", "bob", app),
+              ("page_view", "2026-11-10T10:00:00", "ann", mk),    # back on the site
+              ("page_view", "2026-11-11T10:00:00", "bob", mk),    # back, via the site this time
+              ("page_view", "2026-11-12T10:00:00", "cy", mk),     # new
+              ("page_view", "2026-11-12T11:00:00", "ann", mk)]    # twice this week: still one person
+    rows = gm.weekly(events, today=date(2026, 11, 12))
+    assert [r["returning"] for r in rows[-2:]] == [0, 2]
+    assert "returning" in gm.COLUMNS and "returning" in gm.VERDICT_ON
