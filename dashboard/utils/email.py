@@ -38,6 +38,17 @@ _DEFAULT_FROM = "Unstructured Alpha <onboarding@resend.dev>"
 _APP_URL = os.environ.get("APP_BASE_URL", "https://app.unstructuredalpha.com").rstrip("/")
 
 
+def mask_email(address: object) -> str:
+    """For logs: enough to tell two recipients apart, not the address itself
+    (a***@example.com). Render logs are retained and readable by anyone with
+    dashboard access; a customer's address does not belong in them."""
+    text = str(address or "")
+    local, at, domain = text.partition("@")
+    if not at:
+        return "***"
+    return f"{local[:1]}***@{domain}"
+
+
 class EmailSendError(Exception):
     """Raised when the verification email genuinely fails to send (bad/missing
     API key, Resend API error) -- distinct from AuthError, since this is an
@@ -122,7 +133,7 @@ def send_verification_email(to_email: str, code: str) -> None:
     on Python's buffer to fill.
     """
     api_key, from_email = _get_resend_config()
-    print(f"[email] send_verification_email called: to={to_email!r} from={from_email!r} "
+    print(f"[email] send_verification_email called: to={mask_email(to_email)!r} from={from_email!r} "
           f"api_key_present={bool(api_key)} api_key_prefix={api_key[:6] if api_key else None!r}",
           flush=True)
     if not api_key:
@@ -156,9 +167,9 @@ def send_verification_email(to_email: str, code: str) -> None:
         )
         print(f"[email] Resend API responded: status={resp.status_code} body={resp.text[:500]!r}", flush=True)
         resp.raise_for_status()
-        print(f"[email] send succeeded for to={to_email!r}", flush=True)
+        print(f"[email] send succeeded for to={mask_email(to_email)!r}", flush=True)
     except requests.RequestException as e:
-        print(f"[email] send FAILED for to={to_email!r}: {type(e).__name__}: {e}", flush=True)
+        print(f"[email] send FAILED for to={mask_email(to_email)!r}: {type(e).__name__}: {e}", flush=True)
         raise EmailSendError(f"Failed to send verification email: {e}") from e
 
 
@@ -903,7 +914,7 @@ def send_digest_email(
                           it upgrades the attention panel without any live fetch.
     """
     api_key, from_email = _get_resend_config()
-    print(f"[digest] send_digest_email: to={to_email!r} bias={overall_bias}", flush=True)
+    print(f"[digest] send_digest_email: to={mask_email(to_email)!r} bias={overall_bias}", flush=True)
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
@@ -1157,7 +1168,7 @@ def send_digest_email(
         print(f"[digest] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[digest] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[digest] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send digest to {to_email}: {e}") from e
 
 
@@ -1169,7 +1180,7 @@ def send_trial_reminder_email(to_email: str, trial_end_display: str) -> None:
     trial_end_display: human-readable date string, e.g. "July 1, 2026"
     """
     api_key, from_email = _get_resend_config()
-    print(f"[trial-reminder] sending to={to_email!r} trial_end={trial_end_display!r}", flush=True)
+    print(f"[trial-reminder] sending to={mask_email(to_email)!r} trial_end={trial_end_display!r}", flush=True)
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
@@ -1232,7 +1243,7 @@ def send_trial_reminder_email(to_email: str, trial_end_display: str) -> None:
         print(f"[trial-reminder] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[trial-reminder] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[trial-reminder] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send trial reminder to {to_email}: {e}") from e
 
 
@@ -1244,7 +1255,7 @@ def send_welcome_email(to_email: str) -> None:
     the verification flow.
     """
     api_key, from_email = _get_resend_config()
-    print(f"[welcome] sending to={to_email!r}", flush=True)
+    print(f"[welcome] sending to={mask_email(to_email)!r}", flush=True)
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
@@ -1322,7 +1333,7 @@ def send_welcome_email(to_email: str) -> None:
         print(f"[welcome] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[welcome] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[welcome] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send welcome email to {to_email}: {e}") from e
 
 
@@ -1336,7 +1347,7 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
     minimum: ticker (str), alert_type (str), direction (str), message (str).
     """
     api_key, from_email = _get_resend_config()
-    print(f"[watchlist-alert] sending to={to_email!r} n_alerts={len(new_alerts)}", flush=True)
+    print(f"[watchlist-alert] sending to={mask_email(to_email)!r} n_alerts={len(new_alerts)}", flush=True)
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
     if not new_alerts:
@@ -1524,7 +1535,7 @@ def send_watchlist_alert_email(to_email: str, new_alerts: list[dict]) -> None:
         print(f"[watchlist-alert] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[watchlist-alert] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[watchlist-alert] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send watchlist alert to {to_email}: {e}") from e
 
 
@@ -1535,7 +1546,7 @@ def send_pro_welcome_email(to_email: str) -> None:
     Called in a try/except so it never blocks the upgrade flow.
     """
     api_key, from_email = _get_resend_config()
-    print(f"[pro-welcome] sending to={to_email!r}", flush=True)
+    print(f"[pro-welcome] sending to={mask_email(to_email)!r}", flush=True)
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
@@ -1705,7 +1716,7 @@ def send_pro_welcome_email(to_email: str) -> None:
         print(f"[pro-welcome] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[pro-welcome] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[pro-welcome] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send Pro welcome email to {to_email}: {e}") from e
 
 
@@ -1720,7 +1731,7 @@ def send_referral_welcome_email(to_email: str) -> None:
     in try/except; if Resend is not configured this is silently a no-op.
     """
     api_key, from_email = _get_resend_config()
-    print(f"[referral-welcome] sending to={to_email!r}", flush=True)
+    print(f"[referral-welcome] sending to={mask_email(to_email)!r}", flush=True)
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
@@ -1849,7 +1860,7 @@ def send_referral_welcome_email(to_email: str) -> None:
         print(f"[referral-welcome] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[referral-welcome] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[referral-welcome] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send referral welcome email to {to_email}: {e}") from e
 
 
@@ -1859,7 +1870,7 @@ def send_password_reset_email(to_email: str, code: str) -> None:
     if RESEND_API_KEY isn't configured or Resend's API rejects the request.
     """
     api_key, from_email = _get_resend_config()
-    print(f"[password-reset] sending to={to_email!r}", flush=True)
+    print(f"[password-reset] sending to={mask_email(to_email)!r}", flush=True)
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
@@ -1933,7 +1944,7 @@ def send_password_reset_email(to_email: str, code: str) -> None:
         print(f"[password-reset] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[password-reset] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[password-reset] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send password reset email to {to_email}: {e}") from e
 
 
@@ -1955,7 +1966,7 @@ def send_score_moved_email(to_email: str, moved: list[dict]) -> None:
 
     api_key, from_email = _get_resend_config()
     print(
-        f"[score-moved] sending to={to_email!r} tickers={[m['ticker'] for m in moved]}",
+        f"[score-moved] sending to={mask_email(to_email)!r} tickers={[m['ticker'] for m in moved]}",
         flush=True,
     )
     if not api_key:
@@ -2110,7 +2121,7 @@ def send_score_moved_email(to_email: str, moved: list[dict]) -> None:
         print(f"[score-moved] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[score-moved] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[score-moved] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send score-moved email to {to_email}: {e}") from e
 
 
@@ -2264,7 +2275,7 @@ def send_velocity_alert_email(to_email: str, alerts: list[dict]) -> None:
         print(f"[velocity-alert] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[velocity-alert] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[velocity-alert] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send velocity alert email to {to_email}: {e}") from e
 
 
@@ -2322,7 +2333,7 @@ def send_weekly_brief_email(
     """
     api_key    = _get_resend_key()
     from_email = _get_from_email()
-    print(f"[weekly-brief] sending to={to_email!r}", flush=True)
+    print(f"[weekly-brief] sending to={mask_email(to_email)!r}", flush=True)
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
@@ -2636,7 +2647,7 @@ def send_weekly_brief_email(
         print(f"[weekly-brief] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[weekly-brief] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[weekly-brief] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send weekly brief to {to_email}: {e}") from e
 
 
@@ -2662,7 +2673,7 @@ def send_reengagement_email(
     """
     api_key    = _get_resend_key()
     from_email = _get_from_email()
-    print(f"[reengagement] sending to={to_email!r} days_away={days_away}", flush=True)
+    print(f"[reengagement] sending to={mask_email(to_email)!r} days_away={days_away}", flush=True)
     if not api_key:
         raise EmailSendError("No RESEND_API_KEY configured.")
 
@@ -2810,7 +2821,7 @@ def send_reengagement_email(
         print(f"[reengagement] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[reengagement] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[reengagement] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send reengagement email to {to_email}: {e}") from e
 
 
@@ -2974,7 +2985,7 @@ def send_day3_onboarding_email(
         print(f"[day3-onboarding] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[day3-onboarding] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[day3-onboarding] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send day-3 email to {to_email}: {e}") from e
 
 
@@ -3192,5 +3203,5 @@ def send_day7_onboarding_email(
         print(f"[day7-onboarding] Resend responded: status={resp.status_code}", flush=True)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"[day7-onboarding] send FAILED to={to_email!r}: {e}", flush=True)
+        print(f"[day7-onboarding] send FAILED to={mask_email(to_email)!r}: {e}", flush=True)
         raise EmailSendError(f"Failed to send day-7 email to {to_email}: {e}") from e
