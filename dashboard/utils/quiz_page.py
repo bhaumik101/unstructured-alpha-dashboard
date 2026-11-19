@@ -86,24 +86,33 @@ _SCRIPT = r"""
   var WORD = {up: 'Rose with it', down: 'Fell with it', none: 'No clear link'};
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 /*PCT*/
+  var ICON = {up: '↑', down: '↓', none: '∅'};
+  function prog(){
+    var segs = Q.map(function(_, k){
+      return '<span class="' + (k < marks.length ? (marks[k] === '🟩' ? 'ok' : 'no') : k === i ? 'now' : '') + '"></span>'; }).join('');
+    return '<div class="qz-head"><span class="qz-step">Question ' + Math.min(i + 1, Q.length) + ' of ' + Q.length + '</span>'
+      + '<span class="qz-score">Score <b>' + score + '</b></span></div><div class="qz-prog" aria-hidden="true">' + segs + '</div>';
+  }
   function ask(){
     if (i >= Q.length) return done();
     var q = Q[i];
-    box.innerHTML = '<p class="qz-step">Question ' + (i + 1) + ' of ' + Q.length + ' · score ' + score + '</p>'
+    box.innerHTML = prog()
       + '<p class="qz-q">In weeks when <b>' + esc(q[4]) + '</b>, what did <b>' + esc(q[0]) + '</b>'
       + (q[1] ? ' <span class="qz-name">(' + esc(q[1]) + ')</span>' : '') + ' do, beyond the stock market?</p>'
-      + '<div class="qz-btns">' + ['up', 'down', 'none'].map(function(k){
-          return '<button type="button" class="btn btn-secondary" data-k="' + k + '">' + WORD[k] + '</button>'; }).join('') + '</div>';
+      + '<div class="qz-ans">' + ['up', 'down', 'none'].map(function(k){
+          return '<button type="button" class="qz-a qz-' + k + '" data-k="' + k + '"><span class="qz-i" aria-hidden="true">'
+            + ICON[k] + '</span>' + WORD[k] + '</button>'; }).join('') + '</div>';
     box.querySelectorAll('button').forEach(function(b){ b.addEventListener('click', function(){ answer(b.getAttribute('data-k')); }); });
-    box.querySelector('button').focus();
+    if (i > 0) box.querySelector('button').focus();   // not on load: no focus ring before anyone has done anything
   }
   function answer(k){
     var q = Q[i], right = k === q[8]; if (right) score++; marks.push(right ? '🟩' : '⬜');
     var fig = q[8] === 'none'
       ? 'Its typical move was ' + pct(q[5]) + ', but the 90% range (' + pct(q[6]) + ' to ' + pct(q[7]) + ') includes zero: no link that stands apart from noise.'
       : 'It typically moved <b>' + pct(q[5]) + '</b> (90% range ' + pct(q[6]) + ' to ' + pct(q[7]) + '), a Clear reading.';
-    box.innerHTML = '<p class="qz-step">Question ' + (i + 1) + ' of ' + Q.length + ' · score ' + score + '</p>'
-      + '<p class="qz-verdict ' + (right ? 'qz-right' : 'qz-wrong') + '">' + (right ? 'Right.' : 'Not quite.') + ' ' + WORD[q[8]] + '.</p>'
+    box.innerHTML = prog()
+      + '<p class="qz-verdict ' + (right ? 'qz-right' : 'qz-wrong') + '"><span class="qz-mark" aria-hidden="true">' + (right ? '✓' : '✗') + '</span>'
+      + (right ? 'Right.' : 'Not quite.') + ' ' + WORD[q[8]] + '.</p>'
       + '<p class="lead">' + fig + ' <a href="/exposure/' + encodeURIComponent(q[0]) + '">See ' + esc(q[0]) + '</a> · '
       + '<a href="/forces/' + encodeURIComponent(q[2]) + '">' + esc(q[3]) + '</a></p>'
       + '<div class="qz-btns"><button type="button" class="btn btn-primary" id="qz-next">' + (i + 1 < Q.length ? 'Next question' : 'See your score') + '</button></div>';
@@ -112,7 +121,9 @@ _SCRIPT = r"""
   }
   function done(){
     var none = Q.filter(function(q){ return q[8] === 'none'; }).length;
-    box.innerHTML = '<p class="qz-q">You scored <b>' + score + ' of ' + Q.length + '</b>.</p>'
+    box.innerHTML = prog() + '<div class="qz-final"><span class="qz-big">' + score + '<small>/' + Q.length + '</small></span>'
+      + '<span class="qz-marks" aria-hidden="true">' + marks.map(function(m){ return '<i class="' + (m === '🟩' ? 'ok' : 'no') + '"></i>'; }).join('') + '</span></div>'
+      + '<p class="qz-q">You scored <b>' + score + ' of ' + Q.length + '</b>.</p>'
       + '<p class="lead">' + none + ' of today&#39;s ' + Q.length + ' had no clear link at all. Across the library that is the usual answer: '
       + 'most stocks show no measurable link to most forces. A new round comes tomorrow.</p>'
       + '<div class="qz-btns"><a class="btn btn-primary" href="/explore">What if? Move a force</a>'
@@ -136,15 +147,34 @@ _SCRIPT = r"""
 """
 
 _CSS = """<style>
-.qz{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin:10px 0}
-.qz-step{font-size:.82rem;color:var(--ink3);margin:0 0 8px;font-variant-numeric:tabular-nums}
-.qz-q{font-size:1.25rem;line-height:1.45;margin:0 0 14px}
+.qz{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;margin:10px 0;box-shadow:var(--shadow)}
+.qz-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.qz-step{font-size:var(--fs-sm);color:var(--ink3);margin:0 0 8px;font-variant-numeric:tabular-nums;font-weight:600}
+.qz-score{font-size:var(--fs-sm);color:var(--ink3)}.qz-score b{color:var(--ink);font-size:var(--fs-lead)}
+.qz-prog{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;margin:2px 0 18px}
+.qz-prog span{height:6px;border-radius:3px;background:var(--subtle)}
+.qz-prog .now{background:var(--bright)}.qz-prog .ok{background:#2e9d6a}.qz-prog .no{background:#c9824a}
+.qz-q{font-size:var(--fs-h2);line-height:1.45;margin:0 0 18px;letter-spacing:-.01em}
 .qz-name{color:var(--ink3);font-weight:400}
+.qz-ans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.qz-a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:96px;padding:12px;
+  border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;cursor:pointer;
+  transition:transform .12s ease,border-color .12s ease,background .12s ease}
+.qz-a:hover{transform:translateY(-2px)}.qz-i{font-size:var(--fs-stat);line-height:1}
+.qz-up .qz-i{color:#2f6fbd}.qz-down .qz-i{color:#b5651d}.qz-none .qz-i{color:var(--ink3)}
+.qz-up:hover{border-color:#2f6fbd;background:rgba(47,111,189,.06)}.qz-down:hover{border-color:#b5651d;background:rgba(181,101,29,.06)}
+.qz-none:hover{border-color:var(--ink3);background:var(--subtle)}
+@media (max-width:520px){.qz-ans{grid-template-columns:1fr}.qz-a{flex-direction:row;justify-content:flex-start;min-height:56px;padding:0 16px}}
+@media (prefers-reduced-motion:reduce){.qz-a{transition:none}.qz-a:hover{transform:none}}
 .qz-btns{display:flex;flex-wrap:wrap;gap:10px}
 .qz-btns .btn{min-height:44px}
-.qz-verdict{font-size:1.25rem;font-weight:750;margin:0 0 6px}
-.qz-right{color:#1f7a4d}.qz-wrong{color:#a4501a}
-@media (prefers-color-scheme:dark){.qz-right{color:#5cc28e}.qz-wrong{color:#e0965a}}
+.qz-verdict{display:flex;align-items:center;gap:10px;font-size:var(--fs-h2);font-weight:800;margin:0 0 8px}
+.qz-mark{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;color:#fff;font-size:var(--fs-lead)}
+.qz-right{color:#1f7a4d}.qz-right .qz-mark{background:#2e9d6a}.qz-wrong{color:#a4501a}.qz-wrong .qz-mark{background:#c9824a}
+.qz-final{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:4px 0 10px}
+.qz-big{font-size:var(--fs-hero);font-weight:800;letter-spacing:-.03em;line-height:1}.qz-big small{color:var(--ink3);font-size:var(--fs-lead)}
+.qz-marks{display:flex;gap:4px}.qz-marks i{width:14px;height:14px;border-radius:4px}.qz-marks .ok{background:#2e9d6a}.qz-marks .no{background:#c9824a}
+@media (prefers-color-scheme:dark){.qz-right{color:#5cc28e}.qz-wrong{color:#e0965a}.qz-up .qz-i{color:#7aa8e6}}
 </style>"""
 
 

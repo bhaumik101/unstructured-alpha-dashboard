@@ -174,11 +174,16 @@ def run(base_url: str, load_latest: Callable[[], list], load_previous: Callable[
 # the endpoint never says whether an address was already on the list.
 SIGNUP_PAGES = frozenset({"What changed", "Quiz", "Guess", "Learn", "X-ray"})
 
-_SIGNUP_CSS = ('<style>.wk{margin:22px 0 6px;padding:16px 18px}.wk h2{margin:0 0 4px}'
-               '.wk form{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}'
-               '.wk input{flex:1 1 220px;min-height:44px;padding:0 12px;border:1px solid var(--line);'
-               'border-radius:10px;font:inherit;background:var(--bg);color:var(--ink)}'
-               '.wk .btn{min-height:44px}</style>')
+_SIGNUP_CSS = ('<style>.wk.card{position:relative;margin:34px 0 6px;padding:24px;border:0;color:#e6edf7;overflow:hidden;'
+               'background:radial-gradient(600px 220px at 100% 0%,rgba(255,194,75,.16),transparent 60%),'
+               'linear-gradient(160deg,var(--navy),var(--navy2));background-color:var(--navy)}'
+               '.wk h2{margin:0 0 6px;color:#fff}.wk .small{color:#bccadd;max-width:60ch}'
+               '.wk form{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}'
+               '.wk input{flex:1 1 240px;min-height:46px;padding:0 14px;border:1px solid rgba(255,255,255,.22);'
+               'border-radius:11px;font:inherit;background:rgba(255,255,255,.06);color:#fff}'
+               '.wk input::placeholder{color:#91a6c2}.wk input:focus{outline:2px solid var(--bright);outline-offset:1px}'
+               '.wk .btn{min-height:46px;border:0;cursor:pointer;font:inherit;font-weight:700}'
+               '.wk #wk-say{color:#ffe2a3;margin-top:8px}</style>')
 
 _SIGNUP_JS = r"""
 (function(){
