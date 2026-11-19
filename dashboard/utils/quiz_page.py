@@ -128,12 +128,21 @@ _SCRIPT = r"""
       + 'most stocks show no measurable link to most forces. A new round comes tomorrow.</p>'
       + '<div class="qz-btns"><a class="btn btn-primary" href="/explore">What if? Move a force</a>'
       + '<a class="btn btn-secondary" href="/guess">Whose fingerprint?</a>'
+      + (navigator.share ? '<button type="button" class="btn btn-primary" id="qz-share">Share your score</button>' : '')
       + '<button type="button" class="btn btn-secondary" id="qz-copy">Copy your result</button></div>'
       + '<p class="small" id="qz-copied" aria-live="polite"></p>';
     say.textContent = 'You scored ' + score + ' of ' + Q.length + '.';
     if (window.UAP) box.insertAdjacentHTML('beforeend', UAP.line(UAP.record('quiz', score, Q.length)));
+    // The link carries right/wrong per question and the day (never the answers),
+    // so it previews as a card of the score (utils/quiz_share.py).
+    var link = box.getAttribute('data-url') + '?g=' + marks.map(function(m){ return m === '🟩' ? 1 : 0; }).join('')
+      + '&d=' + box.getAttribute('data-iso');
     var text = 'Which way did it move? ' + box.getAttribute('data-day') + ': ' + score + '/' + Q.length
-      + '\n' + marks.join('') + '\n' + box.getAttribute('data-url');
+      + '\n' + marks.join('') + '\n' + link;
+    var sh = document.getElementById('qz-share');
+    if (sh) sh.addEventListener('click', function(){
+      navigator.share({title: 'Which way did it move?', text: 'I scored ' + score + '/' + Q.length + ' on today\'s quiz. ' + marks.join(''), url: link}).catch(function(){});
+    });
     document.getElementById('qz-copy').addEventListener('click', function(){
       var note = document.getElementById('qz-copied');
       function show(){ note.innerHTML = '<textarea readonly rows="3" aria-label="Your result" style="width:100%;font:inherit">' + esc(text) + '</textarea>'; note.querySelector('textarea').select(); }
@@ -183,13 +192,22 @@ def _day_label(day: date) -> str:
 
 
 def quiz_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
-                   day: Optional[date] = None) -> str:
+                   day: Optional[date] = None, g: str = "", d: str = "") -> str:
+    """g, d: a shared result (?g=1101001110&d=2026-11-19). It titles the page
+    and its preview card with the score (utils/quiz_share); never the answers."""
     day = day or date.today()
     rounds = quiz_rounds(stocks, day)
     canonical = f"{base_url}/quiz"
     title = "Which way did it move? A daily quiz on stocks and the economy"
     desc = ("Ten quick questions: when oil, rates, the dollar or gold moved, did a stock rise with it, "
             "fall with it, or show no clear link? Answers come from measured U.S. stock data.")
+    og_image = ""
+    if g or d:
+        from utils import quiz_share as qs
+        shared = qs.parse(g, d)
+        if shared:
+            title, desc = qs.share_title(*shared), qs.share_description(shared[0])
+            og_image = f"{base_url}/quiz/og.png?g={g}&d={shared[1].isoformat()}"
     crumb = '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Quiz</nav>'
     ld = {"@context": "https://schema.org", "@type": "Quiz", "name": title, "url": canonical,
           "description": desc, "isAccessibleForFree": True}
@@ -203,7 +221,7 @@ def quiz_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         + tool_header_html("Which way did it move?", [f"{len(rounds)} questions today",
                                                       escape(_day_label(day)), "Same questions for everyone"],
                            escape(desc))
-        + f'<div class="qz" id="qz-box" data-day="{escape(_day_label(day))}" data-url="{escape(canonical)}"><noscript><p class="lead">The quiz needs JavaScript. '
+        + f'<div class="qz" id="qz-box" data-day="{escape(_day_label(day))}" data-iso="{day.isoformat()}" data-url="{escape(canonical)}"><noscript><p class="lead">The quiz needs JavaScript. '
         'Every answer is also on the <a href="/forces">economic force pages</a>.</p></noscript></div>'
         '<p aria-live="polite" id="qz-say" style="position:absolute;left:-9999px"></p>'
         '<p class="small">"Rose" and "fell" answers are Clear readings: a stock&#39;s typical same-week '
@@ -215,4 +233,4 @@ def quiz_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         f'<script type="application/json" id="qz-data">{payload}</script>'
         + progress_script()
         + f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
-    return _shell(title, desc, canonical, ld, body, app_url)
+    return _shell(title, desc, canonical, ld, body, app_url, og_image=og_image)
