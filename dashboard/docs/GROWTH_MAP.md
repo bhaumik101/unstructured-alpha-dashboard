@@ -74,6 +74,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 | PR | What | Moves |
 |---|---|---|
+| #370 | Quiz share cards: a result link (`/quiz?g=…&d=…`) previews as a card of the score and its squares (no spoilers); a native Share button on phones | discovery |
 | #369 | "Since your last visit": stock pages remember the readings shown; on return a card on any page says how many changed (a link started/stopped holding up, or a held reading moved 0.5+ points), with the full list and "mark all as seen" on My list. Browser only | retention |
 | #367 | Redesign of all ~600 public pages: the landing's navy-and-gold header band, numbers as a stat strip, no pill rows, softer cards, footnote-style disclaimers, gold primary buttons; the quiz as a game (progress segments, arrow tiles, verdict); a streak badge in the bar for returning learners; the weekly email as a brand panel | retention, activation |
 | #366 | Marketing visitor ids hash the visitor, not the relay server; `returning` column | measurement |
@@ -98,7 +99,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 | E0 | **Post the launch kit** (`docs/LAUNCH_KIT.md`): Show HN + three Reddit posts, accurate to today's product, built on measured hooks (only 28% of stock–force readings hold up; Financials mostly *fell* when yields rose) | site visitors, tool users | owner: posting from their accounts |
 | E1 | Verify Google Search Console, submit the sitemap | impressions, indexed pages | owner: verification code |
 | E2 | ~~Email capture on public tools~~ shipped #363; switch on with the owner action below | weekly subscribers (`public_subscribers`, status confirmed) | owner: one env var |
-| E3 | ~~Share cards for an X-ray mix~~ shipped #364 (quiz-score cards still open) | arrivals on `/xray?p=` | — |
+| E3 | ~~Share cards~~ shipped: X-ray mixes #364, quiz scores #370 | arrivals on `/xray?p=`, `/quiz?g=` | — |
 | E4 | Sync the learning streak to an account | signups | — |
 | E5 | Bing Webmaster Tools (confirms IndexNow pickup) | Bing indexed pages | owner: optional sign-in |
 

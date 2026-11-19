@@ -1241,12 +1241,26 @@ def guess_page():
 
 
 @app.get("/quiz", response_class=HTMLResponse)
-def quiz_page():
-    """Which way did it move? Ten questions a day, the same for everyone."""
+def quiz_page(g: str = "", d: str = ""):
+    """Which way did it move? Ten questions a day, the same for everyone.
+    ?g=&d= is a shared result: the page and its preview card show the score."""
     from utils.quiz_page import quiz_page_html
 
     _get_engine()
-    return HTMLResponse(quiz_page_html(_exposure_stocks(), BASE_URL, APP_URL))
+    return HTMLResponse(quiz_page_html(_exposure_stocks(), BASE_URL, APP_URL, g=g[:20], d=d[:10]))
+
+
+@app.get("/quiz/og.png")
+def quiz_og(g: str = "", d: str = ""):
+    """The card a shared quiz result previews with: the score and its squares."""
+    from fastapi.responses import Response
+    from utils import quiz_share as qs
+
+    shared = qs.parse(g, d)
+    if not shared:
+        raise HTTPException(status_code=404, detail="Not a quiz result.")
+    png = qs.quiz_og_png(*shared)
+    return Response(png, media_type="image/png", headers={"Cache-Control": "public, max-age=604800, immutable"})
 
 
 @app.get("/compare", response_class=HTMLResponse)

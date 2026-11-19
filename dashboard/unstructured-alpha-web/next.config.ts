@@ -44,6 +44,7 @@ const nextConfig: NextConfig = {
       { source: "/scenario", destination: `${SEO_ORIGIN}/scenario` },
       { source: "/compare", destination: `${SEO_ORIGIN}/compare` },
       { source: "/quiz", destination: `${SEO_ORIGIN}/quiz` },
+      { source: "/quiz/og.png", destination: `${SEO_ORIGIN}/quiz/og.png` },
       { source: "/guess", destination: `${SEO_ORIGIN}/guess` },
       { source: "/changes", destination: `${SEO_ORIGIN}/changes` },
       { source: "/tools", destination: `${SEO_ORIGIN}/tools` },
