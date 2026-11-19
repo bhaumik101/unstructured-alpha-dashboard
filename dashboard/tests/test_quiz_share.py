@@ -56,3 +56,21 @@ def test_the_card_is_a_png_and_nonsense_is_a_404(client):  # noqa: F811
 def test_www_proxies_the_card():
     cfg = (Path(__file__).resolve().parents[1] / "unstructured-alpha-web" / "next.config.ts").read_text()
     assert 'source: "/quiz/og.png"' in cfg
+
+
+def test_the_fingerprint_game_shares_the_same_way(client):  # noqa: F811
+    from tests.test_guess_page import _library as guess_library
+    from utils.guess_page import guess_page_html
+    html = guess_page_html(guess_library(), "https://www.x", "https://app.x", day=date(2026, 11, 19))
+    assert "'?g=' + marks.map" in html and 'data-iso="2026-11-19"' in html and "navigator.share" in html
+    shared = guess_page_html(guess_library(), "https://www.x", "https://app.x", day=date(2026, 11, 19),
+                             g="10110", d="2026-11-19")
+    assert "3/5 on today" in shared and "“Whose fingerprint?”" in shared
+    assert 'og:image" content="https://www.x/guess/og.png?g=10110&amp;d=2026-11-19"' in shared
+    assert '<link rel="canonical" href="https://www.x/guess">' in shared
+    c, *_ = client
+    r = c.get("/guess/og.png?g=10110&d=2026-11-19")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/png"
+    assert c.get("/guess/og.png?g=x&d=2026-11-19").status_code == 404
+    cfg = (Path(__file__).resolve().parents[1] / "unstructured-alpha-web" / "next.config.ts").read_text()
+    assert 'source: "/guess/og.png"' in cfg

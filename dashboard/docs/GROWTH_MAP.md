@@ -74,6 +74,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 | PR | What | Moves |
 |---|---|---|
+| #372 | Fingerprint-game share cards (same as the quiz) | discovery |
 | #371 | Landing "Today's challenge": the two daily games, with a returning player's streak and today's results (same browser store as the tool pages) | retention, activation |
 | #370 | Quiz share cards: a result link (`/quiz?g=…&d=…`) previews as a card of the score and its squares (no spoilers); a native Share button on phones | discovery |
 | #369 | "Since your last visit": stock pages remember the readings shown; on return a card on any page says how many changed (a link started/stopped holding up, or a held reading moved 0.5+ points), with the full list and "mark all as seen" on My list. Browser only | retention |

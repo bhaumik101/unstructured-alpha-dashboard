@@ -162,11 +162,18 @@ _SCRIPT = r"""
       + 'Sector is the best clue, but not a sure one. A new game comes tomorrow.</p>'
       + '<div class="qz-btns"><a class="btn btn-primary" href="/map">Explore the stock map</a>'
       + '<a class="btn btn-secondary" href="/quiz">Today&#39;s quiz</a>'
+      + (navigator.share ? '<button type="button" class="btn btn-primary" id="gs-share">Share your score</button>' : '')
       + '<button type="button" class="btn btn-secondary" id="gs-copy">Copy your result</button></div>'
       + '<p class="small" id="gs-copied" aria-live="polite"></p>';
     say.textContent = 'You scored ' + score + ' of ' + R.length + '.';
     if (window.UAP) box.insertAdjacentHTML('beforeend', UAP.line(UAP.record('guess', score, R.length)));
-    var text = 'Whose fingerprint? ' + box.getAttribute('data-day') + ': ' + score + '/' + R.length + '\n' + marks.join('') + '\n' + box.getAttribute('data-url');
+    var link = box.getAttribute('data-url') + '?g=' + marks.map(function(m){ return m === '🟩' ? 1 : 0; }).join('')
+      + '&d=' + box.getAttribute('data-iso');                 // previews as a card of the score (utils/quiz_share.py)
+    var text = 'Whose fingerprint? ' + box.getAttribute('data-day') + ': ' + score + '/' + R.length + '\n' + marks.join('') + '\n' + link;
+    var sh = document.getElementById('gs-share');
+    if (sh) sh.addEventListener('click', function(){
+      navigator.share({title: 'Whose fingerprint?', text: 'I scored ' + score + '/' + R.length + ' on today\'s game. ' + marks.join(''), url: link}).catch(function(){});
+    });
     document.getElementById('gs-copy').addEventListener('click', function(){
       var note = document.getElementById('gs-copied');
       function show(){ note.innerHTML = '<textarea readonly rows="3" aria-label="Your result" style="width:100%;font:inherit">' + esc(text) + '</textarea>'; note.querySelector('textarea').select(); }
@@ -192,7 +199,9 @@ _CSS = """<style>
 
 
 def guess_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
-                    day: Optional[date] = None) -> str:
+                    day: Optional[date] = None, g: str = "", d: str = "") -> str:
+    """g, d: a shared result -- titles the page and its card with the score
+    (utils/quiz_share); never the answers."""
     from utils.quiz_page import _CSS as QZ_CSS
     from utils.quiz_page import _day_label
     day = day or date.today()
@@ -201,6 +210,13 @@ def guess_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
     title = "Whose fingerprint? A daily game: match the stock to its economic profile"
     desc = ("Five rounds a day: see how a mystery U.S. stock has moved with interest rates, inflation, "
             "the dollar, oil and credit, and pick it out of four.")
+    og_image = ""
+    if g or d:
+        from utils import quiz_share as qs
+        shared = qs.parse(g, d)
+        if shared:
+            title, desc = qs.share_title(*shared, game="guess"), qs.share_description(shared[0], game="guess")
+            og_image = f"{base_url}/guess/og.png?g={g}&d={shared[1].isoformat()}"
     crumb = '<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › Whose fingerprint?</nav>'
     ld = {"@context": "https://schema.org", "@type": "Game", "name": title, "url": canonical,
           "description": desc, "isAccessibleForFree": True}
@@ -213,7 +229,7 @@ def guess_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         QZ_CSS + _RC_CSS + _CSS + crumb
         + tool_header_html("Whose fingerprint?", [f"{len(rounds)} rounds today", escape(_day_label(day)),
                                                   "Same rounds for everyone"], escape(desc))
-        + f'<div class="qz" id="gs-box" data-day="{escape(_day_label(day))}" data-url="{escape(canonical)}">'
+        + f'<div class="qz" id="gs-box" data-day="{escape(_day_label(day))}" data-iso="{day.isoformat()}" data-url="{escape(canonical)}">'
         '<noscript><p class="lead">The game needs JavaScript. Every profile is on its '
         '<a href="/exposure">stock page</a>.</p></noscript></div>'
         '<p aria-live="polite" id="gs-say" style="position:absolute;left:-9999px"></p>'
@@ -227,4 +243,4 @@ def guess_page_html(stocks: Iterable[dict], base_url: str, app_url: str,
         f'<script type="application/json" id="gs-data">{payload}</script>'
         + progress_script()
         + f'<script>{_SCRIPT.replace("/*PCT*/", JS_PCT)}</script>')
-    return _shell(title, desc, canonical, ld, body, app_url)
+    return _shell(title, desc, canonical, ld, body, app_url, og_image=og_image)

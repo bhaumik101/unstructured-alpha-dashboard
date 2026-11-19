@@ -40,24 +40,35 @@ def _label(day: date) -> str:
     return f"{day.strftime('%b')} {day.day}, {day.year}"
 
 
-def share_title(bits: List[int], day: date) -> str:
-    return f"{sum(bits)}/{len(bits)} on today's “Which way did it move?” ({_label(day)}) — can you beat it?"
+# The two daily games share the card; each brings its name and its question.
+GAMES = {
+    "quiz": ("Which way did it move?", "DAILY QUIZ",
+             "When oil, rates or the dollar moved, did each stock rise with it, fall with it, or show no clear link?",
+             "the same questions for everyone"),
+    "guess": ("Whose fingerprint?", "DAILY GAME",
+              "Five mystery stocks, each shown by how it moved with rates, inflation, the dollar, oil and credit. "
+              "Pick each out of four.", "the same rounds for everyone"),
+}
 
 
-def share_description(bits: List[int]) -> str:
-    return (f"{sum(bits)} of {len(bits)} right. When oil, rates or the dollar moved, did each stock rise with it, "
-            "fall with it, or show no clear link? Same ten questions for everyone today.")
+def share_title(bits: List[int], day: date, game: str = "quiz") -> str:
+    return f"{sum(bits)}/{len(bits)} on today's “{GAMES[game][0]}” ({_label(day)}) — can you beat it?"
 
 
-def quiz_og_png(bits: List[int], day: date) -> bytes:
+def share_description(bits: List[int], game: str = "quiz") -> str:
+    return f"{sum(bits)} of {len(bits)} right. {GAMES[game][2]} {GAMES[game][3].capitalize()} today."
+
+
+def quiz_og_png(bits: List[int], day: date, game: str = "quiz") -> bytes:
     from PIL import Image, ImageDraw
 
     from utils.og_image import BG, BRAND, DIM, INK, W, H, _font
 
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
-    d.text((64, 48), "UNSTRUCTURED ALPHA · DAILY QUIZ", fill=BRAND, font=_font(26))
-    d.text((64, 96), "Which way did it move?", fill=INK, font=_font(54))
+    name, kicker, _q, same = GAMES[game]
+    d.text((64, 48), f"UNSTRUCTURED ALPHA · {kicker}", fill=BRAND, font=_font(26))
+    d.text((64, 96), name, fill=INK, font=_font(54))
     score = f"{sum(bits)}"
     d.text((64, 196), score, fill=INK, font=_font(150))
     x = 64 + d.textlength(score, font=_font(150)) + 10
@@ -68,9 +79,8 @@ def quiz_og_png(bits: List[int], day: date) -> bytes:
         x = 64 + i * (size + gap)
         d.rounded_rectangle([x, 396, x + size, 396 + size], radius=max(6, size // 5),
                             fill="#2e9d6a" if b else "#3a4a60")
-    d.text((64, H - 110), _label(day) + " · the same ten questions for everyone", fill=DIM, font=_font(28))
-    d.text((64, H - 66), "When a force moved, did each stock rise, fall, or show no clear link? Past, not a forecast.",
-           fill=DIM, font=_font(24))
+    d.text((64, H - 110), f"{_label(day)} · {same}", fill=DIM, font=_font(28))
+    d.text((64, H - 66), "Measured from three years of weekly returns. The past, not a forecast.", fill=DIM, font=_font(24))
     buf = io.BytesIO()
     img.save(buf, "PNG", optimize=True)
     return buf.getvalue()
