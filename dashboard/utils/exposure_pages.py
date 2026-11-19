@@ -127,6 +127,8 @@ _SH_CSS = """<style>
 .sh .btn-secondary{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.28);color:#fff}
 .sh .btn-secondary:hover{background:rgba(255,255,255,.14)}
 .sh .small{color:#aebcd0}
+.card.sh a:not(.btn){color:#ffd88a;text-decoration-color:rgba(255,216,138,.5);text-underline-offset:3px}
+.card.sh a:not(.btn):hover{color:#fff;text-decoration-color:#fff}
 .sh-chips{margin:12px 0 0;padding:0;list-style:none;color:#b6c4d8;font-size:var(--fs-sm);line-height:1.9}
 .sh-chips li{display:inline}
 .sh-chips li+li::before{content:"";display:inline-block;width:4px;height:4px;border-radius:50%;background:#5f7798;margin:0 10px 2px;vertical-align:middle}
