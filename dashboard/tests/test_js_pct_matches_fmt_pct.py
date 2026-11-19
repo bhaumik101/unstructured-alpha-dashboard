@@ -41,4 +41,7 @@ def test_every_page_ships_the_formatter_not_the_placeholder():
              stock_whatif_html("XOM", _stock("XOM", "Exxon", oil=(2.4, "clear"))),
              quiz_page_html(_library(), "https://w", "https://a")]
     for html in pages:
-        assert "/*PCT*/" not in html and html.count("function pct(") == 1
+        # Every copy is the one canonical formatter (the page's own, and the
+        # shell's "since your last visit" module), so none can drift.
+        assert "/*PCT*/" not in html and html.count("function pct(") >= 1
+        assert html.count("function pct(") == html.count(JS_PCT)
