@@ -1307,12 +1307,39 @@ def go(t: str = ""):
 
 
 @app.get("/xray", response_class=HTMLResponse)
-def xray():
-    """Click holdings; see the mix's economic fingerprint."""
+def xray(p: str = ""):
+    """Click holdings; see the mix's economic fingerprint. ?p= is a shared mix:
+    the page and its preview card are titled for it (utils/xray_share)."""
     from utils.xray_page import xray_page_html
 
     _get_engine()
-    return HTMLResponse(xray_page_html(_exposure_stocks(), BASE_URL, APP_URL))
+    return HTMLResponse(xray_page_html(_exposure_stocks(), BASE_URL, APP_URL, p=p[:600]))
+
+
+_xray_og_cache: dict = {}
+
+
+@app.get("/xray/og.png")
+def xray_og(p: str = ""):
+    """The 1200x630 card a shared X-ray mix previews with. Only tickers on
+    record are drawn; no valid mix is a 404."""
+    from fastapi.responses import Response
+    from utils import xray_share as xs
+    from utils.xray_page import xray_data
+
+    _get_engine()
+    data = _cached(("xray_data",), lambda: xray_data(_exposure_stocks()))
+    mix = xs.parse_mix(p, data)
+    if not mix:
+        raise HTTPException(status_code=404, detail="Not a mix of stocks on record.")
+    key = (xs.mix_query(mix), data.get("as_of"))
+    png = _xray_og_cache.get(key)
+    if png is None:
+        png = xs.xray_og_png(mix, xs.blend(data, mix), data.get("as_of") or "")
+        if len(_xray_og_cache) >= 64:
+            _xray_og_cache.pop(next(iter(_xray_og_cache)))
+        _xray_og_cache[key] = png
+    return Response(png, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/etfs", response_class=HTMLResponse)

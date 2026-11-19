@@ -37,6 +37,11 @@ tool (`tool_used`, added in #360), not just loaded a page.
 | Keep | weekly-email opt-ins | 0 | `users.exposure_email_opted_in` |
 | Pay | Pro | 2 (likely internal) | billing |
 
+Indexing (Nov 19): stock and sector pages appear in a public web-search index with
+their data; one result was on the origin host (seo.unstructuredalpha.com), whose pages
+carry a www canonical -- engines consolidate on www. IndexNow accepted all 600 URLs.
+Confirm coverage in Search Console once verified.
+
 Product health (Nov 19): 545 stocks + 46 ETFs measured, data through Nov 13; all 593
 sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 1280px (no JS errors, no overflow, one h1). Neon usage ~0.74 CU-h/day (~51 of ~100/month).
@@ -56,6 +61,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 | PR | What | Moves |
 |---|---|---|
+| #364 | X-ray share cards: a shared mix (`/xray?p=`) previews with its own title and a drawn card of its fingerprint; customers' email addresses masked in logs | discovery, trust |
 | #363 | Weekly public email: sign-up box on Quiz/Guess/Learn/X-ray/What changed, double opt-in, scanner-safe confirm/unsubscribe, weekly "what moved" send. Dark until the SEO service has `RESEND_API_KEY` | retention |
 | #362 | Fix #360's sender guard: it checked the raw variable and would have refused the working built-in sender | monetisation |
 | #361 | IndexNow: announce the ~600 re-measured pages to Bing/Yandex/Seznam/Naver weekly | discovery |
@@ -75,7 +81,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 | E0 | **Post the launch kit** (`docs/LAUNCH_KIT.md`): Show HN + three Reddit posts, accurate to today's product, built on measured hooks (only 28% of stock–force readings hold up; Financials mostly *fell* when yields rose) | site visitors, tool users | owner: posting from their accounts |
 | E1 | Verify Google Search Console, submit the sitemap | impressions, indexed pages | owner: verification code |
 | E2 | ~~Email capture on public tools~~ shipped #363; switch on with the owner action below | weekly subscribers (`public_subscribers`, status confirmed) | owner: one env var |
-| E3 | Share cards for a quiz score / an X-ray mix (OG image per result) | shares → arrivals | — |
+| E3 | ~~Share cards for an X-ray mix~~ shipped #364 (quiz-score cards still open) | arrivals on `/xray?p=` | — |
 | E4 | Sync the learning streak to an account | signups | — |
 | E5 | Bing Webmaster Tools (confirms IndexNow pickup) | Bing indexed pages | owner: optional sign-in |
 
@@ -94,8 +100,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 - `SHOW_HN_DRAFT.md`, `REDDIT_POSTS.md`, `PRODUCT_HUNT.md` (repo root) pitch the retired
   signals product; use `docs/LAUNCH_KIT.md` instead.
 
-- `lifecycle` and `watchlist-insights` cron groups run daily with no Resend key; they
-  email users of the retired signals product. Candidates to retire.
-- The digest job logs recipients' full email addresses (log hygiene).
+- `lifecycle` and `watchlist-insights` cron groups run daily and complete as no-ops
+  (they serve the retired signals product; no Resend key). Candidates to retire.
 - PSKY / KVUE no longer meet the two-year price rule; their pages now say so (#359).
 - Cold force pages take 2–3.6s on first hit.

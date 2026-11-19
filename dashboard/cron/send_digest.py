@@ -33,6 +33,7 @@ if str(_here) not in sys.path:
 from sqlalchemy import select
 
 from utils.db import engine, users, watchlist, score_snapshots, init_db
+from utils.email import mask_email  # noqa: E402  (addresses stay out of logs)
 from utils.score_history import get_signal_flips
 from utils.config import SIGNALS, TICKERS
 
@@ -253,7 +254,7 @@ def _get_opted_in_emails() -> list[tuple[str, str, int | None]]:
             except Exception:
                 pass
             result.append((admin_email, admin_email, admin_uid))
-            print(f"[digest] admin override added: {admin_email!r} user_id={admin_uid}", flush=True)
+            print(f"[digest] admin override added: {mask_email(admin_email)!r} user_id={admin_uid}", flush=True)
 
     return result
 
@@ -651,10 +652,10 @@ def main() -> None:
                 decision_cockpit=decision_cockpit,
             )
             sent += 1
-            print(f"[digest] sent to {email_addr!r}", flush=True)
+            print(f"[digest] sent to {mask_email(email_addr)!r}", flush=True)
         except EmailSendError as exc:
             failed += 1
-            print(f"[digest] FAILED to {email_addr!r}: {exc}", flush=True)
+            print(f"[digest] FAILED to {mask_email(email_addr)!r}: {exc}", flush=True)
 
     print(f"[digest] done — sent={sent} failed={failed}", flush=True)
 
