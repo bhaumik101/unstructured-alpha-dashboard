@@ -44,3 +44,9 @@ def test_it_shows_the_streak_for_a_learner_and_nothing_for_a_newcomer():
     assert out["hidden"] is False and "1-day streak" in out["html"] and "Reader" in out["label"]
     out = _run({"d": {}, "l": {"learn": 1}})                      # path progress, no games yet
     assert out["hidden"] is False and "Level 1" in out["html"]
+
+
+def test_links_in_the_header_band_are_light_on_navy():
+    """Live check, Nov 19: tile links (a force page's largest movers and most
+    linked sector) kept the body's dark blue on the navy band."""
+    assert ".card.sh a:not(.btn){color:#ffd88a" in ep._SH_CSS
