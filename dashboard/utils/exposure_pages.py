@@ -110,20 +110,38 @@ def summary_sentence(symbol: str, rec: dict) -> str:
 
 
 _SH_CSS = """<style>
-.sh{padding:18px 20px;margin:4px 0 14px}
-.sh-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
-.sh-tk{display:inline-grid;place-items:center;min-width:56px;height:40px;padding:0 10px;border-radius:10px;
-  background:var(--accent);color:var(--bg);font-weight:800;letter-spacing:.02em}
-.sh h1{margin:0;flex:1 1 280px}
-.sh-chips{display:flex;flex-wrap:wrap;gap:6px 8px;margin:10px 0 0;padding:0;list-style:none}
-.sh-chips li{border:1px solid var(--line);border-radius:999px;padding:2px 10px;background:var(--subtle);color:var(--ink2)}
-.sh-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 0;padding:0;list-style:none}
-.sh-tiles li{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--bg)}
-.sh-tiles .k{display:block;color:var(--ink3)}
-.sh-tiles b{display:block;font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--ink)}
-.sh-tiles .s{display:block;color:var(--ink2)}
-.sh-lead{margin:12px 0 0;color:var(--ink2);max-width:72ch}
-@media (max-width:520px){.sh{padding:14px}.sh-tiles{grid-template-columns:1fr 1fr}.sh-tiles li{padding:8px 10px}}
+/* The page header: a full-width navy band, the landing page's look carried onto
+   every public page. The band is drawn by ::before (full-bleed from inside the
+   centred column); the breadcrumb above it joins the same band. */
+.card.sh{position:relative;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible;padding:4px 0 28px;margin:0 0 26px;color:#e6edf7}
+.card.sh::before,main>.crumb::before{content:"";position:absolute;z-index:-1;left:calc(50% - 50vw);right:calc(50% - 50vw);
+  background:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.3px) 0 0/22px 22px fixed,var(--navy)}
+/* The band's gradient starts at the strip's solid navy, so the two meet without a seam. */
+.card.sh::before{top:0;bottom:0;background:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.3px) 0 0/22px 22px fixed,
+  radial-gradient(900px 300px at 86% 115%,rgba(255,194,75,.13),transparent 65%),
+  linear-gradient(180deg,var(--navy),var(--navy2));background-color:var(--navy)}
+.sh-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px}
+.sh-tk{display:inline-grid;place-items:center;min-width:58px;height:44px;padding:0 12px;border-radius:11px;
+  background:var(--bright);color:var(--on-bright);font-weight:800;letter-spacing:.02em;box-shadow:0 6px 18px -8px rgba(255,194,75,.7)}
+.sh h1{margin:0;flex:1 1 280px;color:#fff;font-size:var(--fs-hero);font-weight:800;letter-spacing:-.025em;line-height:1.15;text-wrap:balance}
+.sh .btn-secondary{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.28);color:#fff}
+.sh .btn-secondary:hover{background:rgba(255,255,255,.14)}
+.sh .small{color:#aebcd0}
+.sh-chips{margin:12px 0 0;padding:0;list-style:none;color:#b6c4d8;font-size:var(--fs-sm);line-height:1.9}
+.sh-chips li{display:inline}
+.sh-chips li+li::before{content:"";display:inline-block;width:4px;height:4px;border-radius:50%;background:#5f7798;margin:0 10px 2px;vertical-align:middle}
+.sh-chips a{color:var(--bright);text-decoration:none;font-weight:600}.sh-chips a:hover{text-decoration:underline}
+.sh-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:22px 0 0;padding:0;list-style:none;
+  border-top:1px solid rgba(255,255,255,.12)}
+.sh-tiles li{padding:16px 18px 0;border-left:1px solid rgba(255,255,255,.12)}
+.sh-tiles li:first-child{border-left:0;padding-left:0}
+.sh-tiles .k{display:block;color:#93a7c2;text-transform:uppercase;letter-spacing:.07em;font-size:var(--fs-xs);font-weight:700}
+.sh-tiles b{display:block;margin:4px 0 2px;color:#fff;font-size:var(--fs-stat);font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sh-tiles .s{display:block;color:#c0ccdd}
+.sh-lead{margin:14px 0 0;color:#cfdaea;max-width:68ch;font-size:var(--fs-lead)}
+.sh-lead a{color:var(--bright)}
+@media (max-width:620px){.sh-tiles{grid-template-columns:1fr 1fr}.sh-tiles li{padding:12px 12px 0}
+  .sh-tiles li:nth-child(odd){border-left:0;padding-left:0}.sh-tiles li:nth-child(n+3){border-top:1px solid rgba(255,255,255,.12);margin-top:12px}}
 </style>"""
 
 
@@ -202,15 +220,17 @@ def page_title(symbol: str, name: str) -> str:
 # ── the page ────────────────────────────────────────────────────────────────
 
 _CSS = """
-:root{--bg:#fafaf8;--surface:#fff;--subtle:#f4f6fa;--ink:#13213a;--ink2:#3a4760;--ink3:#5b6780;
+:root{--on-bright:#13213a;--fs-xs:.76rem;--fs-sm:.86rem;--fs-body:1rem;--fs-lead:1.08rem;--fs-h2:1.32rem;--fs-stat:1.7rem;
+  --fs-hero:clamp(1.65rem,1.15rem + 1.9vw,2.35rem);--shadow:0 1px 2px rgba(13,34,59,.05),0 10px 30px -18px rgba(13,34,59,.28);
+  --bg:#f6f8fb;--surface:#fff;--subtle:#eef2f8;--ink:#13213a;--ink2:#3a4760;--ink3:#5b6780;
   --line:#dfe5ee;--accent:#1f5fae;--navy:#0d223b;--navy2:#15375d;--bright:#ffc24b;
   --clear-bg:#dcf3ea;--clear-ink:#0b6a4e;--tent-bg:#fdefd6;--tent-ink:#8a4f00;--zero-bg:#eceff4;--zero-ink:#4a5568;}
-@media (prefers-color-scheme:dark){:root{--bg:#0b1422;--surface:#121d2f;--subtle:#16233a;--ink:#e8edf5;
+@media (prefers-color-scheme:dark){:root{--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px -18px rgba(0,0,0,.6);--bg:#0b1422;--surface:#121d2f;--subtle:#16233a;--ink:#e8edf5;
   --ink2:#bdc7d8;--ink3:#8f9bb1;--line:#243349;--accent:#8cb8f2;--navy:#081628;--navy2:#10294a;
   --clear-bg:#11392e;--clear-ink:#7fdcb8;--tent-bg:#3a2a0d;--tent-ink:#f5c774;--zero-bg:#1f2a3c;--zero-ink:#b3bfd2;}}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:Inter,"SF Pro Text","Segoe UI",system-ui,sans-serif;
-  line-height:1.6;font-variant-numeric:tabular-nums}
+  line-height:1.6;font-variant-numeric:tabular-nums;overflow-x:clip}
 a{color:var(--accent)}
 .skip{position:absolute;left:12px;top:-60px;background:var(--bright);color:#13213a;padding:8px 14px;border-radius:8px;font-weight:700}
 .skip:focus{top:8px}
@@ -248,29 +268,33 @@ a{color:var(--accent)}
 .site-foot h2{font-size:.82rem;margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)}
 .site-foot ul{list-style:none}.site-foot li{margin:3px 0}.site-foot a{color:var(--ink2);font-size:.92rem;text-decoration:none}
 .site-foot a:hover{text-decoration:underline}.site-foot p{font-size:.82rem;color:var(--ink3)}
-main{max-width:980px;margin:0 auto;padding:28px 16px 48px}
-.crumb{font-size:.82rem;color:var(--ink3);margin-bottom:10px}.crumb a{color:var(--ink3)}
+main{max-width:980px;margin:0 auto;padding:30px 16px 56px}
+.crumb{font-size:var(--fs-sm);color:var(--ink3);margin-bottom:10px}.crumb a{color:var(--ink3)}
+main>.crumb{position:relative;color:#8ea3bf;margin:0;padding:0 0 14px}main>.crumb a{color:#c4d2e6;text-decoration:underline;text-decoration-color:rgba(196,210,230,.45);text-underline-offset:3px}
+main>.crumb a:hover{color:#fff;text-decoration-color:#fff}main>.crumb::before{top:-30px;bottom:0}
 h1{font-size:1.7rem;line-height:1.25;letter-spacing:-.02em;margin-bottom:6px}
 .meta{color:var(--ink3);font-size:.88rem;margin-bottom:16px}
-.lead{font-size:1.05rem;color:var(--ink2);max-width:760px;margin-bottom:22px}
-h2{font-size:1.2rem;margin:30px 0 10px}
+.lead{font-size:var(--fs-lead);color:var(--ink2);max-width:70ch;margin-bottom:22px}
+h2{font-size:var(--fs-h2);font-weight:750;letter-spacing:-.015em;margin:38px 0 12px;text-wrap:balance}
 h3{font-size:.8rem;margin:14px 0 8px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow-x:auto;box-shadow:var(--shadow)}
 table{width:100%;border-collapse:collapse;font-size:.92rem}
 th{text-align:left;font-weight:650;color:var(--ink3);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink2)}
 tr:last-child td{border-bottom:0}
 td b{color:var(--ink)}
-.shock{display:block;font-size:.82rem;color:var(--ink3)}
+.shock{display:block;font-size:var(--fs-sm);color:var(--ink3)}
 .chip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.78rem;font-weight:650;white-space:nowrap}
 .chip-clear{background:var(--clear-bg);color:var(--clear-ink)}.chip-tentative{background:var(--tent-bg);color:var(--tent-ink)}
 .chip-zero{background:var(--zero-bg);color:var(--zero-ink)}
 .v-weak{color:var(--ink3)}
-.foot{font-size:.82rem;color:var(--ink3);padding:10px 12px;background:var(--subtle)}
+.foot{font-size:var(--fs-sm);color:var(--ink3);padding:12px 14px;background:var(--subtle)}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 6px}
-.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:10px;font-weight:650;text-decoration:none}
-.btn-primary{background:var(--accent);color:#fff}
-@media (prefers-color-scheme:dark){.btn-primary{color:#0b1422}}
+.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:11px;font-weight:700;text-decoration:none;
+  transition:transform .12s ease,filter .12s ease,background .12s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:var(--bright);color:var(--on-bright);box-shadow:0 6px 16px -10px rgba(185,131,9,.9)}.btn-primary:hover{filter:brightness(1.05)}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:hover{transform:none}}
 .btn-secondary{background:var(--surface);border:1px solid var(--line);color:var(--ink)}
 details.embed{margin:24px 0 8px}details.embed summary{cursor:pointer;font-weight:650}
 details.embed textarea{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
@@ -282,8 +306,15 @@ details.embed textarea{margin:8px 0;padding:8px;border:1px solid var(--line);bor
 h2[id]{scroll-margin-top:12px}
 .related a{display:inline-block;padding:7px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);
   color:var(--ink);text-decoration:none;font-size:.92rem}
-.caveat{border-left:3px solid var(--accent);background:var(--subtle);padding:10px 14px;color:var(--ink2);margin:26px 0 10px;font-size:.92rem}
-.small{font-size:.82rem;color:var(--ink3)}
+.caveat{border-top:1px solid var(--line);padding:14px 0 0;color:var(--ink3);margin:30px 0 10px;font-size:var(--fs-sm)}
+.caveat b{color:var(--ink2)}.caveat::before{content:"i";display:inline-grid;place-items:center;width:16px;height:16px;margin-right:7px;
+  border-radius:50%;border:1px solid var(--ink3);font-weight:700;font-size:var(--fs-xs);line-height:1;vertical-align:1px}
+.me{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px 0 9px;border-radius:999px;text-decoration:none;
+  background:rgba(255,194,75,.12);border:1px solid rgba(255,194,75,.45);color:#ffe2a3;font-size:var(--fs-sm);font-weight:700;white-space:nowrap}
+.me:hover{background:rgba(255,194,75,.2)}.me[hidden]{display:none}.me svg{width:15px;height:15px;flex:none}
+.me .lv{color:#d6e2f3;font-weight:600}
+@media (max-width:1400px){.me .lv{display:none}}
+.small{font-size:var(--fs-sm);color:var(--ink3)}
 .grid{columns:3 220px;column-gap:16px}.grid li{list-style:none;break-inside:avoid;margin:0 0 6px}
 .forces{columns:2 280px;column-gap:24px}.forces li{list-style:none;break-inside:avoid;margin:0 0 10px}
 .forces a{font-weight:650}
@@ -357,6 +388,29 @@ def _notice() -> str:
     return f'<p class="caveat" role="status">{h}</p>' if h else ""
 
 
+# A returning learner sees their streak and level in the bar on every page,
+# linking back to their path (utils/progress.py). Nothing shows for a visitor
+# who has not played: an empty "0" badge would be noise, not a nudge.
+_ME_JS = r"""
+(function(){
+  try {
+    var a = document.getElementById('ua-me'); if (!a || !window.UAP) return;
+    var s = UAP.summary(); if (!s.xp) return;
+    var flame = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffc24b" d="M12 2c1 3.5 4.5 5.6 4.5 10a4.5 4.5 0 0 1-9 0c0-1.7.7-3 1.7-4.1.2 1.6 1 2.7 2.3 3.1C11 8.6 11 5 12 2z"/></svg>';
+    a.innerHTML = flame + '<span>' + (s.streak ? s.streak + '-day streak' : 'Level ' + s.levelNo) + '</span>'
+      + '<span class="lv">· ' + s.level + '</span>';
+    a.setAttribute('aria-label', 'Your learning path: ' + s.level + ', ' + s.xp + ' XP' + (s.streak ? ', ' + s.streak + '-day streak' : ''));
+    a.hidden = false;
+  } catch (e) {}
+})();
+"""
+
+
+def _me_script() -> str:
+    from utils.progress import progress_js
+    return f"<script>{progress_js()}</script><script>{_ME_JS}</script>"
+
+
 def _signup(canonical: str) -> str:
     """The weekly email's sign-up box, on the pages it fits (utils/public_weekly)."""
     try:
@@ -395,6 +449,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         '<header class="bar"><div class="bar-in">'
         '<a class="brand" href="/">UNSTRUCTURED <span>ALPHA</span></a>'
         f'{_site_nav(canonical)}'
+        '<a class="me" id="ua-me" href="/learn#path" hidden></a>'
         '<form class="go" action="/go" method="get" role="search">'
         '<label for="go-t" class="sr-only" style="position:absolute;left:-9999px">Find a stock</label>'
         '<input id="go-t" name="t" placeholder="Ticker" autocomplete="off" spellcheck="false" maxlength="15">'
@@ -402,7 +457,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         f'<a class="cta" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '</div></header>'
         f'<main id="main">{_notice()}{body}{_signup(canonical)}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}'
-        f'{_track_script(canonical)}</body></html>')
+        f'{_me_script()}{_track_script(canonical)}</body></html>')
 
 
 # The public tools, in the order the header shows them. Every page carries the
