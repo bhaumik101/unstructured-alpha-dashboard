@@ -86,12 +86,24 @@ def xray_data(stocks: Iterable[dict]) -> dict:
     return d
 
 
-def xray_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
+def xray_page_html(stocks: Iterable[dict], base_url: str, app_url: str, p: str = "") -> str:
+    """p: a shared mix (?p=AAPL:50,XOM:50). It titles the page and its preview
+    card for that mix (utils/xray_share); the page itself opens on it."""
     data = xray_data(stocks)
     canonical = f"{base_url}/xray"
     title = "Portfolio X-ray: how your stocks and funds move with rates, inflation, oil and the dollar"
     desc = ("Click the stocks and ETFs you own and see, in seconds, how the mix has moved with interest "
             "rates, inflation, the dollar, oil and credit, and which holding drives each.")
+    og_image = ""
+    if p:
+        from urllib.parse import quote
+
+        from utils import xray_share as xs
+        mix = xs.parse_mix(p, data)
+        if mix:
+            rows = xs.blend(data, mix)
+            title, desc = xs.share_title(mix, rows), xs.share_description(rows)
+            og_image = f"{base_url}/xray/og.png?p={quote(xs.mix_query(mix), safe=':,')}"
     payload = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
     opts = "".join(f'<option value="{escape(t)}">{escape(v[0])}</option>' for t, v in sorted(data["s"].items()))
     opts += "".join(f'<option value="{t}">Tracks the S&amp;P 500</option>' for t in data["mkt"])
@@ -139,7 +151,7 @@ def xray_page_html(stocks: Iterable[dict], base_url: str, app_url: str) -> str:
         + f'<script type="application/json" id="xr-data">{payload}</script><script>{script}</script>')
     ld = {"@context": "https://schema.org", "@type": "WebApplication", "name": title, "description": desc,
           "url": canonical, "applicationCategory": "FinanceApplication", "isAccessibleForFree": True}
-    return _shell(title, desc, canonical, ld, body, app_url)
+    return _shell(title, desc, canonical, ld, body, app_url, og_image=og_image)
 
 
 _SCRIPT = r"""
@@ -242,7 +254,9 @@ _SCRIPT = r"""
   // The share link and the full report's link carry the mix and its weights.
   function links(){
     var h = held.map(function(t){ return t + ':' + (Math.round(1000 * (weights[t] || 0)) / 10); }).join(',');
-    try { history.replaceState(null, '', held.length ? '#p=' + h : location.pathname); } catch (e) {}
+    // ?p=, not #p=: link-preview crawlers never see a #fragment, so only a
+    // query lets a shared mix preview as itself (utils/xray_share.py).
+    try { history.replaceState(null, '', held.length ? '?p=' + h : location.pathname); } catch (e) {}
     var a = $('xr-report'), u = new URL(a.href);
     if (held.length) u.searchParams.set('h', h); else u.searchParams.delete('h');
     a.href = u.toString(); a.textContent = held.length > 1 ? 'Get the full report on these ' + held.length + ', free' : 'Get the full report, free';
@@ -284,7 +298,7 @@ _SCRIPT = r"""
     else $('xr-say').textContent = link;
   });
   // A shared link opens the same mix and weights.
-  var m = /#p=([^&]+)/.exec(location.hash);
+  var m = /[?&]p=([^&#]+)/.exec(location.search) || /#p=([^&]+)/.exec(location.hash);   // old links used #p=
   if (m){ decodeURIComponent(m[1]).split(',').forEach(function(p){ var kv = p.split(':'); add(kv[0], true);
       if (kv[1] && held.indexOf(kv[0].toUpperCase()) >= 0) manual[kv[0].toUpperCase()] = +kv[1]; });
     if (Object.keys(manual).length){ mode = 'manual'; document.querySelectorAll('[data-mode]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === 'manual')); }); } }
