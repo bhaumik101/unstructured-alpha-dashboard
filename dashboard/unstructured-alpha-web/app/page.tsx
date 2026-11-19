@@ -6,6 +6,7 @@ import './landing.css';
 import LiveMovers from './LiveMovers';
 import LiveStats from './LiveStats';
 import HeroXray from './HeroXray';
+import DailyChallenge from './DailyChallenge';
 
 const APP_URL = "https://app.unstructuredalpha.com";
 const PILOT_EMAIL = "support@unstructuredalpha.com";
@@ -373,6 +374,9 @@ export default function Home() {
       <main id="main">
         {/* ── Live demo: real stocks, the newest data week ───────────────── */}
         <LiveMovers />
+
+        {/* ── Today's challenge: the daily games, and a returning player's streak ── */}
+        <DailyChallenge />
 
         {/* ── Sample report ─────────────────────────────────────────────── */}
         <section className="lp-band lp-band-sky" aria-labelledby="sample-title">
