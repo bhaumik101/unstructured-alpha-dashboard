@@ -155,6 +155,7 @@ class Event:
     PRICING_VIEWED         = "pricing_viewed"
     HOW_IT_WORKS_VIEWED    = "how_it_works_viewed"
     APP_OPENED             = "app_opened"
+    TOOL_USED              = "tool_used"       # a public tool actually used, once per page load
 
     # Auth lifecycle
     SIGNUP_STARTED         = "signup_started"

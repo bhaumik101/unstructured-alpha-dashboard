@@ -84,7 +84,15 @@ window.UAP = window.UAP || (function(){
     else if (!Object.keys(e).length) delete p.d[day];
     p.l[game] = 1;
     save(p);
+    used(game);
     var s = summary(load()); s.counted = counted; s.gained = s.xp - before; return s;
+  }
+  // Count the first real use of a tool on this page (seo/track_api tool_used).
+  // Queued if the page's beacon script, at the end of <body>, has not run yet.
+  var usedNow = {};
+  function used(tool){
+    if (usedNow[tool]) return; usedNow[tool] = 1;
+    if (window.uaUsed) window.uaUsed(tool); else (window.uaQ = window.uaQ || []).push(tool);
   }
   // One line for the end of a round, as HTML. Links to the path.
   function line(s){
@@ -94,7 +102,7 @@ window.UAP = window.UAP || (function(){
     return '<p class="uap-line">' + bits.join(' · ') + (s.counted ? '' : '. Today&#39;s first play already counted; replays are practice')
       + '. <a href="/learn#path">Your learning path</a></p>';
   }
-  return {load: load, summary: function(){ return summary(load()); }, mark: mark, record: record, line: line,
+  return {load: load, summary: function(){ return summary(load()); }, mark: mark, record: record, line: line, used: used,
           _clock: function(f){ clock = f; }, _key: K};
 })();
 """
@@ -121,7 +129,7 @@ def progress_script() -> str:
 def mark_on(element_id: str, event: str, step: str) -> str:
     """Mark a path step the first time the visitor uses a control."""
     return (f"<script>(function(){{var el=document.getElementById('{element_id}');"
-            f"if(el&&window.UAP)el.addEventListener('{event}',function(){{UAP.mark('{step}');}},{{once:true}});}})();</script>")
+            f"if(el&&window.UAP)el.addEventListener('{event}',function(){{UAP.mark('{step}');UAP.used('{step}');}},{{once:true}});}})();</script>")
 
 
 _TRACK_SCRIPT = r"""

@@ -106,6 +106,7 @@ def _job(monkeypatch, alerts_db, people, report, status=200):
     import utils.email as email_mod
     monkeypatch.setattr(email_mod, "_post_resend_email", lambda **kw: sent.append(kw) or Resp())
     monkeypatch.setenv("RESEND_API_KEY", "test")
+    monkeypatch.setenv("RESEND_FROM_EMAIL", "Unstructured Alpha <hello@example.com>")
     monkeypatch.setenv("DATABASE_URL", "sqlite://")
     monkeypatch.setattr(job, "init_db", lambda: None)
     monkeypatch.setattr(job, "engine", alerts_db)
@@ -154,3 +155,15 @@ def test_a_free_user_sees_what_pro_adds_and_no_controls(monkeypatch, synthetic_e
     assert not at.exception
     assert any("Investor Pro: get an email when an exposure crosses" in c.value for c in at.caption)
     assert not [b for b in at.button if b.key == "uar_alert_add"]
+
+
+@pytest.mark.parametrize("sender", [None, "Unstructured Alpha <onboarding@resend.dev>"])
+def test_the_job_refuses_without_a_verified_sender(monkeypatch, alerts_db, sender):
+    job, sent = _job(monkeypatch, alerts_db, [(7, "pro", True)], _report(rates=-1.3))
+    xa.add_alert(7, "rates", "below", -1.0)
+    if sender is None:
+        monkeypatch.delenv("RESEND_FROM_EMAIL")
+    else:
+        monkeypatch.setenv("RESEND_FROM_EMAIL", sender)
+    assert job.main() == 2                                  # a failed run, visible on Render
+    assert sent == [] and xa.list_alerts(7)[0]["last_state"] == 0

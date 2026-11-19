@@ -1284,7 +1284,6 @@ def go(t: str = ""):
     """The header's ticker box. A stock on record opens its page; any other
     ticker opens the app, which measures it (and files it here); anything
     that is not a ticker goes to the list of stocks on record."""
-    from urllib.parse import quote
 
     from fastapi.responses import RedirectResponse
     from utils.exposure_pages import SYMBOL_RE
@@ -1296,7 +1295,10 @@ def go(t: str = ""):
     from utils.funds import MARKET_TRACKERS
     if sym in MARKET_TRACKERS or any(s["ticker"] == sym for s in _exposure_stocks()):
         return RedirectResponse(f"/exposure/{sym}", status_code=302)
-    return RedirectResponse(f"{APP_URL}/stock?t={quote(sym)}", status_code=302)
+    # Tagged like every other link into the app, so a ticker-box arrival is
+    # counted as coming from the public pages rather than from nowhere.
+    from utils.exposure_pages import app_link
+    return RedirectResponse(app_link(APP_URL, "/stock", f"{BASE_URL}/go", t=sym), status_code=302)
 
 
 @app.get("/xray", response_class=HTMLResponse)

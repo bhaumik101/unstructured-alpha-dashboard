@@ -331,6 +331,13 @@ _TRACK_JS = ('(function(){try{if(window.__uaTrackInit)return;window.__uaTrackIni
              'if(navigator.sendBeacon){navigator.sendBeacon("/api/track",new Blob([b],{type:"application/json"}));}'
              'else{fetch("/api/track",{method:"POST",body:b,keepalive:true,'
              'headers:{"Content-Type":"application/json"}}).catch(function(){});}'
+             # tool_used: the first real use of a tool on this page (utils/progress
+             # queues uses that happen before this script, at the end of <body>).
+             'window.uaUsed=function(t){try{var u=JSON.stringify({event:"tool_used",page:__LABEL__,tool:t});'
+             'if(navigator.sendBeacon){navigator.sendBeacon("/api/track",new Blob([u],{type:"application/json"}));}'
+             'else{fetch("/api/track",{method:"POST",body:u,keepalive:true,'
+             'headers:{"Content-Type":"application/json"}}).catch(function(){});}}catch(e){}};'
+             '(window.uaQ||[]).forEach(window.uaUsed);window.uaQ=[];'
              '}catch(e){}})()')
 
 

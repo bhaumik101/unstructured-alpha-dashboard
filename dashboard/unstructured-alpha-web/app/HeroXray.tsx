@@ -22,6 +22,22 @@ export const PRESETS: [string, string[]][] = [
 ];
 const MAX = 12;
 
+// The first time a visitor uses the hero (a mix, an add, a remove), once per
+// page load: a page view says they arrived, this says they did something.
+// Same relay and allowlist as the landing's other events (seo/track_api.py).
+let heroUsed = false;
+export function recordHeroUse() {
+  if (heroUsed) return;
+  heroUsed = true;
+  try {
+    const body = JSON.stringify({ event: "tool_used", page: "Landing", tool: "hero_xray" });
+    if (navigator.sendBeacon) navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }));
+    else void fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true });
+  } catch {
+    // Measurement must never get in the visitor's way.
+  }
+}
+
 function lower(label: string): string {
   return label.startsWith("U.S.") ? label : label.charAt(0).toLowerCase() + label.slice(1);
 }
@@ -56,7 +72,7 @@ export default function HeroXray({ fallback }: { fallback: ReactNode }) {
     if (!known(feed!, t)) { setSay(`${t} is not on record yet.`); return; }
     if (held.includes(t)) { setSay(`${t} is already in the mix.`); return; }
     if (held.length >= MAX) { setSay(`Up to ${MAX} here; the full X-ray takes more.`); return; }
-    setHeld([...held, t]); setPreset(''); setSay(`${t} added.`);
+    setHeld([...held, t]); setPreset(''); setSay(`${t} added.`); recordHeroUse();
   }
 
   return (
@@ -65,14 +81,14 @@ export default function HeroXray({ fallback }: { fallback: ReactNode }) {
       <div className="lp-xr-presets" role="group" aria-label="Starter mixes">
         {PRESETS.map(([name, ts]) => (
           <button key={name} type="button" aria-pressed={preset === name}
-                  onClick={() => { setHeld(ts); setPreset(name); setSay(`${name}: ${ts.join(', ')}.`); }}>{name}</button>
+                  onClick={() => { setHeld(ts); setPreset(name); setSay(`${name}: ${ts.join(', ')}.`); recordHeroUse(); }}>{name}</button>
         ))}
       </div>
       <ul className="lp-xr-held" aria-label="Holdings, equal weight">
         {mix.map((t) => (
           <li key={t}>{t}
             <button type="button" aria-label={`Remove ${t}`}
-                    onClick={() => { setHeld(held.filter((u) => u !== t)); setPreset(''); setSay(`${t} removed.`); }}>×</button>
+                    onClick={() => { setHeld(held.filter((u) => u !== t)); setPreset(''); setSay(`${t} removed.`); recordHeroUse(); }}>×</button>
           </li>
         ))}
         <li className="lp-xr-add">

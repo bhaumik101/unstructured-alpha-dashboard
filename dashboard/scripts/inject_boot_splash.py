@@ -739,10 +739,21 @@ META_DESC = (
     "with a 90% range and an evidence label on every number. Not a forecast. "
     "Free, no account for your first report."
 )
-META_URL = "https://unstructuredalpha.com"
+# www is the one canonical origin (the landing's SITE_URL); the bare domain
+# 308-redirects there, so pointing a canonical at it costs a hop.
+META_URL = "https://www.unstructuredalpha.com"
+# The app is a tool, not a set of pages to rank: every URL here (including
+# endless /stock?t=<anything> variants) serves this same shell, and each crawl
+# a search engine renders opens a live session that queries the database. The
+# indexable public surface is www (the landing and the SEO service's stock,
+# sector and force pages). noindex in the served HTML is read before any
+# rendering, so crawlers stop spending sessions here; follow keeps the links
+# out to www counted. Found Nov 2026: 30 one-page, no-referrer desktop
+# sessions in a day, all on /stock, inflating "app visitors".
+META_ROBOTS = "noindex, follow"
 # The landing page ships this file (scripts/make_og_image.py). Without an
 # image, a shared app link previews as a text-only card.
-META_IMAGE = "https://unstructuredalpha.com/og-image.png"
+META_IMAGE = "https://www.unstructuredalpha.com/og-image.png"
 
 
 def _build_meta() -> str:
@@ -751,6 +762,7 @@ def _build_meta() -> str:
     t, d, u = esc(META_TITLE), esc(META_DESC), esc(META_URL)
     return (
         f"{META_START}"
+        f'<meta name="robots" content="{META_ROBOTS}">'
         f'<meta name="description" content="{d}">'
         f'<meta property="og:site_name" content="Unstructured Alpha">'
         f'<meta property="og:type" content="website">'
@@ -776,7 +788,7 @@ _JSONLD = json.dumps({
         {
             "@type": "WebSite",
             "name": "Unstructured Alpha",
-            "url": "https://unstructuredalpha.com",
+            "url": META_URL,
             "description": META_DESC,
         },
         {
@@ -784,7 +796,7 @@ _JSONLD = json.dumps({
             "name": "Unstructured Alpha",
             "applicationCategory": "FinanceApplication",
             "operatingSystem": "Web",
-            "url": "https://unstructuredalpha.com",
+            "url": META_URL,
             "description": META_DESC,
             "offers": [
                 {"@type": "Offer", "price": "0", "priceCurrency": "USD",
@@ -849,7 +861,7 @@ _SEO_LINKS = [
 
 def _build_seo_body() -> str:
     links = "".join(
-        f'<li><a href="https://unstructuredalpha.com/{slug}">{text}</a></li>'
+        f'<li><a href="/{slug}">{text}</a></li>'   # app routes: the bare domain redirects to www, where they 404
         for slug, text in _SEO_LINKS
     )
     return (

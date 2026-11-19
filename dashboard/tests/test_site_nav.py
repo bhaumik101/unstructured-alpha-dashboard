@@ -55,7 +55,7 @@ def test_the_ticker_box_goes_to_the_right_place(client):  # noqa: F811
     def where(q):
         return c.get("/go", params={"t": q}, follow_redirects=False).headers["location"]
     assert where("bank") == "/exposure/BANK"
-    assert where(" brk.b ") == f"{M.APP_URL}/stock?t=BRK-B"          # not on record: the app measures it
+    assert where(" brk.b ").startswith(f"{M.APP_URL}/stock?t=BRK-B&utm_source=public_tools")  # the app measures it
     assert where("<script>") == "/exposure" and where("") == "/exposure"
 
 

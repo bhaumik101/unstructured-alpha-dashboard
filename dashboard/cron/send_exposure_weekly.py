@@ -85,6 +85,18 @@ def main() -> int:
               flush=True)
         return 2
 
+    # Without a verified sender, utils.email falls back to Resend's test address
+    # (onboarding@resend.dev), which can only mail the Resend account's owner:
+    # every send to a real subscriber is rejected. Found in Nov 2026 -- this
+    # service had RESEND_API_KEY but RESEND_FROM_EMAIL was never filled in.
+    # Refuse up front so it shows as a failed run, not a week of 4xx sends.
+    sender = os.environ.get("RESEND_FROM_EMAIL", "")
+    if not sender or "resend.dev" in sender:
+        print("[exposure-email] RESEND_FROM_EMAIL is not set to a verified sender — Resend's test "
+              "address can only mail the account owner, so every send would be rejected. "
+              "Nothing was sent.", flush=True)
+        return 2
+
     # Without DATABASE_URL, init_db() silently falls back to a local SQLite file
     # that has no users — the job would then report "nobody has opted in" and
     # exit 0 every week while sending nothing. Refuse instead, so a missing

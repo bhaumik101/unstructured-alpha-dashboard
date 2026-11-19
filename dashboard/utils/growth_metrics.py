@@ -29,8 +29,8 @@ import json
 from datetime import date, datetime, timedelta
 from typing import Dict, Iterable, List, Optional, Tuple
 
-COLUMNS = ("site_visitors", "tool_views", "app_visitors", "from_tools", "crossed", "app_opens", "signups")
-VERDICT_ON = ("site_visitors", "from_tools", "crossed", "signups")
+COLUMNS = ("site_visitors", "tool_views", "tool_users", "app_visitors", "from_tools", "crossed", "app_opens", "signups")
+VERDICT_ON = ("site_visitors", "tool_users", "from_tools", "crossed", "signups")
 
 
 def week_of(ts) -> Optional[date]:
@@ -61,7 +61,7 @@ def weekly(events: Iterable[Tuple], signups: Iterable = (), weeks: int = 8,
     today = today or date.today()
     this_week = today - timedelta(days=today.weekday())
     starts = [this_week - timedelta(weeks=i) for i in range(weeks - 1, -1, -1)]
-    sets: Dict[date, Dict[str, set]] = {w: {"site": set(), "app": set(), "tools": set()} for w in starts}
+    sets: Dict[date, Dict[str, set]] = {w: {"site": set(), "app": set(), "tools": set(), "used": set()} for w in starts}
     counts: Dict[date, Dict[str, int]] = {w: {"tool_views": 0, "app_opens": 0, "signups": 0} for w in starts}
     for name, ts, visitor, raw in events:
         w = week_of(ts)
@@ -71,6 +71,10 @@ def weekly(events: Iterable[Tuple], signups: Iterable = (), weeks: int = 8,
         marketing = p.get("site") == "marketing"
         if name == "app_opened":
             counts[w]["app_opens"] += marketing
+            continue
+        if name == "tool_used":
+            if marketing and visitor:
+                sets[w]["used"].add(visitor)    # did something on a public tool, not just looked
             continue
         if name != "page_view":
             continue
@@ -88,6 +92,7 @@ def weekly(events: Iterable[Tuple], signups: Iterable = (), weeks: int = 8,
             counts[w]["signups"] += 1
     return [{"week": w, "partial": w == this_week,
              "site_visitors": len(sets[w]["site"]), "tool_views": counts[w]["tool_views"],
+             "tool_users": len(sets[w]["used"]),
              "app_visitors": len(sets[w]["app"]), "from_tools": len(sets[w]["tools"]),
              "crossed": len(sets[w]["site"] & sets[w]["app"]),
              "app_opens": counts[w]["app_opens"], "signups": counts[w]["signups"]}
