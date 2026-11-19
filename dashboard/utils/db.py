@@ -897,6 +897,24 @@ exposure_alerts = Table(
     Column("created_at", String(64), nullable=False),
 )
 
+# The weekly public email (utils/subscribers.py): an address, no account.
+# Double opt-in -- an address receives nothing but the confirmation until its
+# owner clicks it. token is random per address and only confirms or
+# unsubscribes that one address, so it rides in every email's links.
+public_subscribers = Table(
+    "public_subscribers", metadata,
+    Column("id",              Integer, primary_key=True),
+    Column("email",           String(320), nullable=False, unique=True),
+    Column("status",          String(16), nullable=False),   # pending | confirmed | unsubscribed
+    Column("token",           String(64), nullable=False, unique=True),
+    Column("source",          String(40)),                   # the page label it was signed up on
+    Column("created_at",      String(64), nullable=False),
+    Column("confirm_sent_at", String(64)),
+    Column("confirmed_at",    String(64)),
+    Column("unsubscribed_at", String(64)),
+    Column("last_sent_week",  String(10)),                   # data week of the last weekly email
+)
+
 # Only what the engine produced is stored. A force whose economic series
 # failed has no row for that week -- it is never filled in.
 stock_measurements = Table(

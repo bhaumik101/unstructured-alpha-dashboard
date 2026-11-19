@@ -69,7 +69,7 @@ def test_the_alert_email_leads_with_the_alert_and_its_uncertainty():
 def alerts_db(monkeypatch, tmp_path):
     from utils import db
     engine = create_engine(f"sqlite:///{tmp_path / 'a.db'}")
-    db.metadata.create_all(engine, tables=[db.users, db.exposure_alerts])
+    db.metadata.create_all(engine, tables=[db.users, db.exposure_alerts, db.public_subscribers])
     monkeypatch.setattr(db, "engine", engine)
     monkeypatch.setattr(db, "IS_SQLITE", True)
     return engine

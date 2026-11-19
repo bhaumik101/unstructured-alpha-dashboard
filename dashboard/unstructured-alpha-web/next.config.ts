@@ -73,6 +73,12 @@ const nextConfig: NextConfig = {
       { source: "/brief/:id", destination: `${SEO_ORIGIN}/brief/:id` },
       { source: "/sitemap.xml", destination: `${SEO_ORIGIN}/sitemap.xml` },
       { source: "/robots.txt", destination: `${SEO_ORIGIN}/robots.txt` },
+      // The weekly public email (seo/subscribe_api.py): sign-up, double opt-in
+      // confirmation, one-click unsubscribe. Replaces an unused Next route that
+      // logged addresses to stdout when its Resend audience was not configured.
+      { source: "/api/subscribe", destination: `${SEO_ORIGIN}/api/subscribe` },
+      { source: "/subscribe/confirm", destination: `${SEO_ORIGIN}/subscribe/confirm` },
+      { source: "/unsubscribe", destination: `${SEO_ORIGIN}/unsubscribe` },
       // Authenticated Pro API traffic is transparently proxied to the existing
       // FastAPI service. Authorization headers pass through the rewrite; the
       // public Next.js deployment never stores or validates raw API keys.

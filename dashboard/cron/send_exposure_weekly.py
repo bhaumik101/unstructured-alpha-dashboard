@@ -107,6 +107,24 @@ def main() -> int:
         return 2
 
     init_db()
+    rc = _portfolio_emails(api_key)
+    pub = _public_weekly()          # independent: a failed portfolio send must not skip it
+    return rc or pub
+
+
+def _public_weekly() -> int:
+    """The weekly public email (no account): utils/public_weekly.py. Same
+    service, same verified sender, run after the portfolio emails."""
+    from utils import public_weekly, stock_library
+    try:
+        return public_weekly.run(os.environ.get("SEO_BASE_URL", "https://www.unstructuredalpha.com"),
+                                 lambda: stock_library.latest(limit=5000), stock_library.previous)
+    except Exception as exc:
+        print(f"[public-weekly] failed: {type(exc).__name__}", flush=True)
+        return 1
+
+
+def _portfolio_emails(api_key: str) -> int:
     try:
         recipients = _recipients()
     except Exception as exc:
