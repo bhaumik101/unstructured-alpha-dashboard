@@ -1232,12 +1232,26 @@ def explore_page():
 
 
 @app.get("/guess", response_class=HTMLResponse)
-def guess_page():
-    """Whose fingerprint? Match a mystery stock's profile, five rounds a day."""
+def guess_page(g: str = "", d: str = ""):
+    """Whose fingerprint? Match a mystery stock's profile, five rounds a day.
+    ?g=&d= is a shared result: the page and its card show the score."""
     from utils.guess_page import guess_page_html
 
     _get_engine()
-    return HTMLResponse(guess_page_html(_exposure_stocks(), BASE_URL, APP_URL))
+    return HTMLResponse(guess_page_html(_exposure_stocks(), BASE_URL, APP_URL, g=g[:20], d=d[:10]))
+
+
+@app.get("/guess/og.png")
+def guess_og(g: str = "", d: str = ""):
+    """The card a shared fingerprint-game result previews with."""
+    from fastapi.responses import Response
+    from utils import quiz_share as qs
+
+    shared = qs.parse(g, d)
+    if not shared:
+        raise HTTPException(status_code=404, detail="Not a game result.")
+    return Response(qs.quiz_og_png(*shared, game="guess"), media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=604800, immutable"})
 
 
 @app.get("/quiz", response_class=HTMLResponse)
