@@ -53,6 +53,36 @@ def _props(raw) -> dict:
         return {}
 
 
+# A visitor who loads BURST_VIEWS or more pages inside BURST_SECONDS is a
+# script, not a reader -- a scraper, or our own site checks (Nov 19 2026: one
+# automated crawl logged 42 page views in 56 seconds). Their events are left
+# out of every count, so the report measures people.
+BURST_VIEWS, BURST_SECONDS = 20, 300
+
+
+def automated(events: Iterable[Tuple]) -> set:
+    """Visitor ids with a burst of page views no person produces."""
+    times: Dict[str, List[datetime]] = {}
+    for name, ts, visitor, _raw in events:
+        if name != "page_view" or not visitor:
+            continue
+        try:
+            t = ts if isinstance(ts, datetime) else datetime.fromisoformat(str(ts)[:19])
+        except ValueError:
+            continue
+        times.setdefault(visitor, []).append(t.replace(tzinfo=None))
+    out = set()
+    for visitor, ts in times.items():
+        if len(ts) < BURST_VIEWS:
+            continue
+        ts.sort()
+        for i in range(len(ts) - BURST_VIEWS + 1):
+            if (ts[i + BURST_VIEWS - 1] - ts[i]).total_seconds() <= BURST_SECONDS:
+                out.add(visitor)
+                break
+    return out
+
+
 def weekly(events: Iterable[Tuple], signups: Iterable = (), weeks: int = 8,
            today: Optional[date] = None) -> List[dict]:
     """events: (event_name, created_at, visitor_id, properties) rows.
@@ -63,7 +93,11 @@ def weekly(events: Iterable[Tuple], signups: Iterable = (), weeks: int = 8,
     starts = [this_week - timedelta(weeks=i) for i in range(weeks - 1, -1, -1)]
     sets: Dict[date, Dict[str, set]] = {w: {"site": set(), "app": set(), "tools": set(), "used": set()} for w in starts}
     counts: Dict[date, Dict[str, int]] = {w: {"tool_views": 0, "app_opens": 0, "signups": 0} for w in starts}
+    events = list(events)
+    bots = automated(events)
     for name, ts, visitor, raw in events:
+        if visitor in bots:
+            continue
         w = week_of(ts)
         if w not in sets:
             continue
