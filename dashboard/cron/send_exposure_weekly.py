@@ -85,13 +85,13 @@ def main() -> int:
               flush=True)
         return 2
 
-    # Without a verified sender, utils.email falls back to Resend's test address
-    # (onboarding@resend.dev), which can only mail the Resend account's owner:
-    # every send to a real subscriber is rejected. Found in Nov 2026 -- this
-    # service had RESEND_API_KEY but RESEND_FROM_EMAIL was never filled in.
-    # Refuse up front so it shows as a failed run, not a week of 4xx sends.
-    sender = os.environ.get("RESEND_FROM_EMAIL", "")
-    if not sender or "resend.dev" in sender:
+    # Resend's test address (onboarding@resend.dev) can only mail the Resend
+    # account's owner, so a sender set to it would see every send to a real
+    # subscriber rejected. Refuse up front so that shows as a failed run.
+    # FROM_EMAIL is the EFFECTIVE sender: unset, it is our own verified domain
+    # (brief@unstructuredalpha.com), which works -- the first version of this
+    # guard checked the raw variable and would have refused a working setup.
+    if "resend.dev" in FROM_EMAIL:
         print("[exposure-email] RESEND_FROM_EMAIL is not set to a verified sender — Resend's test "
               "address can only mail the account owner, so every send would be rejected. "
               "Nothing was sent.", flush=True)
