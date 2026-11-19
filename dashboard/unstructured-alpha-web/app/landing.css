@@ -414,3 +414,26 @@
 @media (max-width: 760px) { .lp-grid-2x2 { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .lp-free { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .lp-free a { transition: none; } .lp-free a:hover { transform: none; } }
+
+/* ── Today's challenge (app/DailyChallenge.tsx) ───────────────────────── */
+.lp-daily { padding: 56px 0; background: linear-gradient(180deg, var(--lp-sky), var(--lp-bg)); }
+.lp-daily-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.lp-daily-head .lp-h2 { margin-bottom: 0; max-width: 640px; }
+.lp-daily a.lp-daily-streak { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px 0 12px; border-radius: 999px;
+  background: var(--lp-navy); color: var(--lp-bright); font-weight: 750; text-decoration: none; white-space: nowrap; }
+.lp-daily a.lp-daily-streak svg { width: 18px; height: 18px; }
+.lp-daily a.lp-daily-streak span { color: rgba(238, 243, 250, 0.78); font-weight: 600; }
+.lp-daily-games { list-style: none; margin: 24px 0 14px; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.lp-daily-games a { display: grid; gap: 6px; height: 100%; padding: 22px 24px; border-radius: 18px; text-decoration: none; color: var(--lp-ink);
+  background: var(--lp-surface); border: 1px solid var(--lp-line); box-shadow: 0 1px 2px rgba(13, 34, 59, .05), 0 14px 34px -22px rgba(13, 34, 59, .35);
+  transition: transform .15s ease, box-shadow .15s ease; }
+.lp-daily-games a:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(13, 34, 59, .05), 0 20px 40px -22px rgba(13, 34, 59, .45); }
+.lp-daily-games b { font-size: 20px; letter-spacing: -0.01em; }
+.lp-daily-what { font-size: 13px; font-weight: 700; color: var(--lp-accent); text-transform: uppercase; letter-spacing: .05em; }
+.lp-daily-blurb { color: var(--lp-ink-2); }
+.lp-daily-cta { margin-top: 6px; font-weight: 750; color: var(--lp-accent); }
+.lp-daily-games a.is-done { border-color: #2e9d6a; }
+.lp-daily-games a.is-done .lp-daily-cta { color: #1f7a4d; }
+.lp-daily-note { font-size: 13px; color: var(--lp-ink-3); }
+@media (max-width: 720px) { .lp-daily-games { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .lp-daily-games a { transition: none; } .lp-daily-games a:hover { transform: none; } }
