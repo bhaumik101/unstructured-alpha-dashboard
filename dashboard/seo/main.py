@@ -832,6 +832,10 @@ def sitemap_xml():
         if set(_funds()) & {s["ticker"] for s in _exposure_stocks()}:   # an empty /etfs is noindex
             urls.append(f"  <url><loc>{BASE_URL}/etfs</loc><lastmod>{today}</lastmod>"
                         "<changefreq>weekly</changefreq><priority>0.8</priority></url>")
+        from utils.funds import MARKET_TRACKERS
+        for t in sorted(MARKET_TRACKERS):   # pages that explain why they have no readings
+            urls.append(f"  <url><loc>{BASE_URL}/exposure/{t}</loc>"
+                        "<changefreq>monthly</changefreq><priority>0.5</priority></url>")
     except Exception:
         pass
     urls.append(f"  <url><loc>{BASE_URL}/tools</loc><lastmod>{today}</lastmod>"
@@ -1070,13 +1074,20 @@ def exposure_page(symbol: str):
         return RedirectResponse(f"/exposure/{canonical}", status_code=301)
     symbol = canonical
     _get_engine()
+    from utils.funds import MARKET_TRACKERS
+    if symbol in MARKET_TRACKERS:
+        # Never measured, by design: the market is the baseline. A page that
+        # says so, rather than a 404 for the most-searched tickers there are.
+        from utils.ticker_fallback import tracker_page_html
+        return HTMLResponse(tracker_page_html(symbol, _exposure_stocks(), BASE_URL, APP_URL))
     history = _history(symbol)
     if not history and not _check_db(2.0):
         # An outage is not "not measured": the stored copy if there is one
         # (its newest week only), otherwise 503.
         history = [s for s in _exposure_stocks() if s.get("ticker") == symbol][:1]
     if not history:
-        raise HTTPException(status_code=404, detail=f"{symbol} has not been measured yet.")
+        from utils.ticker_fallback import missing_page_html
+        return HTMLResponse(missing_page_html(symbol, _exposure_stocks(), BASE_URL, APP_URL), status_code=404)
     rec = history[0]
     lead = lead_factor(rec)
     related = []
@@ -1099,8 +1110,10 @@ def exposure_page(symbol: str):
         peers = peer_medians(symbol, _exposure_stocks())
     except Exception:
         peers = None
+    from utils.exposure_pages import data_week
+    week = data_week(s.get("as_of") for s in _exposure_stocks())
     return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL, held, alike,
-                                        peers))
+                                        peers, library_week=week))
 
 
 @app.get("/embed/{symbol}", response_class=HTMLResponse)
@@ -1280,7 +1293,8 @@ def go(t: str = ""):
     if not SYMBOL_RE.match(sym):
         return RedirectResponse("/exposure", status_code=302)
     _get_engine()
-    if any(s["ticker"] == sym for s in _exposure_stocks()):
+    from utils.funds import MARKET_TRACKERS
+    if sym in MARKET_TRACKERS or any(s["ticker"] == sym for s in _exposure_stocks()):
         return RedirectResponse(f"/exposure/{sym}", status_code=302)
     return RedirectResponse(f"{APP_URL}/stock?t={quote(sym)}", status_code=302)
 

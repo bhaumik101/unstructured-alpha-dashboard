@@ -534,8 +534,11 @@ def range_chart_html(exps: dict, keys: List[str], peers: Optional[dict] = None) 
 def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[dict],
                     base_url: str, app_url: str, held: Optional[dict] = None,
                     similar: Optional[List[dict]] = None,
-                    peers: Optional[dict] = None) -> str:
+                    peers: Optional[dict] = None, library_week: str = "") -> str:
     """The page for one measured stock. `rec` is its newest stored week.
+
+    library_week: the week the rest of the library is through; a reading well
+    behind it gets a notice that it is no longer being updated.
 
     held: utils.track_record.persistence() of the published study, or None.
     """
@@ -543,6 +546,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
     from utils.embed_page import embed_box_html
     from utils.explore_page import stock_whatif_html
     from utils.list_page import save_button_html
+    from utils.ticker_fallback import stale_notice_html
 
     held = held or {}
     name = rec.get("name") or ""
@@ -676,6 +680,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '
         f'<a href="/exposure">Stock exposures</a> › {escape(symbol)}</nav>'
         f'{stock_header_html(symbol, rec, who, sector, peers, save_button_html(symbol))}'
+        f'{stale_notice_html(rec.get("as_of") or "", library_week)}'
         f'<p class="lead">{escape(summary)}</p>'
         f'<div class="st-top">{jump}</div>'
         f'<h2 id="exposure">Exposure to each economic force</h2>{range_chart_html(exps, keys, peers)}{table}'
