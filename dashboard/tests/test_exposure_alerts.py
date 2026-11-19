@@ -157,13 +157,23 @@ def test_a_free_user_sees_what_pro_adds_and_no_controls(monkeypatch, synthetic_e
     assert not [b for b in at.button if b.key == "uar_alert_add"]
 
 
-@pytest.mark.parametrize("sender", [None, "Unstructured Alpha <onboarding@resend.dev>"])
-def test_the_job_refuses_without_a_verified_sender(monkeypatch, alerts_db, sender):
+def test_the_job_refuses_resends_test_sender(monkeypatch, alerts_db):
     job, sent = _job(monkeypatch, alerts_db, [(7, "pro", True)], _report(rates=-1.3))
     xa.add_alert(7, "rates", "below", -1.0)
-    if sender is None:
-        monkeypatch.delenv("RESEND_FROM_EMAIL")
-    else:
-        monkeypatch.setenv("RESEND_FROM_EMAIL", sender)
+    monkeypatch.setattr(job, "FROM_EMAIL", "Unstructured Alpha <onboarding@resend.dev>")
     assert job.main() == 2                                  # a failed run, visible on Render
     assert sent == [] and xa.list_alerts(7)[0]["last_state"] == 0
+
+
+def test_with_no_sender_variable_it_sends_from_our_own_domain(monkeypatch, alerts_db):
+    """Unset RESEND_FROM_EMAIL is the production setup on this service; the
+    built-in sender is on our verified domain and must be used, not refused."""
+    import importlib
+    import cron.send_exposure_weekly as job_mod
+    monkeypatch.delenv("RESEND_FROM_EMAIL", raising=False)
+    importlib.reload(job_mod)
+    job, sent = _job(monkeypatch, alerts_db, [(7, "pro", True)], _report(rates=-1.3))
+    monkeypatch.delenv("RESEND_FROM_EMAIL", raising=False)
+    xa.add_alert(7, "rates", "below", -1.0)
+    assert job.main() == 0 and len(sent) == 1
+    assert sent[0]["from_email"].endswith("@unstructuredalpha.com>")

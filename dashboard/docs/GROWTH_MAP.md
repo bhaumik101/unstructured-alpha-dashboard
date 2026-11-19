@@ -49,15 +49,16 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
    hero X-ray engages people was unmeasured until #360.
 3. **Retention.** No reason yet to make an account: the learning streak is
    browser-only, the weekly email has no subscribers.
-4. **Monetisation.** Pro alerts shipped (#357); the weekly sender needs its
-   `RESEND_FROM_EMAIL` set before the first real send (see owner actions).
+4. **Monetisation.** Pro alerts shipped (#357). The weekly job sends from our own
+   verified domain (brief@unstructuredalpha.com) -- no setup needed (#362).
 
 ## Shipped (newest first)
 
 | PR | What | Moves |
 |---|---|---|
+| #362 | Fix #360's sender guard: it checked the raw variable and would have refused the working built-in sender | monetisation |
 | #361 | IndexNow: announce the ~600 re-measured pages to Bing/Yandex/Seznam/Naver weekly | discovery |
-| #360 | `tool_used` + `tool_users`; app noindex (crawler sessions); /go utm; weekly sender guard | measurement, cost |
+| #360 | `tool_used` + `tool_users`; app noindex (crawler sessions); /go utm | measurement, cost |
 | #359 | Real pages for SPY/VOO/IVV/VTI (were a JSON 404) and unmeasured tickers; stale notice | discovery, trust |
 | #358 | Learning track: streaks, XP, levels, five-step path | retention |
 | #357 | Investor Pro exposure alerts | monetisation |
@@ -79,8 +80,6 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 ## Owner actions (only the owner can do these)
 
-- Set `RESEND_FROM_EMAIL` on **unstructured-alpha-exposure-weekly** (Render → service →
-  Environment) to the same value the app uses. Until then the job refuses to send.
 - Send the Google Search Console verification code (a meta tag is a one-line change).
 - Swap `DATABASE_URL` for the read-only login (scratchpad file from the Nov session).
 - Opt in to the weekly email from your own account, so the first real send goes to you.
