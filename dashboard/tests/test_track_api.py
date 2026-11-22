@@ -284,3 +284,18 @@ def test_the_visitor_is_the_person_not_the_relay_server(client_and_writes):
     _post(client, {"event": "page_view", "page": "Landing"},
           headers={"cf-connecting-ip": "3.1.1.1", "x-forwarded-for": "198.51.100.9"})
     assert writes[2]["visitor_id"] != person                 # a different person is a different visitor
+
+
+def test_the_internal_flag_is_stored_only_when_exactly_true(client_and_writes):
+    client, writes = client_and_writes
+    _post(client, {"event": "page_view", "page": "Landing", "internal": True})
+    _post(client, {"event": "page_view", "page": "Landing", "internal": "yes"})
+    assert writes[0]["properties"].get("internal") == "1" and "internal" not in writes[1]["properties"]
+
+
+def test_every_beacon_carries_the_internal_flag():
+    from utils.exposure_pages import _TRACK_JS
+    web = Path(__file__).resolve().parents[1] / "unstructured-alpha-web" / "app"
+    assert _TRACK_JS.count("internal:I||undefined") == 2 and "ua_internal=1" in _TRACK_JS
+    assert "internal:I||undefined" in (web / "layout.tsx").read_text()
+    assert "__uaInternal" in (web / "page.tsx").read_text() and "__uaInternal" in (web / "HeroXray.tsx").read_text()

@@ -361,13 +361,18 @@ def page_label(canonical: str) -> Optional[str]:
 # No cookie, nothing stored in the browser, no third party -- the same beacon as
 # the landing page's (unstructured-alpha-web/app/layout.tsx).
 _TRACK_JS = ('(function(){try{if(window.__uaTrackInit)return;window.__uaTrackInit=1;'
-             'var b=JSON.stringify({event:"page_view",page:__LABEL__});'
+             # Internal traffic (the owner's own browsers, our checks) is flagged, never counted:
+             # ?ua_internal=1 marks this browser, ?ua_internal=0 unmarks it (utils/growth_metrics).
+             'var I=false;try{var q=location.search;if(/[?&]ua_internal=1/.test(q))localStorage.setItem("ua-internal","1");'
+             'if(/[?&]ua_internal=0/.test(q))localStorage.removeItem("ua-internal");I=localStorage.getItem("ua-internal")==="1";}catch(e){}'
+             'window.__uaInternal=I;'
+             'var b=JSON.stringify({event:"page_view",page:__LABEL__,internal:I||undefined});'
              'if(navigator.sendBeacon){navigator.sendBeacon("/api/track",new Blob([b],{type:"application/json"}));}'
              'else{fetch("/api/track",{method:"POST",body:b,keepalive:true,'
              'headers:{"Content-Type":"application/json"}}).catch(function(){});}'
              # tool_used: the first real use of a tool on this page (utils/progress
              # queues uses that happen before this script, at the end of <body>).
-             'window.uaUsed=function(t){try{var u=JSON.stringify({event:"tool_used",page:__LABEL__,tool:t});'
+             'window.uaUsed=function(t){try{var u=JSON.stringify({event:"tool_used",page:__LABEL__,tool:t,internal:I||undefined});'
              'if(navigator.sendBeacon){navigator.sendBeacon("/api/track",new Blob([u],{type:"application/json"}));}'
              'else{fetch("/api/track",{method:"POST",body:u,keepalive:true,'
              'headers:{"Content-Type":"application/json"}}).catch(function(){});}}catch(e){}};'

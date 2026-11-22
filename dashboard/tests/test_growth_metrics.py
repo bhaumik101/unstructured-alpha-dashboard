@@ -62,7 +62,12 @@ def test_each_public_page_sends_one_labelled_beacon():
     html = ep.hub_page_html([_stock("XOM", "Exxon", oil=(2.0, "clear"))], "https://www.x", "https://app.x")
     assert html.count('event:"page_view"') == 1                    # one page view per load
     assert 'page:"Stocks"' in html and "window.__uaTrackInit" in html
-    assert "cookie" not in ep._TRACK_JS and "localStorage" not in ep._TRACK_JS
+    # No cookie, ever. Browser storage holds one thing only: the opt-in
+    # "internal" marker a person sets on their own browser at ?ua_internal=1
+    # so their visits are not counted -- never an identifier.
+    assert "cookie" not in ep._TRACK_JS
+    keys = set(re.findall(r'localStorage\.\w+\("([^"]+)"', ep._TRACK_JS))
+    assert keys == {"ua-internal"}, keys
 
 
 def test_app_arrivals_keep_their_utm_tags_as_short_tokens():
@@ -163,3 +168,18 @@ def test_returning_counts_people_seen_in_an_earlier_week():
     rows = gm.weekly(events, today=date(2026, 11, 12))
     assert [r["returning"] for r in rows[-2:]] == [0, 2]
     assert "returning" in gm.COLUMNS and "returning" in gm.VERDICT_ON
+
+
+def test_internal_visitors_are_left_out_everywhere():
+    """The owner's browsers (marked at ?ua_internal=1) and our checks: every
+    event from a visitor who ever sent the flag is excluded, not only the
+    flagged ones -- an unflagged visit from before the flag is still them."""
+    mk = '{"page": "Landing", "site": "marketing"}'
+    flagged = '{"page": "Landing", "site": "marketing", "internal": "1"}'
+    events = [("page_view", "2026-11-03T10:00:00", "owner", mk),
+              ("page_view", "2026-11-10T10:00:00", "owner", flagged),
+              ("page_view", "2026-11-10T10:00:00", "reader", mk),
+              ("page_view", "2026-11-10T11:00:00", "8d52b08d6ebb68cd40e9136941c44ed5", mk)]   # a known test id
+    rows = gm.weekly(events, today=date(2026, 11, 12))
+    assert rows[-1]["site_visitors"] == 1 and rows[-2]["site_visitors"] == 0
+    assert gm.internal(events) >= {"owner", "8d52b08d6ebb68cd40e9136941c44ed5"}
