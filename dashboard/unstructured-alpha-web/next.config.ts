@@ -63,6 +63,8 @@ const nextConfig: NextConfig = {
       { source: "/embed/:symbol", destination: `${SEO_ORIGIN}/embed/:symbol` },
       { source: "/og/:name", destination: `${SEO_ORIGIN}/og/:name` },
       { source: "/forces", destination: `${SEO_ORIGIN}/forces` },
+      { source: "/when", destination: `${SEO_ORIGIN}/when` },
+      { source: "/when/:slug", destination: `${SEO_ORIGIN}/when/:slug` },
       { source: "/forces/:key", destination: `${SEO_ORIGIN}/forces/:key` },
       { source: "/signal/:id", destination: `${SEO_ORIGIN}/signal/:id` },
       { source: "/signals/report", destination: `${SEO_ORIGIN}/signals/report` },

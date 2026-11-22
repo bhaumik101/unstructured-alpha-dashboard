@@ -74,6 +74,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 
 | PR | What | Moves |
 |---|---|---|
+| #373 | **"What moved when"**: 28 pages answering "which stocks went up when rates fell / oil rose / …" with measured evidence (research-driven bet, see `docs/RESEARCH_2026-11.md`). Also fixes every natural-gas reading (spot-price spikes) and adds a guard that excludes any spike-dominated force | discovery, activation, trust |
 | #372 | Fingerprint-game share cards (same as the quiz) | discovery |
 | #371 | Landing "Today's challenge": the two daily games, with a returning player's streak and today's results (same browser store as the tool pages) | retention, activation |
 | #370 | Quiz share cards: a result link (`/quiz?g=…&d=…`) previews as a card of the score and its squares (no spoilers); a native Share button on phones | discovery |
@@ -104,6 +105,13 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 | E3 | ~~Share cards~~ shipped: X-ray mixes #364, quiz scores #370 | arrivals on `/xray?p=`, `/quiz?g=` | — |
 | E4 | Sync the learning streak to an account | signups | — |
 | E5 | Bing Webmaster Tools (confirms IndexNow pickup) | Bing indexed pages | owner: optional sign-in |
+
+## Research loop
+
+Each round: measure → research → bet → write the numbers that would prove the
+bet wrong → check them → correct. Round 1 (Nov 22): `docs/RESEARCH_2026-11.md`
+-- zero tool use despite rising traffic; bet on query-matched measured pages;
+checks due Dec 1 and Dec 22.
 
 ## Owner actions (only the owner can do these)
 
