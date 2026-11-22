@@ -87,3 +87,17 @@ def test_natural_gas_waits_for_its_re_measure():
     new = [dict(s, as_of="2026-11-20") for s in old]
     html = wp.when_page_html("natural-gas-rises", new, "https://www.x", "https://app.x")
     assert "Being re-measured" not in html and 'content="noindex' not in html
+
+
+def test_long_lists_fold_but_stay_in_the_page():
+    """Ten at once, the rest one click away -- and still in the HTML, so search
+    engines and find-in-page see every listed stock."""
+    import re
+    from utils import when_pages as wp
+    stocks = [_stock(f"T{i:02d}", -(i + 1) * 1.0) for i in range(30)]
+    html = wp.when_page_html("rates-fall", stocks, "https://x", "https://app.x")
+    first = html.split('<details')[0]
+    assert first.count('href="/exposure/T') == wp.SHOW_UP
+    assert "Show 15 more" in html
+    assert len(set(re.findall(r'href="/exposure/(T\d\d)"', html))) == wp.TOP_UP
+    assert "Showing the 25 largest of 30." in html

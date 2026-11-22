@@ -298,6 +298,7 @@ td b{color:var(--ink)}
 .btn-primary{background:var(--bright);color:var(--on-bright);box-shadow:0 6px 16px -10px rgba(185,131,9,.9)}.btn-primary:hover{filter:brightness(1.05)}
 @media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:hover{transform:none}}
 .btn-secondary{background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+details.more{margin:14px 0;border:1px solid var(--line);border-radius:14px;background:var(--surface)}details.more>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:14px}details.more>summary::-webkit-details-marker{display:none}details.more>summary:hover{background:var(--subtle)}details.more>summary h2{margin:0;font-size:var(--fs-lead);font-weight:700}details.more>summary .hint{color:var(--ink3);font-size:var(--fs-sm);margin-left:auto;text-align:right}details.more>summary::after{content:"";flex:none;width:9px;height:9px;border-right:2px solid var(--ink3);border-bottom:2px solid var(--ink3);transform:rotate(45deg);margin:-4px 2px 0 4px;transition:transform .18s}details.more[open]>summary::after{transform:rotate(-135deg);margin-top:4px}details.more[open]>summary{border-bottom:1px solid var(--line);border-radius:14px 14px 0 0}details.more>.in{padding:6px 18px 16px}details.more>.in>.card{box-shadow:none;margin:10px 0}details.more.quiet{border:0;background:none}details.more.quiet>summary{padding:8px 0;font-weight:650;color:var(--ink2)}details.more.quiet[open]>summary{border:0}details.more.quiet>.in{padding:0}@media (max-width:560px){details.more>summary{display:grid;grid-template-columns:1fr auto;gap:4px 12px}details.more>summary::after{grid-column:2;grid-row:1;align-self:center}details.more>summary .hint{grid-column:1/-1;grid-row:2;margin-left:0;text-align:left}}details.embed>summary{list-style:none;display:inline-flex;align-items:center;gap:10px;color:var(--ink2)}details.embed>summary::-webkit-details-marker{display:none}details.embed>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--ink3);border-bottom:2px solid var(--ink3);transform:rotate(45deg);margin-top:-4px;transition:transform .18s}details.embed[open]>summary::after{transform:rotate(-135deg);margin-top:4px}
 details.embed{margin:24px 0 8px}details.embed summary{cursor:pointer;font-weight:650}
 details.embed textarea{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .related{display:flex;flex-wrap:wrap;gap:8px;list-style:none}
@@ -445,6 +446,25 @@ def _signup(canonical: str) -> str:
         return ""
 
 
+
+# A jump link or shared #anchor into a folded section opens it: details only
+# auto-open on fragment navigation in some browsers, so do it everywhere.
+_OPEN_JS = ("<script>(function(){function o(){var h=location.hash.slice(1);if(!h)return;"
+            "var e=document.getElementById(h);while(e){if(e.tagName==='DETAILS')e.open=true;e=e.parentElement;}}"
+            "o();addEventListener('hashchange',o);})();</script>")
+
+
+def more_html(anchor: str, title: str, hint: str, inner: str, open_: bool = False,
+              quiet: bool = False) -> str:
+    """A folded section: the heading and a one-line hint stay visible, the
+    detail opens on demand. The content is in the HTML either way, so search
+    engines and find-in-page see all of it."""
+    cls = "more quiet" if quiet else "more"
+    head = f'<h2>{title}</h2>' if not quiet else title
+    return (f'<details class="{cls}"{f" id={chr(34)}{anchor}{chr(34)}" if anchor else ""}{" open" if open_ else ""}>'
+            f'<summary>{head}' + (f'<span class="hint">{hint}</span>' if hint else '')
+            + f'</summary><div class="in">{inner}</div></details>')
+
 def _shell(title: str, description: str, canonical: str, json_ld: dict, body: str,
            app_url: str, robots: str = "", og_image: str = "") -> str:
     """og_image: a 1200x630 preview for shares; the site's own image when empty."""
@@ -482,7 +502,8 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         f'<a class="cta" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '</div></header>'
         f'<main id="main">{_notice()}{body}{_signup(canonical)}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}'
-        f'{_me_script()}{_since_card()}{_track_script(canonical)}</body></html>')
+        f'{_me_script()}{_since_card()}{_track_script(canonical)}'
+        + (_OPEN_JS if 'class="more' in body else '') + '</body></html>')
 
 
 # The public tools, in the order the header shows them. Every page carries the
@@ -694,8 +715,10 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
             f'<td>{fmt_pct(exps[k]["low"])} to {fmt_pct(exps[k]["high"])}</td>'
             f'<td>{_chip(exps[k]["evidence"])}</td></tr>'
             for k in xkeys)
-        extra_html = (
-            '<h2 id="more">More forces, beyond the core five</h2>'
+        xheld = [_EXTRA[k].label for k in xkeys if exps[k]["evidence"] in STANDS_UP]
+        xhint = (f'{len(xheld)} of {len(xkeys)} held up' + (': ' + escape(', '.join(xheld[:3])) + (' …' if len(xheld) > 3 else '')
+                 if xheld else ''))
+        extra_html = more_html("more", "More forces, beyond the core five", xhint, (
             '<div class="card" tabindex="0" role="region" aria-label="More forces, beyond the core five">'
             '<table><thead><tr><th scope="col">Force</th>'
             '<th scope="col">Typical weekly move</th><th scope="col">90% range</th>'
@@ -703,7 +726,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
             '<div class="foot">Each is measured with the stock market and the five forces above held '
             'fixed, so it shows only what they don\'t already explain. The evidence bar is stricter '
             f'than for the core five (Clear needs |t| ≥ {ex.EXTRA_CLEAR_T:.2f}, shared across every '
-            'force tested). It describes the past; it is not a forecast.</div></div>')
+            'force tested). It describes the past; it is not a forecast.</div></div>'))
 
     hist_html = ""
     if len(history) >= 2:
@@ -719,14 +742,14 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         body_rows = "".join(
             f'<tr><th scope="row">{_date(h["as_of"])}</th>{"".join(cell(h, k) for k in cols)}</tr>'
             for h in history[:12])
-        hist_html = (
-            f'<h2 id="history">{escape(symbol)} week by week</h2>'
+        hist_html = more_html("history", f"{escape(symbol)} week by week",
+                              f"The last {min(12, len(history))} weekly readings", (
             f'<div class="card" tabindex="0" role="region" aria-label="{escape(symbol)} week by week">'
             f'<table><thead><tr><th scope="col">Data through</th>{head}</tr></thead>'
             f'<tbody>{body_rows}</tbody></table>'
             '<div class="foot">Each row is the stock measured over the three years to that week. Bold '
             'figures held up; grey ones could not be told apart from zero. A dash means that force '
-            'could not be measured that week, not that it was zero.</div></div>')
+            'could not be measured that week, not that it was zero.</div></div>'))
 
     rel_html = ""
     lead = lead_factor(rec)
@@ -745,7 +768,8 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
             rel_html += (f'<h3>{label} {force}</h3>'
                          f'<ul class="related" aria-label="Other stocks that {label.lower()} {force}">'
                          f'{items}</ul>')
-        rel_html = f'<h2 id="related">Other stocks exposed to {force}</h2>{rel_html}'
+        rel_html = more_html("related", f"Other stocks exposed to {force}",
+                             f"{len(related)} stocks, up and down listed apart", rel_html)
 
     from utils.sector_pages import sector_by_ticker
     sector = sector_by_ticker().get(symbol)
@@ -758,11 +782,12 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
             f'<a class="small" href="/compare?a={escape(symbol)}&amp;b={escape(r["ticker"])}" '
             f'aria-label="Compare {escape(symbol)} with {escape(r["ticker"])}">compare</a></li>'
             for r in similar)
-        sim_html = (f'<h2 id="similar">Stocks with the most similar profile</h2>'
+        sim_html = more_html("similar", "Stocks with the most similar profile",
+                             escape(", ".join(r["ticker"] for r in similar[:4])) + (" …" if len(similar) > 4 else ""), (
                     f'<ul class="related" aria-label="Stocks most like {escape(symbol)}">{items}</ul>'
                     '<p class="small">Closest across the five core forces, each scaled by how much '
                     'stocks on record differ on it. Alike in how they moved over three years, not in '
-                    'business, size or value.</p>')
+                    'business, size or value.</p>'))
 
     # Jump links to the sections this stock's page actually has.
     whatif = stock_whatif_html(symbol, rec)
@@ -780,8 +805,10 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'{stale_notice_html(rec.get("as_of") or "", library_week)}'
         f'<p class="lead">{escape(summary)}</p>'
         f'<div class="st-top">{jump}</div>'
-        f'<h2 id="exposure">Exposure to each economic force</h2>{range_chart_html(exps, keys, peers)}{table}'
-        '<div class="actions">'
+        f'<h2 id="exposure">Exposure to each economic force</h2>{range_chart_html(exps, keys, peers)}'
+        + more_html("numbers", "See the exact numbers",
+                    "Each figure with its 90% range, evidence and sector median", table, quiet=True)
+        + '<div class="actions">'
         f'<a class="btn btn-primary" href="{escape(app_link(app_url, "/stock", canonical, t=symbol))}">'
         f'Open the interactive report for {escape(symbol)}</a>'
         f'<a class="btn btn-secondary" href="{escape(app_link(app_url, "/", canonical))}">Measure a whole portfolio</a>'
@@ -791,11 +818,12 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> It shows how the '
         'stock has moved alongside five economic forces. Relationships change, and nothing here is a '
         'recommendation to buy, sell or hold any security.</p>'
+        + more_html("", "How this is measured", "", (
         f'<p class="small">Method: weekly returns over three years, regressed on weekly changes in the '
         f'10-year Treasury yield, 10-year inflation expectations, the trade-weighted dollar, oil and '
         f'corporate credit spreads, controlling for the S&amp;P 500. Newey-West standard errors; the 90% '
         f'range and evidence label show how precisely each figure is measured. Prices from Yahoo '
-        f'Finance; economic series from FRED. <a href="{escape(app_url)}/methodology">Full methodology</a>.</p>')
+        f'Finance; economic series from FRED. <a href="{escape(app_url)}/methodology">Full methodology</a>.</p>'), quiet=True))
 
     json_ld = {
         "@context": "https://schema.org", "@type": "WebPage", "name": title,

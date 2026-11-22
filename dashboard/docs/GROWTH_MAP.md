@@ -75,6 +75,7 @@ sitemap URLs and 640 internal links return 200; 22 key pages clean at 390px and
 | PR | What | Moves |
 |---|---|---|
 | #373 | **"What moved when"**: 28 pages answering "which stocks went up when rates fell / oil rose / …" with measured evidence (research-driven bet, see `docs/RESEARCH_2026-11.md`). Also fixes every natural-gas reading (spot-price spikes) and adds a guard that excludes any spike-dominated force | discovery, activation, trust |
+| #374 | **Internal traffic flag + calmer pages.** `?ua_internal=1` marks the owner's browsers; their visits and our checks never count. Stock and When pages show the answer first and fold the detail into labelled panels with a one-line preview (XOM: 5,308 → 2,640 px), all still in the HTML for search | measurement, activation, retention |
 | #372 | Fingerprint-game share cards (same as the quiz) | discovery |
 | #371 | Landing "Today's challenge": the two daily games, with a returning player's streak and today's results (same browser store as the tool pages) | retention, activation |
 | #370 | Quiz share cards: a result link (`/quiz?g=…&d=…`) previews as a card of the score and its squares (no spoilers); a native Share button on phones | discovery |
