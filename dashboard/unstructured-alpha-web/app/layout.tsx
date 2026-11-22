@@ -62,7 +62,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         {/*
           Inter, loaded. The stylesheets always NAMED Inter, but nothing ever
@@ -80,14 +80,15 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
         />
         {/*
-          Theme: a stored choice wins; otherwise light. Light is the default
-          because advisers print and screen-share reports.
+          Theme: a stored choice wins; otherwise dark. The landing is the
+          dramatic surface (2026-11 redesign); the app, where reports are
+          printed and screen-shared, keeps its own light default.
         */}
         <script
           dangerouslySetInnerHTML={{
             __html:
               '(function(){try{var s=localStorage.getItem("ua-theme");' +
-              'var t=(s==="light"||s==="dark")?s:"light";' +
+              'var t=(s==="light"||s==="dark")?s:"dark";' +
               'document.documentElement.setAttribute("data-theme",t)}catch(e){}})()',
           }}
         />
