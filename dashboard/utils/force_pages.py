@@ -250,6 +250,34 @@ def force_header_html(f: ex.Factor, st: dict, stocks: List[dict]) -> str:
             + '</header>')
 
 
+# Forces whose method changed: readings from data weeks before the date were
+# measured the old way and are shown with a notice until the weekly job
+# re-measures them (and kept out of search meanwhile).
+METHOD_CHANGED = {
+    "natgas": ("2026-11-20", "These readings are being re-measured. Until Nov 2026 natural gas was measured "
+               "against the daily Henry Hub spot price, whose cold-snap spikes (+904% in one January 2026 week) "
+               "shrank every stock&#39;s figure to a fraction of its size. It is now measured from the futures "
+               "price; new readings arrive with the next weekly update."),
+}
+
+
+def method_notice(key: str, data_week_iso: str) -> str:
+    """The notice for readings measured before a method change; empty otherwise."""
+    if key in METHOD_CHANGED and (data_week_iso or "") < METHOD_CHANGED[key][0]:
+        return f'<p class="caveat" role="status"><b>Being re-measured.</b> {METHOD_CHANGED[key][1]}</p>'
+    return ""
+
+
+def _when_links(key: str) -> str:
+    """The same force asked the way people search it (utils/when_pages)."""
+    from utils.when_pages import SCENARIOS
+    if key not in SCENARIOS:
+        return ""
+    noun, rv, fv, rs, fs = SCENARIOS[key]
+    return (f'<p class="small">Asked the other way: <a href="/when/{rs}">stocks that went up when {escape(noun)} {rv}</a>'
+            f' · <a href="/when/{fs}">when {escape(noun)} {fv}</a></p>')
+
+
 def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: str,
                     limit: int = 25) -> Optional[str]:
     """The page for one force, or None if the key is not a force."""
@@ -292,6 +320,7 @@ def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: st
         f'<nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a> › '
         f'<a href="/forces">Economic forces</a> › {escape(f.label)}</nav>'
         + force_header_html(f, st, stocks)
+        + method_notice(key, st.get("as_of") or "")
         + f'<p class="lead">{escape(lead)}</p>'
         f'<p class="lead">{escape(f.why)}</p>'
         f'{swarm_html(key, stocks)}{body_tables}{_by_sector(key, stocks)}'
@@ -307,6 +336,7 @@ def force_page_html(key: str, stocks: Iterable[dict], base_url: str, app_url: st
         f'<a class="btn btn-primary" href="/explore#{key}">Try a move in {escape(force)}</a>'
         f'<a class="btn btn-secondary" href="{escape(app_link(app_url, "/", canonical))}">Measure your own portfolio</a>'
         '<a class="btn btn-secondary" href="/forces">All economic forces</a></div>'
+        + _when_links(key) +
         f'<p class="small"><a href="{escape(app_url)}/methodology">Full methodology</a>.</p>')
 
     description = (f"Which U.S. stocks have moved with {force}? {nu} up and {nd} down among {n} "

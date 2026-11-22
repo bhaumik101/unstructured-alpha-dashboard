@@ -810,6 +810,8 @@ def sitemap_xml():
         _get_engine()
         from utils.force_pages import force_sitemap_urls
         urls.extend(force_sitemap_urls(_exposure_stocks(), BASE_URL))
+        from utils.when_pages import when_sitemap_urls
+        urls.extend(when_sitemap_urls(_exposure_stocks(), BASE_URL))
     except Exception:
         pass  # likewise for the force pages
     try:
@@ -1295,6 +1297,35 @@ def changes_page():
     _get_engine()
     return HTMLResponse(changes_page_html(_exposure_stocks(), _previous(),
                                           BASE_URL, APP_URL))
+
+
+@app.get("/when", response_class=HTMLResponse)
+def when_hub():
+    """What moved when: every force, both directions."""
+    from utils.when_pages import when_hub_html
+
+    _get_engine()
+    return HTMLResponse(when_hub_html(_exposure_stocks(), BASE_URL, APP_URL))
+
+
+@app.get("/when/{slug}", response_class=HTMLResponse)
+def when_page(slug: str):
+    """Stocks that went up when <force> rose / fell -- measured, not predicted."""
+    from utils.exposure_pages import data_week
+    from utils.when_pages import when_page_html
+
+    canonical = slug.strip().lower()
+    if canonical != slug:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/when/{canonical}", status_code=301)
+    _get_engine()
+    stocks = _exposure_stocks()
+    week = data_week(s.get("as_of") for s in stocks)
+    html = _cached(("when_html", slug, week, len(stocks)),
+                   lambda: when_page_html(slug, stocks, BASE_URL, APP_URL) or "")
+    if not html:
+        raise HTTPException(status_code=404, detail="Not a question answered here.")
+    return HTMLResponse(html)
 
 
 @app.get("/learn", response_class=HTMLResponse)

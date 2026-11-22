@@ -76,6 +76,7 @@ def _world(seed=7, days=1000, fail=()):
         # MINER moves with gold's own part, not with the dollar.
         "MINER": price(0.7 * mkt + 1.2 * gold_own + rng.normal(0, 0.8, n)),
         "GLD": price(gold),
+        "UNG": price(gas),
         "CPER": price(copper),
         # SMALLCAP moves with small companies beating large ones.
         "SMALLCAP": price(1.0 * mkt + 1.5 * size_gap + rng.normal(0, 0.7, n)),
@@ -106,7 +107,6 @@ def _world(seed=7, days=1000, fail=()):
         "VIXCLS": pd.Series(18 + np.cumsum(vix), idx),
         # Weekly, Thursdays: the engine's Friday resample must still line it up.
         "MORTGAGE30US": pd.Series(6.5 + np.cumsum(ch["rates"] + mort), idx)[idx.dayofweek == 3],
-        "DHHNGSP": pd.Series(3 * np.cumprod(1 + gas / 100), idx),
         "CBBTCUSD": pd.Series(60000 * np.cumprod(1 + btc / 100), idx),
         # USD per euro; yen per USD (so a stronger yen is a FALL in this series).
         "DEXUSEU": pd.Series(1.1 * np.cumprod(1 + (-0.8 * ch["dollar"] + euro_own) / 100), idx),
@@ -392,3 +392,40 @@ def test_the_methodology_page_states_the_measured_core_rate_not_the_nominal_one(
     src = (_ROOT / "pages" / "63_Methodology.py").read_text(encoding="utf-8")
     assert "about 1 in 100 factor readings" not in src
     assert "fewer than 2 in 100 factor readings are labelled Clear (80 of 5,000" in src
+
+
+def test_a_force_dominated_by_freak_weeks_is_excluded_not_shown_distorted():
+    """Nov 2026: Henry Hub spot gas had weeks of +904% and +380% against a 7%
+    typical move, shrinking every stock's slope to about a fiftieth while it
+    still looked significant. Such a series is excluded and named."""
+    rng = np.random.default_rng(7)
+    calm = pd.Series(rng.normal(0, 7, 156))
+    spiky = calm.copy()
+    spiky.iloc[[20, 70, 120]] = [904.0, 380.0, 139.0]
+    assert not ex.spike_dominated(calm)
+    assert ex.spike_dominated(spiky)
+    vix_like = pd.Series(rng.standard_t(3, 156) * 1.5)   # fat tails, like the VIX: still measurable
+    assert not ex.spike_dominated(vix_like)
+
+
+def test_natural_gas_is_measured_from_the_futures_fund_not_spot():
+    f = next(f for f in ex.EXTRA_FACTORS if f.key == "natgas")
+    assert (f.series_id, f.source) == ("UNG", "price") and "futures" in f.shock_phrase
+
+
+def test_a_spiky_gas_price_is_left_out_of_the_report_and_named():
+    pf, sf = _world()
+
+    def spiky(tickers, start, end):
+        out = pf(tickers, start, end)
+        if "UNG" in out:
+            ung = out["UNG"].copy()
+            for i, jump in ((200, 9.0), (500, 4.8), (800, 2.4)):     # cold-snap weeks
+                ung.iloc[i:i + 7] = ung.iloc[i:i + 7] * jump      # a full week, Friday to Friday
+            out["UNG"] = ung
+        return out
+    rep = ex.build_exposure_report([{"ticker": "BANK", "weight_pct": 100}], spiky, sf, end=END)
+    assert rep["status"] == "ok"
+    assert "natgas" not in rep["extras"]["readings"] and "Natural gas" in rep["extras"]["unavailable"]
+    calm = _one("BANK")
+    assert "natgas" in calm["extras"]["readings"]                 # the calm series is still measured

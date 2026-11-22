@@ -144,11 +144,20 @@ EXTRA_FACTORS: tuple[Factor, ...] = (
            "Copper goes into buildings, power grids and factories, so its price is read as a "
            "gauge of industrial demand. Measured beyond oil and the dollar.",
            group="commodities", source="price"),
-    Factor("natgas", "Natural gas", "DHHNGSP", "pct", 10.0,
-           "the U.S. natural gas price (Henry Hub) rose 10%",
+    # Natural gas is the price of UNG, the fund that holds front-month futures,
+    # not FRED's daily Henry Hub spot (DHHNGSP). Spot spikes in cold snaps --
+    # $1.21 to $30.72 in the window, +904% in one January 2026 week, +380% in
+    # January 2024 -- dominated every regression: weekly changes had an 80%
+    # standard deviation against a 7% median move, so each stock's slope came
+    # out about a fiftieth of its size while looking significant (a gas
+    # producer read +0.1% per 10% gas move). Found Nov 2026; same remedy as
+    # gold and copper above.
+    Factor("natgas", "Natural gas", "UNG", "pct", 10.0,
+           "the price of natural gas futures rose 10%",
            "Natural gas heats homes, generates power and feeds chemical plants. Measured "
-           "with oil held fixed, it is gas moving on its own.",
-           group="commodities"),
+           "with oil held fixed, it is gas moving on its own, from the futures price "
+           "(the daily spot price swings too wildly in cold snaps to measure against).",
+           group="commodities", source="price"),
     Factor("bitcoin", "Bitcoin", "CBBTCUSD", "pct", 10.0,
            "the price of bitcoin rose 10%",
            "Bitcoin is a speculative asset that some companies hold or build on. Measured "
@@ -338,6 +347,27 @@ def _pct(s: pd.Series) -> pd.Series:
     s = s[s > 0]
     out = s.pct_change() * 100.0
     return out.replace([np.inf, -np.inf], np.nan).dropna()
+
+
+# A force whose weekly changes are dominated by a few freak weeks cannot be
+# measured by least squares: the spikes set every slope. Ratio of the plain
+# standard deviation to a robust one (1.4826 x median absolute deviation):
+# about 1 for well-behaved series. Measured Nov 2026 over three years: every
+# FRED series the engine uses scored 0.90-1.84 (the VIX highest); Henry Hub
+# spot gas scored 7.18, with one week 81 robust deviations out. Above
+# SPIKE_RATIO the force is excluded and named, never shown distorted.
+SPIKE_RATIO = 3.0
+
+
+def spike_dominated(changes: pd.Series) -> bool:
+    x = changes.dropna().to_numpy(dtype=float)
+    if len(x) < 8:
+        return False
+    med = np.median(x)
+    mad = np.median(np.abs(x - med))
+    if mad <= 0:
+        return False
+    return float(np.std(x)) / (1.4826 * mad) > SPIKE_RATIO
 
 
 def to_weekly_returns(prices: Optional[pd.Series]) -> pd.Series:
@@ -901,7 +931,7 @@ def build_exposure_report(
         except Exception:
             ch = pd.Series(dtype=float)
         ch = ch[ch.index >= pd.Timestamp(start_d)] if not ch.empty else ch
-        if len(ch) < MIN_WEEKS:
+        if len(ch) < MIN_WEEKS or spike_dominated(ch):
             extra_unavailable.append(f.label)   # excluded and named, never filled in
         else:
             extra_changes[f.key] = ch

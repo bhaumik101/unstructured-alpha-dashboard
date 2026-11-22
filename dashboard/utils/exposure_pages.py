@@ -339,6 +339,7 @@ PAGE_LABELS: Dict[str, tuple] = {
     "explore": ("What if", None), "guess": ("Guess", None), "quiz": ("Quiz", None),
     "learn": ("Learn", None), "tools": ("Tools", None), "changes": ("What changed", None),
     "evidence": ("Track record", None), "etfs": ("ETFs", None), "xray": ("X-ray", None),
+    "when": ("What moved when", "When page"),
 }
 ALL_PAGE_LABELS = frozenset(x for pair in PAGE_LABELS.values() for x in pair if x)
 
@@ -483,7 +484,7 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
 # same header and footer so a visitor can reach any of them from anywhere.
 NAV = (("/xray", "X-ray"), ("/exposure", "Stocks"), ("/sectors", "Sectors"), ("/forces", "Forces"),
        ("/map", "Map"), ("/explore", "What if?"), ("/compare", "Compare"))
-MORE = (("/tools", "All free tools"), ("/etfs", "ETFs"), ("/mylist", "My list"), ("/scenario", "Build a scenario"), ("/heatmap", "Market heatmap"), ("/quiz", "Daily quiz"), ("/guess", "Whose fingerprint?"), ("/learn", "How to read these pages"),
+MORE = (("/tools", "All free tools"), ("/when", "What moved when"), ("/etfs", "ETFs"), ("/mylist", "My list"), ("/scenario", "Build a scenario"), ("/heatmap", "Market heatmap"), ("/quiz", "Daily quiz"), ("/guess", "Whose fingerprint?"), ("/learn", "How to read these pages"),
         ("/changes", "What changed this week"), ("/evidence", "Track record"))
 
 
