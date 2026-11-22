@@ -34,7 +34,8 @@ function appUrl(path: string, action: AppOpenAction, params: Record<string, stri
 }
 
 function recordAppOpen(action: AppOpenAction) {
-  const body = JSON.stringify({ event: "app_opened", page: "Landing", action });
+  const internal = (window as unknown as { __uaInternal?: boolean }).__uaInternal || undefined;
+  const body = JSON.stringify({ event: "app_opened", page: "Landing", action, internal });
   try {
     if (navigator.sendBeacon) {
       navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }));

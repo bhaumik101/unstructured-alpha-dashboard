@@ -60,6 +60,25 @@ def _props(raw) -> dict:
 BURST_VIEWS, BURST_SECONDS = 20, 300
 
 
+# Visitor ids of our own hand-sent checks before the internal flag existed
+# (Nov 19-22 2026: beacon tests labelled "Other" and one tool_used test).
+# Hashes, not addresses. From then on checks send internal: true.
+INTERNAL_VISITORS = frozenset({
+    "8d52b08d6ebb68cd40e9136941c44ed5", "9ea10f4e5fc4507dedf9f8ba174b0fb8", "bd1ba05d4c48981192dfc8c1fe9db73f",
+})
+
+
+def internal(events: Iterable[Tuple]) -> set:
+    """Visitors who ever sent the internal flag -- the owner's own browsers
+    (marked at ?ua_internal=1) and our checks -- plus the known test ids.
+    Every event from them is left out, not just the flagged ones."""
+    out = set(INTERNAL_VISITORS)
+    for _name, _ts, visitor, raw in events:
+        if visitor and _props(raw).get("internal") == "1":
+            out.add(visitor)
+    return out
+
+
 def automated(events: Iterable[Tuple]) -> set:
     """Visitor ids with a burst of page views no person produces."""
     times: Dict[str, List[datetime]] = {}
@@ -94,7 +113,7 @@ def weekly(events: Iterable[Tuple], signups: Iterable = (), weeks: int = 8,
     sets: Dict[date, Dict[str, set]] = {w: {"site": set(), "app": set(), "tools": set(), "used": set()} for w in starts}
     counts: Dict[date, Dict[str, int]] = {w: {"tool_views": 0, "app_opens": 0, "signups": 0} for w in starts}
     events = list(events)
-    bots = automated(events)
+    bots = automated(events) | internal(events)
     for name, ts, visitor, raw in events:
         if visitor in bots:
             continue

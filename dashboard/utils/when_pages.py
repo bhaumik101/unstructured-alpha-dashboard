@@ -27,11 +27,12 @@ from html import escape
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from utils import exposure as ex
-from utils.exposure_pages import STANDS_UP, _chip, _date, _shell, data_week, fmt_pct, tool_header_html
+from utils.exposure_pages import STANDS_UP, _chip, _date, _shell, data_week, fmt_pct, more_html, tool_header_html
 from utils.force_pages import FORCE_BY_KEY, method_notice
 
 MIN_HELD = 8
 TOP_UP, TOP_DOWN = 25, 12
+SHOW_UP, SHOW_DOWN = 10, 5      # shown at once; the rest of the top list folds open
 
 # key -> (noun as people say it, rise verb, fall verb, rise slug, fall slug)
 SCENARIOS: Dict[str, Tuple[str, str, str, str, str]] = {
@@ -128,6 +129,17 @@ def _table(rows: List[dict], label: str) -> str:
             f'<th scope="col">Evidence</th><th scope="col">Sector</th></tr></thead><tbody>{body}</tbody></table></div>')
 
 
+def _folded_table(rows: List[dict], label: str, show: int, total: int) -> str:
+    """The first `show` rows at once; the rest of the list one click away."""
+    html = _table(rows[:show], label)
+    if len(rows) > show:
+        rest = len(rows) - show
+        html += more_html("", f"Show {rest} more", "", _table(rows[show:], f"{label}, continued")
+                          + (f'<p class="small">Showing the {len(rows)} largest of {total}.</p>'
+                             if total > len(rows) else ""), quiet=True)
+    return html
+
+
 def _sector_table(sc: dict) -> str:
     rows = [r for r in sc["sectors"] if r["measured"] >= 5]
     if not rows:
@@ -135,10 +147,14 @@ def _sector_table(sc: dict) -> str:
     body = "".join(
         f'<tr><th scope="row">{escape(r["sector"])}</th><td>{r["up"]}↑ {r["down"]}↓ held up, of {r["measured"]}</td>'
         f'<td><b>{fmt_pct(r["median"])}</b></td></tr>' for r in rows)
-    return ('<h2>By sector</h2><div class="card" tabindex="0" role="region" aria-label="By sector"><table><thead><tr>'
+    # Same pick as the lead sentence, so the page never names two "top" sectors.
+    best = next((r for r in rows if r["up"]), None)
+    hint = f"{len(rows)} sectors" + (f" · most often up: {escape(best['sector'])}" if best else "")
+    return more_html("sectors", "By sector", hint, (
+            '<div class="card" tabindex="0" role="region" aria-label="By sector"><table><thead><tr>'
             '<th scope="col">Sector</th><th scope="col">Readings that held up</th><th scope="col">Median move</th>'
             f'</tr></thead><tbody>{body}</tbody></table></div>'
-            '<p class="small">Median of every stock measured in the sector, held up or not.</p>')
+            '<p class="small">Median of every stock measured in the sector, held up or not.</p>'))
 
 
 def when_page_html(slug: str, stocks: Iterable[dict], base_url: str, app_url: str) -> Optional[str]:
@@ -175,23 +191,22 @@ def when_page_html(slug: str, stocks: Iterable[dict], base_url: str, app_url: st
                            "market&#39;s own move, over three years of weekly returns.")
         + method_notice(key, sc["as_of"])
         + f'<p class="lead">{lead}</p>'
-        + (f'<h2>Went up when {escape(noun)} {escape(verb)} ({n_up})</h2>' + _table(sc["up"][:TOP_UP], "Went up")
+        + (f'<h2>Went up when {escape(noun)} {escape(verb)} ({n_up})</h2>' + _folded_table(sc["up"][:TOP_UP], "Went up", SHOW_UP, n_up)
            if n_up else f'<h2>Went up when {escape(noun)} {escape(verb)}</h2><p>None held up.</p>')
-        + (f'<p class="small">Showing the {TOP_UP} largest of {n_up}.</p>' if n_up > TOP_UP else "")
-        + (f'<h2>Went down when {escape(noun)} {escape(verb)} ({n_down})</h2>' + _table(sc["down"][:TOP_DOWN], "Went down")
+        + (f'<h2>Went down when {escape(noun)} {escape(verb)} ({n_down})</h2>' + _folded_table(sc["down"][:TOP_DOWN], "Went down", SHOW_DOWN, n_down)
            if n_down else "")
         + _sector_table(sc)
         + '<div class="actions">'
         f'<a class="btn btn-primary" href="/xray">How did your portfolio move? X-ray it</a>'
         f'<a class="btn btn-secondary" href="/when/{other}">When {escape(noun)} {escape(fv if sign > 0 else rv)}</a>'
         f'<a class="btn btn-secondary" href="/forces/{key}">Every stock on {escape(ex.lower_label(f.label))}</a></div>'
-        '<h2>How this is measured</h2>'
+        + more_html("method", "How this is measured", "", (
         f'<p>Each figure is a stock&#39;s typical same-week move when {escape(phrase.replace(" fell ", " moved ").replace(" rose ", " moved "))} '
         'by that standard amount, after removing the stock market&#39;s own move, from three years of weekly returns. '
         'The readings are linear: the move in a week when it fell is the measured move for a rise with its sign turned '
         'over. "Held up" means the 90% range excludes zero (Tentative) or the figure clears a stricter bar (Clear). '
-        '<a href="/learn">How to read these figures</a>.</p>'
-        '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Relationships change; '
+        '<a href="/learn">How to read these figures</a>.</p>'), quiet=True)
+        + '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> Relationships change; '
         '<a href="/evidence">the track record</a> shows how often readings held their direction a year later. '
         'Nothing here is a recommendation to buy, sell or hold any security.</p>')
     ld = {"@context": "https://schema.org", "@type": "Article", "headline": title, "description": desc,

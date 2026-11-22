@@ -30,7 +30,8 @@ export function recordHeroUse() {
   if (heroUsed) return;
   heroUsed = true;
   try {
-    const body = JSON.stringify({ event: "tool_used", page: "Landing", tool: "hero_xray" });
+    const internal = (window as unknown as { __uaInternal?: boolean }).__uaInternal || undefined;
+    const body = JSON.stringify({ event: "tool_used", page: "Landing", tool: "hero_xray", internal });
     if (navigator.sendBeacon) navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }));
     else void fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true });
   } catch {

@@ -239,3 +239,17 @@ def test_the_hub_filter_key_is_escaped_and_upper_case():
     rec = _rec(name='Big "Oil" & Co')
     html = ep.hub_page_html([rec], "https://www.x", "https://app.x")
     assert 'data-k="XOM BIG &quot;OIL&quot; &amp; CO"' in html
+
+
+def test_detail_folds_away_and_a_jump_link_opens_it():
+    """Essentials at once; the detail folds under a heading with a one-line
+    preview, stays in the HTML, and an #anchor into it opens it."""
+    from utils.exposure_pages import stock_page_html
+    from tests.test_range_chart import _rec
+    hist = [_rec(), dict(_rec(), as_of="2026-11-06")]
+    page = stock_page_html("XOM", _rec(), hist, [], "https://www.x", "https://app.x")
+    assert '<details class="more" id="history">' in page and "XOM week by week" in page
+    assert '<details class="more quiet" id="numbers">' in page
+    assert page.index('id="numbers"') < page.index('aria-label="Exposure to each economic force"')
+    assert "e.open=true" in page                                   # fragment opens the fold
+    assert page.index('<figure class="card rc">') < page.index('id="numbers"')   # chart stays out

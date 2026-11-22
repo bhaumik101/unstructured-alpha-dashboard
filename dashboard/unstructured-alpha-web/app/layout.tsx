@@ -118,11 +118,15 @@ export default function RootLayout({
               // two page views -- which would inflate traffic and, worse, make
               // a one-page visit look like an engaged two-page one.
               'if(window.__uaTrackInit)return; window.__uaTrackInit=1;' +
+              // Internal traffic is flagged, never counted (?ua_internal=1 marks this browser).
+              'var I=false;try{var q=location.search;if(/[?&]ua_internal=1/.test(q))localStorage.setItem("ua-internal","1");' +
+              'if(/[?&]ua_internal=0/.test(q))localStorage.removeItem("ua-internal");I=localStorage.getItem("ua-internal")==="1";}catch(e){}' +
+              'window.__uaInternal=I;' +
               'var names={"/":"Landing","/uranium":"Uranium"};' +
               'function send(){try{' +
               'var p=location.pathname.replace(/\\/+$/,"")||"/";' +
               'if(p===window.__uaLastPath)return; window.__uaLastPath=p;' +
-              'var b=JSON.stringify({event:"page_view",page:names[p]||"Other"});' +
+              'var b=JSON.stringify({event:"page_view",page:names[p]||"Other",internal:I||undefined});' +
               'if(navigator.sendBeacon){' +
               'navigator.sendBeacon("/api/track",new Blob([b],{type:"application/json"}));' +
               '}else{fetch("/api/track",{method:"POST",body:b,keepalive:true,' +

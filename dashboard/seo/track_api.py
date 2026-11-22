@@ -112,6 +112,10 @@ async def track_landing_event(request: Request) -> Response:
             page = "Other"
 
         properties: dict[str, str] = {"page": page, "site": "marketing"}
+        if payload.get("internal") is True:
+            # The owner's own browsers and our checks: stored, but every visitor
+            # who ever sends this is left out of the growth numbers.
+            properties["internal"] = "1"
         if event == Event.APP_OPENED:
             action = str(payload.get("action") or "").strip()
             if action not in ALLOWED_ACTIONS:
