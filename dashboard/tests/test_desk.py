@@ -30,6 +30,27 @@ def test_the_desk_mirrors_the_progress_rules():
     assert games == pr.GAME_XP
 
 
+def test_the_desk_counts_a_change_exactly_as_my_list_does():
+    from utils import since_visit as sv
+    assert f"export const MOVE = {sv.MOVE};" in DESK_TS
+    # the same three kinds, in the same order, as since_visit's diff()
+    assert "rank = {gained: 0, lost: 1, moved: 2}" in sv.SINCE_JS
+    assert "const rank = { gained: 0, lost: 1, moved: 2 };" in DESK_TS
+    # and the rule itself, held-ness first, then a move of at least MOVE
+    for frag in ("now[1] && !was[1]", "was[1] && !now[1]", "now[1] && Math.abs(now[0] - was[0]) >= MOVE"):
+        assert frag in sv.SINCE_JS and frag in DESK_TS, frag
+
+
+def test_the_landing_logic_runs_in_ci():
+    pkg = json.loads((WEB.parent / "package.json").read_text(encoding="utf-8"))
+    assert "tests-web/desk.test.ts" in pkg["scripts"]["test"]
+    wf = next((WEB.parents[2] / ".github" / "workflows").glob("*.yml")).read_text(encoding="utf-8")
+    assert "run: npm test" in wf
+    milestones = DESK_TS.split("export const MILESTONES")[1].split("];")[0]
+    # practice only: no milestone is about returns, gains or picks
+    assert not re.search(r"(?i)profit|return|beat|gain|win|pick", milestones)
+
+
 def test_the_desk_shows_only_to_a_returning_visitor_and_never_on_the_server():
     comp = (WEB / "Desk.tsx").read_text(encoding="utf-8")
     assert "useSyncExternalStore(subscribe, snapshot, () => null)" in comp

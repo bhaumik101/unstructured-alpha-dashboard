@@ -718,5 +718,41 @@
 .lp-desk-games span { color: var(--lp-link); font-weight: 600; }
 .lp-desk-games a.is-done span { color: var(--lp-ink-3); }
 @media (prefers-reduced-motion: reduce) { .lp-ring-fill { transition: none; } }
+.lp-desk-since { display: grid; gap: 2px; margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; color: var(--lp-ink);
+  border: 1px solid color-mix(in srgb, var(--lp-bright) 45%, var(--lp-line)); background: color-mix(in srgb, var(--lp-bright) 9%, var(--lp-bg)); font-size: 12.5px; }
+.lp-desk-since b { font-size: 13.5px; color: var(--lp-bright); }
+.lp-desk-since span { color: var(--lp-ink-2); }
+.lp-desk-since:hover { border-color: var(--lp-bright); }
+.lp-desk-chips a.is-changed { border-color: color-mix(in srgb, var(--lp-bright) 60%, var(--lp-line)); position: relative; }
+.lp-desk-chips a.is-changed::after { content: ""; position: absolute; top: -3px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--lp-bright); }
+
+.lp-desk-row2 { margin-top: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+.lp-heat { display: block; width: 100%; max-width: 420px; height: auto; }
+.lp-heat-l { fill: var(--lp-ink-3); font-size: 9px; font-family: var(--lp-mono); }
+.lp-heat rect, .lp-heat-key i { fill: var(--lp-line); }
+.lp-heat .lp-heat-1, .lp-heat-key .lp-heat-1 { fill: color-mix(in srgb, var(--lp-act) 45%, var(--lp-line)); background: color-mix(in srgb, var(--lp-act) 45%, var(--lp-line)); }
+.lp-heat .lp-heat-2, .lp-heat-key .lp-heat-2 { fill: var(--lp-act); background: var(--lp-act); }
+.lp-heat .lp-heat-f { fill: none; stroke: var(--lp-line); stroke-dasharray: 2 2; }
+.lp-heat-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin-top: 12px; font-size: 12.5px; color: var(--lp-ink-3); }
+.lp-heat-foot b { color: var(--lp-ink); font-size: 14px; margin-right: 3px; }
+.lp-heat-key { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-family: var(--lp-mono); font-size: 11px; }
+.lp-heat-key i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--lp-line); }
+.lp-badges { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 12px; }
+.lp-badges li { display: grid; justify-items: center; text-align: center; gap: 3px; }
+.lp-badge { width: 44px; height: 48px; overflow: visible; }
+.lp-badge-hex { fill: var(--lp-bg); stroke: var(--lp-line); stroke-width: 2; }
+.lp-badge-prog { fill: none; stroke: var(--lp-act); stroke-width: 2.5; stroke-linecap: round; }
+.lp-badge-g { fill: var(--lp-ink-3); font-size: 13px; font-weight: 700; font-family: var(--lp-mono); }
+.lp-badges .is-done .lp-badge-hex { fill: color-mix(in srgb, var(--lp-act) 18%, var(--lp-bg)); stroke: var(--lp-act); }
+.lp-badges .is-done .lp-badge-g { fill: var(--lp-act); }
+.lp-badges .is-new .lp-badge { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--lp-act) 70%, transparent)); animation: lp-badge-pop .7s cubic-bezier(.2, .9, .3, 1.3) both; }
+@keyframes lp-badge-pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.lp-badge-n { font-size: 12.5px; font-weight: 650; color: var(--lp-ink-3); line-height: 1.25; }
+.lp-badges .is-done .lp-badge-n { color: var(--lp-ink); }
+.lp-badge-n em { font-style: normal; margin-left: 5px; padding: 1px 5px; border-radius: 5px; background: var(--lp-act); color: var(--lp-act-ink); font: 700 9px var(--lp-mono); letter-spacing: .06em; text-transform: uppercase; vertical-align: 2px; }
+.lp-badge-s { font-size: 11px; color: var(--lp-ink-3); line-height: 1.3; }
+@media (prefers-reduced-motion: reduce) { .lp-badges .is-new .lp-badge { animation: none; } .lp-ring-fill { transition: none; } }
+@media (max-width: 1080px) { .lp-desk-row2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .lp-badges { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lp-heat-key { margin-left: 0; } }
 @media (max-width: 1080px) { .lp-desk-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .lp-desk-path { grid-column: 1 / -1; order: 3; } }
 @media (max-width: 640px) { .lp-desk-grid { grid-template-columns: minmax(0, 1fr); } .lp-path span { font-size: 10.5px; } }
