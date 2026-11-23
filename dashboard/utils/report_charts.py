@@ -49,10 +49,24 @@ _UNITS = {
 CHART_CSS = """<style>
 .uac-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:6px 0 16px;}
 .uac-panel{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:14px;
-  padding:12px 14px 8px;box-shadow:0 18px 40px -34px var(--uar-shadow);}
+  padding:14px 16px 10px;box-shadow:none;}
 .uac-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
 .uac-title{font-weight:650;color:var(--uar-ink);font-size:var(--uar-t-body);}
 .uac-now{font-weight:650;color:var(--uar-ink);font-size:var(--uar-t-body);white-space:nowrap;}
+.uac-nows{display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;}
+.uac-now small,.uac-head3 small{font-weight:500;color:var(--uar-ink-3);font-size:var(--uar-t-micro);}
+.uac-head3{font-size:var(--uar-t-meta);color:var(--uar-ink-2);white-space:nowrap;font-variant-numeric:tabular-nums;}
+/* History: two to a row; an odd last panel spans the row on purpose, its
+   chart beside its title rather than stretched across the page. */
+.uac-grid-roll{grid-template-columns:repeat(2,minmax(0,1fr));}
+.uac-grid-roll>.uac-panel:last-child:nth-child(odd){grid-column:1/-1;display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px;align-items:start;}
+.uac-grid-roll>.uac-panel:last-child:nth-child(odd) .uac-svg{grid-column:2;grid-row:1/span 2;margin-top:0;}
+.uac-grid-roll>.uac-panel:last-child:nth-child(odd) .uac-head{grid-column:1;}
+.uac-grid-roll>.uac-panel:last-child:nth-child(odd) .uac-sub{grid-column:1;grid-row:2;align-self:start;}
+.uac-grid-roll>.uac-panel:last-child:nth-child(odd){grid-template-rows:auto 1fr;}
+@media (max-width:760px){.uac-grid-roll{grid-template-columns:minmax(0,1fr);}
+  .uac-grid-roll>.uac-panel:last-child:nth-child(odd){display:block;}}
 .uac-sub{color:var(--uar-ink-3);font-size:var(--uar-t-meta);margin-top:2px;}
 .uac-svg{width:100%;height:auto;display:block;margin-top:6px;overflow:visible;}
 .uac-axis{stroke:var(--uar-line);stroke-width:1;}
@@ -61,7 +75,7 @@ CHART_CSS = """<style>
 .uac-val{fill:var(--uar-ink-2);font-size:var(--uar-t-micro);font-weight:600;}
 .uac-label{fill:var(--uar-ink);font-size:var(--uar-t-meta);font-weight:650;}
 .uac-spark{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:12px;
-  padding:10px 12px 6px;border-top:3px solid var(--uac-hue,var(--uar-accent));}
+  padding:10px 12px 6px;}
 .uac-sparkgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin:6px 0 14px;}
 .uac-big{font-size:var(--uar-t-price);font-weight:750;letter-spacing:-0.02em;color:var(--uar-ink);
   line-height:1.1;margin-top:2px;}
@@ -131,8 +145,10 @@ def rolling_panel_svg(key: str, label: str, points: List[dict]) -> str:
     """One force: the rolling sensitivity, its 90% range, and zero."""
     if len(points) < 3:
         return ""
-    width, height = 280, 140
-    left, right, top, bottom = 34, 6, 10, 114
+    # Drawn near the size it is shown (two to a row), so its text stays at
+    # text size instead of scaling up with the panel.
+    width, height = 520, 176
+    left, right, top, bottom = 44, 8, 10, 150
     hue = FACTOR_COLORS.get(key, "#3b7ddd")
 
     lows = [p["low"] for p in points]
@@ -207,10 +223,13 @@ def rolling_panel_svg(key: str, label: str, points: List[dict]) -> str:
         f'<path d="{band}" fill="{hue}" fill-opacity="0.16" stroke="none"/>'
         f'<line class="uac-zero" x1="{left}" y1="{zero_y:.1f}" x2="{width - right}" y2="{zero_y:.1f}"/>'
         f'<path d="{line}" fill="none" stroke="{hue}" stroke-width="2.2" stroke-linejoin="round"/>'
-        + "".join(dots) + strip +
-        f'<text class="uac-tick" x="{left - 4}" y="{top + 8}" text-anchor="end">{escape(_pct(hi, 1))}</text>'
-        f'<text class="uac-tick" x="{left - 4}" y="{zero_y + 3:.1f}" text-anchor="end">0</text>'
-        f'<text class="uac-tick" x="{left - 4}" y="{bottom}" text-anchor="end">{escape(_pct(lo, 1))}</text>'
+        + "".join(dots) + strip
+        # The end labels give way to "0" where they would overprint it.
+        + (f'<text class="uac-tick" x="{left - 6}" y="{top + 8}" text-anchor="end">{escape(_pct(hi, 1))}</text>'
+           if zero_y - (top + 8) > 14 else "")
+        + f'<text class="uac-tick" x="{left - 6}" y="{zero_y + 4:.1f}" text-anchor="end">0</text>'
+        + (f'<text class="uac-tick" x="{left - 6}" y="{bottom}" text-anchor="end">{escape(_pct(lo, 1))}</text>'
+           if bottom - zero_y > 14 else "")
         + (x_labels if long_line else
            f'<text class="uac-tick" x="{left}" y="{height - 4}">{escape(_date(first["end"]))}</text>'
            f'<text class="uac-tick" x="{width - right}" y="{height - 4}" text-anchor="end">'
@@ -222,6 +241,7 @@ def rolling_charts_html(report: dict, order: Sequence[str]) -> str:
     """Small multiples, one per force, in the report's own order."""
     rolling = report.get("rolling") or {}
     readings = (report.get("portfolio") or {}).get("readings") or {}
+    weeks = (report.get("method") or {}).get("rolling_weeks", 52)
     panels = []
     for key in order:
         points = rolling.get(key)
@@ -234,12 +254,14 @@ def rolling_charts_html(report: dict, order: Sequence[str]) -> str:
         panels.append(
             f'<div class="uac-panel"><div class="uac-head">'
             f'<span class="uac-title">{escape(readings[key]["label"])}</span>'
-            f'<span class="uac-now">{escape(_pct(last["impact"]))}</span></div>'
+            f'<span class="uac-nows"><span class="uac-now">{escape(_pct(last["impact"]))}'
+            f'<small> latest {weeks}-wk</small></span>'
+            f'<span class="uac-head3">{escape(_pct(readings[key]["impact"]))} <small>3-yr headline</small></span>'
+            f'</span></div>'
             f'<div class="uac-sub">{escape(_sentence_case(readings[key]["shock_phrase"]))}</div>'
             f'{svg}</div>')
     if not panels:
         return ""
-    weeks = (report.get("method") or {}).get("rolling_weeks", 52)
     long_line = any(len(rolling.get(k) or []) > DOT_LIMIT for k in order)
     evidence = ("The strip under each line is solid where that year&#39;s reading cleared the same "
                 "evidence bar as the headline reading, faint where it was tentative, and empty "
@@ -250,7 +272,7 @@ def rolling_charts_html(report: dict, order: Sequence[str]) -> str:
                 "tentative, and stretches with no dots could not be told apart from zero.")
     return (
         '<div class="uar">'
-        f'<div class="uac-grid">{"".join(panels)}</div>'
+        f'<div class="uac-grid uac-grid-roll">{"".join(panels)}</div>'
         f'<div class="uar-sub">Each point is the sensitivity measured over the {weeks} weeks ending '
         f'that week, re-measured every month. The shaded band is its 90% range: where the band '
         f'crosses the dashed zero line, that year&#39;s reading could be noise. {evidence} This '
@@ -341,8 +363,8 @@ def contribution_bars_svg(report: dict, key: str) -> str:
         return ""
     rows = rows[:12]
     hue = FACTOR_COLORS.get(key, "#3b7ddd")
-    width, row_h, top = 560, 26, 8
-    label_w, value_w = 70, 70
+    width, row_h, top = 880, 30, 8
+    label_w, value_w = 80, 80
     height = top + row_h * len(rows) + 8
     span = max(abs(r["contribution"]) for r in rows) or 1.0
     mid = label_w + (width - label_w - value_w) / 2
@@ -355,11 +377,11 @@ def contribution_bars_svg(report: dict, key: str) -> str:
         x0 = mid if r["contribution"] >= 0 else mid - length
         faint = r["evidence"] not in ("clear", "tentative")
         bars.append(
-            f'<text class="uac-label" x="{label_w - 8}" y="{yy + 17}" text-anchor="end">'
+            f'<text class="uac-label" x="{label_w - 8}" y="{yy + 19}" text-anchor="end">'
             f'{escape(r["ticker"])}</text>'
             f'<rect x="{x0:.1f}" y="{yy + 5}" width="{max(length, 1.5):.1f}" height="{row_h - 10}" '
             f'rx="3" fill="{hue}" fill-opacity="{0.28 if faint else 0.9}"/>'
-            f'<text class="uac-val" x="{width - 4}" y="{yy + 17}" text-anchor="end">'
+            f'<text class="uac-val" x="{width - 4}" y="{yy + 19}" text-anchor="end">'
             f'{escape(_pct(r["contribution"]))}</text>')
     total = readings[key]["impact"]
     summary = (f"{readings[key]['label']}: the portfolio's {_pct(total)} split by holding. "

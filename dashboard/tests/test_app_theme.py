@@ -93,8 +93,12 @@ def test_font_sizes_come_from_tokens_not_fresh_literals():
     assert PRODUCT_CSS.count("font-size:var(--p-t-") >= 6
 
 
-def test_the_hero_carries_the_landing_pages_navy_and_gold():
-    assert "--p-navy:#0d223b" in PRODUCT_CSS and "--p-bright:#ffc24b" in PRODUCT_CSS
+def test_the_hero_carries_the_landing_pages_ground_and_gold():
+    # The 2026-11 brand: near-black ground shared with the landing hero, gold
+    # kept for the wordmark only, and no rainbow trim under the header.
+    assert "--p-navy:#0b111a" in PRODUCT_CSS and "--p-bright:#d8b66a" in PRODUCT_CSS
+    assert ".ua-phero-strip{{display:none;}}" not in PRODUCT_CSS  # rendered, not a template
+    assert ".ua-phero-strip{display:none;}" in PRODUCT_CSS and "linear-gradient(90deg,#3b7ddd" not in PRODUCT_CSS
     assert ".ua-phero" in PRODUCT_CSS
     # The h1 must outrank .ua-page-title's own !important type, or the hero
     # title renders at the interior-page size on a navy band.

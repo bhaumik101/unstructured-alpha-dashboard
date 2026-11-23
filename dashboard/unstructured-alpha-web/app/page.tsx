@@ -7,6 +7,9 @@ import LiveMovers from './LiveMovers';
 import LiveStats from './LiveStats';
 import HeroXray from './HeroXray';
 import DailyChallenge from './DailyChallenge';
+import MarketMap from './MarketMap';
+import Flow from './Flow';
+import { PATHS } from './sampleData';
 
 const APP_URL = "https://app.unstructuredalpha.com";
 const PILOT_EMAIL = "support@unstructuredalpha.com";
@@ -55,6 +58,7 @@ function recordAppOpen(action: AppOpenAction) {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 type FactorKey = "rates" | "inflation" | "dollar" | "oil" | "credit" | "growth";
+type Evidence = "Clear" | "Tentative" | "Not distinguishable from zero" | "Not enough data";
 
 // The economic series the exposure report measures against, mirroring
 // FACTORS + GROWTH_FACTOR in dashboard/utils/exposure.py. A test asserts this
@@ -68,26 +72,35 @@ const DATA_SERIES: { id: string; label: string; key: FactorKey; name: string }[]
   { id: "INDPRO", label: "Industrial production (monthly)", key: "growth", name: "Economic growth" },
 ];
 
-// A real report, computed 2026-09-14 by the same engine on data through
-// 2026-09-04. Kept as a dated example rather than a live number so the page
-// never shows something stale as current.
+// A real report: the app's "balanced" sample, computed by the same engine on
+// data through 2026-11-13 (156 weeks from 2023-11-24), copied from the stored
+// report rather than typed in. Kept as a dated example, not a live number, so
+// the page never shows something stale as current; the date is on screen.
+// `holders`: each holding's share of that exposure (report "contributions"),
+// the ones adding to it; a holding pushing the other way is left out.
 const SAMPLE = {
   name: "Balanced ETF portfolio",
-  holdings: "40% VTI · 20% VXUS · 30% BND · 5% TIP · 5% GLD",
-  window: "156 weeks, Sept 2023 to Sept 2026",
+  holdings: [["VTI", 40], ["BND", 30], ["VXUS", 20], ["GLD", 5], ["TIP", 5]] as [string, number][],
+  asOf: "Nov 13, 2026",
+  window: "156 weeks, Nov 2023 to Nov 2026",
   rows: [
-    { key: "rates" as FactorKey, label: "Interest rates", shock: "the 10-year yield rose 0.25 points", impact: -0.66, low: -0.73, high: -0.59, evidence: "Clear", driver: "Mostly BND (bonds)" },
-    { key: "dollar" as FactorKey, label: "U.S. dollar", shock: "the dollar rose 2%", impact: -0.73, low: -0.86, high: -0.61, evidence: "Clear", driver: "Mostly VXUS (international stocks)" },
-    { key: "inflation" as FactorKey, label: "Inflation expectations", shock: "inflation expectations rose 0.25 points", impact: 0.40, low: 0.18, high: 0.62, evidence: "Clear", driver: "Mostly VTI (U.S. stocks)" },
-    { key: "credit" as FactorKey, label: "Credit spreads", shock: "credit spreads widened 0.25 points", impact: -0.17, low: -0.38, high: 0.03, evidence: "Not distinguishable from zero", driver: "No measurable link" },
-    { key: "oil" as FactorKey, label: "Oil and energy", shock: "oil rose 10%", impact: -0.08, low: -0.16, high: 0.01, evidence: "Not distinguishable from zero", driver: "No measurable link" },
+    { key: "dollar" as FactorKey, label: "U.S. dollar", shock: "the dollar rose 2%", unit: "dollar +2%", impact: -0.71, low: -0.83, high: -0.58, evidence: "Clear" as Evidence,
+      holders: [["VXUS", 78], ["GLD", 23], ["BND", 1]] as [string, number][] },
+    { key: "rates" as FactorKey, label: "Interest rates", shock: "the 10-year yield rose 0.25 points", unit: "yield +0.25 pt", impact: -0.62, low: -0.70, high: -0.54, evidence: "Clear" as Evidence,
+      holders: [["BND", 74], ["TIP", 12], ["VTI", 12], ["GLD", 3]] as [string, number][] },
+    { key: "inflation" as FactorKey, label: "Inflation expectations", shock: "inflation expectations rose 0.25 points", unit: "breakeven +0.25 pt", impact: 0.32, low: 0.08, high: 0.56, evidence: "Tentative" as Evidence,
+      holders: [["VTI", 41], ["VXUS", 33], ["TIP", 23], ["BND", 13]] as [string, number][] },
+    { key: "credit" as FactorKey, label: "Credit spreads", shock: "credit spreads widened 0.25 points", unit: "Baa spread +0.25 pt", impact: -0.17, low: -0.37, high: 0.04, evidence: "Not distinguishable from zero" as Evidence,
+      holders: [] as [string, number][] },
+    { key: "oil" as FactorKey, label: "Oil and energy", shock: "oil rose 10%", unit: "oil +10%", impact: -0.10, low: -0.17, high: -0.03, evidence: "Tentative" as Evidence,
+      holders: [["VXUS", 97], ["VTI", 18]] as [string, number][] },
   ],
 };
 
-const EVIDENCE = [
+const EVIDENCE: { label: Evidence; body: string }[] = [
   { label: "Clear", body: "Strong enough to hold up even after allowing for testing five factors at once." },
   { label: "Tentative", body: "Suggestive, but could plausibly be noise. Worth watching, not relying on." },
-  { label: "Not distinguishable from zero", body: "The measured relationship is within the range of random noise." },
+  { label: "Not distinguishable from zero", body: "The measured relationship is within the range of random noise. Not the same as no exposure." },
   { label: "Not enough data", body: "Too little price history to measure reliably, so nothing is shown." },
 ];
 
@@ -126,131 +139,256 @@ const FAQ_ITEMS = [
   },
 ];
 
-// ─── Graphics ─────────────────────────────────────────────────────────────────
-
-/** One glyph per economic force, drawn in a 32×32 box centred on 0,0. */
-function Glyph({ k }: { k: FactorKey }) {
-  const s = { fill: "none", stroke: "currentColor", strokeWidth: 2.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  switch (k) {
-    case "rates":
-      return (<g {...s}><line x1="-7" y1="8" x2="7" y2="-8" /><circle cx="-6" cy="-6" r="2.6" /><circle cx="6" cy="6" r="2.6" /></g>);
-    case "inflation":
-      return (<g {...s}><polyline points="-9,7 -3,1 1,4 9,-5" /><polyline points="3,-5 9,-5 9,1" /></g>);
-    case "dollar":
-      return (<g {...s}><path d="M6,-6 C4,-9 -6,-9 -6,-4 C-6,1 6,-1 6,4 C6,9 -4,9 -6,6" /><line x1="0" y1="-11" x2="0" y2="11" /></g>);
-    case "oil":
-      return (<g {...s}><path d="M0,-10 C5,-3 8,1 8,4 A8,8 0 0 1 -8,4 C-8,1 -5,-3 0,-10 Z" /></g>);
-    case "credit":
-      return (<g {...s}><polyline points="-10,-3 0,-10 10,-3" /><line x1="-6" y1="-1" x2="-6" y2="7" /><line x1="0" y1="-1" x2="0" y2="7" /><line x1="6" y1="-1" x2="6" y2="7" /><line x1="-10" y1="9" x2="10" y2="9" /></g>);
-    case "growth":
-      return (<g {...s}><line x1="-8" y1="9" x2="-8" y2="2" /><line x1="-2" y1="9" x2="-2" y2="-3" /><line x1="4" y1="9" x2="4" y2="-1" /><line x1="10" y1="9" x2="10" y2="-8" /></g>);
-  }
-}
-
-function FactorIcon({ k, size = 40 }: { k: FactorKey; size?: number }) {
-  return (
-    <span className={`lp-ficon lp-f-${k}`} style={{ width: size, height: size }} aria-hidden="true">
-      <svg viewBox="-16 -16 32 32" width={size * 0.6} height={size * 0.6}><Glyph k={k} /></svg>
-    </span>
-  );
-}
-
-/**
- * The sample report drawn as a map: the portfolio in the centre, each economic
- * force around it. Line weight follows the measured size of the exposure;
- * dashed faint lines are exposures not distinguishable from zero. Same numbers
- * as the table below it.
- */
-function ExposureMap() {
-  const cx = 260, cy = 215;
-  const nodes: Record<string, [number, number]> = {
-    rates: [260, 90], dollar: [446, 150], inflation: [414, 356], oil: [106, 356], credit: [74, 150],
-  };
-  return (
-    <svg className="lp-map" viewBox="0 0 520 430" role="img"
-         aria-label="Diagram of the example balanced portfolio: clear exposure to interest rates, the U.S. dollar and inflation expectations; no measurable link to oil or credit spreads.">
-      <defs>
-        <radialGradient id="lp-core" cx="50%" cy="45%" r="60%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.22" />
-          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.04" />
-        </radialGradient>
-      </defs>
-      {[150, 190].map((r) => (
-        <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke="#ffffff" strokeOpacity="0.07" />
-      ))}
-      {SAMPLE.rows.map((row) => {
-        const [x, y] = nodes[row.key];
-        const clear = row.evidence === "Clear";
-        return (
-          <line key={row.key} className={clear ? "lp-map-line" : ""} x1={cx} y1={cy} x2={x} y2={y}
-                stroke={clear ? `var(--f-${row.key})` : "#ffffff"} strokeOpacity={clear ? 0.95 : 0.3}
-                strokeWidth={clear ? 2 + Math.abs(row.impact) * 9 : 1.5}
-                strokeDasharray={clear ? undefined : "5 6"} strokeLinecap="round" />
-        );
-      })}
-      {/* Solid disc first, so the lines stop at the edge instead of crossing the label. */}
-      <circle cx={cx} cy={cy} r="66" fill="#14314f" />
-      <circle cx={cx} cy={cy} r="66" fill="url(#lp-core)" stroke="#ffffff" strokeOpacity="0.35" />
-      <text x={cx} y={cy - 6} textAnchor="middle" className="lp-map-core">Balanced</text>
-      <text x={cx} y={cy + 16} textAnchor="middle" className="lp-map-sub">portfolio</text>
-      {SAMPLE.rows.map((row) => {
-        const [x, y] = nodes[row.key];
-        const clear = row.evidence === "Clear";
-        const above = y < cy - 80;
-        return (
-          <g key={row.key} opacity={clear ? 1 : 0.62}>
-            <circle cx={x} cy={y} r="27" fill={`var(--f-${row.key})`} stroke="#0d223b" strokeWidth="4" />
-            <g transform={`translate(${x} ${y}) scale(0.95)`} color="#ffffff"><Glyph k={row.key} /></g>
-            <text x={x} y={above ? y - 56 : y + 48} textAnchor="middle" className="lp-map-label">{row.label}</text>
-            <text x={x} y={above ? y - 38 : y + 66} textAnchor="middle" className="lp-map-value">
-              {clear ? pct(row.impact) : "no clear link"}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-function StepIcon({ n }: { n: 1 | 2 | 3 }) {
-  const s = { fill: "none", stroke: "currentColor", strokeWidth: 2.4, strokeLinecap: "round" as const };
-  return (
-    <span className={`lp-step-icon lp-step-${n}`} aria-hidden="true">
-      <svg viewBox="-16 -16 32 32" width="26" height="26">
-        {n === 1 && (<g {...s}><line x1="-8" y1="-7" x2="9" y2="-7" /><line x1="-8" y1="0" x2="9" y2="0" /><line x1="-8" y1="7" x2="3" y2="7" /></g>)}
-        {n === 2 && (<g {...s}><polyline points="-10,8 -4,0 1,4 10,-8" /><circle cx="-10" cy="8" r="1.4" /><circle cx="10" cy="-8" r="1.4" /></g>)}
-        {n === 3 && (<g {...s}><rect x="-8" y="-10" width="16" height="20" rx="2" /><polyline points="-4,1 -1,4 5,-3" /></g>)}
-      </svg>
-    </span>
-  );
-}
-
-const SCALE = 1.0; // percent at each end of the bar
-
-function ExposureBar({ impact, low, high }: { impact: number; low: number; high: number }) {
-  const pos = (v: number) => 50 + (Math.max(-SCALE, Math.min(SCALE, v)) / SCALE) * 50;
-  const left = Math.min(pos(0), pos(impact));
-  const width = Math.abs(pos(impact) - pos(0));
-  return (
-    <div className="lp-bar" aria-hidden="true">
-      <div className="lp-bar-axis" />
-      <div className="lp-bar-fill"
-           style={{ left: `${left}%`, width: `${width}%`,
-                    background: impact >= 0 ? "var(--lp-pos)" : "var(--lp-neg)" }} />
-      <div className="lp-bar-whisker" style={{ left: `${pos(low)}%`, width: `${pos(high) - pos(low)}%` }} />
-    </div>
-  );
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function pct(v: number): string {
   return `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(2)}%`;
 }
 
-function evidenceClass(label: string): string {
-  if (label === "Clear") return "lp-chip lp-chip-clear";
-  if (label === "Tentative") return "lp-chip lp-chip-tentative";
-  if (label === "Not enough data") return "lp-chip lp-chip-nodata";
-  return "lp-chip lp-chip-zero";
+function evClass(label: string): string {
+  if (label === "Clear") return "lp-ev lp-ev-clear";
+  if (label === "Tentative") return "lp-ev lp-ev-tent";
+  if (label === "Not enough data") return "lp-ev lp-ev-nodata";
+  return "lp-ev lp-ev-zero";
+}
+
+// Shorter label in the dense panel; the full wording is the title and the
+// accessible name, so "uncertain" is never shown as "zero".
+function evShort(label: Evidence): string {
+  return label === "Not distinguishable from zero" ? "Not distinguishable" : label;
+}
+
+function EvidenceChip({ label, short = false }: { label: Evidence; short?: boolean }) {
+  return (
+    <span className={evClass(label)} title={label} aria-label={`Evidence: ${label}`}>
+      <i aria-hidden="true" />{short ? evShort(label) : label}
+    </span>
+  );
+}
+
+// ─── Graphics ─────────────────────────────────────────────────────────────────
+
+const SCALE = 1.0;   // percent at each end of the panel's axis; every row shares it
+
+/**
+ * One row's diverging bar on a shared axis: the estimate as a bar from zero,
+ * the 90% range as a thin line with end caps. Direction is position plus the
+ * sign printed beside it; the fill says how strong the evidence is (solid,
+ * lighter, outline), so neither colour nor shape carries meaning alone.
+ */
+function DivergingBar({ impact, low, high, evidence }: { impact: number; low: number; high: number; evidence: Evidence }) {
+  const pos = (v: number) => 50 + (Math.max(-SCALE, Math.min(SCALE, v)) / SCALE) * 50;
+  const left = Math.min(pos(0), pos(impact));
+  const width = Math.abs(pos(impact) - pos(0));
+  const tone = evidence === "Clear" ? "is-clear" : evidence === "Tentative" ? "is-tent" : "is-zero";
+  return (
+    <div className="lp-dbar" aria-hidden="true">
+      <span className="lp-dbar-zero" />
+      <span className={`lp-dbar-fill ${tone} ${impact < 0 ? "is-neg" : "is-pos"}`} style={{ left: `${left}%`, width: `${width}%` }} />
+      <span className="lp-dbar-range" style={{ left: `${pos(low)}%`, width: `${pos(high) - pos(low)}%` }} />
+    </div>
+  );
+}
+
+/** The sample report as the product draws it: the hero's centrepiece. */
+function SamplePanel() {
+  return (
+    <figure className="lp-panel" aria-labelledby="lp-panel-title">
+      <div className="lp-panel-top">
+        <div>
+          <p className="lp-panel-kicker">Sample report · data through {SAMPLE.asOf}</p>
+          <h2 id="lp-panel-title" className="lp-panel-title">{SAMPLE.name}</h2>
+        </div>
+        <ul className="lp-panel-holdings" aria-label="Holdings and weights">
+          {SAMPLE.holdings.map(([t, w]) => <li key={t}><b>{t}</b>{w}%</li>)}
+        </ul>
+      </div>
+      <p className="lp-panel-take">
+        Clearly sensitive to the <b>U.S. dollar</b> and <b>interest rates</b>. VXUS carries most of the dollar
+        exposure; BND most of the rate exposure.
+      </p>
+      <div className="lp-ptable" role="table" aria-label="Exposure to each economic force">
+        <div className="lp-prow lp-prow-head" role="row">
+          <span role="columnheader">Force</span>
+          <span role="columnheader" className="lp-paxis"><span>−1%</span><span>0</span><span>+1%</span></span>
+          <span role="columnheader" className="lp-num">Estimate</span>
+          <span role="columnheader">Evidence</span>
+        </div>
+        {SAMPLE.rows.map((r) => (
+          <div key={r.key} className="lp-prow" role="row">
+            <span role="cell" className="lp-pforce">
+              <i className={`lp-fdot f-${r.key}`} aria-hidden="true" />
+              <span><b>{r.label}</b><small title={`In weeks when ${r.shock}`}>per {r.unit}</small></span>
+            </span>
+            <span role="cell" className="lp-pbar"><DivergingBar {...r} /></span>
+            <span role="cell" className="lp-num lp-pest"><b>{pct(r.impact)}</b><small>{pct(r.low)} to {pct(r.high)}</small></span>
+            <span role="cell"><EvidenceChip label={r.evidence} short /></span>
+          </div>
+        ))}
+      </div>
+      <figcaption className="lp-panel-foot">
+        Typical same-week move beyond the stock market when each force moved by the stated amount, with its 90%
+        range. {SAMPLE.window}. The past, not a forecast.
+      </figcaption>
+    </figure>
+  );
+}
+
+/** One small illustration per step: holdings, the measurement, the report. Shapes, not figures. */
+function StepArt({ n }: { n: 1 | 2 | 3 }) {
+  if (n === 1) {
+    return (
+      <svg className="lp-art" viewBox="0 0 240 120" aria-hidden="true">
+        {[["VTI", 40], ["BND", 30], ["VXUS", 20], ["GLD", 5], ["TIP", 5]].map(([t, w], i) => (
+          <g key={t as string} transform={`translate(${16 + (i % 3) * 72} ${20 + Math.floor(i / 3) * 46})`}>
+            <rect width="64" height="34" rx="8" className="lp-art-chip" />
+            <text x="10" y="21" className="lp-art-t">{t}</text>
+            <text x="56" y="21" textAnchor="end" className="lp-art-s">{w}%</text>
+          </g>
+        ))}
+        <g transform="translate(160 66)"><rect width="64" height="34" rx="8" className="lp-art-chip lp-art-add" />
+          <text x="32" y="22" textAnchor="middle" className="lp-art-s">+ add</text></g>
+      </svg>
+    );
+  }
+  if (n === 2) {
+    // A cloud of weekly points and the fitted slope with its band: what "measured" means.
+    const pts = Array.from({ length: 46 }, (_, i) => {
+      const x = 14 + ((i * 37) % 212), noise = Math.sin(i * 12.9898) * 43758.5453;
+      const y = 92 - (x - 14) * 0.28 + ((noise - Math.floor(noise)) - 0.5) * 46;
+      return [x, y];
+    });
+    return (
+      <svg className="lp-art" viewBox="0 0 240 120" aria-hidden="true">
+        <path d="M14,86 L226,30 L226,52 L14,104 Z" className="lp-art-band" />
+        {pts.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.4" className="lp-art-pt" />)}
+        <line x1="14" y1="95" x2="226" y2="41" className="lp-art-fit" />
+        <line x1="14" y1="112" x2="226" y2="112" className="lp-art-axis" />
+      </svg>
+    );
+  }
+  return (
+    <svg className="lp-art" viewBox="0 0 240 120" aria-hidden="true">
+      <line x1="120" y1="10" x2="120" y2="112" className="lp-art-axis" />
+      {[[-78, 1], [-66, 1], [34, 0.5], [-16, 0], [-10, 0.5]].map(([w, s], i) => (
+        <g key={i}>
+          <rect x={w < 0 ? 120 + w : 120} y={16 + i * 20} width={Math.abs(w)} height="9" rx="2"
+                className={s === 1 ? "lp-art-bar" : s === 0.5 ? "lp-art-bar lp-art-soft" : "lp-art-bar lp-art-ring"} />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/** What the three evidence labels look like on one axis. An illustration, labelled so. */
+function EvidenceArt() {
+  const rows: [string, number, number, number, string][] = [
+    ["Clear", 0.62, 0.48, 0.76, "is-clear"],
+    ["Tentative", 0.3, 0.06, 0.54, "is-tent"],
+    ["Not distinguishable from zero", -0.12, -0.36, 0.12, "is-zero"],
+  ];
+  const X = (v: number) => 196 + ((v + 1) / 2) * 190;
+  return (
+    <figure className="lp-evart">
+      <svg viewBox="0 0 400 176" role="img" aria-label="Illustration: a Clear reading sits well away from zero, a Tentative one has a range that only just excludes zero, and a reading not distinguishable from zero has a range that crosses it.">
+        <line x1={X(0)} y1="8" x2={X(0)} y2="152" className="lp-evart-zero" />
+        <text x={X(0)} y="170" textAnchor="middle" className="lp-evart-lab">0</text>
+        {rows.map(([label, v, lo, hi, tone], i) => {
+          const y = 30 + i * 48;
+          return (
+            <g key={label}>
+              <text x="8" y={y + 4} className="lp-evart-name">{label === "Not distinguishable from zero" ? "Not distinguishable" : label}</text>
+              <line x1={X(lo)} y1={y} x2={X(hi)} y2={y} className="lp-evart-range" />
+              <line x1={X(lo)} y1={y - 6} x2={X(lo)} y2={y + 6} className="lp-evart-range" />
+              <line x1={X(hi)} y1={y - 6} x2={X(hi)} y2={y + 6} className="lp-evart-range" />
+              <rect x={Math.min(X(0), X(v))} y={y - 5} width={Math.abs(X(v) - X(0))} height="10" rx="2" className={`lp-evart-bar ${tone}`} />
+            </g>
+          );
+        })}
+      </svg>
+      <figcaption className="lp-small">Illustration: the bar is the estimate, the line its 90% range.</figcaption>
+    </figure>
+  );
+}
+
+const SPARK_META: Record<string, { fmt: (v: number) => string; change: (a: number, b: number) => string }> = {
+  rates: { fmt: (v) => `${v.toFixed(2)}%`, change: (a, b) => `${b - a >= 0 ? "+" : "−"}${Math.abs(b - a).toFixed(2)} pts` },
+  inflation: { fmt: (v) => `${v.toFixed(2)}%`, change: (a, b) => `${b - a >= 0 ? "+" : "−"}${Math.abs(b - a).toFixed(2)} pts` },
+  dollar: { fmt: (v) => v.toFixed(1), change: (a, b) => `${b >= a ? "+" : "−"}${Math.abs((b / a - 1) * 100).toFixed(1)}%` },
+  oil: { fmt: (v) => `$${v.toFixed(2)}`, change: (a, b) => `${b >= a ? "+" : "−"}${Math.abs((b / a - 1) * 100).toFixed(1)}%` },
+  credit: { fmt: (v) => `${v.toFixed(2)}%`, change: (a, b) => `${b - a >= 0 ? "+" : "−"}${Math.abs(b - a).toFixed(2)} pts` },
+};
+
+/** The published series itself, three years, as a small area chart. */
+function Spark({ k }: { k: string }) {
+  const p = PATHS[k];
+  if (!p || p.values.length < 3) return null;
+  const v = p.values, lo = Math.min(...v), hi = Math.max(...v), W = 200, H = 56;
+  const pts = v.map((y, i) => [(i / (v.length - 1)) * W, H - 4 - ((y - lo) / (hi - lo || 1)) * (H - 8)]);
+  const line = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  return (
+    <svg className={`lp-spark f-${k}`} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id={`lp-sg-${k}`} x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stopColor="var(--fc)" stopOpacity="0.35" /><stop offset="1" stopColor="var(--fc)" stopOpacity="0" />
+      </linearGradient></defs>
+      <path d={`${line} L${W},${H} L0,${H} Z`} fill={`url(#lp-sg-${k})`} />
+      <path d={line} fill="none" stroke="var(--fc)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+/** A small picture of each free tool, so the library is browsed by eye. Shapes, not figures. */
+function ToolThumb({ href }: { href: string }) {
+  const bars = (vals: number[]) => vals.map((v, i) => (
+    <rect key={i} x={v < 0 ? 60 + v : 60} y={8 + i * 11} width={Math.abs(v)} height="6" rx="1.5" className="lp-th-bar" />
+  ));
+  switch (href) {
+    case "/xray": return <svg className="lp-th" viewBox="0 0 120 64" aria-hidden="true"><line x1="60" y1="4" x2="60" y2="60" className="lp-th-axis" />{bars([-34, 22, -10, 6, 16])}</svg>;
+    case "/exposure": return <svg className="lp-th" viewBox="0 0 120 64" aria-hidden="true">{[0, 1, 2, 3, 4].map((i) => <g key={i}><rect x="8" y={8 + i * 11} width="22" height="6" rx="1.5" className="lp-th-soft" /><rect x="36" y={8 + i * 11} width={[60, 44, 70, 30, 52][i]} height="6" rx="1.5" className="lp-th-bar" /></g>)}</svg>;
+    case "/etfs": return <svg className="lp-th" viewBox="0 0 120 64" aria-hidden="true"><circle cx="60" cy="32" r="22" className="lp-th-ring" /><path d="M60,10 A22,22 0 0 1 81,38 L60,32 Z" className="lp-th-fill" /><path d="M60,32 L81,38 A22,22 0 0 1 48,51 Z" className="lp-th-soft" /></svg>;
+    case "/sectors": return <svg className="lp-th" viewBox="0 0 120 64" aria-hidden="true">{Array.from({ length: 15 }, (_, i) => <rect key={i} x={10 + (i % 5) * 21} y={6 + Math.floor(i / 5) * 18} width="19" height="16" rx="2" className="lp-th-cell" opacity={[0.9, 0.3, 0.6, 0.15, 0.75, 0.4, 0.85, 0.2, 0.55, 0.35, 0.25, 0.7, 0.45, 0.95, 0.3][i]} />)}</svg>;
+    case "/map": return <svg className="lp-th" viewBox="0 0 120 64" aria-hidden="true"><line x1="60" y1="4" x2="60" y2="60" className="lp-th-axis" /><line x1="8" y1="32" x2="112" y2="32" className="lp-th-axis" />{[[30, 20], [44, 28], [70, 14], [84, 40], [52, 46], [92, 22], [36, 40], [76, 50], [24, 30], [66, 36]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="3" className="lp-th-fill" opacity={i % 3 ? 0.9 : 0.45} />)}</svg>;
+    case "/scenario": return <svg className="lp-th" viewBox="0 0 120 64" aria-hidden="true">{[0, 1, 2].map((i) => <g key={i}><line x1="14" y1={14 + i * 18} x2="106" y2={14 + i * 18} className="lp-th-axis" /><circle cx={[70, 42, 88][i]} cy={14 + i * 18} r="5" className="lp-th-knob" /></g>)}</svg>;
+    case "/compare": return <svg className="lp-th" viewBox="0 0 120 64" aria-hidden="true"><line x1="60" y1="4" x2="60" y2="60" className="lp-th-axis" />{[0, 1, 2, 3].map((i) => <g key={i}><rect x={[30, 46, 60, 60][i]} y={8 + i * 13} width={[30, 14, 22, 8][i]} height="4" rx="1" className="lp-th-bar" /><rect x={[38, 60, 60, 52][i]} y={13 + i * 13} width={[22, 18, 34, 8][i]} height="4" rx="1" className="lp-th-soft" /></g>)}</svg>;
+    default: return <svg className="lp-th" viewBox="0 0 120 64" aria-hidden="true">{[[6, 6, 50, 26], [60, 6, 54, 16], [60, 26, 26, 32], [90, 26, 24, 32], [6, 36, 50, 22]].map(([x, y, w, h], i) => <rect key={i} x={x} y={y} width={w} height={h} rx="2" className="lp-th-cell" opacity={[0.85, 0.35, 0.6, 0.2, 0.5][i]} />)}</svg>;
+  }
+}
+
+function Mini({ kind }: { kind: "report" | "scenario" | "drivers" | "evidence" }) {
+  if (kind === "report") {
+    return (
+      <div className="lp-mini lp-mini-report" aria-hidden="true">
+        {SAMPLE.rows.slice(0, 3).map((r) => (
+          <div key={r.key}><i className={`lp-fdot f-${r.key}`} /><DivergingBar {...r} /><b className="lp-num">{pct(r.impact)}</b></div>
+        ))}
+      </div>
+    );
+  }
+  if (kind === "scenario") {
+    return (
+      <div className="lp-mini lp-mini-scenario" aria-hidden="true">
+        {["Market", "Interest rates", "U.S. dollar"].map((l, i) => (
+          <div key={l}><span>{l}</span><span className="lp-mini-track"><i style={{ left: `${[62, 70, 38][i]}%` }} /></span></div>
+        ))}
+      </div>
+    );
+  }
+  if (kind === "drivers") {
+    // Shape only: a waterfall's anatomy, with no figures, so it cannot be read as a result.
+    return (
+      <svg className="lp-mini lp-mini-drivers" viewBox="0 0 200 72" aria-hidden="true">
+        <line x1="0" y1="40" x2="200" y2="40" className="lp-mini-axis" />
+        {[[8, 14, 26], [44, 14, 10], [80, 24, 8], [116, 32, 10], [152, 14, 26]].map(([x, y, h], i) => (
+          <rect key={i} x={x} y={y} width="30" height={h} rx="3" className={i === 4 ? "lp-mini-total" : "lp-mini-step"} />
+        ))}
+      </svg>
+    );
+  }
+  return (
+    <div className="lp-mini lp-mini-ev" aria-hidden="true">
+      <EvidenceChip label="Clear" /><EvidenceChip label="Tentative" /><EvidenceChip label="Not distinguishable from zero" short />
+    </div>
+  );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -278,7 +416,7 @@ const FREE_TOOLS: { href: string; title: string; blurb: string; icon: React.Reac
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleTheme = () => {
-    const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
     const next = current === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem("ua-theme", next);
@@ -290,11 +428,11 @@ export default function Home() {
     <div className="lp">
       <a href="#main" className="sr-only">Skip to content</a>
 
-      {/* ── Hero band (nav + headline + map) ────────────────────────────── */}
+      {/* ── Hero: the one dark, dramatic surface ─────────────────────────── */}
       <div className="lp-hero-band">
+        <div className="lp-hero-stars"><MarketMap backdrop /></div>
         <nav className="lp-nav" aria-label="Main">
           <div className="lp-wrap lp-nav-inner">
-            {/* The app's wordmark, not the retired violet hexagon. */}
             <Link href="/" className="lp-brand" aria-label="Unstructured Alpha home">
               UNSTRUCTURED <span>ALPHA</span>
             </Link>
@@ -304,7 +442,6 @@ export default function Home() {
               <a href={`${APP_URL}/methodology`}>Methodology</a>
               <a href={`${APP_URL}/research`}>Research</a>
               <a href="#pricing">Pricing</a>
-              <a href="#faq">FAQ</a>
               {/* The app's own toggle: it names the theme you would switch TO.
                   Both labels render and CSS shows the right one, so the server
                   HTML and the stored theme can never disagree at hydration. */}
@@ -314,11 +451,11 @@ export default function Home() {
                 <span className="lp-theme-to-light"><span aria-hidden="true">&#9788;</span>LIGHT</span>
               </button>
               <a href={sampleUrl("nav")} onClick={() => recordAppOpen("nav")}
-                 className="lp-btn lp-btn-bright lp-btn-sm">Try a sample report</a>
+                 className="lp-btn lp-btn-primary lp-btn-sm">Try a sample report</a>
             </div>
             <button type="button" className="lp-menu-btn" aria-expanded={mobileOpen}
                     aria-controls="lp-mobile" onClick={() => setMobileOpen(!mobileOpen)}>
-              Menu
+              <span aria-hidden="true" className="lp-menu-icon" />Menu
             </button>
           </div>
           <div id="lp-mobile" className={`lp-mobile${mobileOpen ? " open" : ""}`}>
@@ -335,226 +472,227 @@ export default function Home() {
 
         <header className="lp-wrap lp-hero">
           <div className="lp-hero-copy">
-            <p className="lp-eyebrow lp-eyebrow-bright">Portfolio exposure, measured with the uncertainty shown</p>
-            <h1 className="lp-h1">See which economic forces your portfolio is <span className="lp-h1-accent">actually exposed to.</span></h1>
+            <p className="lp-kicker">Portfolio exposure · measured weekly</p>
+            <h1 className="lp-h1">See the <span className="lp-grad">forces</span> inside your portfolio.</h1>
             <p className="lp-lead">
-              Click the stocks and funds you own and see how the mix has moved with interest rates,
-              inflation, the dollar, oil and credit spreads, which holdings drive it, and how sure we can be.
-              For investors, and for the advisers who explain portfolio risk to clients.
+              Measure how your holdings have moved with rates, inflation, the dollar, oil and credit&mdash;with
+              the uncertainty shown.
             </p>
             <div className="lp-cta-row">
               <a href={sampleUrl("hero_sample")} onClick={() => recordAppOpen("hero_sample")}
-                 className="lp-btn lp-btn-bright">Try a sample portfolio</a>
+                 className="lp-btn lp-btn-primary">Try a sample portfolio</a>
               <a href={appUrl("/", "hero_own")} onClick={() => recordAppOpen("hero_own")}
-                 className="lp-btn lp-btn-ghost">Use my own holdings</a>
+                 className="lp-textlink">Use my own holdings <span aria-hidden="true">→</span></a>
             </div>
             <form className="lp-lookup" action="/go" method="get" role="search">
               <label htmlFor="lp-lookup-t">Or look up one stock</label>
               <div className="lp-lookup-row">
-                <input id="lp-lookup-t" name="t" placeholder="Ticker, e.g. AAPL" autoComplete="off"
+                <input id="lp-lookup-t" name="t" placeholder="AAPL" autoComplete="off"
                        spellCheck={false} maxLength={15} />
-                <button type="submit">See its exposure</button>
+                <button type="submit" aria-label="See its exposure"><span aria-hidden="true">→</span></button>
               </div>
             </form>
-            <ul className="lp-hero-facts">
-              <li>Free</li>
-              <li>No account for your first report</li>
-              <li>Not a forecast, not investment advice</li>
-            </ul>
+            <p className="lp-hero-facts">Free · No account for your first report · Not a forecast, not investment advice</p>
           </div>
           <div className="lp-hero-art">
-            <HeroXray fallback={<>
-              <ExposureMap />
-              <p className="lp-map-caption">Example: the balanced portfolio below. Thicker line, larger measured exposure.</p>
-            </>} />
+            <SamplePanel />
           </div>
         </header>
         <LiveStats />
       </div>
 
       <main id="main">
-        {/* ── Live demo: real stocks, the newest data week ───────────────── */}
-        <LiveMovers />
-
-        {/* ── Today's challenge: the daily games, and a returning player's streak ── */}
-        <DailyChallenge />
-
-        {/* ── Sample report ─────────────────────────────────────────────── */}
-        <section className="lp-band lp-band-sky" aria-labelledby="sample-title">
-          <div className="lp-wrap">
-            <div className="lp-report">
-              <div className="lp-report-strip" aria-hidden="true" />
-              <div className="lp-report-head">
-                <div>
-                  <div id="sample-title" className="lp-report-title">Example report: {SAMPLE.name}</div>
-                  <div className="lp-small">{SAMPLE.holdings}</div>
-                </div>
-                <div className="lp-legend">
-                  <span><span className="lp-swatch" style={{ background: "var(--lp-pos)" }} />Moves up with the factor</span>
-                  <span><span className="lp-swatch" style={{ background: "var(--lp-neg)" }} />Moves down with the factor</span>
-                  <span>Thin line: 90% range</span>
-                </div>
-              </div>
-              {SAMPLE.rows.map((r) => (
-                <div key={r.label} className="lp-row">
-                  <div className="lp-row-name">
-                    <FactorIcon k={r.key} size={36} />
-                    <div>
-                      <div className="lp-row-label">{r.label}</div>
-                      <div className="lp-row-shock">In weeks when {r.shock}</div>
-                    </div>
-                  </div>
-                  <ExposureBar impact={r.impact} low={r.low} high={r.high} />
-                  <div>
-                    <div className="lp-row-value">{pct(r.impact)}</div>
-                    <div className="lp-row-range">range {pct(r.low)} to {pct(r.high)}</div>
-                  </div>
-                  <div className="lp-row-driver">
-                    <span className={evidenceClass(r.evidence)}>{r.evidence}</span>
-                    <div className="lp-small" style={{ marginTop: 4 }}>{r.driver}</div>
-                  </div>
-                </div>
-              ))}
-              <div className="lp-report-foot">
-                Each figure is the portfolio&apos;s typical same-week move when that force moved by the stated
-                amount, after accounting for the stock market. Measured over {SAMPLE.window}. It describes the
-                past; it is not a forecast. Example computed September 14, 2026; not your portfolio.
-              </div>
-            </div>
-            <div style={{ marginTop: 18 }}>
+        {/* ── Inside the sample: who carries each exposure ───────────────── */}
+        <section className="lp-section" aria-labelledby="sample-title">
+          <div className="lp-wrap lp-split">
+            <div>
+              <p className="lp-kicker">Inside the report</p>
+              <h2 id="sample-title" className="lp-h2">Every exposure, traced to the holdings behind it.</h2>
+              <p className="lp-body">
+                In the sample, BND carries 74% of the measured rate exposure and VXUS 78% of the dollar
+                exposure. The report shows this for every force, with the evidence for each holding, so you can
+                see what to look at before you change anything.
+              </p>
               <a href={sampleUrl("report_sample")} onClick={() => recordAppOpen("report_sample")}
-                 className="lp-btn lp-btn-primary lp-btn-sm">Open the full sample report</a>
+                 className="lp-btn lp-btn-secondary">Open the full sample report</a>
             </div>
+            <Flow holdings={SAMPLE.holdings}
+                  forces={SAMPLE.rows.filter((r) => r.holders.length).map((r) => ({ key: r.key, label: r.label, impact: r.impact, evidence: r.evidence }))} />
+          </div>
+        </section>
+
+        {/* ── The showpiece: the whole market, measured ────────────────────── */}
+        <section className="lp-showcase" aria-labelledby="map-title">
+          <div className="lp-wrap">
+            <div className="lp-showcase-head">
+              <div>
+                <p className="lp-kicker">The whole market, measured</p>
+                <h2 id="map-title" className="lp-h2">Every stock, on any two forces.</h2>
+              </div>
+              <p className="lp-body">
+                Each dot is a stock or fund, placed by how it has moved with two economic forces. Energy rises
+                with oil; homebuilders and REITs fall when rates rise. Pick the forces, light up a sector, hover to
+                read a name, click to open it.
+              </p>
+            </div>
+            <MarketMap />
+            <a className="lp-textlink" href="/map">Open the full stock map <span aria-hidden="true">→</span></a>
+          </div>
+        </section>
+
+        {/* ── Try it live ──────────────────────────────────────────────────── */}
+        <section className="lp-section lp-tone" aria-labelledby="try-title">
+          <div className="lp-wrap lp-split lp-split-try">
+            <div>
+              <p className="lp-kicker">Try it now</p>
+              <h2 id="try-title" className="lp-h2">Click a mix. See its fingerprint.</h2>
+              <p className="lp-body">
+                Pick a starter mix or add the tickers you hold. Equal weight, readings from this week&rsquo;s
+                data. For weights, balancing and the holdings behind each force, open the full X-ray or the report.
+              </p>
+            </div>
+            <HeroXray fallback={<p className="lp-body">The live X-ray could not load. <a className="lp-textlink" href="/xray">Open the Portfolio X-ray →</a></p>} />
           </div>
         </section>
 
         {/* ── How it works ──────────────────────────────────────────────── */}
-        <section id="how-it-works" className="lp-band">
+        <section id="how-it-works" className="lp-section">
           <div className="lp-wrap">
-            <p className="lp-eyebrow">How it works</p>
-            <h2 className="lp-h2">From holdings to a plain-English report in about a minute</h2>
-            <div className="lp-grid-3">
-              <div className="lp-step">
-                <StepIcon n={1} />
+            <p className="lp-kicker">How it works</p>
+            <h2 className="lp-h2">From holdings to a plain-English report in about a minute.</h2>
+            <ol className="lp-steps">
+              <li>
+                <StepArt n={1} />
+                <span className="lp-step-n">01</span>
                 <h3 className="lp-h3">Enter holdings</h3>
                 <p className="lp-body">Paste tickers with weights, upload a CSV, or start from a sample. Stocks and ETFs both work.</p>
-              </div>
-              <div className="lp-step">
-                <StepIcon n={2} />
+              </li>
+              <li>
+                <StepArt n={2} />
+                <span className="lp-step-n">02</span>
                 <h3 className="lp-h3">We measure</h3>
                 <p className="lp-body">Three years of weekly returns are compared with weekly changes in five core economic series from the Federal Reserve, and 14 more forces measured beyond them, with the stock market accounted for.</p>
-              </div>
-              <div className="lp-step">
-                <StepIcon n={3} />
+              </li>
+              <li>
+                <StepArt n={3} />
+                <span className="lp-step-n">03</span>
                 <h3 className="lp-h3">You read it plainly</h3>
                 <p className="lp-body">Each exposure shows its size, a 90% range, the weeks of data used, the holdings behind it, and how strong the evidence is.</p>
-              </div>
-            </div>
+              </li>
+            </ol>
           </div>
         </section>
 
-        {/* ── Tools ─────────────────────────────────────────────────────── */}
-        <section id="tools" className="lp-band">
+        {/* ── Capabilities ──────────────────────────────────────────────── */}
+        <section id="tools" className="lp-section lp-section-tight">
           <div className="lp-wrap">
-            <p className="lp-eyebrow">What you can do with it</p>
-            <h2 className="lp-h2">One measurement, four ways to use it</h2>
-            <div className="lp-grid-2x2">
-              <div className="lp-step">
+            <p className="lp-kicker">What you can do with it</p>
+            <h2 className="lp-h2">One measurement, four ways to use it.</h2>
+            <div className="lp-caps">
+              <a className="lp-cap" href={`${APP_URL}/`}>
+                <Mini kind="report" />
                 <h3 className="lp-h3">Exposure report</h3>
-                <p className="lp-body">What a portfolio has moved with, force by force, with a range, an evidence label and a heatmap of the holdings behind each one.</p>
-                <a className="lp-link" href={`${APP_URL}/`}>Open the report →</a>
-              </div>
-              <div className="lp-step">
+                <p className="lp-body">What a portfolio has moved with, force by force, with a range, an evidence label and the holdings behind each one.</p>
+                <span className="lp-textlink">Open the report →</span>
+              </a>
+              <a className="lp-cap" href={`${APP_URL}/scenarios`}>
+                <Mini kind="scenario" />
                 <h3 className="lp-h3">Scenario lab</h3>
                 <p className="lp-body">Move the stock market and any of 19 forces, and see the estimated move with its range, what each force contributed, and which holdings carry it.</p>
-                <a className="lp-link" href={`${APP_URL}/scenarios`}>Run a stress test →</a>
-              </div>
-              <div className="lp-step">
+                <span className="lp-textlink">Run a stress test →</span>
+              </a>
+              <a className="lp-cap" href={`${APP_URL}/`}>
+                <Mini kind="drivers" />
                 <h3 className="lp-h3">What drove returns</h3>
                 <p className="lp-body">The last 4 to 52 weeks broken into the market, each force, and what none of them explains, adding up to the total.</p>
-                <a className="lp-link" href={`${APP_URL}/`}>See it in the report →</a>
-              </div>
-              <div className="lp-step">
+                <span className="lp-textlink">See it in the report →</span>
+              </a>
+              <a className="lp-cap" href="/evidence">
+                <Mini kind="evidence" />
                 <h3 className="lp-h3">Does it hold up?</h3>
                 <p className="lp-body">How readings measured this way held up over the following year, out of sample, across the S&amp;P 500 — published whatever it shows.</p>
-                <a className="lp-link" href="/evidence">Read the track record →</a>
-              </div>
+                <span className="lp-textlink">Read the track record →</span>
+              </a>
             </div>
           </div>
         </section>
 
-        {/* ── Free tools: the same measurement, one stock at a time ─────── */}
-        <section className="lp-band lp-band-sky" aria-labelledby="free-title">
+        {/* ── The library: free tools, the live demo, the daily games ─────── */}
+        <section className="lp-section lp-tone" aria-labelledby="free-title">
           <div className="lp-wrap">
-            <p className="lp-eyebrow">Free, no account</p>
-            <h2 id="free-title" className="lp-h2">The same measurement, one stock at a time</h2>
-            <p className="lp-lead lp-free-lead">
-              S&amp;P 500 companies, measured weekly with the same engine. Look one up, try a move,
-              or test what you think you know &mdash; then measure your own portfolio the same way.
+            <p className="lp-kicker">Free, no account</p>
+            <h2 id="free-title" className="lp-h2">The same measurement, one stock at a time.</h2>
+            <p className="lp-body lp-narrow">
+              S&amp;P 500 companies and popular funds, measured weekly with the same engine. Look one up, try a
+              move, or test what you think you know &mdash; then measure your own portfolio the same way.
             </p>
-            <ul className="lp-free">
+            <ul className="lp-library">
               {FREE_TOOLS.map((t) => (
                 <li key={t.href}>
                   <a href={t.href}>
-                    <span className="lp-free-icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.8}
-                           strokeLinecap="round" strokeLinejoin="round">{t.icon}</svg>
+                    <ToolThumb href={t.href} />
+                    <span className="lp-lib-title">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.6}
+                           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{t.icon}</svg>
+                      <b>{t.title}</b>
                     </span>
-                    <b>{t.title}</b>
                     <span>{t.blurb}</span>
                   </a>
                 </li>
               ))}
             </ul>
-            <a className="lp-link" href="/tools">All free tools →</a>
+            <a className="lp-textlink" href="/tools">All free tools →</a>
           </div>
         </section>
+        <LiveMovers />
+        <DailyChallenge />
 
-        {/* ── Evidence labels ───────────────────────────────────────────── */}
-        <section className="lp-band lp-band-lilac">
-          <div className="lp-wrap">
-            <p className="lp-eyebrow">Every number is labelled</p>
-            <h2 className="lp-h2">We tell you how much to trust each result</h2>
-            <p className="lp-body lp-narrow">
-              Statistics can make noise look meaningful. Each exposure carries one of four labels, and the
-              bar for &ldquo;Clear&rdquo; is raised because five factors are tested at once.
-            </p>
-            <div className="lp-evidence">
+        {/* ── Evidence and method ──────────────────────────────────────── */}
+        <section className="lp-section" aria-labelledby="evidence-title">
+          <div className="lp-wrap lp-split lp-split-even">
+            <div>
+              <p className="lp-kicker">Every number is labelled</p>
+              <h2 id="evidence-title" className="lp-h2">We tell you how much to trust each result.</h2>
+              <p className="lp-body">
+                Statistics can make noise look meaningful. Each exposure carries one of four labels, and the bar
+                for &ldquo;Clear&rdquo; is raised because five factors are tested at once.
+              </p>
+              <a className="lp-textlink" href="/learn">How to read a result, with a playground →</a>
+            </div>
+            <div>
+            <EvidenceArt />
+            <dl className="lp-evlist">
               {EVIDENCE.map((e) => (
-                <div key={e.label} className="lp-evidence-card">
-                  <span className={evidenceClass(e.label)}>{e.label}</span>
-                  <p>{e.body}</p>
+                <div key={e.label}>
+                  <dt><EvidenceChip label={e.label} /></dt>
+                  <dd>{e.body}</dd>
                 </div>
               ))}
+            </dl>
             </div>
-            <a className="lp-link" href="/learn">How to read a result, with a playground →</a>
           </div>
-        </section>
-
-        {/* ── What it isn't + who it's for ──────────────────────────────── */}
-        <section className="lp-band">
-          <div className="lp-wrap lp-grid-2">
-            <div className="lp-panel lp-panel-navy">
-              <p className="lp-eyebrow lp-eyebrow-bright">What this is not</p>
-              <h2 className="lp-h2">Not a forecast. Not a stock pick.</h2>
+          <div className="lp-wrap lp-split lp-split-even lp-not">
+            <div>
+              <p className="lp-kicker">What this is not</p>
+              <h3 className="lp-h3 lp-h3-lg">Not a forecast. Not a stock pick.</h3>
               <p className="lp-body">
                 We spent months testing whether macro data could predict markets. It could not do so
                 reliably, and we publish those failed tests rather than hide them. So this product measures
                 what a portfolio is exposed to today and says nothing about what happens next.
               </p>
-              <p className="lp-body lp-panel-links">
-                <a href={`${APP_URL}/research`}>Read the research record →</a>
-                <a href={`${APP_URL}/methodology`}>Read the methodology →</a>
+              <p className="lp-links">
+                <a className="lp-textlink" href={`${APP_URL}/research`}>Read the research record →</a>
+                <a className="lp-textlink" href={`${APP_URL}/methodology`}>Read the methodology →</a>
               </p>
             </div>
-            <div className="lp-panel lp-panel-sand">
-              <p className="lp-eyebrow">Who it is for</p>
-              <h2 className="lp-h2">Advisers first</h2>
+            <div>
+              <p className="lp-kicker">Who it is for</p>
+              <h3 className="lp-h3 lp-h3-lg">Advisers first.</h3>
               <p className="lp-body">
                 <strong>Independent advisers and small RIAs:</strong> show a client, on one page, why their
                 portfolio moves when rates or oil move and which holdings cause it.
               </p>
-              <p className="lp-body" style={{ marginTop: 12 }}>
+              <p className="lp-body">
                 <strong>Self-directed investors:</strong> check whether a portfolio that looks diversified
                 is quietly concentrated in one economic force.
               </p>
@@ -562,45 +700,57 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Data ──────────────────────────────────────────────────────── */}
-        <section className="lp-band lp-band-sky">
-          <div className="lp-wrap">
-            <p className="lp-eyebrow">Data</p>
-            <h2 className="lp-h2">19 economic forces, from public sources</h2>
-            <p className="lp-body lp-narrow">
-              Prices from Yahoo Finance, adjusted for dividends. Economic series from the Federal Reserve Bank
-              of St. Louis (FRED). The five core forces and economic growth are below; 14 more are measured
-              beyond the core five: short-term rates, market volatility, mortgage rates, gold, copper, natural
-              gas, bitcoin, small vs large companies, value vs growth, momentum, the euro, the yen, emerging
-              markets and China.
-            </p>
-            <div className="lp-factors">
-              {DATA_SERIES.map((s) => (
-                <div key={s.id} className={`lp-factor lp-fb-${s.key}`}>
-                  <FactorIcon k={s.key} size={44} />
-                  <div>
-                    <div className="lp-factor-name">{s.name}</div>
-                    <div className="lp-small">{s.label} · <span className="lp-code">{s.id}</span></div>
-                  </div>
-                </div>
-              ))}
+        {/* ── Data: a reference layout, not six cards ─────────────────────── */}
+        <section className="lp-section lp-tone" aria-labelledby="data-title">
+          <div className="lp-wrap lp-split lp-split-even">
+            <div>
+              <p className="lp-kicker">Data</p>
+              <h2 id="data-title" className="lp-h2">19 economic forces, from public sources</h2>
+              <p className="lp-body">
+                Prices from Yahoo Finance, adjusted for dividends. Economic series from the Federal Reserve Bank
+                of St. Louis (FRED); the charts are the series themselves over the sample&rsquo;s three years, to {SAMPLE.asOf}. The five core forces and economic growth are listed here; 14 more are measured
+                beyond the core five: short-term rates, market volatility, mortgage rates, gold, copper, natural
+                gas, bitcoin, small vs large companies, value vs growth, momentum, the euro, the yen, emerging
+                markets and China.
+              </p>
             </div>
+            <ul className="lp-sparks" aria-label="Core economic series">
+              {DATA_SERIES.map((d) => {
+                const p = PATHS[d.key], m = SPARK_META[d.key];
+                return (
+                  <li key={d.id} className={`f-${d.key}`}>
+                    <div className="lp-spark-head">
+                      <span><i className={`lp-fdot f-${d.key}`} aria-hidden="true" /><b>{d.name}</b></span>
+                      <code>{d.id}</code>
+                    </div>
+                    <div className="lp-small">{d.label}</div>
+                    {p && m ? (<>
+                      <Spark k={d.key} />
+                      <div className="lp-spark-foot">
+                        <b className="lp-num">{m.fmt(p.values[p.values.length - 1])}</b>
+                        <span>{m.change(p.values[0], p.values[p.values.length - 1])} over three years</span>
+                      </div>
+                    </>) : <div className="lp-spark-none">Monthly series, measured separately and always marked as limited evidence.</div>}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         </section>
 
         {/* ── Pricing ───────────────────────────────────────────────────── */}
-        <section id="pricing" className="lp-band">
+        <section id="pricing" className="lp-section">
           <div className="lp-wrap">
-            <p className="lp-eyebrow">Pricing</p>
+            <p className="lp-kicker">Pricing</p>
             <h2 className="lp-h2">Early-access pricing</h2>
-            <p className="lp-body lp-narrow">
-              These prices are being tested with early users and may change.
-            </p>
+            <p className="lp-body lp-narrow">These prices are being tested with early users and may change.</p>
             <div className="lp-prices">
               <div className="lp-price">
                 <div className="lp-price-name">Free</div>
                 <div className="lp-price-amount">$0</div>
                 <div className="lp-small">No card, no account for your first report</div>
+                <a href={appUrl("/", "free_plan")} onClick={() => recordAppOpen("free_plan")}
+                   className="lp-btn lp-btn-secondary">Start free</a>
                 <ul>
                   <li>Exposure report for one portfolio, up to 15 holdings</li>
                   <li>Holdings behind each exposure</li>
@@ -609,13 +759,13 @@ export default function Home() {
                   <li>A weekly email when its exposures change</li>
                   <li>Public methodology and research record</li>
                 </ul>
-                <a href={appUrl("/", "free_plan")} onClick={() => recordAppOpen("free_plan")}
-                   className="lp-btn lp-btn-secondary">Start free</a>
               </div>
               <div className="lp-price">
                 <div className="lp-price-name">Investor Pro</div>
                 <div className="lp-price-amount">$20<span className="lp-small"> / month</span></div>
                 <div className="lp-small">Cancel anytime</div>
+                <a href={appUrl("/pricing", "pro_plan")} onClick={() => recordAppOpen("pro_plan")}
+                   className="lp-btn lp-btn-secondary">See Investor Pro</a>
                 <ul>
                   <li>Measure up to 60 holdings per portfolio, instead of 15</li>
                   <li>Save up to 3 portfolios and switch between them</li>
@@ -624,55 +774,50 @@ export default function Home() {
                   <li>Alerts when an exposure crosses a line you set</li>
                   <li>Everything in Free</li>
                 </ul>
-                <a href={appUrl("/pricing", "pro_plan")} onClick={() => recordAppOpen("pro_plan")}
-                   className="lp-btn lp-btn-secondary">See Investor Pro</a>
               </div>
               <div className="lp-price lp-price-feature">
-                <div className="lp-price-badge">For advisers</div>
-                <div className="lp-price-name">Advisor pilot</div>
+                <div className="lp-price-name">Advisor pilot <span className="lp-price-tag">For advisers</span></div>
                 <div className="lp-price-amount">$149<span className="lp-small"> / month</span></div>
                 <div className="lp-small">Small pilot · first month free</div>
+                <a href={`mailto:${PILOT_EMAIL}?subject=Advisor%20pilot`} onClick={() => recordAppOpen("advisor_pilot")}
+                   className="lp-btn lp-btn-secondary">Ask about the pilot</a>
                 <ul>
                   <li>Unlimited client portfolios, saved and switched from the report</li>
                   <li>Client-ready explanations for review meetings</li>
                   <li>Built with you: tell us what your clients ask</li>
                 </ul>
-                <a href={`mailto:${PILOT_EMAIL}?subject=Advisor%20pilot`} onClick={() => recordAppOpen("advisor_pilot")}
-                   className="lp-btn lp-btn-bright">Ask about the pilot</a>
               </div>
             </div>
           </div>
         </section>
 
         {/* ── FAQ ───────────────────────────────────────────────────────── */}
-        <section id="faq" className="lp-band lp-band-sand">
-          <div className="lp-wrap lp-narrow lp-faq">
-            <p className="lp-eyebrow">FAQ</p>
-            <h2 className="lp-h2">Questions</h2>
-            {FAQ_ITEMS.map((item) => (
-              <details key={item.q}>
-                <summary>{item.q}</summary>
-                <p>{item.a}</p>
-              </details>
-            ))}
+        <section id="faq" className="lp-section lp-tone">
+          <div className="lp-wrap lp-split lp-split-faq">
+            <div>
+              <p className="lp-kicker">FAQ</p>
+              <h2 className="lp-h2">Questions</h2>
+            </div>
+            <div className="lp-faq">
+              {FAQ_ITEMS.map((item) => (
+                <details key={item.q}>
+                  <summary>{item.q}</summary>
+                  <p>{item.a}</p>
+                </details>
+              ))}
+            </div>
           </div>
         </section>
 
         {/* ── Closing ───────────────────────────────────────────────────── */}
         <section className="lp-closing">
+          <div className="lp-closing-stars"><MarketMap backdrop /></div>
           <div className="lp-wrap lp-closing-inner">
-            <div>
-              <h2 className="lp-h2">See what a portfolio is exposed to.</h2>
-              <p className="lp-body">Start with a sample, or paste your own holdings. It takes about a minute.</p>
-            </div>
-            <div className="lp-closing-icons" aria-hidden="true">
-              {(["rates", "inflation", "dollar", "oil", "credit", "growth"] as FactorKey[]).map((k) => (
-                <FactorIcon key={k} k={k} size={46} />
-              ))}
-            </div>
-            <div className="lp-cta-row" style={{ marginTop: 0 }}>
+            <h2 className="lp-h2">See what a portfolio is exposed to.</h2>
+            <p className="lp-body">Start with a sample, or paste your own holdings. It takes about a minute.</p>
+            <div className="lp-cta-row">
               <a href={sampleUrl("closing")} onClick={() => recordAppOpen("closing")}
-                 className="lp-btn lp-btn-bright">Try a sample portfolio</a>
+                 className="lp-btn lp-btn-primary">Try a sample portfolio</a>
             </div>
           </div>
         </section>
@@ -680,21 +825,22 @@ export default function Home() {
 
       <footer className="lp-footer">
         <div className="lp-wrap">
-          <div className="lp-footer-brand">Unstructured Alpha</div>
+          <div className="lp-footer-brand">UNSTRUCTURED <span>ALPHA</span></div>
           <div className="lp-footer-links">
             <a href={appUrl("/", "footer")} onClick={() => recordAppOpen("footer")}>Exposure report</a>
             <a href={`${APP_URL}/methodology`}>Methodology</a>
             <a href={`${APP_URL}/research`}>Research</a>
             <a href="#pricing">Pricing</a>
+            <a href="#faq">FAQ</a>
             <a href={`${APP_URL}/privacy-terms`}>Privacy &amp; Terms</a>
           </div>
-          <p style={{ maxWidth: 820 }}>
+          <p>
             Unstructured Alpha is an educational and informational tool. Nothing on this site is personalized
             financial, investment, tax or legal advice, or a recommendation to buy, sell or hold any security.
             Exposure figures describe how portfolios have moved in the past; relationships change and past
             behaviour does not guarantee future results.
           </p>
-          <p style={{ marginTop: 12 }}>© {new Date().getFullYear()} Unstructured Alpha</p>
+          <p>© {new Date().getFullYear()} Unstructured Alpha</p>
         </div>
       </footer>
     </div>

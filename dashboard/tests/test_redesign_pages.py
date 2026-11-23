@@ -81,7 +81,7 @@ def test_pasting_holdings_produces_a_full_report(monkeypatch, synthetic_engine):
     assert not at.exception, "\n".join(str(e) for e in at.exception)
     text = _text(at)
     assert "Exposure to economic forces" in text
-    assert "clearly sensitive to" in text
+    assert "clearly sensitive to" in text.lower()   # the takeaway leads the report
     assert at.radio(key="uar_factor").options, "the per-factor detail selector is missing"
 
 

@@ -52,25 +52,26 @@ GENERIC_ERROR = ("Something went wrong while measuring this portfolio. Nothing h
                  "estimated in its place; please try again.")
 
 REPORT_CSS = """<style>
-.uar{--uar-surface:#121d2f;--uar-subtle:#16233a;--uar-ink:#e8edf5;--uar-ink-2:#bdc7d8;
-  --uar-ink-3:#8f9bb1;--uar-line:#243349;--uar-accent:#8cb8f2;--uar-pos:#5a8fd4;--uar-neg:#c9822f;--uar-pos-ink:#7fb2ec;--uar-neg-ink:#e9a35a;
-  --uar-sky:#0f1b2d;--uar-shadow:rgba(0,0,0,.45);
+.uar{--uar-surface:#101824;--uar-subtle:#162131;--uar-ink:#f3f6fa;--uar-ink-2:#c3cddb;
+  --uar-ink-3:#a8b5c7;--uar-line:#263448;--uar-accent:#6ce5d2;--uar-bar:#c9d6e8;--uar-bar-soft:rgba(201,214,232,.42);--uar-pos:#5a8fd4;--uar-neg:#c9822f;--uar-pos-ink:#7fb2ec;--uar-neg-ink:#e9a35a;
+  --uar-sky:#11262a;--uar-shadow:rgba(0,0,0,.45);
   --uar-t-micro:.74rem;--uar-t-meta:.78rem;--uar-t-sm:.82rem;--uar-t-body:.88rem;
-  --uar-t-price:1.8rem;
+  --uar-t-price:1.8rem;--uar-t-lead:1.18rem;--uar-t-val:1.02rem;--uar-t-ws:1.6rem;
   font-family:Inter,"SF Pro Text","Segoe UI",system-ui,-apple-system,sans-serif;
   font-variant-numeric:tabular-nums;color:var(--uar-ink);}
-html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f4f6fa;--uar-ink:#13213a;
-  --uar-ink-2:#3a4760;--uar-ink-3:#5b6780;--uar-line:#dfe5ee;--uar-accent:#1f5fae;--uar-pos:#2563a8;
-  --uar-neg:#c26a0a;--uar-pos-ink:#2563a8;--uar-neg-ink:#a8580a;--uar-sky:#edf4fc;--uar-shadow:rgba(13,34,59,.35);}
+html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#eef2f7;--uar-ink:#152033;
+  --uar-ink-2:#3d4a5f;--uar-ink-3:#526176;--uar-line:#dce3ec;--uar-accent:#0b6f64;--uar-pos:#2563a8;
+  --uar-neg:#c26a0a;--uar-pos-ink:#2563a8;--uar-neg-ink:#a8580a;--uar-sky:#e7f5f2;--uar-shadow:rgba(13,34,59,.35);
+  --uar-bar:#3d5677;--uar-bar-soft:rgba(61,86,119,.38);}
 /* Links inside report surfaces take the report's own accent. Left to the
    old skin they rendered #3d9df3 on the light page background — 2.64:1,
    a real AA failure on the footer of every one of these pages, and it was
    invisible until the global stylesheet was actually loading locally. */
 .uar a{color:var(--uar-accent);}
-.uar-strip{height:5px;background:linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0);}
+.uar-strip{display:none;}
 .uar-dot{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:9px;vertical-align:0;}
-.uar-card{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:16px;
-  overflow:hidden;margin:6px 0 18px;box-shadow:0 24px 50px -34px var(--uar-shadow);}
+.uar-card{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:14px;
+  overflow:hidden;margin:6px 0 18px;box-shadow:none;}
 .uar-head{padding:16px 20px;border-bottom:1px solid var(--uar-line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;}
 .uar-title{font-size:1.02rem;font-weight:650;color:var(--uar-ink);}
 .uar-sub{font-size:.84rem;color:var(--uar-ink-3);line-height:1.5;}
@@ -84,13 +85,22 @@ html[data-ua-theme="light"] .uar{--uar-surface:#ffffff;--uar-subtle:#f4f6fa;--ua
 .uar-val{font-weight:650;font-size:.95rem;color:var(--uar-ink);}
 .uar-range{font-size:.78rem;color:var(--uar-ink-3);}
 .uar-bar{position:relative;height:22px;}
-.uar-axis{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--uar-line);}
-.uar-fill{position:absolute;top:7px;height:8px;border-radius:2px;}
-.uar-whisker{position:absolute;top:10px;height:2px;background:var(--uar-ink-3);opacity:.6;}
-.uar-chip{display:inline-block;align-self:flex-start;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;
-  border:1px solid var(--uar-line);color:var(--uar-ink-2);white-space:nowrap;}
-.uar-chip-clear{background:rgba(26,154,112,.16);border-color:rgba(26,154,112,.55);color:#4fcf9f;}
-html[data-ua-theme="light"] .uar-chip-clear{background:#dcf3ea;border-color:#9fd8c2;color:#0b6a4e;}
+.uar-axis{position:absolute;left:50%;top:-4px;bottom:-4px;width:1px;background:var(--uar-bar-soft);}
+.uar-fill{position:absolute;top:6px;height:10px;border-radius:2px;background:var(--uar-bar);}
+.uar-fill-tent{background:var(--uar-bar-soft);}
+.uar-fill-zero{background:transparent;box-shadow:inset 0 0 0 1px var(--uar-bar-soft);}
+.uar-whisker{position:absolute;top:10.5px;height:1px;background:var(--uar-bar);opacity:.8;}
+.uar-whisker::before,.uar-whisker::after{content:"";position:absolute;top:-3.5px;width:1px;height:8px;background:inherit;}
+.uar-whisker::before{left:0;}.uar-whisker::after{right:0;}
+.uar-chip{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:6px;
+  border:1px solid var(--uar-line);color:var(--uar-ink-2);white-space:nowrap;line-height:1.3;}
+.uar-chip i{width:7px;height:7px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px currentColor;}
+.uar-chip-clear i{background:currentColor;}
+.uar-chip-tentative i{background:linear-gradient(90deg,currentColor 50%,transparent 50%);}
+.uar-chip-nodata{border-style:dashed;}.uar-chip-nodata i{display:none;}
+.uar-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+.uar-chip-clear{background:rgba(108,229,210,.12);border-color:rgba(108,229,210,.4);color:#8eebdc;}
+html[data-ua-theme="light"] .uar-chip-clear{background:#ddf5f1;border-color:#a6e0d6;color:#0b6458;}
 .uar-chip-tentative{background:rgba(217,144,24,.16);border-color:rgba(217,144,24,.5);color:#f0bb62;}
 html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:#f1cf95;color:#8a4f00;}
 .uar-driver{font-size:.8rem;color:var(--uar-ink-3);margin-top:4px;}
@@ -113,8 +123,7 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-samples{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:6px 0 4px;}
 .uar-sample{background:var(--uar-surface);border:1px solid var(--uar-line);border-radius:16px;
   padding:16px 18px 14px;box-shadow:0 18px 38px -32px var(--uar-shadow);height:100%;}
-.uar-sample-strip{height:4px;border-radius:2px;margin:-16px -18px 13px;
-  background:linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0);}
+.uar-sample-strip{display:none;}
 .uar-sample-name{font-weight:650;font-size:.95rem;color:var(--uar-ink);}
 .uar-sample-holds{font-size:.78rem;color:var(--uar-ink-3);margin-top:4px;line-height:1.5;}
 @media (max-width:760px){.uar-samples{grid-template-columns:1fr;}}
@@ -242,6 +251,117 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
   .uar-row .uar-bar{grid-column:1/-1;order:3;}
   .uar-row .uar-rowdriver{grid-column:1/-1;order:4;}
 }
+
+/* ── the answer first (takeaway_html) ─────────────────────────────────── */
+.uar-take{margin:20px 0 18px;}
+.uar-take-lead{font-size:var(--uar-t-lead);line-height:1.5;color:var(--uar-ink);margin:0;max-width:72ch;letter-spacing:-0.005em;}
+.uar-take-lead b{font-weight:650;}
+.uar-take-rest{font-size:var(--uar-t-body);color:var(--uar-ink-3);margin:6px 0 0;max-width:90ch;}
+/* ── the main exposure view (exposure_table_html) ─────────────────────── */
+.uar-xrow{display:grid;grid-template-columns:minmax(150px,1.3fr) minmax(120px,1.45fr) 76px 132px 128px minmax(96px,.9fr);
+  gap:14px;align-items:center;padding:14px 20px;border-top:1px solid var(--uar-line);}
+.uar-xhead{border-top:0;padding-top:12px;padding-bottom:10px;font-size:var(--uar-t-micro);font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--uar-ink-3);}
+.uar-xhead>div{white-space:nowrap;}
+.uar-xaxis{display:flex;justify-content:space-between;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums;}
+.uar-xforce{display:flex;align-items:flex-start;gap:10px;min-width:0;}
+.uar-xforce .uar-dot{width:8px;height:8px;border-radius:50%;margin:7px 0 0;flex:none;}
+.uar-xnum{text-align:right;font-variant-numeric:tabular-nums;}
+.uar-xrow .uar-val{font-size:var(--uar-t-val);font-weight:700;}
+.uar-xrow .uar-range{white-space:nowrap;}
+.uar-xrow .uar-driver{margin:0;}
+.uar-xlab{display:none;}
+.uar-xkey{display:flex;flex-wrap:wrap;gap:6px 18px;padding:12px 20px;border-top:1px solid var(--uar-line);
+  font-size:var(--uar-t-meta);color:var(--uar-ink-3);}
+.uar-xkey span{display:inline-flex;align-items:center;gap:7px;}
+.uar-k{display:inline-block;width:16px;height:8px;border-radius:2px;}
+.uar-k-clear{background:var(--uar-bar);}.uar-k-tent{background:var(--uar-bar-soft);}
+.uar-k-zero{box-shadow:inset 0 0 0 1px var(--uar-bar-soft);}
+.uar-k-range{height:1px;background:var(--uar-bar);position:relative;}
+.uar-xheld{padding:0 20px 12px;font-size:var(--uar-t-meta);color:var(--uar-ink-3);line-height:1.55;}
+.uar-xheld b{color:var(--uar-ink-2);}
+@media (max-width:900px){
+  .uar-xrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;padding:14px 16px;}
+  .uar-xhead{display:none;}
+  .uar-xrow .uar-xbar{grid-column:1/-1;order:3;}
+  .uar-xrow .uar-range{grid-column:1;order:4;text-align:left;}
+  .uar-xrow .uar-xev{grid-column:2;order:5;justify-self:end;}
+  .uar-xrow .uar-xhold{grid-column:1/-1;order:6;}
+  .uar-xlab{display:inline;color:var(--uar-ink-3);}
+}
+
+/* ── workspace header, skeleton, window note ───────────────────────────── */
+.uar-ws{padding:4px 0 2px;}
+.uar-ws-kicker{margin:0 0 4px;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--uar-t-micro);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--uar-ink-3);}
+.stApp .uar-ws h1.uar-ws-title{font-size:var(--uar-t-ws)!important;font-weight:700!important;letter-spacing:-0.02em!important;
+  line-height:1.15!important;margin:0!important;padding:0!important;color:var(--uar-ink)!important;
+  overflow-wrap:anywhere;}
+.uar-ws-meta{margin:6px 0 0;font-size:var(--uar-t-sm);color:var(--uar-ink-3);}
+.uar-ws-holdings{margin:10px 0 0;display:flex;flex-wrap:wrap;gap:6px;}
+.uar-ws-holdings span{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--uar-t-meta);color:var(--uar-ink-3);
+  border:1px solid var(--uar-line);border-radius:6px;padding:1px 7px;}
+.uar-ws-holdings b{color:var(--uar-ink);font-weight:600;margin-right:5px;}
+.uar-skel .uar-sk{display:block;border-radius:6px;background:var(--uar-subtle);}
+.uar-sk-msg{font-size:var(--uar-t-body);color:var(--uar-ink-3);margin:0 0 16px;}
+.uar-sk-title{width:min(420px,80%);height:18px;}
+.uar-sk-line{width:min(640px,95%);height:12px;margin-top:12px;}
+.uar-sk-card{padding:6px 20px;margin-top:20px;}
+.uar-sk-row{display:grid;grid-template-columns:1.3fr 1.6fr 64px 110px;gap:16px;align-items:center;padding:16px 0;
+  border-top:1px solid var(--uar-line);}
+.uar-sk-row:first-child{border-top:0;}
+.uar-skel .uar-sk-row .uar-sk{height:11px;}.uar-skel .uar-sk-row .uar-sk-bar{height:8px;}
+.uar-skel{animation:uar-pulse 1.6s ease-in-out infinite;}
+@keyframes uar-pulse{0%,100%{opacity:1}50%{opacity:.6}}
+@media (prefers-reduced-motion: reduce){.uar-skel{animation:none;}}
+.uar-window{font-size:var(--uar-t-sm);color:var(--uar-ink-3);margin:-4px 0 12px;max-width:96ch;line-height:1.55;}
+.uar-window-tag{display:inline-block;margin-right:10px;padding:2px 8px;border-radius:6px;border:1px solid var(--uar-line);
+  color:var(--uar-ink);font-weight:600;font-size:var(--uar-t-meta);}
+.uar-table-num th:nth-child(2),.uar-table-num td:nth-child(2),.uar-table-num th:nth-child(n+4),
+.uar-table-num td:nth-child(n+4){text-align:right;font-variant-numeric:tabular-nums;}
+.uar-table-num td:nth-child(3){white-space:nowrap;}
+
+/* ── visuals: tiles, glyphs, flow, takeaway card ──────────────────────── */
+.uar-ficon{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:8px;
+  color:var(--fc);background:color-mix(in srgb,var(--fc) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--fc) 35%,transparent);}
+.uar-xforce .uar-ficon{margin-top:1px;}
+.uar-tiles{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:12px;margin:18px 0 4px;}
+.uar-tile{border:1px solid var(--uar-line);border-radius:14px;padding:14px 16px;background:var(--uar-surface);min-width:0;}
+.uar-tile-lead{display:flex;gap:14px;align-items:flex-start;position:relative;overflow:hidden;}
+.uar-tile-lead::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(closest-side,color-mix(in srgb,var(--uar-accent) 18%,transparent),transparent);pointer-events:none;}
+.uar-tile-k{font-size:var(--uar-t-micro);text-transform:uppercase;letter-spacing:.06em;color:var(--uar-ink-3);font-weight:600;}
+.uar-tile-v{font-size:var(--uar-t-lead);font-weight:700;color:var(--uar-ink);margin:4px 0 6px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;}
+.uar-tile-v span{color:var(--uar-ink-2);font-weight:650;margin-left:4px;}
+.uar-tile-s{font-size:var(--uar-t-meta);color:var(--uar-ink-3);line-height:1.45;}
+.uar-marks{display:flex;gap:6px;margin:2px 0 8px;}
+.uar-mk{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--uar-bar);}
+.uar-mk-c{background:var(--uar-bar);}
+.uar-mk-t{background:linear-gradient(90deg,var(--uar-bar) 50%,transparent 50%);}
+.uar-gauge{position:relative;height:8px;border-radius:4px;background:var(--uar-subtle);margin:2px 0 8px;}
+.uar-gauge i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,var(--uar-bar-soft),var(--uar-bar));}
+.uar-gauge b{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--uar-ink-3);}
+.uar-weeks{display:grid;grid-template-columns:repeat(39,1fr);gap:2px;margin:2px 0 8px;height:8px;}
+.uar-weeks i{background:var(--uar-bar-soft);border-radius:1px;}
+.uar-weeks i:nth-child(13n){background:var(--uar-bar);}
+.uar-take{position:relative;padding:16px 20px;border-radius:14px;border:1px solid var(--uar-line);
+  background:linear-gradient(100deg,color-mix(in srgb,var(--uar-accent) 9%,var(--uar-surface)),var(--uar-surface) 60%);}
+.uar-take::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;
+  background:linear-gradient(180deg,var(--uar-accent),color-mix(in srgb,var(--uar-accent) 20%,transparent));}
+.uar-flow{padding:16px 20px 8px;}
+.uar-flow-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;margin-bottom:8px;}
+.uar-flow-head b{color:var(--uar-ink);font-size:var(--uar-t-body);}
+.uar-flow-head span{color:var(--uar-ink-3);font-size:var(--uar-t-meta);}
+.uar-flow svg{width:100%;height:auto;display:block;max-width:860px;margin:0 auto;}
+.uar-rib{opacity:.55;transition:opacity .2s ease;}
+.uar-ribs:hover .uar-rib{opacity:.15;}.uar-ribs .uar-rib:hover{opacity:.85;}
+.uar-flow-bar{fill:var(--uar-ink-3);}
+.uar-flow-t{fill:var(--uar-ink);font-weight:600;font-size:var(--uar-t-sm);font-family:ui-monospace,"SF Mono",Menlo,monospace;}
+.uar-flow-l{fill:var(--uar-ink);font-size:var(--uar-t-sm);font-weight:650;}
+.uar-flow-s{fill:var(--uar-ink-3);font-size:var(--uar-t-micro);}
+@media (prefers-reduced-motion: reduce){.uar-rib{transition:none;}}
+@media (max-width:900px){.uar-tiles{grid-template-columns:1fr 1fr;}.uar-tile-lead{grid-column:1/-1;}}
+@media (max-width:520px){.uar-tile{padding:12px;}.uar-tile-s{display:none;}.uar-tile-lead .uar-tile-s{display:block;}}
 </style>"""
 
 
@@ -305,14 +425,20 @@ def _nice_scale(values: Iterable[float]) -> float:
     return math.ceil(peak / 10.0) * 10.0
 
 
-def exposure_bar(impact: float, low: float, high: float, scale: float) -> str:
+def exposure_bar(impact: float, low: float, high: float, scale: float, evidence: str = "clear") -> str:
+    """A diverging bar on a shared axis: the estimate from zero, the 90% range
+    as a capped line. Direction is the side of zero (and the signed figure
+    beside it); the fill says how strong the evidence is -- solid, lighter, or
+    an outline -- so neither colour nor shape carries meaning alone, and no
+    force's identity colour is borrowed for direction. Values beyond the scale
+    are clipped at its edge, and the caller prints the scale."""
     def pos(v: float) -> float:
         return 50.0 + max(-scale, min(scale, v)) / scale * 50.0
     left = min(pos(0.0), pos(impact))
     width = abs(pos(impact) - pos(0.0))
-    colour = "var(--uar-pos)" if impact >= 0 else "var(--uar-neg)"
+    tone = {"clear": "", "tentative": " uar-fill-tent"}.get(evidence, " uar-fill-zero")
     return (f'<div class="uar-bar" aria-hidden="true"><div class="uar-axis"></div>'
-            f'<div class="uar-fill" style="left:{left:.2f}%;width:{width:.2f}%;background:{colour};"></div>'
+            f'<div class="uar-fill{tone}" style="left:{left:.2f}%;width:{width:.2f}%;"></div>'
             f'<div class="uar-whisker" style="left:{pos(low):.2f}%;width:{pos(high) - pos(low):.2f}%;"></div></div>')
 
 
@@ -660,8 +786,84 @@ def exposure_map_html(report: dict) -> str:
         + '</svg></div>')
 
 
+def _main_holding(report: dict, key: str) -> Tuple[str, str]:
+    """(short text, full sentence) naming the holding behind a reading."""
+    reading = report["portfolio"]["readings"][key]
+    rows = report["contributions"].get(key, [])
+    if reading["evidence"] not in ("clear", "tentative") or not rows:
+        return "—", "No measurable link"
+    top = rows[0]
+    if top.get("share") is not None and top["share"] >= 0.5:
+        return (f'{top["ticker"]} {100 * top["share"]:.0f}%',
+                f'Mostly {top["ticker"]}: {100 * top["share"]:.0f}% of this exposure')
+    shown = [r for r in rows[:2] if r.get("share") is not None]
+    if not shown:
+        return ", ".join(r["ticker"] for r in rows[:2]), "Largest: " + ", ".join(r["ticker"] for r in rows[:2])
+    return (" · ".join(f'{r["ticker"]} {100 * r["share"]:.0f}%' for r in shown),
+            "Largest: " + ", ".join(f'{r["ticker"]} ({100 * r["share"]:.0f}%)' for r in shown))
+
+
+_EVIDENCE_SHORT = {"indistinct": "Not distinguishable"}
+
+
+def _evidence_cell(evidence: str) -> str:
+    """The chip, with a shorter word only where the full label is long; the
+    full label is the tooltip and what a screen reader hears, so an uncertain
+    reading is never presented as a zero."""
+    label = ex.EVIDENCE_LABELS.get(evidence, evidence)
+    short = _EVIDENCE_SHORT.get(evidence)
+    cls = {"clear": " uar-chip-clear", "tentative": " uar-chip-tentative",
+           "not_enough_data": " uar-chip-nodata"}.get(evidence, " uar-chip-zero")
+    if not short:
+        return f'<span class="uar-chip{cls}"><i aria-hidden="true"></i>{escape(label)}</span>'
+    return (f'<span class="uar-chip{cls}" title="{escape(label)}"><i aria-hidden="true"></i>'
+            f'<span aria-hidden="true">{escape(short)}</span><span class="uar-sr">{escape(label)}</span></span>')
+
+
+def takeaway_html(report: dict) -> str:
+    """The answer, first: the clearest exposures and the holding behind them,
+    then one quiet line for the rest. Built from the report only."""
+    p = report["portfolio"]
+    readings = p["readings"]
+    order = ordered_keys(report)
+    clear = [k for k in order if readings[k]["evidence"] == "clear"]
+    tent = [k for k in order if readings[k]["evidence"] == "tentative"]
+    none = [k for k in order if readings[k]["evidence"] in ("indistinct", "not_enough_data")]
+    name = lambda k: escape(ex.lower_label(readings[k]["label"]))  # noqa: E731
+    if clear:
+        lead = f"Clearly sensitive to <b>{_join([name(k) for k in clear])}</b>."
+    elif tent:
+        lead = f"Tentatively sensitive to <b>{_join([name(k) for k in tent])}</b>; no clear exposure."
+    else:
+        lead = "No clear sensitivity to the forces measured, beyond the stock market."
+    carriers = []
+    for k in (clear or tent)[:2]:
+        rows = report["contributions"].get(k, [])
+        if rows and rows[0].get("share") is not None and rows[0]["share"] >= 0.5:
+            carriers.append(f'{escape(rows[0]["ticker"])} carries {100 * rows[0]["share"]:.0f}% '
+                            f'of the measured {name(k)} exposure')
+    if carriers:
+        lead += " " + "; ".join(carriers) + "."
+    rest = []
+    if clear and tent:
+        rest.append(f"Tentative: {_join([name(k) for k in tent])}")
+    if none:
+        rest.append(f"No measurable link: {_join([name(k) for k in none])}")
+    beta = p.get("market_beta_total")
+    if beta is not None and math.isfinite(beta):
+        rest.append(f"Moves {beta:.2f}× the U.S. stock market, which is accounted for separately")
+    return ('<div class="uar uar-take"><div class="uar-take-lead">' + lead + '</div>'
+            + (f'<div class="uar-take-rest">{" · ".join(rest)}.</div>' if rest else "") + '</div>')
+
+
 def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
-    """held: utils.track_record.persistence() of the published study, or None."""
+    """The main exposure view: one aligned row per force -- name and scenario,
+    a diverging bar on one shared axis, the estimate, its 90% range, the
+    evidence, and the holding behind it.
+
+    held: utils.track_record.persistence() of the published study, or None.
+    Its out-of-sample rates go in a supporting line under the table, not as a
+    sentence repeated in every row."""
     from utils import track_record as tr
 
     held = held or {}
@@ -672,27 +874,44 @@ def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
     rows = []
     for key in keys:
         r = readings[key]
+        short, full = _main_holding(report, key)
         rows.append(
-            f'<div class="uar-row">'
-            f'<div><div class="uar-label"><span class="uar-dot" style="background:{FACTOR_COLORS[key]}"></span>{escape(r["label"])}</div>'
-            f'<div class="uar-shock">In weeks when {escape(r["shock_phrase"])}</div></div>'
-            f'{exposure_bar(r["impact"], r["low"], r["high"], scale)}'
-            f'<div><div class="uar-val">{fmt_pct(r["impact"])}</div>'
-            f'<div class="uar-range">range {fmt_pct(r["low"])} to {fmt_pct(r["high"])}</div></div>'
-            f'<div class="uar-rowdriver">{evidence_chip(r["evidence"])}'
-            f'<div class="uar-driver">{escape(_driver_text(report, key))}</div>'
-            + (f'<div class="uar-held">{escape(line)}</div>'
-               if (line := tr.persistence_short(key, r["evidence"], held)) else "")
-            + '</div></div>'
+            f'<div class="uar-xrow" role="row">'
+            f'<div class="uar-xforce" role="cell">{factor_icon(key)}'
+            f'<div><div class="uar-label">{escape(r["label"])}</div>'
+            f'<div class="uar-shock">In weeks when {escape(r["shock_phrase"])}</div></div></div>'
+            f'<div role="cell" class="uar-xbar">{exposure_bar(r["impact"], r["low"], r["high"], scale, r["evidence"])}</div>'
+            f'<div role="cell" class="uar-xnum uar-val">{fmt_pct(r["impact"])}</div>'
+            f'<div role="cell" class="uar-xnum uar-range"><span class="uar-xlab">90% range </span>'
+            f'{fmt_pct(r["low"])} to {fmt_pct(r["high"])}</div>'
+            f'<div role="cell" class="uar-xev">{_evidence_cell(r["evidence"])}</div>'
+            f'<div role="cell" class="uar-driver uar-xhold" title="{escape(full)}">'
+            f'<span class="uar-xlab">Main holding </span>{escape(short)}</div>'
+            '</div>'
         )
+    held_bits = [f'{escape(readings[k]["label"])} {100 * held[k]["rate"]:.0f}%'
+                 for k in keys if tr.persistence_short(k, readings[k]["evidence"], held)]
+    held_line = (
+        '<div class="uar-xheld"><b>Track record.</b> How often Clear and Tentative readings like these held '
+        'their direction a year later, out of sample (coin flip: 50%): ' + " · ".join(held_bits)
+        + f'. <a href="{tr.EVIDENCE_URL}" target="_self">Held its direction a year later</a>, '
+        'by force, in the published study.</div>'
+    ) if held_bits else ""
     return (
-        '<div class="uar"><div class="uar-card"><div class="uar-strip"></div>'
-        '<div class="uar-head"><div class="uar-title">Exposure to economic forces</div>'
-        '<div class="uar-legend">'
-        '<span><span class="uar-sw" style="background:var(--uar-pos)"></span>Moves up with the factor</span>'
-        '<span><span class="uar-sw" style="background:var(--uar-neg)"></span>Moves down with the factor</span>'
-        f'<span>Thin line: 90% range · bar scale ±{scale:g}%</span></div></div>'
+        '<div class="uar"><div class="uar-card uar-xcard" role="table" aria-label="Exposure to economic forces">'
+        '<div class="uar-xrow uar-xhead" role="row">'
+        '<div role="columnheader">Economic force</div>'
+        f'<div role="columnheader" class="uar-xaxis"><span>−{scale:g}%</span><span>0</span><span>+{scale:g}%</span></div>'
+        '<div role="columnheader" class="uar-xnum">Estimate</div>'
+        '<div role="columnheader" class="uar-xnum">90% range</div>'
+        '<div role="columnheader">Evidence</div>'
+        '<div role="columnheader">Main holding</div></div>'
         + "".join(rows) +
+        '<div class="uar-xkey"><span><i class="uar-k uar-k-clear"></i>Solid bar: Clear</span>'
+        '<span><i class="uar-k uar-k-tent"></i>Lighter: Tentative</span>'
+        '<span><i class="uar-k uar-k-zero"></i>Outline: not distinguishable from zero (not the same as no exposure)</span>'
+        f'<span><i class="uar-k uar-k-range"></i>Line: 90% range</span><span>One shared scale, ±{scale:g}%</span></div>'
+        + held_line +
         f'<div class="uar-foot">Each figure is the portfolio&#39;s typical same-week move when that force '
         f'moved by the stated amount, after accounting for the stock market. Measured over '
         f'{p["n_obs"]} weeks, {escape(fmt_date(p["start"]))} to {escape(fmt_date(p["end"]))}. '
@@ -791,7 +1010,7 @@ def factor_detail_html(report: dict, key: str, held: Optional[dict] = None) -> s
             for c in rows
         )
         parts.append(
-            '<div class="uar-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways" style="margin-top:12px"><table class="uar-table">'
+            '<div class="uar-scroll" tabindex="0" role="region" aria-label="Table, scrolls sideways" style="margin-top:12px"><table class="uar-table uar-table-num">'
             '<thead><tr><th>Holding</th><th>Weight</th><th>Its own sensitivity</th>'
             '<th>Contribution</th><th>Share of total</th></tr></thead>'
             f'<tbody>{body}</tbody></table></div>'
@@ -1465,6 +1684,188 @@ def portfolio_header_html(name: str, report: dict) -> str:
             f'<div class="uar-sub">{escape(listing + more)}'
             + (f' · data through {escape(fmt_date(as_of))}' if as_of else "")
             + '</div></div>')
+
+
+# One glyph per force, the same drawings as the landing page's (page.tsx
+# Glyph), so "oil" looks like oil on both. 32x32 box centred on 0,0.
+_GLYPHS = {
+    "rates": '<line x1="-7" y1="8" x2="7" y2="-8"/><circle cx="-6" cy="-6" r="2.6"/><circle cx="6" cy="6" r="2.6"/>',
+    "inflation": '<polyline points="-9,7 -3,1 1,4 9,-5"/><polyline points="3,-5 9,-5 9,1"/>',
+    "dollar": '<path d="M6,-6 C4,-9 -6,-9 -6,-4 C-6,1 6,-1 6,4 C6,9 -4,9 -6,6"/><line x1="0" y1="-11" x2="0" y2="11"/>',
+    "oil": '<path d="M0,-10 C5,-3 8,1 8,4 A8,8 0 0 1 -8,4 C-8,1 -5,-3 0,-10 Z"/>',
+    "credit": '<polyline points="-10,-3 0,-10 10,-3"/><line x1="-6" y1="-1" x2="-6" y2="7"/><line x1="0" y1="-1" x2="0" y2="7"/>'
+              '<line x1="6" y1="-1" x2="6" y2="7"/><line x1="-10" y1="9" x2="10" y2="9"/>',
+    "growth": '<line x1="-8" y1="9" x2="-8" y2="2"/><line x1="-2" y1="9" x2="-2" y2="-3"/><line x1="4" y1="9" x2="4" y2="-1"/>'
+              '<line x1="10" y1="9" x2="10" y2="-8"/>',
+}
+
+
+def factor_icon(key: str, size: int = 28) -> str:
+    """The force's glyph on a tile of its identity colour (decorative)."""
+    glyph = _GLYPHS.get(key)
+    if not glyph:
+        return f'<span class="uar-dot" style="background:{FACTOR_COLORS.get(key, "#8794a8")}"></span>'
+    return (f'<span class="uar-ficon" style="--fc:{FACTOR_COLORS.get(key, "#8794a8")};width:{size}px;height:{size}px" aria-hidden="true">'
+            f'<svg viewBox="-16 -16 32 32" width="{int(size * .62)}" height="{int(size * .62)}" fill="none" stroke="currentColor" '
+            f'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">{glyph}</svg></span>')
+
+
+def summary_tiles_html(report: dict) -> str:
+    """Four tiles that say the shape of the result at a glance: the strongest
+    link, how many readings held up, the market's share, the window. Each is
+    a figure from the report with a small picture of it; nothing is new."""
+    p = report["portfolio"]
+    readings = p["readings"]
+    order = ordered_keys(report)
+    if not order:
+        return ""
+    top = order[0]
+    r = readings[top]
+    marks = "".join(
+        f'<i class="uar-mk uar-mk-{ {"clear": "c", "tentative": "t"}.get(readings[k]["evidence"], "z") }" '
+        f'title="{escape(readings[k]["label"])}: {escape(ex.EVIDENCE_LABELS.get(readings[k]["evidence"], ""))}"></i>'
+        for k in order)
+    held = sum(readings[k]["evidence"] in ("clear", "tentative") for k in order)
+    clear = sum(readings[k]["evidence"] == "clear" for k in order)
+    beta = p.get("market_beta_total")
+    beta_html = ""
+    if beta is not None and math.isfinite(beta):
+        w = max(0.0, min(1.5, beta)) / 1.5 * 100
+        beta_html = (f'<div class="uar-tile"><div class="uar-tile-k">With the stock market</div>'
+                     f'<div class="uar-tile-v">{beta:.2f}×</div>'
+                     f'<div class="uar-gauge" aria-hidden="true"><i style="width:{w:.0f}%"></i><b style="left:{100 / 1.5:.1f}%"></b></div>'
+                     f'<div class="uar-tile-s">its typical weekly move vs the market (1× marked), accounted for separately</div></div>')
+    span = ""
+    if p.get("start") and p.get("end"):
+        span = (f'<div class="uar-tile"><div class="uar-tile-k">Measured over</div>'
+                f'<div class="uar-tile-v">{p["n_obs"]} weeks</div>'
+                f'<div class="uar-weeks" aria-hidden="true">{"<i></i>" * 39}</div>'
+                f'<div class="uar-tile-s">{escape(fmt_date(p["start"]))} to {escape(fmt_date(p["end"]))}</div></div>')
+    return (
+        '<div class="uar uar-tiles">'
+        f'<div class="uar-tile uar-tile-lead">{factor_icon(top, 34)}<div>'
+        f'<div class="uar-tile-k">Largest measured exposure</div>'
+        f'<div class="uar-tile-v">{escape(r["label"])} <span>{fmt_pct(r["impact"])}</span></div>'
+        f'<div class="uar-tile-s">{escape(ex.EVIDENCE_LABELS.get(r["evidence"], ""))} · in weeks when {escape(r["shock_phrase"])}</div></div></div>'
+        f'<div class="uar-tile"><div class="uar-tile-k">Readings that held up</div>'
+        f'<div class="uar-tile-v">{held} of {len(order)}</div>'
+        f'<div class="uar-marks">{marks}</div>'
+        f'<div class="uar-tile-s">{clear} Clear · {held - clear} Tentative · {len(order) - held} not distinguishable from zero</div></div>'
+        + beta_html + span + '</div>')
+
+
+def flow_svg(report: dict) -> str:
+    """Where each exposure comes from: holdings on the left, the held-up
+    forces on the right, one ribbon per contribution in the same direction as
+    the force's reading, its width the size of that contribution. Offsetting
+    holdings are in the table below it, not drawn. Empty when nothing held up."""
+    readings = report["portfolio"]["readings"]
+    keys = [k for k in ordered_keys(report) if readings[k]["evidence"] in ("clear", "tentative")]
+    flows = []
+    for k in keys:
+        for c in report.get("contributions", {}).get(k, []):
+            if c["contribution"] * readings[k]["impact"] > 0 and abs(c["contribution"]) >= 0.004:
+                flows.append((c["ticker"], k, abs(c["contribution"])))
+    if len(flows) < 2:
+        return ""
+    weights = {x["ticker"]: x["weight_pct"] for x in report.get("positions") or []}
+    left = sorted({t for t, _, _ in flows}, key=lambda t: -weights.get(t, 0))[:12]
+    flows = [f for f in flows if f[0] in left]
+    right = [k for k in keys if any(f[1] == k for f in flows)]
+    W, NODE, GAP, LX, RX = 760, 10, 14, 96, 520
+    total = sum(v for _, _, v in flows)
+    n = max(len(left), len(right))
+    k = (300 - GAP * (n - 1)) / total          # ribbons sized for a 300-unit column...
+    SLOT = 34                                  # ...then each node keeps room for its two-line label
+
+    def column(names, size):
+        return sum(max(size(x) * k, SLOT) for x in names) + GAP * (len(names) - 1)
+    H = int(max(column(left, lambda t: sum(v for a, _, v in flows if a == t)),
+                column(right, lambda f: sum(v for _, b, v in flows if b == f)))) + 8
+
+    def place(names, size):
+        hs = [size(n) * k for n in names]
+        y = (H - (sum(max(h, SLOT) for h in hs) + GAP * (len(names) - 1))) / 2
+        out = {}
+        for n, h in zip(names, hs):
+            out[n] = [y + max(0.0, SLOT - h) / 2, h, 0.0]
+            y += max(h, SLOT) + GAP
+        return out
+    L = place(left, lambda t: sum(v for a, _, v in flows if a == t))
+    R = place(right, lambda f: sum(v for _, b, v in flows if b == f))
+    flows.sort(key=lambda f: (left.index(f[0]), right.index(f[1])))
+    ribbons = []
+    for t, f, v in flows:
+        w = v * k
+        y0, y1 = L[t][0] + L[t][2], R[f][0] + R[f][2]
+        L[t][2] += w
+        R[f][2] += w
+        x0, x1 = LX + NODE, RX
+        mx = (x0 + x1) / 2
+        ribbons.append(
+            f'<path d="M{x0},{y0:.1f} C{mx},{y0:.1f} {mx},{y1:.1f} {x1},{y1:.1f} L{x1},{y1 + w:.1f} '
+            f'C{mx},{y1 + w:.1f} {mx},{y0 + w:.1f} {x0},{y0 + w:.1f} Z" fill="{FACTOR_COLORS[f]}" class="uar-rib">'
+            f'<title>{escape(t)} → {escape(readings[f]["label"])}: {v:.2f} points of {fmt_pct(readings[f]["impact"])}</title></path>')
+    labels = []
+    for t in left:
+        y, h, _ = L[t]
+        labels.append(f'<rect x="{LX}" y="{y:.1f}" width="{NODE}" height="{max(2, h):.1f}" rx="2" class="uar-flow-bar"/>'
+                      f'<text x="{LX - 12}" y="{y + h / 2 + 4:.1f}" text-anchor="end" class="uar-flow-t">{escape(t)}</text>'
+                      f'<text x="{LX - 12}" y="{y + h / 2 + 19:.1f}" text-anchor="end" class="uar-flow-s">{weights.get(t, 0):.0f}%</text>')
+    for f in right:
+        y, h, _ = R[f]
+        labels.append(f'<rect x="{RX}" y="{y:.1f}" width="{NODE}" height="{max(2, h):.1f}" rx="2" fill="{FACTOR_COLORS[f]}"/>'
+                      f'<text x="{RX + NODE + 12}" y="{y + h / 2 - 1:.1f}" class="uar-flow-l">{escape(readings[f]["label"])}</text>'
+                      f'<text x="{RX + NODE + 12}" y="{y + h / 2 + 16:.1f}" class="uar-flow-s">{fmt_pct(readings[f]["impact"])} · '
+                      f'{escape(ex.EVIDENCE_LABELS.get(readings[f]["evidence"], ""))}</text>')
+    summary = "; ".join(f"{t} to {readings[f]['label']} {v:.2f} points" for t, f, v in flows)
+    return (f'<div class="uar"><div class="uar-card uar-flow"><div class="uar-flow-head"><b>Where each exposure comes from</b>'
+            '<span>Ribbon width: each holding&#39;s contribution, its weight times its own sensitivity. '
+            'Hover a ribbon for the figure.</span></div>'
+            f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="{escape("Where each exposure comes from: " + summary)}">'
+            f'<g class="uar-ribs">{"".join(ribbons)}</g>{"".join(labels)}</svg></div></div>')
+
+
+def workspace_header_html(name: str, report: dict) -> str:
+    """The report's compact header: the portfolio's identity, its holdings,
+    and the measurement window and data date together on one line."""
+    positions = sorted(report.get("positions") or [], key=lambda p: -p["weight_pct"])
+    p = report.get("portfolio") or {}
+    chips = "".join(f'<span role="listitem"><b>{escape(x["ticker"])}</b>{x["weight_pct"]:.0f}%</span>' for x in positions[:10])
+    if len(positions) > 10:
+        chips += f'<span role="listitem">+{len(positions) - 10} more</span>'
+    meta = [f'{len(positions)} holding{"" if len(positions) == 1 else "s"}']
+    if p.get("n_obs") and p.get("start") and p.get("end"):
+        meta.append(f'{p["n_obs"]} weeks, {fmt_date(p["start"])} to {fmt_date(p["end"])}')
+    if report.get("as_of"):
+        meta.append(f'data through {fmt_date(report["as_of"])}')
+    return ('<div class="uar uar-ws"><div class="uar-ws-kicker">Exposure report</div>'
+            f'<h1 class="uar-ws-title">{escape(name)}</h1>'
+            f'<div class="uar-ws-meta">{escape(" · ".join(meta))}</div>'
+            f'<div class="uar-ws-holdings" role="list" aria-label="Holdings and weights">{chips}</div></div>')
+
+
+def report_skeleton_html(message: str) -> str:
+    """A placeholder shaped like the report while it is measured: grey blocks,
+    the plain message, no figures and no invented progress."""
+    row = ('<div class="uar-sk-row"><i class="uar-sk"></i><i class="uar-sk uar-sk-bar"></i>'
+           '<i class="uar-sk"></i><i class="uar-sk"></i></div>')
+    return ('<div class="uar uar-skel" role="status">'
+            f'<div class="uar-sk-msg">{escape(message)}</div>'
+            '<div aria-hidden="true"><i class="uar-sk uar-sk-title"></i><i class="uar-sk uar-sk-line"></i>'
+            f'<div class="uar-card uar-sk-card">{row * 5}</div></div></div>')
+
+
+def window_note_html(report: dict) -> str:
+    """The history charts use a rolling window shorter than the headline's,
+    so their latest value can differ from the table's, even in sign. Said
+    beside the section title, where the two numbers meet."""
+    m = report.get("method") or {}
+    rolling = m.get("rolling_weeks") or 52
+    window = m.get("window_weeks") or (report.get("portfolio") or {}).get("n_obs") or 156
+    return (f'<div class="uar"><div class="uar-window"><span class="uar-window-tag">Rolling {rolling}-week estimates</span>'
+            f'Each point uses the {rolling} weeks to that date. The table above uses {window} weeks, so the '
+            'latest point here can differ from it, even in sign. Each chart has its own vertical scale.</div></div>')
 
 
 FOOTER_LINKS = (("Methodology", "/methodology"), ("Research record", "/research"),

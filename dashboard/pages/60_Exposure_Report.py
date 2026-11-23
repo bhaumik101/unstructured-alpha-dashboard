@@ -80,13 +80,16 @@ if user and "uar_holdings" not in st.session_state:
 holdings = st.session_state.get("uar_holdings") or []
 editing = st.session_state.get("uar_editing", False) or not holdings
 
-product_page_header(
-    "Exposure report",
-    "See which economic forces a portfolio is exposed to, which holdings cause it, and how sure we can be.",
-    eyebrow="Measure a portfolio",
-    facts=("Three years of weekly returns", "Five economic series from FRED",
-           "The market's own movement removed", "Every reading labelled by evidence"),
-)
+# The banner introduces the page; once a report is on screen the findings take
+# its place (2026-11 redesign), under a compact workspace header further down.
+if editing:
+    product_page_header(
+        "Exposure report",
+        "See which economic forces a portfolio is exposed to, which holdings cause it, and how sure we can be.",
+        eyebrow="Measure a portfolio",
+        facts=("Three years of weekly returns", "Five economic series from FRED",
+               "The market's own movement removed", "Every reading labelled by evidence"),
+    )
 
 # ── dashboard: what a first visit sees before choosing a portfolio ──────────
 # Only with nothing loaded. Someone changing their holdings gets the editor,
@@ -308,9 +311,14 @@ if not allowed:
     report = {"status": "error", "message": "You've run a lot of reports in a short time. Please wait "
                                             "a few minutes and try again."}
 else:
-    with st.spinner("Measuring three years of weekly returns against five economic series. "
-                    "A new portfolio usually takes 10 to 20 seconds."):
-        report = ui.get_report(key, max_holdings)
+    # A skeleton of the report, not a spinner on an empty page. It is replaced
+    # the moment the report arrives (instantly when it is cached).
+    _skeleton = st.empty()
+    _skeleton.markdown(ui.report_skeleton_html(
+        "Measuring three years of weekly returns against five economic series. "
+        "A new portfolio usually takes 10 to 20 seconds."), unsafe_allow_html=True)
+    report = ui.get_report(key, max_holdings)
+    _skeleton.empty()
 
 if st.session_state.get("uar_last_key") != key:
     st.session_state["uar_last_key"] = key
@@ -352,15 +360,16 @@ if st.session_state.get("uar_reopened", False):
 
 # A fourth action made the three button columns narrow enough to wrap
 # "Change holdings" onto two lines; the header column gives back the room.
-head_col, edit_col, save_col, csv_col = st.columns([2.5, 1.5, 1.4, 1.4])
+head_col, edit_col, save_col, csv_col = st.columns([2.6, 1.45, 0.9, 1.15], vertical_alignment="center")
 with head_col:
-    st.markdown(ui.portfolio_header_html(name, report), unsafe_allow_html=True)
+    st.markdown(ui.workspace_header_html(name, report), unsafe_allow_html=True)
 with edit_col:
-    if st.button("Change holdings", key="uar_edit", width="stretch"):
+    if st.button("Change holdings", key="uar_edit", width="stretch", type="primary"):
         st.session_state["uar_editing"] = True
         st.rerun()
 with save_col:
-    save_clicked = st.button("Save portfolio", key="uar_save", width="stretch",
+    save_clicked = st.button("Save", key="uar_save", width="stretch",
+                             help="Save this portfolio to your account.",
                              disabled=report.get("status") != "ok")
 with csv_col:
     # An adviser puts these figures next to their own; a web page does not go
@@ -461,6 +470,27 @@ if user and is_pro and report.get("status") == "ok":
                 delete_portfolio(int(user["id"]), int(_row["id"]))
                 st.rerun()
 
+if report.get("status") != "ok":
+    st.markdown(ui.error_html(report), unsafe_allow_html=True)
+    if report.get("retryable") and st.button("Try again", key="uar_retry"):
+        st.rerun()
+    ui.render_report_footer()
+    st.stop()
+
+st.markdown(ui.summary_tiles_html(report), unsafe_allow_html=True)
+st.markdown(ui.takeaway_html(report), unsafe_allow_html=True)
+# How each force's readings held up out of sample, from the published study
+# (utils/track_record.py). Cached an hour; no study means no line.
+_held = ui.held_up()
+st.markdown(ui.exposure_table_html(report, _held), unsafe_allow_html=True)
+# The question that follows "what is it exposed to": what if those forces move?
+_stress_col, _ = st.columns([1.3, 3])
+if _stress_col.button("Stress-test this portfolio", key="uar_to_scenarios", width="stretch",
+                      help="Move the market and up to nineteen forces and see the estimated move."):
+    record("scenario_lab_opened_from_report")
+    st.switch_page("pages/70_Scenarios.py")
+
+# ── keeping up with this portfolio: account utilities, after the findings ───
 if user and report.get("status") == "ok":
     from utils.exposure_email import get_weekly_opt_in, set_weekly_opt_in
     _opt_key = f"uar_weekly_{user['id']}"
@@ -522,45 +552,14 @@ if user and is_pro and report.get("status") == "ok":
 elif report.get("status") == "ok" and not is_pro:
     st.caption("Investor Pro: get an email when an exposure crosses a line you set.")
 
-if report.get("status") != "ok":
-    st.markdown(ui.error_html(report), unsafe_allow_html=True)
-    if report.get("retryable") and st.button("Try again", key="uar_retry"):
-        st.rerun()
-    ui.render_report_footer()
-    st.stop()
-
-_summary_col, _map_col = st.columns([1.05, 1], gap="large")
-with _summary_col:
-    st.markdown(f'<div class="uar"><p class="uar-lead">{ui.summary_text(report)}</p></div>',
-                unsafe_allow_html=True)
-with _map_col:
-    st.markdown(ui.exposure_map_html(report), unsafe_allow_html=True)
-# How each force's readings held up out of sample, from the published study
-# (utils/track_record.py). Cached an hour; no study means no line.
-_held = ui.held_up()
-st.markdown(ui.exposure_table_html(report, _held), unsafe_allow_html=True)
-# The question that follows "what is it exposed to": what if those forces move?
-_stress_col, _ = st.columns([1.3, 3])
-if _stress_col.button("Stress-test this portfolio", key="uar_to_scenarios", width="stretch",
-                      help="Move the market and up to nineteen forces and see the estimated move."):
-    record("scenario_lab_opened_from_report")
-    st.switch_page("pages/70_Scenarios.py")
 
 readings = report["portfolio"]["readings"]
 detail_keys = ui.ordered_keys(report)
 
-# How each exposure has moved, then what the forces themselves did. The
-# product says it shows "how those exposures are changing"; this is where it
-# does, as a picture with its uncertainty drawn in rather than a paragraph.
-_rolling_html = charts.rolling_charts_html(report, detail_keys)
-if _rolling_html:
-    st.markdown("## How these exposures have moved")
-    st.markdown(_rolling_html, unsafe_allow_html=True)
-_paths_html = charts.factor_paths_html(report, detail_keys)
-if _paths_html:
-    st.markdown("## What the forces themselves did")
-    st.markdown(_paths_html, unsafe_allow_html=True)
 st.markdown("## Which holdings drive each exposure")
+_flow = ui.flow_svg(report)
+if _flow:
+    st.markdown(_flow, unsafe_allow_html=True)
 chosen = st.radio(
     "Choose an economic force",
     detail_keys,
@@ -575,6 +574,25 @@ if _bars:
     st.markdown(f'<div class="uar"><div class="uac-panel">{_bars}</div></div>',
                 unsafe_allow_html=True)
 st.markdown(ui.holdings_matrix_html(report), unsafe_allow_html=True)
+_map = ui.exposure_map_html(report)
+if _map:
+    with st.expander("See the exposures as a diagram"):
+        st.markdown(_map, unsafe_allow_html=True)
+        st.caption("Line weight follows the measured size; dashed lines are readings that could not "
+                   "be told apart from zero. The table above gives the same figures.")
+
+# How each exposure has moved, then what the forces themselves did. The
+# product says it shows "how those exposures are changing"; this is where it
+# does, as a picture with its uncertainty drawn in rather than a paragraph.
+_rolling_html = charts.rolling_charts_html(report, detail_keys)
+if _rolling_html:
+    st.markdown("## How these exposures have moved")
+    st.markdown(ui.window_note_html(report), unsafe_allow_html=True)
+    st.markdown(_rolling_html, unsafe_allow_html=True)
+_paths_html = charts.factor_paths_html(report, detail_keys)
+if _paths_html:
+    st.markdown("## What the forces themselves did")
+    st.markdown(_paths_html, unsafe_allow_html=True)
 
 # ── the holdings themselves, editable here ──────────────────────────────────
 # Changing one holding used to mean leaving the report, finding the row in a

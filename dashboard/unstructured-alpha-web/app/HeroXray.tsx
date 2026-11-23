@@ -78,7 +78,7 @@ export default function HeroXray({ fallback }: { fallback: ReactNode }) {
 
   return (
     <div className="lp-xr" aria-labelledby="lp-xr-title">
-      <p className="lp-xr-eyebrow" id="lp-xr-title">Live portfolio X-ray</p>
+      <p className="lp-xr-eyebrow" id="lp-xr-title">Live portfolio X-ray · equal weight</p>
       <div className="lp-xr-presets" role="group" aria-label="Starter mixes">
         {PRESETS.map(([name, ts]) => (
           <button key={name} type="button" aria-pressed={preset === name}
@@ -128,8 +128,8 @@ export default function HeroXray({ fallback }: { fallback: ReactNode }) {
         moved by its standard amount, over three years. Past, not a forecast.
       </p>
       <div className="lp-xr-actions">
-        <a className="lp-btn lp-btn-bright lp-btn-sm" href={`/xray#p=${share}`}>Balance it, set weights →</a>
-        <a className="lp-btn lp-btn-ghost lp-btn-sm"
+        <a className="lp-btn lp-btn-primary lp-btn-sm" href={`/xray#p=${share}`}>Balance it, set weights →</a>
+        <a className="lp-btn lp-btn-secondary lp-btn-sm"
            href={`${APP_URL}/?h=${encodeURIComponent(share)}&utm_source=landing&utm_medium=owned&utm_content=hero_xray`}>
           Full report, free</a>
       </div>

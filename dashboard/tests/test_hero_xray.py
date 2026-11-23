@@ -40,10 +40,17 @@ def test_the_starter_mixes_are_the_xray_pages():
     assert [(n, " ".join(re.findall(r'"([A-Z]+)"', ts))) for n, ts in hero] == list(xp.PRESETS)
 
 
-def test_without_the_feed_the_hero_shows_its_static_example():
+def test_the_hero_is_a_dated_sample_and_the_live_xray_never_invents_numbers():
+    """The hero shows a real stored report, dated on screen (2026-11 redesign);
+    the live X-ray sits below it, and without its feed it offers a link, not
+    figures."""
     assert "if (!feed) return <>{fallback}</>;" in HERO
     page = (WEB / "app" / "page.tsx").read_text(encoding="utf-8")
-    assert "<HeroXray fallback={<>" in page and "<ExposureMap />" in page
+    hero = page[page.index('<header className="lp-wrap lp-hero">'):page.index("<LiveStats />")]
+    assert "<SamplePanel />" in hero
+    assert "Sample report · data through {SAMPLE.asOf}" in page and 'asOf: "' in page
+    fallback = page[page.index("<HeroXray fallback={"):page.index("/>", page.index("<HeroXray fallback={"))]
+    assert 'href="/xray"' in fallback and "%" not in fallback
 
 
 FEED = {"f": [["rates", "Interest rates", "r"], ["oil", "Oil and energy", "o"]],

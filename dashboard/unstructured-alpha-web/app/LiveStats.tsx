@@ -1,8 +1,10 @@
 'use client';
 
-// A strip of live figures under the hero, read from the same feed as the demo:
-// how many stocks are measured, through when, how many of their core readings
-// held up, and how many forces have readings. Hidden if the feed can't be read.
+// The quiet proof strip under the hero, read from the same feed as the demo:
+// what is covered, how often it is refreshed, and through when. Counts of
+// held-up readings live further down (LiveMovers), where they explain
+// something; here they would compete with the product. Hidden if the feed
+// can't be read -- never a number typed in.
 
 import { useEffect, useState } from 'react';
 import { date, getFeed, type Feed } from './feed';
@@ -16,28 +18,19 @@ export default function LiveStats() {
   }, []);
   if (!feed) return null;
 
-  const measured = feed.forces.reduce((n, f) => n + f.measured, 0);
-  const held = feed.forces.reduce((n, f) => n + f.held_up + f.held_down, 0);
-  // The core force with the most stocks whose reading held up, either way.
-  const top = [...feed.forces].sort((a, b) => (b.held_up + b.held_down) - (a.held_up + a.held_down))[0];
-  const stats: [string, string, string][] = [
-    [feed.stocks.toLocaleString('en-US'), 'Stocks and ETFs measured', 'updated every week'],
-    [date(feed.as_of), 'Data through', 'three years of weekly returns'],
-    [`${held.toLocaleString('en-US')} of ${measured.toLocaleString('en-US')}`, 'Core readings held up',
-     'the rest: no clear link'],
-    [top.label, 'Most shared link',
-     `${(top.held_up + top.held_down).toLocaleString('en-US')} of ${top.measured.toLocaleString('en-US')} stocks`],
+  const stats: [string, string][] = [
+    [feed.stocks.toLocaleString('en-US'), 'Stocks and ETFs measured'],
   ];
-  if (feed.forces_measured) {
-    stats.splice(1, 0, [String(feed.forces_measured), 'Economic forces', 'rates and oil to gold and the yen']);
-  }
+  if (feed.forces_measured) stats.push([String(feed.forces_measured), 'Economic forces']);
+  stats.push(['Weekly', 'Refreshed, three years of returns']);
+  stats.push([date(feed.as_of), 'Data through']);
   return (
-    <section className="lp-wrap lp-stats-wrap" aria-label="Live figures">
-      <dl className="lp-stats">
-        {stats.map(([v, k, s]) => (
+    <section className="lp-wrap lp-proof" aria-label="Coverage">
+      <dl>
+        {stats.map(([v, k]) => (
           <div key={k}>
             <dt>{k}</dt>
-            <dd><b>{v}</b><span>{s}</span></dd>
+            <dd>{v}</dd>
           </div>
         ))}
       </dl>

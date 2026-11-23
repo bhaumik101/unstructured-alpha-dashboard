@@ -118,7 +118,12 @@ def test_boot_splash_wears_the_current_brand_not_the_retired_one():
     m = _load_boot_module()
     splash = m._build_splash()
     assert "UNSTRUCTURED <span>ALPHA</span>" in splash, "the nav's wordmark is missing"
-    assert "#0d223b" in splash and "#ffc24b" in splash, "navy band / amber ALPHA missing"
+    assert "#0b111a" in splash and "#d8b66a" in splash, "nav band / gold ALPHA missing"
+    # A skeleton of the page, not a logo on an empty screen -- and never a
+    # progress figure, because nothing has been measured yet.
+    assert splash.count('class="ua-boot-row"') >= 3 and "ua-sk-title" in splash
+    markup = splash.split("<style>")[0]
+    assert 'role="progressbar"' not in splash and "%" not in markup
     retired = ("#6470F5", "#8B7BF7", "#D4B26A", "#F6F5FB", "#0B0D12", "uaBootGrad", "ua-boot-hex")
     left = [c for c in retired if c.lower() in splash.lower()]
     assert not left, f"retired splash styling still present: {left}"

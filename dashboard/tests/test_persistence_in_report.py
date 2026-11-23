@@ -39,7 +39,12 @@ def test_the_report_shows_it_beside_the_reading_and_in_the_detail(report):
     table = ui.exposure_table_html(report, held)
     shown = [k for k, r in report["portfolio"]["readings"].items()
              if r["evidence"] in ("clear", "tentative")]
-    assert shown and table.count("Held its direction a year later 61%") == len(shown)
+    # One supporting line under the table names each held-up force's rate,
+    # instead of repeating the sentence in every row.
+    held_line = table[table.index('class="uar-xheld"'):]
+    held_line = held_line[:held_line.index("</div>")]
+    assert shown and all(f'{report["portfolio"]["readings"][k]["label"]} 61%' in held_line for k in shown)
+    assert table.count("Held its direction a year later") == 1 and "coin flip: 50%" in held_line
     detail = ui.factor_detail_html(report, shown[0], held)
     assert "kept their direction the following year 61% of the time" in detail
     assert "999 readings" in detail and tr.EVIDENCE_URL in detail

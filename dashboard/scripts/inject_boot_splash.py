@@ -511,42 +511,65 @@ def _build_splash() -> str:
     # violet hexagon on lavender with rotating macro trivia ("yield-curve
     # inversions have led downturns by 6 to 18 months") -- the old signal
     # product's look, and forecasting talk the exposure product disclaims, on
-    # every single load. Now: the nav's own wordmark on its navy band, the six
-    # factor colours as the progress strip, the page's own ground behind it.
+    # every single load. Then a logo and a sliding bar on an empty screen; now
+    # (2026-11 redesign) a skeleton of the page's own structure under the nav's
+    # wordmark, on the page's own ground.
     return r"""
 <!-- ua-boot-splash:start -->
 <div id="ua-boot-splash" role="status" aria-label="Loading Unstructured Alpha">
-  <div class="ua-boot-inner">
-    <div class="ua-boot-mark">UNSTRUCTURED <span>ALPHA</span></div>
-    <div class="ua-boot-bar"><div class="ua-boot-bar-fill"></div></div>
-    <div class="ua-boot-sub">Loading…</div>
+  <div class="ua-boot-nav"><div class="ua-boot-mark">UNSTRUCTURED <span>ALPHA</span></div></div>
+  <div class="ua-boot-page" aria-hidden="true">
+    <div class="ua-sk ua-sk-title"></div>
+    <div class="ua-sk ua-sk-meta"></div>
+    <div class="ua-sk ua-sk-line"></div>
+    <div class="ua-sk ua-sk-line ua-sk-short"></div>
+    <div class="ua-boot-card">
+      <div class="ua-boot-row"><i class="ua-sk"></i><i class="ua-sk ua-sk-bar"></i><i class="ua-sk"></i><i class="ua-sk"></i></div>
+      <div class="ua-boot-row"><i class="ua-sk"></i><i class="ua-sk ua-sk-bar"></i><i class="ua-sk"></i><i class="ua-sk"></i></div>
+      <div class="ua-boot-row"><i class="ua-sk"></i><i class="ua-sk ua-sk-bar"></i><i class="ua-sk"></i><i class="ua-sk"></i></div>
+      <div class="ua-boot-row"><i class="ua-sk"></i><i class="ua-sk ua-sk-bar"></i><i class="ua-sk"></i><i class="ua-sk"></i></div>
+      <div class="ua-boot-row"><i class="ua-sk"></i><i class="ua-sk ua-sk-bar"></i><i class="ua-sk"></i><i class="ua-sk"></i></div>
+    </div>
   </div>
+  <div class="ua-boot-sub">Loading…</div>
 </div>
 <style>
-#ua-boot-splash{position:fixed;inset:0;z-index:2147483647;background:#0b1422;
-  display:flex;align-items:center;justify-content:center;
-  transition:opacity .35s ease;
+/* A skeleton of the page that is coming -- nav, title, a summary, a table --
+   so the first paint already has the report's shape. Grey blocks only: no
+   figures, and no progress percentage, because nothing has been measured yet. */
+#ua-boot-splash{position:fixed;inset:0;z-index:2147483647;background:#080d14;
+  transition:opacity .3s ease;overflow:hidden;
   font-family:Inter,"SF Pro Text","Segoe UI",system-ui,-apple-system,sans-serif;}
 #ua-boot-splash.ua-hide{opacity:0;pointer-events:none;}
-#ua-boot-splash .ua-boot-inner{text-align:center;}
-#ua-boot-splash .ua-boot-mark{display:inline-block;padding:12px 20px;border-radius:12px;
-  background:linear-gradient(135deg,#0d223b,#15375d);color:#eef3fa;
-  font-size:1.05rem;font-weight:800;letter-spacing:-.01em;
-  box-shadow:0 10px 30px rgba(13,34,59,.28);}
-#ua-boot-splash .ua-boot-mark span{color:#ffc24b;}
-#ua-boot-splash .ua-boot-bar{margin:18px auto 0;width:168px;height:3px;border-radius:3px;
-  background:rgba(143,155,177,.25);overflow:hidden;}
-#ua-boot-splash .ua-boot-bar-fill{height:100%;width:40%;border-radius:3px;
-  background:linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0);
-  animation:ua-boot-slide 1.1s infinite ease-in-out;}
-#ua-boot-splash .ua-boot-sub{margin-top:12px;font-size:.75rem;color:#8f9bb1;}
-@keyframes ua-boot-slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
-@media (prefers-reduced-motion: reduce){#ua-boot-splash .ua-boot-bar-fill{animation:none;width:100%;}}
+#ua-boot-splash .ua-boot-nav{height:52px;background:#0b111a;border-bottom:1px solid #1c2738;
+  display:flex;align-items:center;padding:0 max(16px,calc((100vw - 1200px)/2 + 16px));}
+#ua-boot-splash .ua-boot-mark{color:#f3f6fa;font-size:.82rem;font-weight:800;letter-spacing:.01em;}
+#ua-boot-splash .ua-boot-mark span{color:#d8b66a;}
+#ua-boot-splash .ua-boot-page{max-width:1200px;margin:0 auto;padding:56px 16px 0;box-sizing:border-box;}
+#ua-boot-splash .ua-sk{display:block;border-radius:6px;background:#162131;}
+#ua-boot-splash .ua-sk-title{width:min(340px,70%);height:26px;}
+#ua-boot-splash .ua-sk-meta{width:min(460px,85%);height:12px;margin-top:12px;}
+#ua-boot-splash .ua-sk-line{width:min(720px,95%);height:14px;margin-top:28px;}
+#ua-boot-splash .ua-sk-short{width:min(480px,70%);margin-top:10px;}
+#ua-boot-splash .ua-boot-card{margin-top:28px;border:1px solid #1c2738;border-radius:14px;padding:6px 20px;}
+#ua-boot-splash .ua-boot-row{display:grid;grid-template-columns:1.3fr 1.6fr 64px 110px;gap:16px;align-items:center;
+  padding:16px 0;border-top:1px solid #1c2738;}
+#ua-boot-splash .ua-boot-row:first-child{border-top:0;}
+#ua-boot-splash .ua-boot-row .ua-sk{height:12px;}
+#ua-boot-splash .ua-boot-row .ua-sk-bar{height:8px;}
+#ua-boot-splash .ua-boot-sub{position:absolute;left:0;right:0;bottom:24px;text-align:center;font-size:.75rem;color:#8794a8;}
+#ua-boot-splash .ua-boot-page{animation:ua-boot-pulse 1.6s ease-in-out infinite;}
+@keyframes ua-boot-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion: reduce){#ua-boot-splash .ua-boot-page{animation:none;}}
+@media (max-width:640px){#ua-boot-splash .ua-boot-row{grid-template-columns:1fr 64px;}
+  #ua-boot-splash .ua-boot-row .ua-sk-bar,#ua-boot-splash .ua-boot-row .ua-sk:last-child{display:none;}}
 /* Light theme: the splash is the very first thing painted, so it wears the
    same ground the page will (--p-bg), or a light visitor gets a dark flash. */
-html[data-ua-theme="light"] #ua-boot-splash{background:#fafaf8;}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-bar{background:#dfe5ee;}
-html[data-ua-theme="light"] #ua-boot-splash .ua-boot-sub{color:#5b6780;}
+html[data-ua-theme="light"] #ua-boot-splash{background:#f5f7fa;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-sk{background:#e4e9f0;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-card,
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-row{border-color:#dce3ec;}
+html[data-ua-theme="light"] #ua-boot-splash .ua-boot-sub{color:#526176;}
 </style>
 <script>
 (function(){
