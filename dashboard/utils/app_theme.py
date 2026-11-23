@@ -43,20 +43,22 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# Landing tokens, verbatim from landing.css so the two cannot drift by eye.
+# The brand system (2026-11 redesign), shared with landing.css: near-black
+# canvas and nav, one teal action colour (darker on light so white text clears
+# 4.5:1), gold only for the wordmark and small brand details.
 _LIGHT = {
-    "bg": "#fafaf8", "surface": "#ffffff", "subtle": "#f4f6fa",
-    "ink": "#13213a", "ink2": "#3a4760", "ink3": "#5b6780", "line": "#dfe5ee",
-    "accent": "#1f5fae", "accent-hover": "#184c8c", "accent-ink": "#ffffff",
-    "bright": "#ffc24b", "bright-ink": "#13213a",
-    "navy": "#0d223b", "navy2": "#15375d", "sky": "#edf4fc", "sand": "#fbf5eb",
+    "bg": "#f5f7fa", "surface": "#ffffff", "subtle": "#eef2f7",
+    "ink": "#152033", "ink2": "#3d4a5f", "ink3": "#526176", "line": "#dce3ec",
+    "accent": "#0b6f64", "accent-hover": "#095c53", "accent-ink": "#ffffff",
+    "bright": "#d8b66a", "bright-ink": "#152033",
+    "navy": "#0b111a", "navy2": "#101824", "sky": "#e7f5f2", "sand": "#f7f3ea",
 }
 _DARK = {
-    "bg": "#0b1422", "surface": "#121d2f", "subtle": "#16233a",
-    "ink": "#e8edf5", "ink2": "#bdc7d8", "ink3": "#8f9bb1", "line": "#243349",
-    "accent": "#8cb8f2", "accent-hover": "#a9caf5", "accent-ink": "#0b1422",
-    "bright": "#ffc24b", "bright-ink": "#13213a",
-    "navy": "#081628", "navy2": "#10294a", "sky": "#0f1b2d", "sand": "#171b24",
+    "bg": "#080d14", "surface": "#101824", "subtle": "#162131",
+    "ink": "#f3f6fa", "ink2": "#c3cddb", "ink3": "#a8b5c7", "line": "#263448",
+    "accent": "#6ce5d2", "accent-hover": "#8debdd", "accent-ink": "#04201c",
+    "bright": "#d8b66a", "bright-ink": "#152033",
+    "navy": "#0b111a", "navy2": "#101824", "sky": "#11262a", "sand": "#151a22",
 }
 
 # One identity colour per economic force, used on the landing page's icons and
@@ -73,7 +75,6 @@ _TYPE = {
 }
 _RADII = {"r-sm": "8px", "r-btn": "10px", "r": "12px", "r-lg": "18px", "r-pill": "999px"}
 
-_STRIP = ("linear-gradient(90deg,#3b7ddd,#7c5ce0,#e0664a,#d99018,#1a9a70,#1497b0)")
 
 
 def _vars(*groups: dict) -> str:
@@ -107,16 +108,16 @@ html[data-ua-theme="light"] .stApp [data-testid="stAppViewContainer"],
 html:not([data-ua-theme="light"]) .stApp [data-testid="stAppViewContainer"]{{
   background:var(--p-bg)!important;}}
 .stApp [data-testid="stMain"]{{background:transparent!important;}}
-.stApp .block-container{{max-width:1140px;padding-top:58px!important;}}
+.stApp .block-container{{max-width:1200px;padding-top:58px!important;}}
 
 /* ── top nav: the landing page's navy band ──────────────────────────────── */
 html[data-ua-theme="light"] .ua-topnav,
 html:not([data-ua-theme="light"]) .ua-topnav{{
-  background:linear-gradient(120deg,var(--p-navy),var(--p-navy2))!important;
+  background:var(--p-navy)!important;
   /* A solid colour under the gradient: what shows if the gradient cannot, and
      what contrast checkers measure the bar's text against. */
   background-color:var(--p-navy)!important;
-  border-bottom:1px solid rgba(255,255,255,.10)!important;
+  border-bottom:1px solid #1c2738!important;
   backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
   box-shadow:0 1px 0 rgba(13,34,59,.06)!important;height:52px!important;
 }}
@@ -179,8 +180,8 @@ html:not([data-ua-theme="light"]) .ua-tnav-brand-text{{color:#fff!important;font
 .ua-tnav-brand-text em{{-webkit-text-fill-color:var(--p-bright)!important;background:none!important;}}
 html[data-ua-theme="light"] .ua-tnav-upgrade,
 html:not([data-ua-theme="light"]) .ua-tnav-upgrade{{
-  background:var(--p-bright)!important;color:var(--p-bright-ink)!important;font-weight:700!important;
-  border-color:transparent!important;
+  background:transparent!important;color:var(--p-bright)!important;font-weight:650!important;
+  border:1px solid rgba(216,182,106,.45)!important;
   /* "transition: all" animated the focus ring in from 0px; focus shows at once. */
   transition:background-color .14s ease,color .14s ease!important;
 }}
@@ -197,32 +198,32 @@ html[data-ua-theme="light"] .ua-tnav-drop a{{color:var(--p-ink2)!important;}}
 html[data-ua-theme="light"] .ua-tnav-drop a:hover{{background:var(--p-sky)!important;color:var(--p-ink)!important;}}
 
 /* ── the page header, as the landing hero ───────────────────────────────── */
-.ua-phero{{position:relative;overflow:hidden;border-radius:var(--p-r-lg);
-  margin:4px 0 26px;color:#eef3fa;
+.ua-phero{{position:relative;overflow:hidden;border-radius:var(--p-r);
+  margin:4px 0 24px;color:#f3f6fa;border:1px solid #1c2738;
   background:
-    radial-gradient(780px 420px at 88% 20%,rgba(59,125,221,.38),transparent 62%),
-    radial-gradient(600px 380px at 2% 110%,rgba(124,92,224,.30),transparent 62%),
-    linear-gradient(160deg,var(--p-navy) 0%,var(--p-navy2) 100%);}}
+    radial-gradient(640px 300px at 92% 0%,rgba(108,229,210,.10),transparent 65%),
+    var(--p-navy);}}
 .ua-phero::before{{content:"";position:absolute;inset:0;pointer-events:none;
-  background-image:radial-gradient(rgba(255,255,255,.09) 1px,transparent 1px);
-  background-size:22px 22px;
-  -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 85%);
-  mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 85%);}}
-.ua-phero-in{{position:relative;padding:30px 34px 32px;}}
-.ua-phero-eyebrow{{font-size:var(--p-t-xs)!important;font-weight:700;letter-spacing:.06em;
-  text-transform:uppercase;color:var(--p-bright)!important;margin-bottom:9px;}}
+  background-image:linear-gradient(rgba(168,181,199,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(168,181,199,.06) 1px,transparent 1px);
+  background-size:40px 40px;
+  -webkit-mask-image:radial-gradient(ellipse 60% 90% at 85% 0%,#000 10%,transparent 70%);
+  mask-image:radial-gradient(ellipse 60% 90% at 85% 0%,#000 10%,transparent 70%);}}
+.ua-phero-in{{position:relative;padding:24px 28px 24px;}}
+.ua-phero-eyebrow{{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--p-t-xs)!important;
+  font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#6ce5d2!important;margin-bottom:8px;}}
 .stApp .ua-phero h1{{font-size:var(--p-t-xl)!important;line-height:1.08!important;
-  letter-spacing:-0.03em!important;font-weight:750!important;color:#fff!important;margin:0!important;
+  letter-spacing:-0.03em!important;font-weight:700!important;color:#fff!important;margin:0!important;
   padding:0!important;}}
 .stApp .ua-phero .ua-phero-sub{{font-size:var(--p-t-md)!important;line-height:1.55!important;
-  color:rgba(238,243,250,.86)!important;margin-top:11px!important;max-width:64ch!important;}}
-.stApp .ua-phero .ua-phero-facts{{list-style:none;padding:0;margin:18px 0 0!important;
-  display:flex;flex-wrap:wrap;gap:7px 20px;}}
-.stApp .ua-phero .ua-phero-facts li{{display:flex;align-items:center;gap:7px;line-height:1.45!important;
-  font-size:var(--p-t-sm)!important;color:rgba(238,243,250,.80)!important;max-width:none!important;}}
-.ua-phero-facts li::before{{content:"";width:7px;height:7px;border-radius:50%;
-  background:var(--p-bright);flex-shrink:0;}}
-.ua-phero-strip{{position:relative;height:5px;background:{_STRIP};}}
+  color:#a8b5c7!important;margin-top:8px!important;max-width:64ch!important;}}
+.stApp .ua-phero .ua-phero-facts{{list-style:none;padding:0;margin:14px 0 0!important;
+  display:flex;flex-wrap:wrap;gap:6px 18px;}}
+.stApp .ua-phero .ua-phero-facts li{{display:flex;align-items:center;gap:8px;line-height:1.45!important;
+  font-size:var(--p-t-sm)!important;color:#a8b5c7!important;max-width:none!important;}}
+.ua-phero-facts li::before{{content:"";width:5px;height:5px;border-radius:50%;
+  background:#6ce5d2;flex-shrink:0;}}
+.ua-phero-strip{{display:none;}}
 @media (max-width:760px){{.ua-phero-in{{padding:22px 20px 24px;}}}}
 
 /* ── type ───────────────────────────────────────────────────────────────── */
@@ -306,7 +307,7 @@ html #stFloatingOverlayPortal *:focus-visible{{
 html[data-ua-theme="light"] .stApp .ua-topnav *:focus-visible,
 html:not([data-ua-theme="light"]) .stApp .ua-topnav *:focus-visible{{
   outline:2px solid var(--p-bright)!important;outline-offset:2px!important;}}
-/* ...except the amber Upgrade pill, where an amber ring is invisible. */
+/* ...and white on the gold-outlined Upgrade link, to tell the ring from its border. */
 html[data-ua-theme="light"] .stApp .ua-topnav a.ua-tnav-upgrade:focus-visible,
 html:not([data-ua-theme="light"]) .stApp .ua-topnav a.ua-tnav-upgrade:focus-visible{{
   outline:2px solid #ffffff!important;outline-offset:2px!important;}}
@@ -560,6 +561,38 @@ html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stP
 html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"]:hover,
 html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stPopoverButton"]:hover{{
   border-color:var(--p-accent)!important;background:var(--p-sky)!important;}}
+
+/* Below 1180px the theme toggle keeps its icon and drops its word, so the
+   bar's last control no longer runs past its edge at 1024px. Its accessible
+   name is the aria-label, so nothing is lost to a screen reader. */
+@media (max-width:1179px){{
+  html[data-ua-theme="light"] .ua-topnav .ua-theme-toggle,
+  html:not([data-ua-theme="light"]) .ua-topnav .ua-theme-toggle{{font-size:0!important;gap:0!important;padding:0 9px!important;}}
+  html[data-ua-theme="light"] .ua-topnav .ua-theme-toggle .ua-tt-ico,
+  html:not([data-ua-theme="light"]) .ua-topnav .ua-theme-toggle .ua-tt-ico{{font-size:var(--p-t-sm)!important;margin:0!important;}}
+}}
+/* ── one account location ───────────────────────────────────────────────
+   Sign In lived in the band above the nav: a control detached from the bar
+   that holds the rest of the account (Upgrade, the Account menu). Where the
+   bar has room -- wide screens, signed out, so the row is the one button --
+   it docks at the bar's right end, styled as one of its controls. Below
+   that width, or with the notifications button beside it, the row stays in
+   the band above (utils/header.py), where it always fits. */
+@media (min-width:1320px){{
+  .stApp .block-container{{max-width:1280px;}}
+  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row,
+  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row{{top:9px!important;right:14px!important;}}
+  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .ua-topnav .ua-tnav-right,
+  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .ua-topnav .ua-tnav-right{{margin-right:118px!important;}}
+  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"],
+  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"]{{
+    background:transparent!important;border:1px solid #2c3b52!important;min-height:30px!important;}}
+  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"] p,
+  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"] p,
+  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"] svg,
+  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"] svg{{
+    color:#f3f6fa!important;fill:currentColor;}}
+}}
 </style>"""
 
 

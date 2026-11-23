@@ -70,11 +70,12 @@ def test_compact_inline_styles_receive_the_same_semantic_remap():
 def test_mobile_navigation_and_boot_splash_follow_light_theme():
     assert 'html[data-ua-theme="light"] .ua-tnav-links' in HEADER
     assert 'html[data-ua-theme="light"] .ua-tnav-burger span' in HEADER
-    # The splash wears the light token ground (#fafaf8) since the 2026-09-29
+    # The splash wears the light token ground (_LIGHT['bg']) since the 2026-09-29
     # rebrand; the retired lavender #F6F5FB is gone with the violet hexagon.
-    assert 'html[data-ua-theme="light"] #ua-boot-splash{background:#fafaf8;}' in SPLASH
+    from utils.app_theme import _LIGHT
+    assert f'html[data-ua-theme="light"] #ua-boot-splash{{background:{_LIGHT["bg"]};}}' in SPLASH
     assert "migration finishes" not in SPLASH
-    assert 'html[data-ua-theme="light"] #ua-boot-splash .ua-boot-sub{color:#5b6780;}' in SPLASH
+    assert 'html[data-ua-theme="light"] #ua-boot-splash .ua-boot-sub{color:#526176;}' in SPLASH
     assert 'html[data-ua-theme="light"] .ua-guide-step-num' in HEADER
 
 
