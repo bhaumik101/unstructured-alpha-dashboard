@@ -115,24 +115,28 @@ _SH_CSS = """<style>
    centred column); the breadcrumb above it joins the same band. */
 .card.sh{position:relative;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible;padding:4px 0 28px;margin:0 0 26px;color:#e6edf7}
 .card.sh::before,main>.crumb::before{content:"";position:absolute;z-index:-1;left:calc(50% - 50vw);right:calc(50% - 50vw);
-  background:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.3px) 0 0/22px 22px fixed,var(--navy)}
+  background:var(--navy)}
 /* The band's gradient starts at the strip's solid navy, so the two meet without a seam. */
-.card.sh::before{top:0;bottom:0;background:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.3px) 0 0/22px 22px fixed,
-  radial-gradient(900px 300px at 86% 115%,rgba(255,194,75,.13),transparent 65%),
-  linear-gradient(180deg,var(--navy),var(--navy2));background-color:var(--navy)}
+.card.sh::before{top:-64px;bottom:0;background:
+  linear-gradient(rgba(168,181,199,.055) 1px,transparent 1px) 0 0/48px 48px,
+  linear-gradient(90deg,rgba(168,181,199,.055) 1px,transparent 1px) 0 0/48px 48px,
+  radial-gradient(700px 320px at 88% 10%,rgba(108,229,210,.12),transparent 65%),
+  radial-gradient(600px 300px at 10% 120%,rgba(143,184,255,.08),transparent 65%),
+  var(--navy);border-bottom:1px solid #1c2738}
 .sh-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px}
 .sh-tk{display:inline-grid;place-items:center;min-width:58px;height:44px;padding:0 12px;border-radius:11px;
-  background:var(--bright);color:var(--on-bright);font-weight:800;letter-spacing:.02em;box-shadow:0 6px 18px -8px rgba(255,194,75,.7)}
+  background:rgba(108,229,210,.1);color:#bff4ec;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-weight:700;letter-spacing:.04em;
+  box-shadow:inset 0 0 0 1px rgba(108,229,210,.5),0 0 24px -6px rgba(108,229,210,.45)}
 .sh h1{margin:0;flex:1 1 280px;color:#fff;font-size:var(--fs-hero);font-weight:800;letter-spacing:-.025em;line-height:1.15;text-wrap:balance}
 .sh .btn-secondary{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.28);color:#fff}
 .sh .btn-secondary:hover{background:rgba(255,255,255,.14)}
 .sh .small{color:#aebcd0}
-.card.sh a:not(.btn){color:#ffd88a;text-decoration-color:rgba(255,216,138,.5);text-underline-offset:3px}
+.card.sh a:not(.btn){color:#8eebdc;text-decoration-color:rgba(142,235,220,.5);text-underline-offset:3px}
 .card.sh a:not(.btn):hover{color:#fff;text-decoration-color:#fff}
 .sh-chips{margin:12px 0 0;padding:0;list-style:none;color:#b6c4d8;font-size:var(--fs-sm);line-height:1.9}
 .sh-chips li{display:inline}
 .sh-chips li+li::before{content:"";display:inline-block;width:4px;height:4px;border-radius:50%;background:#5f7798;margin:0 10px 2px;vertical-align:middle}
-.sh-chips a{color:var(--bright);text-decoration:none;font-weight:600}.sh-chips a:hover{text-decoration:underline}
+.sh-chips a{color:#8eebdc;text-decoration:none;font-weight:600}.sh-chips a:hover{text-decoration:underline}
 .sh-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:22px 0 0;padding:0;list-style:none;
   border-top:1px solid rgba(255,255,255,.12)}
 .sh-tiles li{padding:16px 18px 0;border-left:1px solid rgba(255,255,255,.12)}
@@ -141,7 +145,7 @@ _SH_CSS = """<style>
 .sh-tiles b{display:block;margin:4px 0 2px;color:#fff;font-size:var(--fs-stat);font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .sh-tiles .s{display:block;color:#c0ccdd}
 .sh-lead{margin:14px 0 0;color:#cfdaea;max-width:68ch;font-size:var(--fs-lead)}
-.sh-lead a{color:var(--bright)}
+.sh-lead a{color:#8eebdc}
 @media (max-width:620px){.sh-tiles{grid-template-columns:1fr 1fr}.sh-tiles li{padding:12px 12px 0}
   .sh-tiles li:nth-child(odd){border-left:0;padding-left:0}.sh-tiles li:nth-child(n+3){border-top:1px solid rgba(255,255,255,.12);margin-top:12px}}
 </style>"""
@@ -224,31 +228,31 @@ def page_title(symbol: str, name: str) -> str:
 _CSS = """
 :root{--on-bright:#13213a;--fs-xs:.76rem;--fs-sm:.86rem;--fs-body:1rem;--fs-lead:1.08rem;--fs-h2:1.32rem;--fs-stat:1.7rem;
   --fs-hero:clamp(1.65rem,1.15rem + 1.9vw,2.35rem);--shadow:0 1px 2px rgba(13,34,59,.05),0 10px 30px -18px rgba(13,34,59,.28);
-  --bg:#f6f8fb;--surface:#fff;--subtle:#eef2f8;--ink:#13213a;--ink2:#3a4760;--ink3:#5b6780;
-  --line:#dfe5ee;--accent:#1f5fae;--navy:#0d223b;--navy2:#15375d;--bright:#ffc24b;
+  --bg:#f5f7fa;--surface:#fff;--subtle:#eef2f7;--ink:#152033;--ink2:#3d4a5f;--ink3:#526176;
+  --line:#dce3ec;--accent:#0b6f64;--navy:#0b111a;--navy2:#101824;--bright:#d8b66a;--act:#6ce5d2;--act-ink:#04201c;
   --clear-bg:#dcf3ea;--clear-ink:#0b6a4e;--tent-bg:#fdefd6;--tent-ink:#8a4f00;--zero-bg:#eceff4;--zero-ink:#4a5568;}
-@media (prefers-color-scheme:dark){:root{--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px -18px rgba(0,0,0,.6);--bg:#0b1422;--surface:#121d2f;--subtle:#16233a;--ink:#e8edf5;
-  --ink2:#bdc7d8;--ink3:#8f9bb1;--line:#243349;--accent:#8cb8f2;--navy:#081628;--navy2:#10294a;
+@media (prefers-color-scheme:dark){:root{--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px -18px rgba(0,0,0,.6);--bg:#080d14;--surface:#101824;--subtle:#162131;--ink:#f3f6fa;
+  --ink2:#c3cddb;--ink3:#a8b5c7;--line:#263448;--accent:#6ce5d2;--navy:#0b111a;--navy2:#101824;
   --clear-bg:#11392e;--clear-ink:#7fdcb8;--tent-bg:#3a2a0d;--tent-ink:#f5c774;--zero-bg:#1f2a3c;--zero-ink:#b3bfd2;}}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:Inter,"SF Pro Text","Segoe UI",system-ui,sans-serif;
   line-height:1.6;font-variant-numeric:tabular-nums;overflow-x:clip}
 a{color:var(--accent)}
-.skip{position:absolute;left:12px;top:-60px;background:var(--bright);color:#13213a;padding:8px 14px;border-radius:8px;font-weight:700}
+.skip{position:absolute;left:12px;top:-60px;background:var(--act);color:var(--act-ink);padding:8px 14px;border-radius:8px;font-weight:700}
 .skip:focus{top:8px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.bar{background:linear-gradient(120deg,var(--navy),var(--navy2));background-color:var(--navy)}
+.bar{background:var(--navy);border-bottom:1px solid #1c2738}
 .bar-in{max-width:1160px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .brand{color:#fff;font-weight:800;letter-spacing:-.01em;text-decoration:none}.brand span{color:var(--bright)}
-.bar a.cta{background:var(--bright);color:#13213a;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:10px;font-size:.88rem}
+.bar a.cta{background:var(--act);color:var(--act-ink);font-weight:700;text-decoration:none;padding:8px 14px;border-radius:10px;font-size:.88rem}
 .bar-in{flex-wrap:wrap}
 .site-nav{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;flex:1 1 auto;justify-content:center}
 .site-nav a{color:#d6e2f3;text-decoration:none;font-size:.88rem;font-weight:600;padding:6px 0;border-bottom:2px solid transparent}
-.site-nav a:hover{color:#fff}.site-nav a[aria-current=page]{color:#fff;border-bottom-color:var(--bright)}
-.go{display:flex;gap:6px}.go input{width:118px;min-height:36px;border-radius:9px;border:1px solid #3a5a80;
-  background:#0f2440;color:#fff;padding:0 10px;font:inherit;font-size:.88rem;text-transform:uppercase}
+.site-nav a:hover{color:#fff}.site-nav a[aria-current=page]{color:#fff;border-bottom-color:var(--act)}
+.go{display:flex;gap:6px}.go input{width:118px;min-height:36px;border-radius:9px;border:1px solid #2c3b52;
+  background:#101824;color:#fff;padding:0 10px;font:inherit;font-size:.88rem;text-transform:uppercase}
 .go input::placeholder{color:#9fb3cc;text-transform:none}
-.go button{min-height:36px;border-radius:9px;border:0;background:#2a4b74;color:#fff;font:inherit;font-size:.88rem;
+.go button{min-height:36px;border-radius:9px;border:0;background:#1c2a3d;color:#fff;font:inherit;font-size:.88rem;
   font-weight:650;padding:0 10px;cursor:pointer}
 @media (max-width:1120px){.bar a.cta{display:none}}
 @media (max-width:940px){.bar-in{padding:10px 16px;row-gap:6px}
@@ -256,11 +260,11 @@ a{color:var(--accent)}
     scrollbar-width:none;margin:0 -16px;padding:0 16px}
   .site-nav::-webkit-scrollbar{display:none}.site-nav a{white-space:nowrap}
   .go input{width:96px}}
-.pband{background:linear-gradient(120deg,var(--navy),var(--navy2));background-color:var(--navy);color:#eef3fa;margin-top:36px}
+.pband{background:radial-gradient(700px 260px at 85% 0%,rgba(108,229,210,.12),transparent 65%),var(--navy);color:#eef3fa;margin-top:36px}
 .pband-in{max-width:980px;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px 32px;align-items:center}
 .pband h2{color:#fff;margin:0 0 6px}.pband p{color:rgba(238,243,250,.84);margin:0;max-width:560px}
 .pband-cta{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
-.pband-go{background:var(--bright);color:#13213a}.pband-go:hover{filter:brightness(1.06)}
+.pband-go{background:var(--act);color:var(--act-ink)}.pband-go:hover{filter:brightness(1.06)}
 .pband-ghost{border:1px solid rgba(255,255,255,.45);color:#fff}.pband-ghost:hover{background:rgba(255,255,255,.08)}
 .pband a[hidden]{display:none}
 @media (max-width:760px){.pband-in{grid-template-columns:1fr}.pband-cta{justify-content:flex-start}}
@@ -295,7 +299,7 @@ td b{color:var(--ink)}
 .btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:11px;font-weight:700;text-decoration:none;
   transition:transform .12s ease,filter .12s ease,background .12s ease}
 .btn:hover{transform:translateY(-1px)}
-.btn-primary{background:var(--bright);color:var(--on-bright);box-shadow:0 6px 16px -10px rgba(185,131,9,.9)}.btn-primary:hover{filter:brightness(1.05)}
+.btn-primary{background:var(--act);color:var(--act-ink);box-shadow:0 8px 22px -12px rgba(108,229,210,.7)}.btn-primary:hover{filter:brightness(1.05)}
 @media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:hover{transform:none}}
 .btn-secondary{background:var(--surface);border:1px solid var(--line);color:var(--ink)}
 details.more{margin:14px 0;border:1px solid var(--line);border-radius:14px;background:var(--surface)}details.more>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:14px}details.more>summary::-webkit-details-marker{display:none}details.more>summary:hover{background:var(--subtle)}details.more>summary h2{margin:0;font-size:var(--fs-lead);font-weight:700}details.more>summary .hint{color:var(--ink3);font-size:var(--fs-sm);margin-left:auto;text-align:right}details.more>summary::after{content:"";flex:none;width:9px;height:9px;border-right:2px solid var(--ink3);border-bottom:2px solid var(--ink3);transform:rotate(45deg);margin:-4px 2px 0 4px;transition:transform .18s}details.more[open]>summary::after{transform:rotate(-135deg);margin-top:4px}details.more[open]>summary{border-bottom:1px solid var(--line);border-radius:14px 14px 0 0}details.more>.in{padding:6px 18px 16px}details.more>.in>.card{box-shadow:none;margin:10px 0}details.more.quiet{border:0;background:none}details.more.quiet>summary{padding:8px 0;font-weight:650;color:var(--ink2)}details.more.quiet[open]>summary{border:0}details.more.quiet>.in{padding:0}@media (max-width:560px){details.more>summary{display:grid;grid-template-columns:1fr auto;gap:4px 12px}details.more>summary::after{grid-column:2;grid-row:1;align-self:center}details.more>summary .hint{grid-column:1/-1;grid-row:2;margin-left:0;text-align:left}}details.embed>summary{list-style:none;display:inline-flex;align-items:center;gap:10px;color:var(--ink2)}details.embed>summary::-webkit-details-marker{display:none}details.embed>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--ink3);border-bottom:2px solid var(--ink3);transform:rotate(45deg);margin-top:-4px;transition:transform .18s}details.embed[open]>summary::after{transform:rotate(-135deg);margin-top:4px}
@@ -648,10 +652,93 @@ def range_chart_html(exps: dict, keys: List[str], peers: Optional[dict] = None) 
             + f'<figcaption class="rc-key">{key}<span>Same figures in the table below.</span></figcaption></figure>')
 
 
+def universe_map_html(symbol: str, rec: dict, stocks: Iterable[dict], sector: Optional[str] = None) -> str:
+    """Where this stock sits among every stock on record, on its two largest
+    core readings: one dot per stock, its sector's dots brighter, this one
+    ringed and labelled. Server-drawn SVG from the stored readings; empty when
+    there are too few to draw. Readings past the axis are drawn at its edge,
+    and the caption says how many."""
+    from utils.sector_pages import sector_by_ticker
+    exps = rec.get("exposures") or {}
+    keys = sorted((k for k in _ORDER if k in exps), key=lambda k: -abs(exps[k]["impact"]))[:2]
+    if len(keys) < 2:
+        return ""
+    kx, ky = keys
+    secs = sector_by_ticker()
+    pts = []
+    for st in stocks:
+        e = st.get("exposures") or {}
+        if kx in e and ky in e and st.get("ticker") != symbol:
+            pts.append((st["ticker"], e[kx]["impact"], e[ky]["impact"], secs.get(st["ticker"]) == sector and sector))
+    if len(pts) < 40:
+        return ""
+
+    def span(vals, own):
+        # 97th percentile of the others, widened if needed so this stock is never clipped.
+        v = sorted(abs(x) for x in vals)[int(len(vals) * 0.97)]
+        return max(0.5, math.ceil(max(v, abs(own)) * 2) / 2)
+    sx = span([p[1] for p in pts], exps[kx]["impact"])
+    sy = span([p[2] for p in pts], exps[ky]["impact"])
+    W, H, P = 720, 400, 40
+
+    def X(v):
+        return P + (max(-sx, min(sx, v)) + sx) / (2 * sx) * (W - 2 * P)
+
+    def Y(v):
+        return H - P - (max(-sy, min(sy, v)) + sy) / (2 * sy) * (H - 2 * P)
+    clipped = sum(abs(p[1]) > sx or abs(p[2]) > sy for p in pts)
+    dots = "".join(
+        f'<circle cx="{X(x):.1f}" cy="{Y(y):.1f}" r="{3.2 if peer else 2.4}" class="um-{"peer" if peer else "dot"}"/>'
+        for _, x, y, peer in sorted(pts, key=lambda p: bool(p[3])))
+    me_x, me_y = X(exps[kx]["impact"]), Y(exps[ky]["impact"])
+    lx, ly = escape(ex.lower_label(_FACTOR[kx].label)), escape(ex.lower_label(_FACTOR[ky].label))
+    anchor = "end" if me_x > W - 140 else "start"
+    off = -14 if anchor == "end" else 14
+    n_peer = sum(1 for p in pts if p[3])
+    return (
+        f'<h2 id="sits">Where {escape(symbol)} sits among {len(pts) + 1:,} stocks</h2>'
+        '<figure class="card um">'
+        f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="{escape(symbol)} plotted with every stock on record by how it moved '
+        f'with {lx} (across) and {ly} (up and down): {escape(symbol)} at {fmt_pct(exps[kx]["impact"])} and {fmt_pct(exps[ky]["impact"])}.">'
+        f'<rect x="{P}" y="{P}" width="{W - 2 * P}" height="{H - 2 * P}" class="um-field"/>'
+        + "".join(f'<line x1="{X(f * sx):.1f}" y1="{P}" x2="{X(f * sx):.1f}" y2="{H - P}" class="um-grid"/>'
+                  f'<line x1="{P}" y1="{Y(f * sy):.1f}" x2="{W - P}" y2="{Y(f * sy):.1f}" class="um-grid"/>' for f in (-0.5, 0.5))
+        + f'<line x1="{X(0):.1f}" y1="{P}" x2="{X(0):.1f}" y2="{H - P}" class="um-zero"/>'
+        f'<line x1="{P}" y1="{Y(0):.1f}" x2="{W - P}" y2="{Y(0):.1f}" class="um-zero"/>'
+        + dots
+        + f'<circle cx="{me_x:.1f}" cy="{me_y:.1f}" r="15" class="um-halo"/>'
+        f'<circle cx="{me_x:.1f}" cy="{me_y:.1f}" r="6" class="um-me"/>'
+        f'<text x="{me_x + off:.1f}" y="{me_y - 10:.1f}" text-anchor="{anchor}" class="um-label">{escape(symbol)}</text>'
+        f'<text x="{W - P}" y="{H - P + 24}" text-anchor="end" class="um-ax">{fmt_pct(sx)} with {lx} →</text>'
+        f'<text x="{P}" y="{H - P + 24}" class="um-ax">← {fmt_pct(-sx)}</text>'
+        f'<text x="{P}" y="{P - 12}" class="um-ax">↑ {fmt_pct(sy)} with {ly}</text>'
+        '</svg>'
+        '<figcaption class="foot">'
+        + (f'Brighter dots: the {n_peer} other {escape(sector)} stocks. ' if n_peer else "")
+        + f'Each dot is one stock&#39;s typical weekly move beyond the market on {escape(symbol)}&#39;s two largest readings. '
+        + (f'{clipped} past the edge are drawn at it. ' if clipped else "")
+        + 'The past, not a forecast. <a href="/map">Explore every stock on any two forces</a>.</figcaption></figure>')
+
+
+_UM_CSS = """<style>
+.um{padding:14px 14px 0;overflow:hidden}
+.um svg{width:100%;height:auto;display:block}
+.um-field{fill:var(--subtle);opacity:.45}
+.um-grid{stroke:var(--line);stroke-width:1}.um-zero{stroke:var(--ink3);stroke-width:1;opacity:.5}
+.um-dot{fill:var(--ink3);opacity:.32}.um-peer{fill:var(--accent);opacity:.7}
+.um-me{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.um-halo{fill:none;stroke:var(--accent);stroke-width:1.5;opacity:.55}
+.um-label{fill:var(--ink);font:700 var(--fs-sm) ui-monospace,"SF Mono",Menlo,monospace}
+.um-ax{fill:var(--ink3);font-size:var(--fs-xs);font-family:ui-monospace,"SF Mono",Menlo,monospace}
+.um .foot{margin:12px -14px 0}
+</style>"""
+
+
 def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[dict],
                     base_url: str, app_url: str, held: Optional[dict] = None,
                     similar: Optional[List[dict]] = None,
-                    peers: Optional[dict] = None, library_week: str = "") -> str:
+                    peers: Optional[dict] = None, library_week: str = "",
+                    universe: Optional[List[dict]] = None) -> str:
     """The page for one measured stock. `rec` is its newest stored week.
 
     library_week: the week the rest of the library is through; a reading well
@@ -789,9 +876,11 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
                     'stocks on record differ on it. Alike in how they moved over three years, not in '
                     'business, size or value.</p>'))
 
+    sits = universe_map_html(symbol, rec, universe or [], sector)
+
     # Jump links to the sections this stock's page actually has.
     whatif = stock_whatif_html(symbol, rec)
-    sections = [("exposure", "Exposure", True), ("whatif", "What if?", bool(whatif)),
+    sections = [("exposure", "Exposure", True), ("sits", "Among all stocks", bool(sits)), ("whatif", "What if?", bool(whatif)),
                 ("more", "More forces", bool(extra_html)), ("history", "Week by week", bool(hist_html)),
                 ("similar", "Similar stocks", bool(sim_html)), ("related", "Moved the same way", bool(rel_html)),
                 ("embed", "Embed", True)]
@@ -813,7 +902,7 @@ def stock_page_html(symbol: str, rec: dict, history: List[dict], related: List[d
         f'Open the interactive report for {escape(symbol)}</a>'
         f'<a class="btn btn-secondary" href="{escape(app_link(app_url, "/", canonical))}">Measure a whole portfolio</a>'
         f'<a class="btn btn-secondary" href="/compare?a={escape(symbol)}">Compare {escape(symbol)} with another stock</a></div>'
-        f'{whatif}{extra_html}{hist_html}{rel_html}{sim_html}'
+        f'{_UM_CSS if sits else ""}{sits}{whatif}{extra_html}{hist_html}{rel_html}{sim_html}'
         f'{embed_box_html(symbol, base_url)}'
         '<p class="caveat"><b>This describes the past, and it is not a forecast.</b> It shows how the '
         'stock has moved alongside five economic forces. Relationships change, and nothing here is a '

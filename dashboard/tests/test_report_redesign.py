@@ -139,3 +139,17 @@ def test_the_tiles_restate_the_report_and_nothing_else(mixed):
     assert readings[order[0]]["label"] in html and ui.fmt_pct(readings[order[0]]["impact"]) in html
     assert html.count('class="uar-mk ') == len(order)
     assert held == 3 and "1 Tentative" in html                            # Tentative counts as held up
+
+
+def test_a_stock_page_shows_where_it_sits_and_never_clips_itself():
+    from utils.exposure_pages import universe_map_html
+    me = {"ticker": "AAA", "exposures": {"rates": {"impact": -9.0, "low": -10, "high": -8, "evidence": "clear"},
+                                          "oil": {"impact": 0.4, "low": 0.1, "high": 0.7, "evidence": "tentative"}}}
+    others = [{"ticker": f"T{i}", "exposures": {"rates": {"impact": (i % 7) - 3, "evidence": "indistinct"},
+                                                 "oil": {"impact": (i % 5) - 2, "evidence": "indistinct"}}}
+              for i in range(80)]
+    html = universe_map_html("AAA", me, others)
+    assert "Where AAA sits among 81 stocks" in html
+    # AAA's -9% reading widens the axis instead of being pinned to the edge.
+    assert "−9.0% with interest rates" not in html and "+9.0% with interest rates" in html
+    assert universe_map_html("AAA", me, others[:10]) == ""          # too few to draw
