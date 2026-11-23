@@ -43,7 +43,7 @@ ALLOWED_EVENTS = frozenset({Event.PAGE_VIEW, Event.APP_OPENED, Event.TOOL_USED})
 # Public tools whose first real use on a page is counted (tool_used): a page
 # view says someone arrived, this says they did something. The learning-path
 # steps (utils/progress.STEPS) plus the landing's live X-ray.
-ALLOWED_TOOLS = frozenset({"learn", "quiz", "guess", "explore", "xray", "hero_xray"})
+ALLOWED_TOOLS = frozenset({"learn", "quiz", "guess", "explore", "xray", "hero_xray", "market_map"})
 
 # Landing pages we recognise. An unknown label is stored as "Other" rather than
 # echoed back into the database, so the page dimension cannot be used to inject

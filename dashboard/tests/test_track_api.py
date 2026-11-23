@@ -261,9 +261,15 @@ def test_a_tool_use_is_stored_with_its_tool_and_an_unknown_tool_is_dropped(clien
 def test_every_tracked_tool_is_a_path_step_or_the_landing_hero():
     from seo.track_api import ALLOWED_TOOLS
     from utils.progress import STEPS
-    assert ALLOWED_TOOLS == {s[0] for s in STEPS} | {"hero_xray"}
-    hero = (Path(__file__).resolve().parents[1] / "unstructured-alpha-web" / "app" / "HeroXray.tsx").read_text()
+    assert ALLOWED_TOOLS == {s[0] for s in STEPS} | {"hero_xray", "market_map"}
+    app = Path(__file__).resolve().parents[1] / "unstructured-alpha-web" / "app"
+    hero = (app / "HeroXray.tsx").read_text()
     assert 'tool: "hero_xray"' in hero and hero.count("recordHeroUse()") >= 3
+    # The landing's market map: the axis buttons, the sector legend and a dot
+    # click each record a use (once per page load), and the backdrop never does.
+    mm = (app / "MarketMap.tsx").read_text()
+    assert 'tool: "market_map"' in mm and mm.count("recordMapUse();") >= 4
+    assert "__uaInternal" in mm
 
 
 def test_the_visitor_is_the_person_not_the_relay_server(client_and_writes):

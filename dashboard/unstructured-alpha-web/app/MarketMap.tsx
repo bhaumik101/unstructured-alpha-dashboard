@@ -27,6 +27,23 @@ function getXray(): Promise<XrayFeed | null> {
   return pending;
 }
 
+// The first interaction per page load (an axis, a sector, a dot): a page
+// view says someone arrived, this says they used the map. Same relay and
+// allowlist as the landing's other events (seo/track_api.py).
+let mapUsed = false;
+function recordMapUse() {
+  if (mapUsed) return;
+  mapUsed = true;
+  try {
+    const internal = (window as unknown as { __uaInternal?: boolean }).__uaInternal || undefined;
+    const body = JSON.stringify({ event: "tool_used", page: "Landing", tool: "market_map", internal });
+    if (navigator.sendBeacon) navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }));
+    else void fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true });
+  } catch {
+    // Measurement must never get in the visitor's way.
+  }
+}
+
 function fmt(v: number): string {
   return `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(Math.abs(v) >= 0.95 ? 1 : 2)}%`;
 }
@@ -84,7 +101,7 @@ export default function MarketMap({ backdrop = false }: { backdrop?: boolean }) 
               fill={held ? hue : 'none'} stroke={hue} strokeWidth={held ? 0 : 1}
               opacity={backdrop ? (held ? 0.55 : 0.28) : dim ? 0.08 : held ? 0.92 : 0.5}
               onMouseEnter={backdrop ? undefined : () => setHover(d)}
-              onClick={backdrop ? undefined : () => { window.location.href = `/exposure/${encodeURIComponent(d.t)}`; }}
+              onClick={backdrop ? undefined : () => { recordMapUse(); window.location.href = `/exposure/${encodeURIComponent(d.t)}`; }}
               style={backdrop ? undefined : { cursor: 'pointer' }} />
     );
   });
@@ -106,14 +123,14 @@ export default function MarketMap({ backdrop = false }: { backdrop?: boolean }) 
           <span>Across</span>
           {feed.f.map(([k, label], i) => (
             <button key={k} type="button" aria-pressed={ax === i} disabled={ay === i}
-                    onClick={() => setAx(i)}><i className={`lp-fdot f-${k}`} aria-hidden="true" />{label}</button>
+                    onClick={() => { setAx(i); recordMapUse(); }}><i className={`lp-fdot f-${k}`} aria-hidden="true" />{label}</button>
           ))}
         </div>
         <div className="lp-map2-axis" role="group" aria-label="Up and down">
           <span>Up</span>
           {feed.f.map(([k, label], i) => (
             <button key={k} type="button" aria-pressed={ay === i} disabled={ax === i}
-                    onClick={() => setAy(i)}><i className={`lp-fdot f-${k}`} aria-hidden="true" />{label}</button>
+                    onClick={() => { setAy(i); recordMapUse(); }}><i className={`lp-fdot f-${k}`} aria-hidden="true" />{label}</button>
           ))}
         </div>
       </div>
@@ -155,7 +172,7 @@ export default function MarketMap({ backdrop = false }: { backdrop?: boolean }) 
       </div>
       <div className="lp-map2-legend" role="group" aria-label="Light up a sector">
         {sectors.map((s) => (
-          <button key={s} type="button" aria-pressed={sector === s} onClick={() => setSector(sector === s ? '' : s)}>
+          <button key={s} type="button" aria-pressed={sector === s} onClick={() => { setSector(sector === s ? '' : s); recordMapUse(); }}>
             <i style={{ background: SECTOR_HUES[s] }} aria-hidden="true" />{s}
           </button>
         ))}
