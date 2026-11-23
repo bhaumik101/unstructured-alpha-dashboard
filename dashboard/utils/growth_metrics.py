@@ -65,6 +65,7 @@ BURST_VIEWS, BURST_SECONDS = 20, 300
 # Hashes, not addresses. From then on checks send internal: true.
 INTERNAL_VISITORS = frozenset({
     "8d52b08d6ebb68cd40e9136941c44ed5", "9ea10f4e5fc4507dedf9f8ba174b0fb8", "bd1ba05d4c48981192dfc8c1fe9db73f",
+    "0103d43f26a13fece1e29d9515f2dd1c",   # the owner's phone, Nov 23 (confirmed; its browser was not yet marked)
 })
 
 

@@ -257,6 +257,8 @@ _SCRIPT = r"""
     // ?p=, not #p=: link-preview crawlers never see a #fragment, so only a
     // query lets a shared mix preview as itself (utils/xray_share.py).
     try { history.replaceState(null, '', held.length ? '?p=' + h : location.pathname); } catch (e) {}
+    // Remembered in this browser only, so a return visit opens on your mix.
+    try { if (held.length > 1) localStorage.setItem('ua-xray-last', h); } catch (e) {}
     var a = $('xr-report'), u = new URL(a.href);
     if (held.length) u.searchParams.set('h', h); else u.searchParams.delete('h');
     a.href = u.toString(); a.textContent = held.length > 1 ? 'Get the full report on these ' + held.length + ', free' : 'Get the full report, free';
@@ -302,6 +304,16 @@ _SCRIPT = r"""
   if (m){ decodeURIComponent(m[1]).split(',').forEach(function(p){ var kv = p.split(':'); add(kv[0], true);
       if (kv[1] && held.indexOf(kv[0].toUpperCase()) >= 0) manual[kv[0].toUpperCase()] = +kv[1]; });
     if (Object.keys(manual).length){ mode = 'manual'; document.querySelectorAll('[data-mode]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === 'manual')); }); } }
+  else {
+    // No link: never an empty page. Your last mix if this browser has one,
+    // otherwise the first starter mix -- an answer before anyone clicks.
+    var last = null; try { last = localStorage.getItem('ua-xray-last'); } catch (e) {}
+    if (last){ last.split(',').forEach(function(p){ add(p.split(':')[0], true); });
+      if (held.length > 1) $('xr-say').textContent = 'Welcome back: your last mix, measured with this week\u2019s data.'; }
+    if (held.length < 2){ held = []; var first = document.querySelector('[data-preset]');
+      if (first){ first.getAttribute('data-preset').split(' ').forEach(function(t){ add(t, true); });
+        $('xr-say').textContent = 'Starting from ' + first.textContent + '. Pick another mix or add your own.'; } }
+  }
   sync();
 })();
 """
