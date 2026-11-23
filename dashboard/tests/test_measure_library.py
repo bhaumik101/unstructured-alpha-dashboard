@@ -403,7 +403,12 @@ def test_a_pass_writes_its_status_for_the_supervisor(monkeypatch, store, tmp_pat
     import utils.funds as funds
     monkeypatch.setattr(funds, "load_funds", lambda: [])     # the index only, for this test
     path = tmp_path / "status.json"
-    assert ml.main(["--passes", "1", "--skip", "BBB", "--status-file", str(path)]) == 1
+    # The memory guard reads this process's RSS. Under a serial `pytest -q`
+    # (as CI runs) the whole suite's memory is in that number, and past the
+    # default 390MB the pass stopped before trying AAA -- the test failed for
+    # the runner's memory, not the code. This test is about the status file.
+    assert ml.main(["--passes", "1", "--skip", "BBB", "--status-file", str(path),
+                    "--max-rss-mb", "100000"]) == 1
     st = json.loads(path.read_text())
     assert st["targets"] == 1 and st["measured"] == 0 and st["failed_tickers"] == ["AAA"]
 
