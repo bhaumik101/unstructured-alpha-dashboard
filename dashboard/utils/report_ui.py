@@ -320,6 +320,48 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-table-num th:nth-child(2),.uar-table-num td:nth-child(2),.uar-table-num th:nth-child(n+4),
 .uar-table-num td:nth-child(n+4){text-align:right;font-variant-numeric:tabular-nums;}
 .uar-table-num td:nth-child(3){white-space:nowrap;}
+
+/* ── visuals: tiles, glyphs, flow, takeaway card ──────────────────────── */
+.uar-ficon{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:8px;
+  color:var(--fc);background:color-mix(in srgb,var(--fc) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--fc) 35%,transparent);}
+.uar-xforce .uar-ficon{margin-top:1px;}
+.uar-tiles{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:12px;margin:18px 0 4px;}
+.uar-tile{border:1px solid var(--uar-line);border-radius:14px;padding:14px 16px;background:var(--uar-surface);min-width:0;}
+.uar-tile-lead{display:flex;gap:14px;align-items:flex-start;position:relative;overflow:hidden;}
+.uar-tile-lead::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(closest-side,color-mix(in srgb,var(--uar-accent) 18%,transparent),transparent);pointer-events:none;}
+.uar-tile-k{font-size:var(--uar-t-micro);text-transform:uppercase;letter-spacing:.06em;color:var(--uar-ink-3);font-weight:600;}
+.uar-tile-v{font-size:var(--uar-t-lead);font-weight:700;color:var(--uar-ink);margin:4px 0 6px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;}
+.uar-tile-v span{color:var(--uar-ink-2);font-weight:650;margin-left:4px;}
+.uar-tile-s{font-size:var(--uar-t-meta);color:var(--uar-ink-3);line-height:1.45;}
+.uar-marks{display:flex;gap:6px;margin:2px 0 8px;}
+.uar-mk{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--uar-bar);}
+.uar-mk-c{background:var(--uar-bar);}
+.uar-mk-t{background:linear-gradient(90deg,var(--uar-bar) 50%,transparent 50%);}
+.uar-gauge{position:relative;height:8px;border-radius:4px;background:var(--uar-subtle);margin:2px 0 8px;}
+.uar-gauge i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,var(--uar-bar-soft),var(--uar-bar));}
+.uar-gauge b{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--uar-ink-3);}
+.uar-weeks{display:grid;grid-template-columns:repeat(39,1fr);gap:2px;margin:2px 0 8px;height:8px;}
+.uar-weeks i{background:var(--uar-bar-soft);border-radius:1px;}
+.uar-weeks i:nth-child(13n){background:var(--uar-bar);}
+.uar-take{position:relative;padding:16px 20px;border-radius:14px;border:1px solid var(--uar-line);
+  background:linear-gradient(100deg,color-mix(in srgb,var(--uar-accent) 9%,var(--uar-surface)),var(--uar-surface) 60%);}
+.uar-take::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;
+  background:linear-gradient(180deg,var(--uar-accent),color-mix(in srgb,var(--uar-accent) 20%,transparent));}
+.uar-flow{padding:16px 20px 8px;}
+.uar-flow-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;margin-bottom:8px;}
+.uar-flow-head b{color:var(--uar-ink);font-size:var(--uar-t-body);}
+.uar-flow-head span{color:var(--uar-ink-3);font-size:var(--uar-t-meta);}
+.uar-flow svg{width:100%;height:auto;display:block;max-width:860px;margin:0 auto;}
+.uar-rib{opacity:.55;transition:opacity .2s ease;}
+.uar-ribs:hover .uar-rib{opacity:.15;}.uar-ribs .uar-rib:hover{opacity:.85;}
+.uar-flow-bar{fill:var(--uar-ink-3);}
+.uar-flow-t{fill:var(--uar-ink);font-weight:600;font-size:var(--uar-t-sm);font-family:ui-monospace,"SF Mono",Menlo,monospace;}
+.uar-flow-l{fill:var(--uar-ink);font-size:var(--uar-t-sm);font-weight:650;}
+.uar-flow-s{fill:var(--uar-ink-3);font-size:var(--uar-t-micro);}
+@media (prefers-reduced-motion: reduce){.uar-rib{transition:none;}}
+@media (max-width:900px){.uar-tiles{grid-template-columns:1fr 1fr;}.uar-tile-lead{grid-column:1/-1;}}
+@media (max-width:520px){.uar-tile{padding:12px;}.uar-tile-s{display:none;}.uar-tile-lead .uar-tile-s{display:block;}}
 </style>"""
 
 
@@ -835,7 +877,7 @@ def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
         short, full = _main_holding(report, key)
         rows.append(
             f'<div class="uar-xrow" role="row">'
-            f'<div class="uar-xforce" role="cell"><span class="uar-dot" style="background:{FACTOR_COLORS[key]}"></span>'
+            f'<div class="uar-xforce" role="cell">{factor_icon(key)}'
             f'<div><div class="uar-label">{escape(r["label"])}</div>'
             f'<div class="uar-shock">In weeks when {escape(r["shock_phrase"])}</div></div></div>'
             f'<div role="cell" class="uar-xbar">{exposure_bar(r["impact"], r["low"], r["high"], scale, r["evidence"])}</div>'
@@ -1642,6 +1684,146 @@ def portfolio_header_html(name: str, report: dict) -> str:
             f'<div class="uar-sub">{escape(listing + more)}'
             + (f' · data through {escape(fmt_date(as_of))}' if as_of else "")
             + '</div></div>')
+
+
+# One glyph per force, the same drawings as the landing page's (page.tsx
+# Glyph), so "oil" looks like oil on both. 32x32 box centred on 0,0.
+_GLYPHS = {
+    "rates": '<line x1="-7" y1="8" x2="7" y2="-8"/><circle cx="-6" cy="-6" r="2.6"/><circle cx="6" cy="6" r="2.6"/>',
+    "inflation": '<polyline points="-9,7 -3,1 1,4 9,-5"/><polyline points="3,-5 9,-5 9,1"/>',
+    "dollar": '<path d="M6,-6 C4,-9 -6,-9 -6,-4 C-6,1 6,-1 6,4 C6,9 -4,9 -6,6"/><line x1="0" y1="-11" x2="0" y2="11"/>',
+    "oil": '<path d="M0,-10 C5,-3 8,1 8,4 A8,8 0 0 1 -8,4 C-8,1 -5,-3 0,-10 Z"/>',
+    "credit": '<polyline points="-10,-3 0,-10 10,-3"/><line x1="-6" y1="-1" x2="-6" y2="7"/><line x1="0" y1="-1" x2="0" y2="7"/>'
+              '<line x1="6" y1="-1" x2="6" y2="7"/><line x1="-10" y1="9" x2="10" y2="9"/>',
+    "growth": '<line x1="-8" y1="9" x2="-8" y2="2"/><line x1="-2" y1="9" x2="-2" y2="-3"/><line x1="4" y1="9" x2="4" y2="-1"/>'
+              '<line x1="10" y1="9" x2="10" y2="-8"/>',
+}
+
+
+def factor_icon(key: str, size: int = 28) -> str:
+    """The force's glyph on a tile of its identity colour (decorative)."""
+    glyph = _GLYPHS.get(key)
+    if not glyph:
+        return f'<span class="uar-dot" style="background:{FACTOR_COLORS.get(key, "#8794a8")}"></span>'
+    return (f'<span class="uar-ficon" style="--fc:{FACTOR_COLORS.get(key, "#8794a8")};width:{size}px;height:{size}px" aria-hidden="true">'
+            f'<svg viewBox="-16 -16 32 32" width="{int(size * .62)}" height="{int(size * .62)}" fill="none" stroke="currentColor" '
+            f'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">{glyph}</svg></span>')
+
+
+def summary_tiles_html(report: dict) -> str:
+    """Four tiles that say the shape of the result at a glance: the strongest
+    link, how many readings held up, the market's share, the window. Each is
+    a figure from the report with a small picture of it; nothing is new."""
+    p = report["portfolio"]
+    readings = p["readings"]
+    order = ordered_keys(report)
+    if not order:
+        return ""
+    top = order[0]
+    r = readings[top]
+    marks = "".join(
+        f'<i class="uar-mk uar-mk-{ {"clear": "c", "tentative": "t"}.get(readings[k]["evidence"], "z") }" '
+        f'title="{escape(readings[k]["label"])}: {escape(ex.EVIDENCE_LABELS.get(readings[k]["evidence"], ""))}"></i>'
+        for k in order)
+    held = sum(readings[k]["evidence"] in ("clear", "tentative") for k in order)
+    clear = sum(readings[k]["evidence"] == "clear" for k in order)
+    beta = p.get("market_beta_total")
+    beta_html = ""
+    if beta is not None and math.isfinite(beta):
+        w = max(0.0, min(1.5, beta)) / 1.5 * 100
+        beta_html = (f'<div class="uar-tile"><div class="uar-tile-k">With the stock market</div>'
+                     f'<div class="uar-tile-v">{beta:.2f}×</div>'
+                     f'<div class="uar-gauge" aria-hidden="true"><i style="width:{w:.0f}%"></i><b style="left:{100 / 1.5:.1f}%"></b></div>'
+                     f'<div class="uar-tile-s">its typical weekly move vs the market (1× marked), accounted for separately</div></div>')
+    span = ""
+    if p.get("start") and p.get("end"):
+        span = (f'<div class="uar-tile"><div class="uar-tile-k">Measured over</div>'
+                f'<div class="uar-tile-v">{p["n_obs"]} weeks</div>'
+                f'<div class="uar-weeks" aria-hidden="true">{"<i></i>" * 39}</div>'
+                f'<div class="uar-tile-s">{escape(fmt_date(p["start"]))} to {escape(fmt_date(p["end"]))}</div></div>')
+    return (
+        '<div class="uar uar-tiles">'
+        f'<div class="uar-tile uar-tile-lead">{factor_icon(top, 34)}<div>'
+        f'<div class="uar-tile-k">Largest measured exposure</div>'
+        f'<div class="uar-tile-v">{escape(r["label"])} <span>{fmt_pct(r["impact"])}</span></div>'
+        f'<div class="uar-tile-s">{escape(ex.EVIDENCE_LABELS.get(r["evidence"], ""))} · in weeks when {escape(r["shock_phrase"])}</div></div></div>'
+        f'<div class="uar-tile"><div class="uar-tile-k">Readings that held up</div>'
+        f'<div class="uar-tile-v">{held} of {len(order)}</div>'
+        f'<div class="uar-marks">{marks}</div>'
+        f'<div class="uar-tile-s">{clear} Clear · {held - clear} Tentative · {len(order) - held} not distinguishable from zero</div></div>'
+        + beta_html + span + '</div>')
+
+
+def flow_svg(report: dict) -> str:
+    """Where each exposure comes from: holdings on the left, the held-up
+    forces on the right, one ribbon per contribution in the same direction as
+    the force's reading, its width the size of that contribution. Offsetting
+    holdings are in the table below it, not drawn. Empty when nothing held up."""
+    readings = report["portfolio"]["readings"]
+    keys = [k for k in ordered_keys(report) if readings[k]["evidence"] in ("clear", "tentative")]
+    flows = []
+    for k in keys:
+        for c in report.get("contributions", {}).get(k, []):
+            if c["contribution"] * readings[k]["impact"] > 0 and abs(c["contribution"]) >= 0.004:
+                flows.append((c["ticker"], k, abs(c["contribution"])))
+    if len(flows) < 2:
+        return ""
+    weights = {x["ticker"]: x["weight_pct"] for x in report.get("positions") or []}
+    left = sorted({t for t, _, _ in flows}, key=lambda t: -weights.get(t, 0))[:12]
+    flows = [f for f in flows if f[0] in left]
+    right = [k for k in keys if any(f[1] == k for f in flows)]
+    W, NODE, GAP, LX, RX = 760, 10, 14, 96, 520
+    total = sum(v for _, _, v in flows)
+    n = max(len(left), len(right))
+    k = (300 - GAP * (n - 1)) / total          # ribbons sized for a 300-unit column...
+    SLOT = 34                                  # ...then each node keeps room for its two-line label
+
+    def column(names, size):
+        return sum(max(size(x) * k, SLOT) for x in names) + GAP * (len(names) - 1)
+    H = int(max(column(left, lambda t: sum(v for a, _, v in flows if a == t)),
+                column(right, lambda f: sum(v for _, b, v in flows if b == f)))) + 8
+
+    def place(names, size):
+        hs = [size(n) * k for n in names]
+        y = (H - (sum(max(h, SLOT) for h in hs) + GAP * (len(names) - 1))) / 2
+        out = {}
+        for n, h in zip(names, hs):
+            out[n] = [y + max(0.0, SLOT - h) / 2, h, 0.0]
+            y += max(h, SLOT) + GAP
+        return out
+    L = place(left, lambda t: sum(v for a, _, v in flows if a == t))
+    R = place(right, lambda f: sum(v for _, b, v in flows if b == f))
+    flows.sort(key=lambda f: (left.index(f[0]), right.index(f[1])))
+    ribbons = []
+    for t, f, v in flows:
+        w = v * k
+        y0, y1 = L[t][0] + L[t][2], R[f][0] + R[f][2]
+        L[t][2] += w
+        R[f][2] += w
+        x0, x1 = LX + NODE, RX
+        mx = (x0 + x1) / 2
+        ribbons.append(
+            f'<path d="M{x0},{y0:.1f} C{mx},{y0:.1f} {mx},{y1:.1f} {x1},{y1:.1f} L{x1},{y1 + w:.1f} '
+            f'C{mx},{y1 + w:.1f} {mx},{y0 + w:.1f} {x0},{y0 + w:.1f} Z" fill="{FACTOR_COLORS[f]}" class="uar-rib">'
+            f'<title>{escape(t)} → {escape(readings[f]["label"])}: {v:.2f} points of {fmt_pct(readings[f]["impact"])}</title></path>')
+    labels = []
+    for t in left:
+        y, h, _ = L[t]
+        labels.append(f'<rect x="{LX}" y="{y:.1f}" width="{NODE}" height="{max(2, h):.1f}" rx="2" class="uar-flow-bar"/>'
+                      f'<text x="{LX - 12}" y="{y + h / 2 + 4:.1f}" text-anchor="end" class="uar-flow-t">{escape(t)}</text>'
+                      f'<text x="{LX - 12}" y="{y + h / 2 + 19:.1f}" text-anchor="end" class="uar-flow-s">{weights.get(t, 0):.0f}%</text>')
+    for f in right:
+        y, h, _ = R[f]
+        labels.append(f'<rect x="{RX}" y="{y:.1f}" width="{NODE}" height="{max(2, h):.1f}" rx="2" fill="{FACTOR_COLORS[f]}"/>'
+                      f'<text x="{RX + NODE + 12}" y="{y + h / 2 - 1:.1f}" class="uar-flow-l">{escape(readings[f]["label"])}</text>'
+                      f'<text x="{RX + NODE + 12}" y="{y + h / 2 + 16:.1f}" class="uar-flow-s">{fmt_pct(readings[f]["impact"])} · '
+                      f'{escape(ex.EVIDENCE_LABELS.get(readings[f]["evidence"], ""))}</text>')
+    summary = "; ".join(f"{t} to {readings[f]['label']} {v:.2f} points" for t, f, v in flows)
+    return (f'<div class="uar"><div class="uar-card uar-flow"><div class="uar-flow-head"><b>Where each exposure comes from</b>'
+            '<span>Ribbon width: each holding&#39;s contribution, its weight times its own sensitivity. '
+            'Hover a ribbon for the figure.</span></div>'
+            f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="{escape("Where each exposure comes from: " + summary)}">'
+            f'<g class="uar-ribs">{"".join(ribbons)}</g>{"".join(labels)}</svg></div></div>')
 
 
 def workspace_header_html(name: str, report: dict) -> str:

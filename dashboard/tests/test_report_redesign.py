@@ -28,6 +28,18 @@ def report():
     return _report()
 
 
+@pytest.fixture
+def mixed(report):
+    """The fixture with what it lacks: a Tentative reading, and a holding that
+    pushes against a held-up one (an offset that must not be drawn as a flow)."""
+    import copy
+    r = copy.deepcopy(report)
+    r["portfolio"]["readings"]["dollar"]["evidence"] = "tentative"
+    r["contributions"]["rates"].append({"ticker": "GLD", "weight_pct": 5.0, "impact": 0.6, "evidence": "clear",
+                                        "contribution": 0.03, "share": -0.02})
+    return r
+
+
 def _at(text: str) -> int:
     i = PAGE.find(text)
     assert i >= 0, text
@@ -99,3 +111,31 @@ def test_the_loading_state_is_a_skeleton_without_figures():
     html = ui.report_skeleton_html("Measuring three years of weekly returns.")
     assert html.count('class="uar-sk-row"') == 5 and 'role="status"' in html
     assert not re.search(r"\d+%", html)
+
+
+def test_the_flow_draws_only_contributions_that_add_to_a_held_up_reading(mixed):
+    report = mixed
+    svg = ui.flow_svg(report)
+    readings = report["portfolio"]["readings"]
+    drawn = re.findall(r"<title>([^<]+?) → ([^<:]+?): ([0-9.]+) points", svg)
+    assert drawn, "nothing drawn"
+    labels = {r["label"]: k for k, r in readings.items()}
+    for ticker, label, v in drawn:
+        key = labels[label.replace("&amp;", "&")]
+        assert readings[key]["evidence"] in ("clear", "tentative")
+        c = next(c for c in report["contributions"][key] if c["ticker"] == ticker)
+        assert c["contribution"] * readings[key]["impact"] > 0          # same direction only
+        assert abs(abs(c["contribution"]) - float(v)) < 0.006
+    assert "GLD → " not in svg                                            # the offset is not a flow
+
+
+def test_the_tiles_restate_the_report_and_nothing_else(mixed):
+    report = mixed
+    html = ui.summary_tiles_html(report)
+    readings = report["portfolio"]["readings"]
+    order = ui.ordered_keys(report)
+    held = sum(readings[k]["evidence"] in ("clear", "tentative") for k in order)
+    assert f"{held} of {len(order)}" in html
+    assert readings[order[0]]["label"] in html and ui.fmt_pct(readings[order[0]]["impact"]) in html
+    assert html.count('class="uar-mk ') == len(order)
+    assert held == 3 and "1 Tentative" in html                            # Tentative counts as held up

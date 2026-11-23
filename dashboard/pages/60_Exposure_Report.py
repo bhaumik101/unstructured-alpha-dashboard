@@ -477,6 +477,7 @@ if report.get("status") != "ok":
     ui.render_report_footer()
     st.stop()
 
+st.markdown(ui.summary_tiles_html(report), unsafe_allow_html=True)
 st.markdown(ui.takeaway_html(report), unsafe_allow_html=True)
 # How each force's readings held up out of sample, from the published study
 # (utils/track_record.py). Cached an hour; no study means no line.
@@ -556,6 +557,9 @@ readings = report["portfolio"]["readings"]
 detail_keys = ui.ordered_keys(report)
 
 st.markdown("## Which holdings drive each exposure")
+_flow = ui.flow_svg(report)
+if _flow:
+    st.markdown(_flow, unsafe_allow_html=True)
 chosen = st.radio(
     "Choose an economic force",
     detail_keys,
