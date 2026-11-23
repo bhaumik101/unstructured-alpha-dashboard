@@ -387,7 +387,8 @@ _TRACK_JS = ('(function(){try{if(window.__uaTrackInit)return;window.__uaTrackIni
 
 def _track_script(canonical: str) -> str:
     label = page_label(canonical)
-    return f'<script>{_TRACK_JS.replace("__LABEL__", json.dumps(label))}</script>' if label else ""
+    return (f'<script>window.__uaPage={json.dumps(label)};{_TRACK_JS.replace("__LABEL__", json.dumps(label))}</script>'
+            if label else "")
 
 
 # A site-wide notice above every page's content, set by the SEO service while it
@@ -501,12 +502,13 @@ def _shell(title: str, description: str, canonical: str, json_ld: dict, body: st
         '<a class="me" id="ua-me" href="/learn#path" hidden></a>'
         '<form class="go" action="/go" method="get" role="search">'
         '<label for="go-t" class="sr-only" style="position:absolute;left:-9999px">Find a stock</label>'
-        '<input id="go-t" name="t" placeholder="Ticker" autocomplete="off" spellcheck="false" maxlength="15">'
+        '<input id="go-t" name="t" placeholder="Search  /" autocomplete="off" spellcheck="false" maxlength="15" data-ua-palette-input>'
         '<button type="submit">Go</button></form>'
         f'<a class="cta" href="{escape(app_link(app_url, "/", canonical))}">Measure a portfolio</a>'
         '</div></header>'
         f'<main id="main">{_notice()}{body}{_signup(canonical)}</main>{_product_band(app_url, canonical)}{_site_footer(app_url)}'
         f'{_me_script()}{_since_card()}{_track_script(canonical)}'
+        '<script src="/palette.js" defer></script>'
         + (_OPEN_JS if 'class="more' in body else '') + '</body></html>')
 
 
