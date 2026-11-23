@@ -60,27 +60,23 @@ def share_description(bits: List[int], game: str = "quiz") -> str:
 
 
 def quiz_og_png(bits: List[int], day: date, game: str = "quiz") -> bytes:
-    from PIL import Image, ImageDraw
+    from utils.og_image import DIM, INK, W, H, _bold, _font, _semi, canvas
 
-    from utils.og_image import BG, BRAND, DIM, INK, W, H, _font
-
-    img = Image.new("RGB", (W, H), BG)
-    d = ImageDraw.Draw(img)
     name, kicker, _q, same = GAMES[game]
-    d.text((64, 48), f"UNSTRUCTURED ALPHA · {kicker}", fill=BRAND, font=_font(26))
-    d.text((64, 96), name, fill=INK, font=_font(54))
+    img, d = canvas(kicker)
+    d.text((64, 100), name, fill=INK, font=_semi(54))
     score = f"{sum(bits)}"
-    d.text((64, 196), score, fill=INK, font=_font(150))
-    x = 64 + d.textlength(score, font=_font(150)) + 10
-    d.text((x, 286), f"/ {len(bits)}", fill=DIM, font=_font(64))
+    d.text((64, 180), score, fill=INK, font=_bold(160))
+    x = 64 + d.textlength(score, font=_bold(160)) + 14
+    d.text((x, 280), f"/ {len(bits)}", fill=DIM, font=_semi(64))
     gap = 14
     size = min(64, int((W - 128 - (len(bits) - 1) * gap) / len(bits)))   # up to 20 squares fit
     for i, b in enumerate(bits):
         x = 64 + i * (size + gap)
-        d.rounded_rectangle([x, 396, x + size, 396 + size], radius=max(6, size // 5),
-                            fill="#2e9d6a" if b else "#3a4a60")
-    d.text((64, H - 110), f"{_label(day)} · {same}", fill=DIM, font=_font(28))
-    d.text((64, H - 66), "Measured from three years of weekly returns. The past, not a forecast.", fill=DIM, font=_font(24))
+        d.rounded_rectangle([x, 400, x + size, 400 + size], radius=max(6, size // 5),
+                            fill="#2fbfa8" if b else "#24324a")
+    d.text((64, H - 96), f"{_label(day)} · {same}", fill=DIM, font=_font(28))
+    d.text((64, H - 56), "Measured from three years of weekly returns. The past, not a forecast.", fill=DIM, font=_font(22))
     buf = io.BytesIO()
     img.save(buf, "PNG", optimize=True)
     return buf.getvalue()

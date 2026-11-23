@@ -15,6 +15,7 @@ import io
 from PIL import Image
 
 from tests.test_explore_page import _stock, client  # noqa: F401  (fixture)
+from utils import exposure as ex
 from utils import og_image as og
 from utils.exposure_pages import hub_page_html, stock_page_html
 
@@ -33,12 +34,20 @@ def test_the_image_is_a_1200_by_630_png():
 
 
 def test_a_held_up_bar_is_bright_and_one_that_did_not_is_dim():
+    """Evidence is the bar's fill: solid for Clear, an outline only for a
+    reading that could not be told apart from zero (2026-11 brand)."""
     im = _png(og.stock_og_png("XOM", REC))
     hexcol = lambda xy: "#%02x%02x%02x" % im.getpixel(xy)   # noqa: E731
-    # Bars sit on rows 0 (rates) and 3 (oil); both are the largest move, so full half-width.
-    rates_y, oil_y = 262 + 0 * 58 + 26, 262 + 3 * 58 + 26
-    assert hexcol((700, rates_y)) == og.DOWN_FAINT        # indistinct, down: faint
-    assert hexcol((860, oil_y)) == og.UP                  # clear, up: bright
+    order = [f.key for f in ex.FACTORS]
+    top, row = 276, 56
+
+    def colours(key):
+        y = top + order.index(key) * row + 14
+        return {hexcol((x, y)) for x in range(522, 978)}
+    assert og.UP in colours("oil")                          # clear: solid
+    rates = colours("rates")
+    assert og.UP not in rates and og.UP_FAINT not in rates   # indistinct: no fill...
+    assert og.OUTLINE in {hexcol((x, top + order.index("rates") * row + 6)) for x in range(522, 978)}  # ...an outline
 
 
 def test_every_page_has_a_large_preview_and_stock_pages_have_their_own():
