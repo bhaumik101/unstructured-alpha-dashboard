@@ -74,5 +74,8 @@ jobs:
       - name: Lint public landing
         run: npm run lint
 
+      - name: Test landing logic
+        run: npm test
+
       - name: Build public landing
         run: npm run build
