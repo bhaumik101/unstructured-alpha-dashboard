@@ -108,41 +108,19 @@ def share_description(rows: List[dict]) -> str:
 
 
 def xray_og_png(mix: Mix, rows: List[dict], as_of: str) -> bytes:
-    from PIL import Image, ImageDraw
+    from utils.exposure_pages import _date
+    from utils.og_image import DIM, INK, H, _font, _minus, _semi, bars, canvas
 
-    from utils.exposure_pages import _date, fmt_pct
-    from utils.og_image import BG, BRAND, DIM, DOWN, INK, LINE, UP, W, H, _font, _minus
-
-    img = Image.new("RGB", (W, H), BG)
-    d = ImageDraw.Draw(img)
-    d.text((64, 48), "UNSTRUCTURED ALPHA · PORTFOLIO X-RAY", fill=BRAND, font=_font(26))
+    img, d = canvas("PORTFOLIO X-RAY")
     names = _names(mix, 6)
-    d.text((64, 96), names if len(names) <= 44 else names[:43] + "…", fill=INK, font=_font(54))
-    d.text((64, 176), "This mix's typical weekly move with each force, beyond the market",
-           fill=DIM, font=_font(28))
-    good = [abs(r["value"]) for r in rows if r["ok"]]
-    scale = max(good + [0.25])
-    top, row = 248, 62
-    bar_l, bar_r = 560, 960
-    mid = (bar_l + bar_r) // 2
-    for i, r in enumerate(rows):
-        y = top + i * row
-        d.line([(64, y - 8), (W - 64, y - 8)], fill=LINE, width=1)
-        d.text((64, y + 6), r["label"], fill=INK, font=_font(34))
-        d.rounded_rectangle([bar_l, y + 18, bar_r, y + 34], radius=8, fill="#132c49")
-        d.line([(mid, y + 12), (mid, y + 40)], fill=DIM, width=2)
-        if not r["ok"]:
-            d.text((W - 64, y + 10), "not measured", fill=DIM, font=_font(28), anchor="ra")
-            continue
-        half = (bar_r - bar_l) / 2
-        w = half * min(1.0, abs(r["value"]) / scale)
-        up = r["value"] >= 0
-        x0, x1 = (mid, mid + w) if up else (mid - w, mid)
-        if w >= 1:
-            d.rounded_rectangle([x0, y + 18, x1, y + 34], radius=8, fill=UP if up else DOWN)
-        d.text((W - 64, y + 6), _minus(fmt_pct(r["value"])), fill=INK, font=_font(34), anchor="ra")
-    d.text((64, H - 62), _minus(f"Weighted average of each holding's reading. Data through {_date(as_of)}. "
-                                "The past, not a forecast."), fill=DIM, font=_font(24))
+    d.text((64, 96), names if len(names) <= 40 else names[:39] + "…", fill=INK, font=_semi(52))
+    d.text((64, 170), "This mix's typical weekly move with each force, beyond the market",
+           fill=DIM, font=_font(24))
+    # A blend has no evidence label of its own, so every bar is drawn the same.
+    bars(d, [{"key": r["key"], "label": r["label"], "value": r["value"] if r["ok"] else None,
+              "evidence": "clear"} for r in rows], top=246, row=60)
+    d.text((64, H - 50), _minus(f"Weighted average of each holding's reading. Data through {_date(as_of)}. "
+                                "The past, not a forecast."), fill=DIM, font=_font(20))
     buf = io.BytesIO()
     img.save(buf, "PNG", optimize=True)
     return buf.getvalue()
