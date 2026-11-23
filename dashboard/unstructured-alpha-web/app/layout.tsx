@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 // The canonical origin. The apex 308-redirects here, so a canonical, og:url or
@@ -180,7 +181,12 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* The command palette (⌘K, Ctrl+K or "/"): one script shared with every
+            server-rendered page, served by the SEO service (utils/palette.py). */}
+        <Script src="/palette.js" strategy="afterInteractive" />
+      </body>
     </html>
   );
 }

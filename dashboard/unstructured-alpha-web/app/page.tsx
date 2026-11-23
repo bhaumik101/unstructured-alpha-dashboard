@@ -9,6 +9,7 @@ import HeroXray from './HeroXray';
 import DailyChallenge from './DailyChallenge';
 import MarketMap from './MarketMap';
 import Flow from './Flow';
+import Desk from './Desk';
 import { PATHS } from './sampleData';
 
 const APP_URL = "https://app.unstructuredalpha.com";
@@ -445,6 +446,10 @@ export default function Home() {
               {/* The app's own toggle: it names the theme you would switch TO.
                   Both labels render and CSS shows the right one, so the server
                   HTML and the stored theme can never disagree at hydration. */}
+              <button type="button" className="lp-search" data-ua-palette aria-label="Search stocks, forces and tools">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4-4" /></svg>
+                Search<kbd>/</kbd>
+              </button>
               <button type="button" className="lp-theme" onClick={toggleTheme}
                       aria-label="Switch between light and dark theme">
                 <span className="lp-theme-to-dark"><span aria-hidden="true">&#9789;</span>DARK</span>
@@ -453,6 +458,9 @@ export default function Home() {
               <a href={sampleUrl("nav")} onClick={() => recordAppOpen("nav")}
                  className="lp-btn lp-btn-primary lp-btn-sm">Try a sample report</a>
             </div>
+            <button type="button" className="lp-search lp-search-m" data-ua-palette aria-label="Search stocks, forces and tools">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4-4" /></svg>
+            </button>
             <button type="button" className="lp-menu-btn" aria-expanded={mobileOpen}
                     aria-controls="lp-mobile" onClick={() => setMobileOpen(!mobileOpen)}>
               <span aria-hidden="true" className="lp-menu-icon" />Menu
@@ -502,6 +510,7 @@ export default function Home() {
       </div>
 
       <main id="main">
+        <Desk />
         {/* ── Inside the sample: who carries each exposure ───────────────── */}
         <section className="lp-section" aria-labelledby="sample-title">
           <div className="lp-wrap lp-split">

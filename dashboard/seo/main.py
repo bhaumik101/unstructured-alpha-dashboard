@@ -1015,6 +1015,17 @@ def landing_json():
         "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=86400"})
 
 
+@app.get("/palette.js")
+def palette_script():
+    """The command palette, one script for the landing and every public page
+    (utils/palette.py). Its lists come from the code, so it changes with a deploy."""
+    from fastapi.responses import Response
+    from utils.palette import palette_js
+
+    return Response(palette_js(), media_type="application/javascript", headers={
+        "Cache-Control": "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400"})
+
+
 @app.get("/xray.json")
 def xray_json():
     """What the landing page's live X-ray needs: every stock and fund's five
