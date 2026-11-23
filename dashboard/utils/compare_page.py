@@ -188,7 +188,16 @@ def compare_page_html(stocks: Iterable[dict], a: str, b: str, base_url: str, app
         examples = "".join(
             f'<li><a href="/compare?a={x}&amp;b={y}">{x} vs {y}</a></li>'
             for x, y in [p for p in EXAMPLES if p[0] in by and p[1] in by][:3])
-        body = (head(escape(desc)) + _form("", "", tickers)
+        # An answer on arrival: the first example pair, drawn, before anyone types.
+        pair = next((p for p in EXAMPLES if p[0] in by and p[1] in by), None)
+        demo = ""
+        if pair:
+            x, y = pair
+            demo = (f'<h2>Example: {escape(x)} vs {escape(y)}</h2>'
+                    + duel_chart_html(compare_rows(by[x], by[y]), x, y)
+                    + f'<p class="small"><a href="/compare?a={escape(x)}&amp;b={escape(y)}">Open the full '
+                      f'comparison</a>, with every force, both 90% ranges and where they clearly differ.</p>')
+        body = (head(escape(desc)) + _form("", "", tickers) + demo
                 + (f'<h2>Try</h2><ul class="related">{examples}</ul>' if examples else "")
                 + '<p class="small">Any stock on record can be compared: the S&amp;P 500, measured '
                   'weekly, plus any stock a visitor has opened.</p>')
