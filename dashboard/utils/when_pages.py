@@ -215,7 +215,7 @@ _WP_CSS = """<style>
   .wp-key .k-none::before{background:var(--subtle)}
   .wp-key .k-down::before{background:color-mix(in srgb,var(--ink3) 30%,var(--surface))}
   .wp-rank{padding:12px 8px 0}.wp-rank .foot{margin:10px -8px 0}
-  .wp-rank .wp-t,.wp-rank .wp-v{font-size:26px}.wp-rank .wp-h,.wp-rank .wp-ax{font-size:20px}
+  .wp-rank .wp-t,.wp-rank .wp-v{font-size:calc(var(--fs-body) * 1.62)}.wp-rank .wp-h,.wp-rank .wp-ax{font-size:calc(var(--fs-body) * 1.25)}
 }
 </style>"""
 
