@@ -96,8 +96,23 @@ def test_long_lists_fold_but_stay_in_the_page():
     from utils import when_pages as wp
     stocks = [_stock(f"T{i:02d}", -(i + 1) * 1.0) for i in range(30)]
     html = wp.when_page_html("rates-fall", stocks, "https://x", "https://app.x")
-    first = html.split('<details')[0]
+    table = html[html.index('aria-label="Went up"'):]
+    first = table[:table.index("</table>")]
     assert first.count('href="/exposure/T') == wp.SHOW_UP
     assert "Show 15 more" in html
     assert len(set(re.findall(r'href="/exposure/(T\d\d)"', html))) == wp.TOP_UP
     assert "Showing the 25 largest of 30." in html
+
+
+def test_the_page_draws_the_split_and_the_largest_moves():
+    """The answer at a glance: every stock measured in one strip (no clear
+    link included), then the largest moves on one shared axis."""
+    stocks = ([_stock(f"U{i}", -(i + 1) * 0.5) for i in range(12)] + [_stock(f"D{i}", (i + 1) * 0.4) for i in range(6)]
+              + [_stock(f"N{i}", 0.1, "indistinct") for i in range(20)])
+    html = wp.when_page_html("rates-fall", stocks, "https://x", "https://app.x")
+    assert "<b>12</b> <i>went up</i>" in html and "<b>20</b> <i>no clear link</i>" in html and "<b>6</b> <i>went down</i>" in html
+    svg = html[html.index('class="card wp-rank"'):]
+    svg = svg[:svg.index("</figure>")]
+    assert svg.count('<a href="/exposure/') == 10 + 5
+    assert svg.count('class="wp-ax"') == 3                       # one scale, labelled once
+    assert "N0" not in svg                                        # no clear link: counted, never ranked
