@@ -49,4 +49,8 @@ def test_it_shows_the_streak_for_a_learner_and_nothing_for_a_newcomer():
 def test_links_in_the_header_band_are_light_on_navy():
     """Live check, Nov 19: tile links (a force page's largest movers and most
     linked sector) kept the body's dark blue on the navy band."""
-    assert ".card.sh a:not(.btn){color:#ffd88a" in ep._SH_CSS
+    import re
+    m = re.search(r"\.card\.sh a:not\(\.btn\)\{color:#([0-9a-f]{6})", ep._SH_CSS)
+    assert m, "the band's links have no colour of their own"
+    # Light on the near-black band (2026-11 brand: #8eebdc): every channel bright.
+    assert all(int(m.group(1)[i:i + 2], 16) >= 0x80 for i in (0, 2, 4)), m.group(1)

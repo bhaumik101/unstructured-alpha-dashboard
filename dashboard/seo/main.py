@@ -1120,7 +1120,7 @@ def exposure_page(symbol: str):
     from utils.exposure_pages import data_week
     week = data_week(s.get("as_of") for s in _exposure_stocks())
     return HTMLResponse(stock_page_html(symbol, rec, history, related, BASE_URL, APP_URL, held, alike,
-                                        peers, library_week=week))
+                                        peers, library_week=week, universe=_exposure_stocks()))
 
 
 @app.get("/embed/{symbol}", response_class=HTMLResponse)
