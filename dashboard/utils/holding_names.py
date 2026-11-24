@@ -9,20 +9,28 @@
 #   * Local only. Rendering a report never waits on the network for a label:
 #     the names come from what the visitor's own holdings carried (a search
 #     result includes the fund's name), the bundled table of common funds,
-#     the curated names of the scored universe, and the stock library.
+#     the curated names of the scored universe, the stock library, and last a
+#     bundled snapshot of the SEC's public ticker file (about 10,000 listed
+#     companies; scripts/refresh_sec_tickers.py), written as the SEC records
+#     them, e.g. "MICROSOFT CORP".
 #   * Unknown is honest: no name means the ticker is shown alone, never a
 #     guessed name.
 #   * Names are display text only; they never feed a calculation.
 
 from __future__ import annotations
 
+import gzip
+import json
 import time
+from pathlib import Path
 from typing import Dict, Iterable, Optional
 
 _remembered: Dict[str, str] = {}
 _library: Dict[str, str] = {}
 _library_at = 0.0
 _LIBRARY_TTL = 600.0
+_SEC_FILE = Path(__file__).resolve().parent / "data" / "sec_company_tickers.json.gz"
+_sec: Optional[Dict[str, str]] = None
 KINDS: Dict[str, str] = {}      # ticker -> "ETF" | "Stock" | "Mutual fund", where known
 
 
@@ -73,12 +81,24 @@ def _library_names() -> Dict[str, str]:
     return _library
 
 
+def _sec_names() -> Dict[str, str]:
+    """The bundled SEC snapshot, read once; empty if the file is missing."""
+    global _sec
+    if _sec is None:
+        try:
+            _sec = json.loads(gzip.decompress(_SEC_FILE.read_bytes()))
+        except Exception:
+            _sec = {}
+    return _sec
+
+
 def full_name(ticker: str) -> str:
     """The holding's full name, or "" when it is not known locally."""
     t = _clean(ticker)
     if not t:
         return ""
-    name = _remembered.get(t) or _STATIC.get(t) or _library_names().get(t) or ""
+    name = (_remembered.get(t) or _STATIC.get(t) or _library_names().get(t)
+            or _sec_names().get(t) or "")
     return "" if name.upper() == t else name
 
 
