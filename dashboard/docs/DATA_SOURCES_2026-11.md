@@ -14,7 +14,7 @@ Henry Hub gas (DHHNGSP), VIX, ICE BofA credit spreads, SEC EDGAR XBRL.
 
 | # | Source | What it adds to the product | Effort | Status |
 |---|--------|-----------------------------|--------|--------|
-| 1 | **SEC Form N-PORT data sets** (quarterly ZIP of every fund's holdings) | **Explain a fund's exposure from what it owns.** Today the report says VXUS carries 78% of the dollar exposure; with look-through it can say *why* in beginner terms: "VXUS holds ~8,000 stocks outside the U.S., so a stronger dollar shrinks their value in dollars." Also: sector and country mix per fund, overlap between two funds. | Medium–high (large quarterly file; precompute for the ~500 most-held funds) | Documented ([SEC](https://www.sec.gov/data-research/sec-markets-data/form-n-port-data-sets), [data.gov listing to 2026 Q2](https://catalog.data.gov/dataset/form-n-port-data-sets)) |
+| 1 | **SEC Form N-PORT data sets** (quarterly ZIP of every fund's holdings) | **Explain a fund's exposure from what it owns.** Today the report says VXUS carries 78% of the dollar exposure; with look-through it can say *why* in beginner terms: "VXUS holds ~8,000 stocks outside the U.S., so a stronger dollar shrinks their value in dollars." Also: sector and country mix per fund, overlap between two funds. | **Shipped (#389)**: built per fund from EDGAR (latest NPORT-P per series), not the bulk file; 71 funds; `scripts/build_lookthrough.py` | **Verified** ([SEC](https://www.sec.gov/data-research/sec-markets-data/form-n-port-data-sets), [data.gov listing to 2026 Q2](https://catalog.data.gov/dataset/form-n-port-data-sets)) |
 | 2 | **SEC `company_tickers.json`** | Full company name for ~10,400 listed tickers, so any stock in a report is spelled out. | Done in this PR (bundled 104 KB snapshot, `scripts/refresh_sec_tickers.py`) | **Verified** (fetched: 10,399 names) |
 | 3 | **SEC Investment Company Series & Class data set** | Names for **mutual funds and ETF share classes** (the SEC's `company_tickers_mf.json` maps fund tickers to series/class IDs but carries no names; this data set has them). Closes the name gap for 401(k) funds. | Low–medium | `company_tickers_mf.json` **verified** (28,669 fund tickers, IDs only); names data set documented ([SEC](https://www.sec.gov/open/datasets-investment_company)) |
 | 4 | **Weekly Henry Hub spot (FRED `WHHNGSP`)** | Fixes the open natural-gas problem (spot spikes, +904% in a week, wreck the fit): a weekly average series damps one-day spikes while measuring the same price. | Low (swap series id + re-measure) | Documented ([FRED](https://fred.stlouisfed.org/series/WHHNGSP)) |
@@ -38,9 +38,9 @@ Henry Hub gas (DHHNGSP), VIX, ICE BofA credit spreads, SEC EDGAR XBRL.
 
 ## Recommended order
 
-1. Weekly Henry Hub (low effort, fixes a known bad reading).
-2. Fund names from the series/class data set (finishes the names work).
-3. N-PORT look-through for the most-held funds (the big product step).
+1. ~~N-PORT look-through~~ shipped in #389 (71 funds; refresh each quarter).
+2. Weekly Henry Hub (low effort, fixes a known bad reading).
+3. Fund names from the series/class data set (finishes the names work).
 4. Cleveland Fed expected inflation as a robustness check on one force.
 5. Tiingo as a price fallback (needs the owner to create a free key).
 
