@@ -9,10 +9,12 @@
 #   * Local only. Rendering a report never waits on the network for a label:
 #     the names come from what the visitor's own holdings carried (a search
 #     result includes the fund's name), the bundled table of common funds,
-#     the curated names of the scored universe, the stock library, and last a
-#     bundled snapshot of the SEC's public ticker file (about 10,000 listed
-#     companies; scripts/refresh_sec_tickers.py), written as the SEC records
-#     them, e.g. "MICROSOFT CORP".
+#     the curated names of the scored universe, the stock library, then two
+#     bundled SEC snapshots (scripts/refresh_sec_tickers.py): fund names from
+#     the Investment Company Series and Class data set (about 29,000 mutual
+#     fund and ETF share classes, "Vanguard 500 Index Fund (Admiral Shares)"),
+#     and last the public company ticker file (about 10,000 listed companies,
+#     written as the SEC records them, e.g. "MICROSOFT CORP").
 #   * Unknown is honest: no name means the ticker is shown alone, never a
 #     guessed name.
 #   * Names are display text only; they never feed a calculation.
@@ -31,6 +33,8 @@ _library_at = 0.0
 _LIBRARY_TTL = 600.0
 _SEC_FILE = Path(__file__).resolve().parent / "data" / "sec_company_tickers.json.gz"
 _sec: Optional[Dict[str, str]] = None
+_FUND_FILE = Path(__file__).resolve().parent / "data" / "sec_fund_names.json.gz"
+_funds: Optional[Dict[str, str]] = None
 KINDS: Dict[str, str] = {}      # ticker -> "ETF" | "Stock" | "Mutual fund", where known
 
 
@@ -92,13 +96,24 @@ def _sec_names() -> Dict[str, str]:
     return _sec
 
 
+def _fund_names() -> Dict[str, str]:
+    """The bundled SEC fund-name snapshot, read once; empty if the file is missing."""
+    global _funds
+    if _funds is None:
+        try:
+            _funds = json.loads(gzip.decompress(_FUND_FILE.read_bytes()))
+        except Exception:
+            _funds = {}
+    return _funds
+
+
 def full_name(ticker: str) -> str:
     """The holding's full name, or "" when it is not known locally."""
     t = _clean(ticker)
     if not t:
         return ""
     name = (_remembered.get(t) or _STATIC.get(t) or _library_names().get(t)
-            or _sec_names().get(t) or "")
+            or _fund_names().get(t) or _sec_names().get(t) or "")
     return "" if name.upper() == t else name
 
 
@@ -110,4 +125,7 @@ def short(name: str, n: int = 34) -> str:
 def with_name(ticker: str) -> str:
     """'BND (Vanguard Total Bond Market ETF)' for prose; the ticker alone if unknown."""
     n = full_name(ticker)
+    if n.endswith(")") and " (" in n:            # no nested brackets: "Fund, Admiral Shares"
+        head, _, tail = n.rpartition(" (")
+        n = f"{head}, {tail[:-1]}"
     return f"{_clean(ticker)} ({n})" if n else _clean(ticker)
