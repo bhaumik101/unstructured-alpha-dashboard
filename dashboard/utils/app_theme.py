@@ -332,6 +332,19 @@ html[data-ua-theme="light"] .stApp .st-key-uar_explore [data-testid="stTab"][ari
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 30px 60px -40px rgba(0,0,0,.8)!important;}
 @@ .stApp .ua-phero .ua-phero-sub{max-width:78ch!important;margin-bottom:0!important;}
 @@ .stApp .ua-phero h1{margin-bottom:6px!important;}
+
+/* the dashboard row and the tour link */
+@@ .stApp .st-key-uar_forces{margin:0 0 6px;}
+@@ .stApp .st-key-uar_forces h3{margin:0 0 8px!important;padding:0!important;font-size:var(--p-t-xs)!important;font-weight:700!important;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--p-ink3)!important;}
+@@ .stApp .uar-tour-link{margin:2px 0 14px!important;display:flex;justify-content:flex-end;}
+@@ .stApp .uar-tour-link a{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;
+  font-size:var(--p-t-sm);font-weight:650;color:var(--p-ink)!important;text-decoration:none!important;
+  border:1px solid rgba(108,229,210,.45);background:linear-gradient(180deg,rgba(108,229,210,.14),rgba(108,229,210,.04));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 20px -10px rgba(108,229,210,.8);transition:box-shadow .2s ease,transform .18s ease;}
+@@ .stApp .uar-tour-link a::before{content:"";width:0;height:0;border-left:8px solid var(--p-accent);
+  border-top:5px solid transparent;border-bottom:5px solid transparent;}
+@@ .stApp .uar-tour-link a:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 26px -6px rgba(108,229,210,.8);}
 """)
 
 PRODUCT_CSS = f"""<style>

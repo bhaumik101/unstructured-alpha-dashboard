@@ -119,6 +119,17 @@ if first_visit:
         ((str(_saved_n), "Your saved portfolios", "See them all", "/portfolios") if _saved_n is not None
          else ("Free", "Your first report", "No account needed", "")),
     ]), unsafe_allow_html=True)
+    # The dashboard row: the five forces themselves, from the newest stored
+    # report -- real published series, or a plain note until one exists.
+    _paths = charts.factor_paths_html(_recent, [f.key for f in ex.FACTORS]) if _recent else ""
+    # There is no portfolio on this page yet.
+    _paths = _paths.replace("not what this portfolio did", "not what any one holding did")
+    with st.container(key="uar_forces"):
+        st.markdown("### What the forces themselves did")
+        st.markdown(_paths or dash.forces_empty_html(), unsafe_allow_html=True)
+    # Relaunches the walkthrough (utils/tour.py runs in the served page).
+    st.markdown('<p class="uar-tour-link"><a href="#tour" data-ua-tour-start>Take the one-minute tour</a></p>',
+                unsafe_allow_html=True)
 
 # ── onboarding / edit ───────────────────────────────────────────────────────
 # One primary job on this page: measure a portfolio. The builder comes first,
@@ -261,7 +272,7 @@ if editing:
     if first_visit:
         with st.container(key="uar_explore"):
             st.markdown("## Explore the record")
-            _t_rank, _t_forces, _t_one = st.tabs(["Most exposed stocks", "What the forces did", "Single companies"])
+            _t_rank, _t_one = st.tabs(["Most exposed stocks", "Single companies"])
             with _t_rank:
                 st.markdown("### Most exposed stocks on record")
                 _factor = st.radio(
@@ -271,12 +282,6 @@ if editing:
                 )
                 st.markdown(dash.ranked_panel_html(_factor, lib.ranked(_factor, n=4, stocks=_stocks),
                                                    _on_record), unsafe_allow_html=True)
-            with _t_forces:
-                st.markdown("### What the forces themselves did")
-                _paths = charts.factor_paths_html(_recent, [f.key for f in ex.FACTORS]) if _recent else ""
-                # There is no portfolio on this page yet.
-                _paths = _paths.replace("not what this portfolio did", "not what any one holding did")
-                st.markdown(_paths or dash.forces_empty_html(), unsafe_allow_html=True)
             with _t_one:
                 st.markdown("### Or look at a single company")
                 st.caption("The same measurement, run on one name, on its own page with its history. "
