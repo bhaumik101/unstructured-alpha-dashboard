@@ -24,6 +24,15 @@ def _theme_switch_href(target: str, query_values: dict[str, list[str]]) -> str:
     return "?" + urlencode(pairs)
 
 
+def _avatar_initial(name: str) -> str:
+    """The account chip's avatar letter: the name's first ASCII letter or digit, else a dot.
+
+    It is written into a stylesheet (content:"X"), so nothing a user typed
+    other than [A-Z0-9] may reach it.
+    """
+    return next((ch.upper() for ch in (name or "") if ch.isascii() and ch.isalnum()), "•")
+
+
 def _section_slug(label: str) -> str:
     """Return a stable, URL-safe identifier for a visible section label."""
     return re.sub(r"[^a-z0-9]+", "-", str(label).strip().lower()).strip("-")
@@ -3938,10 +3947,18 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
             _unread = get_unread_notification_count(_uid)
             _badge_text = f" {_unread if _unread < 100 else '99+'}" if _unread > 0 else ""
             _notification_api = (get_recent_notifications, mark_all_read, clear_notifications)
-            with _bell_col:
+            # A bell with its count, not a word: the row docks inside the nav
+            # bar where it has room (utils/app_theme.py), and "Notifications 12"
+            # was the widest control in it. The wrapper's key says whether
+            # anything is unread, so the count pill and its pulse show only then.
+            # The label keeps the word for screen readers ("Notifications 12");
+            # CSS hides the word and draws the bold count as the corner badge.
+            _bell_count = f"Notifications **{_unread if _unread < 100 else '99+'}**" if _unread > 0 else "Notifications"
+            with _bell_col, st.container(key="ua_bell_unread" if _unread > 0 else "ua_bell_clear"):
                 if st.button(
-                    f"Notifications{_badge_text}",
+                    _bell_count,
                     key="_notification_tray_toggle",
+                    icon=":material/notifications:",
                     width="stretch",
                 ):
                     st.session_state["_notification_tray_open"] = not st.session_state.get(
@@ -3955,6 +3972,14 @@ def render_header(page_subtitle: str = "", hero_title: str = "", hero_sub: str =
         if _hdr_user:
             _identity_name = (_hdr_user.get("display_name") or "Account").strip()
             _identity_button = _identity_name if len(_identity_name) <= 20 else f"{_identity_name[:19]}…"
+            # The account chip's avatar: the name's first letter or digit, drawn
+            # by CSS (a popover label is plain text). Anything else gets a dot,
+            # so no user-chosen character ever reaches a stylesheet.
+            _initial = _avatar_initial(_identity_name)
+            st.markdown(
+                f'<style>.st-key-ua_account_row [data-testid="stPopoverButton"]{{--ua-initial:"{_initial}";}}</style>',
+                unsafe_allow_html=True,
+            )
             with st.popover(_identity_button, width="stretch"):
                 if _hdr_user.get("display_name"):
                     st.text(_hdr_user["display_name"])
