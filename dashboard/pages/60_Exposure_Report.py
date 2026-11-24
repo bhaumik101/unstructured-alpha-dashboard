@@ -585,6 +585,14 @@ if _bars:
     st.markdown(f'<div class="uar"><div class="uac-panel">{_bars}</div></div>',
                 unsafe_allow_html=True)
 st.markdown(ui.holdings_matrix_html(report), unsafe_allow_html=True)
+
+# Look-through: what each fund holds, from its SEC Form N-PORT filing, and the
+# plain reason it carries an exposure here (utils/lookthrough.py).
+from utils import lookthrough as _lt  # noqa: E402
+_look = _lt.lookthrough_html(report)
+if _look:
+    st.markdown("## What your funds hold")
+    st.markdown(_lt.LOOKTHROUGH_CSS + _look, unsafe_allow_html=True)
 _map = ui.exposure_map_html(report)
 if _map:
     with st.expander("See the exposures as a diagram"):
