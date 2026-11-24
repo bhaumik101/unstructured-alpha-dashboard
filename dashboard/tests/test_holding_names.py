@@ -46,6 +46,17 @@ def test_the_library_fills_in_a_stock_the_tables_lack(monkeypatch):
     assert hn.full_name("ZYXW") == "Zyxw Holdings Inc."
 
 
+def test_the_sec_snapshot_is_the_last_resort(monkeypatch):
+    monkeypatch.setattr(hn, "_library_names", lambda: {})
+    sec = hn._sec_names()
+    assert len(sec) > 5000 and sec.get("AAPL")                    # the bundled file loads
+    assert hn.full_name("VTI") == "Vanguard Total Stock Market ETF"  # the curated table still wins
+    some = next(t for t in sorted(sec) if t not in hn._STATIC and t.isalpha())
+    assert hn.full_name(some) == sec[some]                          # and fills what it lacks
+    monkeypatch.setattr(hn, "_sec", {})
+    assert hn.full_name(some) == ""                                 # no snapshot: shown bare, no guess
+
+
 def test_long_names_are_trimmed_for_labels_only():
     assert hn.short("Vanguard Total International Stock ETF", 20) == "Vanguard Total Inte…"
     assert hn.short("SPDR Gold Shares", 20) == "SPDR Gold Shares"
