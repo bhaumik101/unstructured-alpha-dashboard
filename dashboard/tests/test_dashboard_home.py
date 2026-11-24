@@ -177,7 +177,8 @@ def test_the_first_page_has_one_primary_action_and_the_record_below_it():
     build, explore = src.index('st.container(key="uar_build")'), src.index('st.container(key="uar_explore")')
     assert build < src.index('st.markdown("### Start from a sample")') < explore
     assert build < src.index('key="uar_submit"') < explore
-    assert 'st.tabs(["Most exposed stocks", "What the forces did", "Single companies"])' in src
+    assert 'st.tabs(["Most exposed stocks", "Single companies"])' in src
+    assert src.index('st.container(key="uar_forces")') < build, "the forces row is part of the dashboard, above the builder"
     # the samples are secondary buttons; "Measure exposure" is the page's one primary button
     sample = src[src.index('key=f"uar_sample_{key}"') - 120:src.index('key=f"uar_sample_{key}"') + 60]
     assert 'type="primary"' not in sample

@@ -48,6 +48,11 @@ RUNTIME_START = "<!-- ua-runtime:start -->"
 RUNTIME_END = "<!-- ua-runtime:end -->"
 
 
+def _tour_js() -> str:
+    from utils.tour import tour_js
+    return tour_js().replace("</", "<\\/")
+
+
 def _build_runtime() -> str:
     """Scripts that must run on every page, splash or no splash.
 
@@ -453,6 +458,9 @@ def _build_runtime() -> str:
 })();
 </script>
 """.rstrip().replace("__UA_LEGACY_SLUGS__", _json.dumps(legacy_slugs()))
+            # The first-visit walkthrough (utils/tour.py) runs here for the same
+            # reason as everything above: st.markdown strips <script>.
+            + "\n<script>" + _tour_js() + "</script>"
             + "\n" + RUNTIME_END + "\n")
 
 
