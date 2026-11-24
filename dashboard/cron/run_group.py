@@ -51,6 +51,9 @@ GROUPS = {
         # The NY Fed's 10-year yield split (term premium / expected path):
         # one 10 MB download, parsed here so the web app never does.
         "cron.refresh_acm",
+        # Kenneth French's weekly factors (~40 KB): the independent check of
+        # the report's market adjustment and style tilts.
+        "cron.refresh_famafrench",
         # Monthly in practice: it skips itself if a result from the last 28
         # days exists. Last, so it never holds the library's memory headroom.
         "cron.track_record",

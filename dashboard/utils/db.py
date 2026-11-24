@@ -966,6 +966,20 @@ acm_daily = Table(
 )
 
 
+# ── Fama-French weekly factors (an independent check of the market adjustment) ─
+# Rows the weekly cron (cron/refresh_famafrench.py) stores from Kenneth
+# French's data library; utils/famafrench.py merges them over the bundled
+# snapshot. Public research data; safe to truncate. Brand-new: create_all().
+ff_weekly = Table(
+    "ff_weekly", metadata,
+    Column("date",   String(10), primary_key=True),   # the week's Friday
+    Column("mkt_rf", Float, nullable=False),          # percent
+    Column("smb",    Float, nullable=False),
+    Column("hml",    Float, nullable=False),
+    Column("rf",     Float, nullable=False),
+)
+
+
 fund_lookthrough = Table(
     "fund_lookthrough", metadata,
     Column("ticker",     String(16), primary_key=True),

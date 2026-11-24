@@ -131,6 +131,16 @@ TERM_PREMIUM = Factor(
     "The extra yield investors demand to hold a ten-year bond instead of rolling short ones: "
     "it moves with uncertainty and the supply of bonds.", group="rates_split", source="acm")
 
+# The independent check of the market adjustment (utils/famafrench.py): the
+# academic size and value factors, used as regressors beside Mkt-RF.
+FF_SMB = Factor("ff_smb", "Size (Fama-French SMB)", "SMB", "diff", 1.0,
+                "small companies beat big ones by 1 percentage point (SMB)", "", group="ff", source="ff")
+FF_HML = Factor("ff_hml", "Value (Fama-French HML)", "HML", "diff", 1.0,
+                "value beat growth by 1 percentage point (HML)", "", group="ff", source="ff")
+FF_MIN_WEEKS = 78
+BETA_AGREE = 0.05          # betas within 0.05, or 5% of the beta if larger, agree
+BETA_AGREE_REL = 0.05
+
 CROSS_WINDOW_MONTHS = 60
 CROSS_MIN_MONTHS = 36
 
@@ -856,6 +866,55 @@ def rates_split(now: pd.DataFrame, active: Iterable[Factor], expected: Optional[
             "headline": headline, "source": "NY Fed ACM (Adrian, Crump and Moench)"}
 
 
+def ff_check(now: pd.DataFrame, ff: Optional[pd.DataFrame], extras: Optional[dict] = None) -> dict:
+    """The report's market adjustment and style tilts, checked against the
+    Fama-French factors over the weeks both have.
+
+    Market: the product's plain beta to SPY and the plain beta to Mkt-RF, on
+    the same weeks, so a gap is about the market measure, not the window.
+    Style: SMB and HML loadings (market held fixed), compared by direction and
+    evidence with the product's own size and value readings where it has them.
+    """
+    if ff is None or ff.empty:
+        return {"available": False, "reason": "the Fama-French factors were unavailable"}
+    joined = now[["__portfolio__", "__mkt__"]].join(ff, how="inner").dropna()
+    if len(joined) < FF_MIN_WEEKS:
+        return {"available": False, "n_obs": int(len(joined)),
+                "reason": f"only {len(joined)} weeks overlap; {FF_MIN_WEEKS} are needed"}
+    y = joined["__portfolio__"].to_numpy(float)
+    spy = joined["__mkt__"].to_numpy(float)
+    mkt = joined["Mkt-RF"].to_numpy(float) + joined["RF"].to_numpy(float)    # the market's total return
+
+    def plain(x):
+        v = float(np.var(x))
+        return float(np.cov(y, x, bias=True)[0, 1] / v) if v > 0 else float("nan")
+    beta_spy, beta_ff = plain(spy), plain(mkt)
+    frame = pd.DataFrame({"__y__": joined["__portfolio__"] - joined["RF"], "__mkt__": joined["Mkt-RF"],
+                          FF_SMB.key: joined["SMB"], FF_HML.key: joined["HML"]}, index=joined.index)
+    fit = _fit_on_frame(frame, "__y__", (FF_SMB, FF_HML), FF_MIN_WEEKS)
+    r = fit.get("readings", {})
+    ext = (extras or {})
+    def agrees(ff_key, ext_key):
+        a, b = r.get(ff_key), ext.get(ext_key)
+        if not a or not b:
+            return None
+        held = ("clear", "tentative")
+        if a["evidence"] not in held and b.get("evidence") not in held:
+            return "both_flat"
+        if a["evidence"] in held and b.get("evidence") in held:
+            return "same" if (a["impact"] > 0) == (b["impact"] > 0) else "opposite"
+        return "one_only"
+    return {
+        "available": True, "n_obs": int(len(joined)), "start": str(joined.index[0].date()),
+        "end": str(joined.index[-1].date()), "beta_spy": beta_spy, "beta_ff": beta_ff,
+        "beta_agrees": bool(math.isfinite(beta_spy) and math.isfinite(beta_ff)
+                            and abs(beta_spy - beta_ff) <= max(BETA_AGREE, BETA_AGREE_REL * abs(beta_ff))),
+        "smb": r.get(FF_SMB.key), "hml": r.get(FF_HML.key),
+        "size_vs_product": agrees(FF_SMB.key, "size"), "value_vs_product": agrees(FF_HML.key, "value"),
+        "source": "Kenneth R. French data library",
+    }
+
+
 def inflation_crosscheck(daily: Mapping[str, pd.Series], weights: Mapping[str, float],
                          market_daily: pd.Series, breakeven_levels: Optional[pd.Series],
                          model_levels: Optional[pd.Series], headline: Optional[dict]) -> dict:
@@ -1054,6 +1113,12 @@ def build_exposure_report(
         split = {"available": False, "reason": "the rates split could not be computed"}
 
     try:
+        from utils import famafrench
+        ffc = ff_check(now, famafrench.weekly(), extras)
+    except Exception:                           # a check that fails is not shown, never guessed
+        ffc = {"available": False, "reason": "the Fama-French check could not be computed"}
+
+    try:
         model_levels = series_fetcher(INFLATION_MODEL.series_id, s, e)
     except Exception:
         model_levels = None
@@ -1091,6 +1156,7 @@ def build_exposure_report(
         "growth": growth,
         "inflation_check": inflation_check,
         "rates_split": split,
+        "ff_check": ffc,
         "series": _series_payload(now, weights, active, extra_changes),
         "extras": {"readings": extras, "unavailable": extra_unavailable,
                    "clear_t": EXTRA_CLEAR_T, "n_forces": len(EXTRA_FACTORS),
