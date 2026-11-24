@@ -385,6 +385,18 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uxc-tick{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#6ce5d2;border-radius:2px;}
 html[data-ua-theme="light"] .uxc-tick{background:#0b6f64;}
 .urs::before{background:#3b7ddd;}
+.uff-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px;}
+.uff-cell{padding:10px 12px;border-radius:12px;border:1px solid var(--uar-line);background:rgba(255,255,255,.025);display:grid;gap:6px;align-content:start;}
+.uff-k{font-size:var(--uar-t-micro);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--uar-ink-3);}
+.uff-pair{display:grid;grid-template-columns:130px 1fr 40px;gap:8px;align-items:center;font-size:var(--uar-t-sm);color:var(--uar-ink-2);}
+.uff-pair b{color:var(--uar-ink);text-align:right;font-variant-numeric:tabular-nums;}
+.uff-pair .uff-b{display:block;height:8px;border-radius:999px;background:linear-gradient(90deg,#3b7ddd,#6ce5d2);}
+.uff-big{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;}
+.uff-big b{font-size:var(--uar-t-val);color:var(--uar-ink);font-variant-numeric:tabular-nums;}
+.uff-big span{font-size:var(--uar-t-sm);color:var(--uar-ink-2);}
+.uff-note{font-size:var(--uar-t-micro);color:var(--uar-ink-3);line-height:1.45;}
+html[data-ua-theme="light"] .uff-cell{background:#f8fafc;}
+@media (max-width:900px){.uff-grid{grid-template-columns:1fr;}}
 .urs-scale{display:grid;grid-template-columns:minmax(130px,1fr) minmax(140px,2fr) 64px 130px;gap:10px;font-size:var(--uar-t-micro);color:var(--uar-ink-3);}
 .urs-scale span:nth-child(1){grid-column:2;justify-self:start;}.urs-scale span:nth-child(2){grid-column:2;justify-self:center;}
 .urs-scale span:nth-child(3){grid-column:2;justify-self:end;}.urs-scale span{grid-row:1;}
@@ -955,6 +967,50 @@ def rates_split_html(report: dict) -> str:
             f'{fmt_date(sp["end"])}, with the market and the other four forces held fixed. The two parts add up to '
             'the 10-year yield in the New York Fed\'s Adrian-Crump-Moench model; these are model estimates. '
             'It describes the past; it is not a forecast.</div></div></div>')
+
+
+_FF_VS = {"same": "Matches the report's own reading", "opposite": "Opposite to the report's own reading",
+          "one_only": "Only one of the two measures finds a tilt", "both_flat": "Neither measure finds a tilt"}
+
+
+def ff_check_html(report: dict) -> str:
+    """The market adjustment and style tilts against the Fama-French factors
+    (exposure.ff_check): a three-cell glass strip. Empty when unavailable."""
+    c = report.get("ff_check") or {}
+    if not c.get("available"):
+        return ""
+    ok = c.get("beta_agrees")
+    gap = abs((c.get("beta_spy") or 0) - (c.get("beta_ff") or 0))
+    bmax = max(1.0, abs(c.get("beta_spy") or 0), abs(c.get("beta_ff") or 0)) * 1.1
+
+    def bar(v: float) -> str:
+        return f'<i class="uff-b" style="width:{min(100.0, 100.0 * abs(v) / bmax):.1f}%"></i>'
+    market = (f'<div class="uff-cell"><div class="uff-k">Market beta</div>'
+              f'<div class="uff-pair"><span>SPY</span>{bar(c["beta_spy"])}<b>{c["beta_spy"]:.2f}</b></div>'
+              f'<div class="uff-pair"><span>Fama-French market</span>{bar(c["beta_ff"])}<b>{c["beta_ff"]:.2f}</b></div>'
+              f'<div class="uff-note">{"Agree" if ok else f"Differ by {gap:.2f}"}: how much it moves with the '
+              'whole U.S. market, measured two ways.</div></div>')
+
+    def tilt(title: str, r: Optional[dict], pos: str, neg: str, vs: Optional[str]) -> str:
+        if not r:
+            return f'<div class="uff-cell"><div class="uff-k">{escape(title)}</div><div class="uff-note">Not available</div></div>'
+        held = r["evidence"] in ("clear", "tentative")
+        words = (pos if r["impact"] > 0 else neg) if held else "no clear tilt"
+        return (f'<div class="uff-cell"><div class="uff-k">{escape(title)}</div>'
+                f'<div class="uff-big"><b>{r["impact"]:+.2f}</b><span>{escape(words)}</span>{_evidence_cell(r["evidence"])}</div>'
+                + (f'<div class="uff-note">{escape(_FF_VS[vs])}.</div>' if vs in _FF_VS else "") + '</div>')
+    cells = (market
+             + tilt("Size tilt (SMB)", c.get("smb"), "leans to small companies", "leans to large companies",
+                    c.get("size_vs_product"))
+             + tilt("Value tilt (HML)", c.get("hml"), "leans to value", "leans to growth", c.get("value_vs_product")))
+    return (f'<div class="uar"><div class="uxc uff uxc-{"ok" if ok else "mid"}">'
+            '<div class="uxc-head"><span class="uxc-k">Checked against the Fama-French factors</span>'
+            f'<span class="uxc-pill">{"Market adjustment checks out" if ok else "Market beta differs"}</span></div>'
+            f'<div class="uff-grid">{cells}</div>'
+            f'<div class="uxc-foot">The academic factors from Kenneth French\'s data library (© Fama and French), weekly, '
+            f'over the {c["n_obs"]} weeks to {fmt_date(c["end"])} that both cover: they are published a month or two late. '
+            'Tilts are per 1 percentage point of the factor, the market held fixed. It describes the past; it is not a '
+            'forecast.</div></div></div>')
 
 
 _CHECK_VERDICTS = {

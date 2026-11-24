@@ -505,6 +505,9 @@ if len(_checks) == 2:
     _c2.markdown(_checks[1], unsafe_allow_html=True)
 elif _checks:
     st.markdown(_checks[0], unsafe_allow_html=True)
+_ff = ui.ff_check_html(report)        # the market adjustment against Fama-French
+if _ff:
+    st.markdown(_ff, unsafe_allow_html=True)
 # The question that follows "what is it exposed to": what if those forces move?
 # ── one glass action bar under the findings: stress-test, the weekly email,
 # and the Pro note, side by side instead of three loose rows of open space ──
