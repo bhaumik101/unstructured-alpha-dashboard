@@ -381,6 +381,14 @@ html[data-ua-theme="light"] .stApp [data-testid="stMainBlockContainer"] h2::afte
   height:auto!important;overflow:visible!important;}
 @@ .stApp .st-key-uar_actions [data-testid="stCaptionContainer"] p{margin:0!important;}
 html[data-ua-theme="light"] .stApp .st-key-uar_actions{border-color:var(--p-line);background:#fff;}
+
+/* the two deeper-check panels side by side: one row, equal heights */
+@@ .stApp [data-testid="stHorizontalBlock"]:has(.uxc){align-items:stretch!important;}
+@@ .stApp [data-testid="stHorizontalBlock"]:has(.uxc) [data-testid="stColumn"]{display:flex!important;flex-direction:column;}
+@@ .stApp [data-testid="stHorizontalBlock"]:has(.uxc) [data-testid="stColumn"] > [data-testid="stVerticalBlock"]{flex:1 1 auto;}
+@@ .stApp [data-testid="stHorizontalBlock"]:has(.uxc) [data-testid="stElementContainer"]:has(.uxc){flex:1 1 auto;display:flex!important;flex-direction:column;}
+@@ .stApp [data-testid="stHorizontalBlock"]:has(.uxc) [data-testid="stElementContainer"]:has(.uxc) *:has(.uxc){flex:1 1 auto;display:flex!important;flex-direction:column;overflow:visible;}
+@@ .stApp [data-testid="stHorizontalBlock"]:has(.uxc) .uxc{flex:1 1 auto;box-sizing:border-box;margin:0!important;}
 """)
 
 PRODUCT_CSS = f"""<style>

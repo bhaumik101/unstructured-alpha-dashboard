@@ -494,9 +494,17 @@ st.markdown(ui.takeaway_html(report), unsafe_allow_html=True)
 # (utils/track_record.py). Cached an hour; no study means no line.
 _held = ui.held_up()
 st.markdown(ui.exposure_table_html(report, _held), unsafe_allow_html=True)
-_icheck = ui.inflation_check_html(report)   # Cleveland Fed cross-check of the inflation reading
-if _icheck:
-    st.markdown(_icheck, unsafe_allow_html=True)
+# Deeper checks, side by side on a wide screen: the inflation reading against
+# the Cleveland Fed's model, and interest rates split by the NY Fed's model.
+_icheck = ui.inflation_check_html(report)
+_rsplit = ui.rates_split_html(report)
+_checks = [h for h in (_rsplit, _icheck) if h]
+if len(_checks) == 2:
+    _c1, _c2 = st.columns(2, gap="small")
+    _c1.markdown(_checks[0], unsafe_allow_html=True)
+    _c2.markdown(_checks[1], unsafe_allow_html=True)
+elif _checks:
+    st.markdown(_checks[0], unsafe_allow_html=True)
 # The question that follows "what is it exposed to": what if those forces move?
 # ── one glass action bar under the findings: stress-test, the weekly email,
 # and the Pro note, side by side instead of three loose rows of open space ──

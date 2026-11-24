@@ -953,6 +953,19 @@ stock_exposures = Table(
 # public NPORT-P, refreshed weekly by cron/refresh_lookthrough.py. The bundled
 # utils/data/lookthrough.json.gz is the fallback; a newer filing here wins.
 # Public filing data only; safe to truncate. Brand-new table: create_all().
+# ── NY Fed ACM: the 10-year yield split into expected path + term premium ──
+# Daily rows the weekly cron (cron/refresh_acm.py) stores from the NY Fed's
+# spreadsheet; utils/acm.py merges them over the bundled snapshot. Public
+# model estimates only; safe to truncate. Brand-new table: create_all().
+acm_daily = Table(
+    "acm_daily", metadata,
+    Column("date", String(10), primary_key=True),
+    Column("y10",  Float, nullable=False),     # ACMY10, the fitted 10-year yield, %
+    Column("tp10", Float, nullable=False),     # ACMTP10, the term premium, %
+    Column("rny10", Float, nullable=False),    # ACMRNY10, the expected path (risk-neutral yield), %
+)
+
+
 fund_lookthrough = Table(
     "fund_lookthrough", metadata,
     Column("ticker",     String(16), primary_key=True),
