@@ -86,3 +86,12 @@ def test_it_starts_only_for_a_newcomer_and_can_always_be_left():
     assert "ev.key === 'Escape'" in js and 'data-uat="skip"' in js
     assert "prefers-reduced-motion" in js and "prefers-reduced-motion" in tour.TOUR_CSS
     assert "data-ua-tour-start" in PAGE and "data-ua-tour-start" in js
+
+
+def test_the_card_stays_readable_in_the_light_theme():
+    # the app's light theme sets h2/p/a/button colours with !important;
+    # the card's text colours must outrank them (seen live, 2026-11-24)
+    css = tour.TOUR_CSS
+    for sel in ("html body .uat-card h2.uat-h{color:#fff!important", "html body .uat-card p.uat-p{color:",
+                "html body .uat-card button.uat-next{color:#04201c!important", "html body .uat-card .uat-links a{color:"):
+        assert sel in css, sel
