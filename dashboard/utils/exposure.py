@@ -116,6 +116,21 @@ INFLATION_MODEL = Factor(
     "A model-based measure of inflation expectations that, unlike the breakeven rate, does not "
     "move with bond-market liquidity.",
 )
+# The 10-year yield, split by the NY Fed's ACM model (utils/acm.py) into the
+# expected path of short-term rates and the term premium; the two add up to
+# the yield. Measured the headline's way (weekly, market and the other four
+# core forces held fixed), with interest rates replaced by its two parts.
+RATES_EXPECTED = Factor(
+    "rates_expected", "Expected path of short-term rates", "ACMRNY10", "diff", 0.25,
+    "the expected path of short-term rates rose 0.25 percentage points",
+    "Where markets think the Fed's rate is heading over the next ten years: it moves with "
+    "views of Fed policy.", group="rates_split", source="acm")
+TERM_PREMIUM = Factor(
+    "term_premium", "Term premium", "ACMTP10", "diff", 0.25,
+    "the term premium rose 0.25 percentage points",
+    "The extra yield investors demand to hold a ten-year bond instead of rolling short ones: "
+    "it moves with uncertainty and the supply of bonds.", group="rates_split", source="acm")
+
 CROSS_WINDOW_MONTHS = 60
 CROSS_MIN_MONTHS = 36
 
@@ -816,6 +831,31 @@ def _growth_reading(daily: Mapping[str, pd.Series], weights: Mapping[str, float]
     return fit
 
 
+def rates_split(now: pd.DataFrame, active: Iterable[Factor], expected: Optional[pd.Series],
+                term: Optional[pd.Series], headline: Optional[dict]) -> dict:
+    """The interest-rate reading, split into its two parts (NY Fed ACM).
+
+    `now` is the headline's weekly frame; interest rates are swapped for the
+    weekly changes in the expected path and the term premium, everything
+    else held as in the headline. Missing data means not shown, never filled.
+    """
+    if expected is None or term is None or "rates" not in now.columns:
+        return {"available": False, "reason": "the NY Fed term-premium series was unavailable"}
+    parts = {RATES_EXPECTED.key: to_changes(expected, RATES_EXPECTED.transform),
+             TERM_PREMIUM.key: to_changes(term, TERM_PREMIUM.transform)}
+    frame = now.drop(columns=["rates"]).join(pd.DataFrame(parts), how="inner").dropna()
+    others = tuple(f for f in active if f.key != "rates")
+    fit = _fit_on_frame(frame, "__portfolio__", others + (RATES_EXPECTED, TERM_PREMIUM), MIN_WEEKS)
+    if not fit.get("readings") or RATES_EXPECTED.key not in fit["readings"]:
+        return {"available": False, "n_obs": int(len(frame)),
+                "reason": fit.get("reason") or "too few weeks line up with the NY Fed series"}
+    r = fit["readings"]
+    return {"available": True, "n_obs": int(len(frame)), "start": str(frame.index[0].date()),
+            "end": str(frame.index[-1].date()),
+            "expected": r[RATES_EXPECTED.key], "term_premium": r[TERM_PREMIUM.key],
+            "headline": headline, "source": "NY Fed ACM (Adrian, Crump and Moench)"}
+
+
 def inflation_crosscheck(daily: Mapping[str, pd.Series], weights: Mapping[str, float],
                          market_daily: pd.Series, breakeven_levels: Optional[pd.Series],
                          model_levels: Optional[pd.Series], headline: Optional[dict]) -> dict:
@@ -1007,6 +1047,13 @@ def build_exposure_report(
     growth = _growth_reading(daily, weights, market_daily, growth_levels)
 
     try:
+        from utils import acm
+        split = rates_split(now, active, acm.series("ACMRNY10"), acm.series("ACMTP10"),
+                            portfolio["readings"].get("rates"))
+    except Exception:                           # a split that fails is not shown, never guessed
+        split = {"available": False, "reason": "the rates split could not be computed"}
+
+    try:
         model_levels = series_fetcher(INFLATION_MODEL.series_id, s, e)
     except Exception:
         model_levels = None
@@ -1043,6 +1090,7 @@ def build_exposure_report(
                                       now.index),
         "growth": growth,
         "inflation_check": inflation_check,
+        "rates_split": split,
         "series": _series_payload(now, weights, active, extra_changes),
         "extras": {"readings": extras, "unavailable": extra_unavailable,
                    "clear_t": EXTRA_CLEAR_T, "n_forces": len(EXTRA_FACTORS),

@@ -384,6 +384,17 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uxc-fill.uxc-e-indistinct,.uxc-fill.uxc-e-not_enough_data{background:transparent;box-shadow:inset 0 0 0 1px var(--uar-ink-3);}
 .uxc-tick{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#6ce5d2;border-radius:2px;}
 html[data-ua-theme="light"] .uxc-tick{background:#0b6f64;}
+.urs::before{background:#3b7ddd;}
+.urs-scale{display:grid;grid-template-columns:minmax(130px,1fr) minmax(140px,2fr) 64px 130px;gap:10px;font-size:var(--uar-t-micro);color:var(--uar-ink-3);}
+.urs-scale span:nth-child(1){grid-column:2;justify-self:start;}.urs-scale span:nth-child(2){grid-column:2;justify-self:center;}
+.urs-scale span:nth-child(3){grid-column:2;justify-self:end;}.urs-scale span{grid-row:1;}
+.urs-rows{display:grid;gap:4px;}
+.urs-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(140px,2fr) 64px 130px;gap:10px;align-items:center;padding:4px 0;}
+.urs-head{border-bottom:1px solid var(--uar-line);padding-bottom:8px;margin-bottom:2px;}
+.urs-l{display:flex;flex-direction:column;min-width:0;}.urs-l b{font-size:var(--uar-t-sm);color:var(--uar-ink);}
+.urs-l span{font-size:var(--uar-t-micro);color:var(--uar-ink-3);}
+.urs-v{font-weight:700;font-variant-numeric:tabular-nums;color:var(--uar-ink);text-align:right;}
+@media (max-width:640px){.urs-row,.urs-scale{grid-template-columns:1fr auto;}.urs-bar{grid-column:1 / -1;}.urs-scale span{grid-column:1 / -1!important;}}
 .uxc-na{grid-column:2 / -1;font-size:var(--uar-t-sm);color:var(--uar-ink-3);}
 .uxc-foot{margin-top:10px;font-size:var(--uar-t-micro);color:var(--uar-ink-3);line-height:1.5;}
 @media (max-width:640px){.uxc-row{grid-template-columns:1fr auto;}.uxc-track{grid-column:1 / -1;}.uxc-ev{grid-column:1 / -1;}}
@@ -903,6 +914,47 @@ def takeaway_html(report: dict) -> str:
         rest.append(f"Moves {beta:.2f}× the U.S. stock market, which is accounted for separately")
     return ('<div class="uar uar-take"><div class="uar-take-lead">' + lead + '</div>'
             + (f'<div class="uar-take-rest">{" · ".join(rest)}.</div>' if rest else "") + '</div>')
+
+
+def rates_split_html(report: dict) -> str:
+    """Interest rates split into the expected path of short-term rates and the
+    term premium (NY Fed ACM; exposure.rates_split). Empty when unavailable."""
+    sp = report.get("rates_split") or {}
+    if not sp.get("available"):
+        return ""
+    head = (report.get("portfolio") or {}).get("readings", {}).get("rates")
+    exp_r, tp_r = sp.get("expected"), sp.get("term_premium")
+    held = ("clear", "tentative")
+    e_ok, t_ok = exp_r and exp_r["evidence"] in held, tp_r and tp_r["evidence"] in held
+    if e_ok and t_ok:
+        lead = "It moves with both parts of interest rates: the expected path of Fed policy and the term premium."
+    elif t_ok:
+        lead = ("The interest-rate exposure comes through the term premium, the extra pay for holding long "
+                "bonds, rather than through views of where the Fed is heading.")
+    elif e_ok:
+        lead = ("The interest-rate exposure comes through the expected path of short-term rates, views of "
+                "where the Fed is heading, rather than the term premium.")
+    else:
+        lead = "Neither part held up on its own, so the interest-rate reading cannot be pinned on one of them."
+    rows_data = [r for r in (("Interest rates", "the headline: the whole 10-year yield", head),
+                             ("Expected path of rates", "views of Fed policy", exp_r),
+                             ("Term premium", "extra pay for holding long bonds", tp_r)) if r[2]]
+    scale = _nice_scale([v for _, _, r in rows_data for v in (r["low"], r["high"])])
+    rows = "".join(
+        f'<div class="urs-row{" urs-head" if i == 0 else ""}"><div class="urs-l"><b>{escape(lab)}</b><span>{escape(sub)}</span></div>'
+        f'<div class="urs-bar">{exposure_bar(r["impact"], r["low"], r["high"], scale, r["evidence"])}</div>'
+        f'<div class="urs-v">{fmt_pct(r["impact"])}</div>'
+        f'<div class="urs-ev">{_evidence_cell(r["evidence"])}</div></div>'
+        for i, (lab, sub, r) in enumerate(rows_data))
+    return (f'<div class="uar"><div class="uxc urs">'
+            '<div class="uxc-head"><span class="uxc-k">Interest rates, split · NY Fed model</span></div>'
+            f'<p class="uxc-body">{escape(lead)}</p>'
+            f'<div class="urs-scale"><span>{fmt_pct(-scale)}</span><span>0</span><span>{fmt_pct(scale)}</span></div>'
+            f'<div class="urs-rows">{rows}</div>'
+            f'<div class="uxc-foot">Each part per 0.25 percentage point rise, weekly over {sp["n_obs"]} weeks to '
+            f'{fmt_date(sp["end"])}, with the market and the other four forces held fixed. The two parts add up to '
+            'the 10-year yield in the New York Fed\'s Adrian-Crump-Moench model; these are model estimates. '
+            'It describes the past; it is not a forecast.</div></div></div>')
 
 
 _CHECK_VERDICTS = {

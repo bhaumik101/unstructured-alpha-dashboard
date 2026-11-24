@@ -48,6 +48,9 @@ GROUPS = {
         # requests most weeks, parsing only funds whose filing changed.
         # Light (~100s, no library-sized memory), so before track_record.
         "cron.refresh_lookthrough",
+        # The NY Fed's 10-year yield split (term premium / expected path):
+        # one 10 MB download, parsed here so the web app never does.
+        "cron.refresh_acm",
         # Monthly in practice: it skips itself if a result from the last 28
         # days exists. Last, so it never holds the library's memory headroom.
         "cron.track_record",
