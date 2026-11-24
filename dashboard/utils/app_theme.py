@@ -345,6 +345,42 @@ html[data-ua-theme="light"] .stApp .st-key-uar_explore [data-testid="stTab"][ari
 @@ .stApp .uar-tour-link a::before{content:"";width:0;height:0;border-left:8px solid var(--p-accent);
   border-top:5px solid transparent;border-bottom:5px solid transparent;}
 @@ .stApp .uar-tour-link a:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 26px -6px rgba(108,229,210,.8);}
+
+/* ── density and glass across the report (2026-11) ───────────────────────
+   Less open area: tighter section rhythm, headings that carry a thin light
+   rail to the edge instead of floating in space, and every card in the same
+   glass (a top highlight and a soft gradient over its surface). */
+@@ .stApp [data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"]{gap:.7rem!important;}
+@@ .stApp [data-testid="stMainBlockContainer"] h2{display:flex!important;align-items:center;gap:14px;
+  margin:1.5rem 0 .35rem!important;padding:0!important;}
+@@ .stApp [data-testid="stMainBlockContainer"] h2::after{content:"";flex:1;height:1px;min-width:40px;
+  background:linear-gradient(90deg,rgba(108,229,210,.55),rgba(108,229,210,.08) 40%,transparent);}
+@@ .stApp .uar-card,
+@@ .stApp .uac-panel,
+@@ .stApp .ult-card{background-image:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.008))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 18px 40px -30px rgba(0,0,0,.75)!important;
+  transition:border-color .2s ease;}
+@@ .stApp .uar-card:hover,
+@@ .stApp .uac-panel:hover,
+@@ .stApp .ult-card:hover{border-color:rgba(108,229,210,.35)!important;}
+html[data-ua-theme="light"] .stApp .uar-card,
+html[data-ua-theme="light"] .stApp .uac-panel,
+html[data-ua-theme="light"] .stApp .ult-card{background-image:linear-gradient(180deg,#fff,rgba(255,255,255,.7))!important;
+  box-shadow:0 14px 34px -28px rgba(21,32,51,.45)!important;}
+html[data-ua-theme="light"] .stApp [data-testid="stMainBlockContainer"] h2::after{
+  background:linear-gradient(90deg,rgba(11,111,100,.5),rgba(11,111,100,.08) 40%,transparent);}
+@media (prefers-reduced-motion:reduce){@@ .stApp .uar-card{transition:none!important;}}
+
+/* the report's action bar: one glass strip, its controls in a wrapping row */
+@@ .stApp .st-key-uar_actions{padding:10px 14px 14px;overflow:visible!important;height:auto!important;border-radius:14px;border:1px solid rgba(148,180,210,.16);
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.01));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+@@ .stApp .st-key-uar_actions > [data-testid="stVerticalBlock"],
+@@ .stApp .st-key-uar_actions[data-testid="stVerticalBlock"]{flex-direction:row!important;flex-wrap:wrap;align-items:center;gap:8px 22px!important;}
+@@ .stApp .st-key-uar_actions [data-testid="stElementContainer"]{width:auto!important;flex:0 1 auto;
+  height:auto!important;overflow:visible!important;}
+@@ .stApp .st-key-uar_actions [data-testid="stCaptionContainer"] p{margin:0!important;}
+html[data-ua-theme="light"] .stApp .st-key-uar_actions{border-color:var(--p-line);background:#fff;}
 """)
 
 PRODUCT_CSS = f"""<style>

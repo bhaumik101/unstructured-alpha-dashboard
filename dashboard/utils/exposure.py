@@ -102,6 +102,23 @@ GROWTH_FACTOR = Factor(
     "Growth drives company earnings, but it is only published monthly, so evidence is thin.",
 )
 
+# A second measure of inflation expectations, used only to cross-check the
+# headline inflation reading. The headline uses the market's 10-year breakeven
+# (T10YIE): what bond prices imply, which also moves with Treasury-inflation-
+# bond liquidity. The Cleveland Fed's model (EXPINF10YR) blends Treasury
+# yields, inflation data, swaps and surveys, and is published monthly. A
+# reading that holds on both is about inflation, not about one market's
+# plumbing. Only direction and strength of evidence are compared: the two
+# move on different scales.
+INFLATION_MODEL = Factor(
+    "inflation_model", "Inflation expectations (Cleveland Fed model)", "EXPINF10YR", "diff", 0.10,
+    "the Cleveland Fed's model of 10-year inflation expectations rose 0.1 percentage points",
+    "A model-based measure of inflation expectations that, unlike the breakeven rate, does not "
+    "move with bond-market liquidity.",
+)
+CROSS_WINDOW_MONTHS = 60
+CROSS_MIN_MONTHS = 36
+
 # ── more forces: a second layer, measured beyond the core five ──────────────
 # Groups are added one at a time, each after its own review. Order is display
 # order. A new force must say in `why` what it measures beyond the core: most
@@ -799,6 +816,52 @@ def _growth_reading(daily: Mapping[str, pd.Series], weights: Mapping[str, float]
     return fit
 
 
+def inflation_crosscheck(daily: Mapping[str, pd.Series], weights: Mapping[str, float],
+                         market_daily: pd.Series, breakeven_levels: Optional[pd.Series],
+                         model_levels: Optional[pd.Series], headline: Optional[dict]) -> dict:
+    """The headline inflation reading, checked against a second measure.
+
+    Both measures are fitted the same way, on the same months (monthly
+    portfolio returns, the market held fixed), so the comparison is like with
+    like; the weekly headline is then compared by direction and evidence only.
+    A failed series means "not checked", never an estimate.
+    """
+    breakeven = next(f for f in FACTORS if f.key == "inflation")
+    be = to_changes(breakeven_levels, breakeven.transform, "ME") if breakeven_levels is not None else pd.Series(dtype=float)
+    md = to_changes(model_levels, INFLATION_MODEL.transform, "ME") if model_levels is not None else pd.Series(dtype=float)
+    if be.empty or md.empty:
+        return {"available": False, "reason": "the Cleveland Fed series was unavailable"}
+    monthly = {t: to_monthly_returns(daily.get(t)) for t in weights}
+    frame = pd.concat({**monthly, "__mkt__": to_monthly_returns(market_daily),
+                       breakeven.key: be, INFLATION_MODEL.key: md}, axis=1).dropna()
+    frame = frame.iloc[-CROSS_WINDOW_MONTHS:]
+    if len(frame) < CROSS_MIN_MONTHS:
+        return {"available": False, "n_obs": len(frame),
+                "reason": f"only {len(frame)} months line up; {CROSS_MIN_MONTHS} are needed"}
+    frame["__portfolio__"] = sum(frame[t] * w for t, w in weights.items())
+    fits = {}
+    for f in (breakeven, INFLATION_MODEL):
+        fit = _fit_on_frame(frame[["__portfolio__", "__mkt__", f.key]], "__portfolio__", (f,),
+                            CROSS_MIN_MONTHS, CLEAR_T, period="months")
+        fits[f.key] = fit["readings"].get(f.key)
+    model, be_m = fits[INFLATION_MODEL.key], fits[breakeven.key]
+    held = ("clear", "tentative")
+    h_ev = (headline or {}).get("evidence")
+    h_sign = 1 if (headline or {}).get("impact", 0) > 0 else -1
+    if not model:
+        verdict = "unchecked"
+    elif h_ev not in held:
+        verdict = "no_headline"                 # nothing to confirm: the headline did not hold up
+    elif model["evidence"] in held:
+        verdict = "confirmed" if (1 if model["impact"] > 0 else -1) == h_sign else "contradicted"
+    else:
+        verdict = "same_direction" if (1 if model["impact"] > 0 else -1) == h_sign else "unconfirmed"
+    return {"available": True, "n_obs": int(len(frame)), "start": str(frame.index[0].date()),
+            "end": str(frame.index[-1].date()), "verdict": verdict, "clear_t": CLEAR_T,
+            "breakeven": be_m, "model": model, "headline_evidence": h_ev,
+            "headline_impact": (headline or {}).get("impact")}
+
+
 def build_exposure_report(
     holdings: Iterable[dict],
     prices_fetcher: Callable[[List[str], str, str], Mapping[str, pd.Series]],
@@ -943,6 +1006,16 @@ def build_exposure_report(
         growth_levels = None
     growth = _growth_reading(daily, weights, market_daily, growth_levels)
 
+    try:
+        model_levels = series_fetcher(INFLATION_MODEL.series_id, s, e)
+    except Exception:
+        model_levels = None
+    try:
+        inflation_check = inflation_crosscheck(daily, weights, market_daily, levels_raw.get("inflation"),
+                                               model_levels, portfolio["readings"].get("inflation"))
+    except Exception:                           # a cross-check that fails is not shown, never guessed
+        inflation_check = {"available": False, "reason": "the cross-check could not be computed"}
+
     excluded_weight = sum(x["weight_pct"] for x in excluded)
     if excluded:
         notes.append(f"{len(excluded)} holding(s), {excluded_weight:.0f}% of the portfolio, "
@@ -969,6 +1042,7 @@ def build_exposure_report(
         "factor_paths": _factor_paths({k: v for k, v in levels_raw.items() if k in changes},
                                       now.index),
         "growth": growth,
+        "inflation_check": inflation_check,
         "series": _series_payload(now, weights, active, extra_changes),
         "extras": {"readings": extras, "unavailable": extra_unavailable,
                    "clear_t": EXTRA_CLEAR_T, "n_forces": len(EXTRA_FACTORS),

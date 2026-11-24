@@ -359,6 +359,34 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-flow-t{fill:var(--uar-ink);font-weight:600;font-size:var(--uar-t-sm);font-family:ui-monospace,"SF Mono",Menlo,monospace;}
 .uar-flow-l{fill:var(--uar-ink);font-size:var(--uar-t-sm);font-weight:650;}
 .uar-flow-s{fill:var(--uar-ink-3);font-size:var(--uar-t-micro);}
+.uxc{position:relative;margin:12px 0 4px;padding:14px 18px 12px;border-radius:16px;border:1px solid var(--uar-line);
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01)),var(--uar-surface);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+.uxc::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:3px;background:var(--uar-ink-3);}
+.uxc-ok::before{background:#35c98b;}.uxc-mid::before{background:#d8b66a;}.uxc-warn::before{background:#e06c75;}
+.uxc-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;}
+.uxc-k{font-size:var(--uar-t-micro);letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--uar-ink-3);}
+.uxc-pill{font-size:var(--uar-t-sm);font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid var(--uar-line);color:var(--uar-ink);}
+.uxc-ok .uxc-pill{border-color:rgba(53,201,139,.55);background:rgba(53,201,139,.12);}
+.uxc-mid .uxc-pill{border-color:rgba(216,182,106,.55);background:rgba(216,182,106,.12);}
+.uxc-warn .uxc-pill{border-color:rgba(224,108,117,.55);background:rgba(224,108,117,.12);}
+.uxc-body{margin:6px 0 10px;font-size:var(--uar-t-sm);color:var(--uar-ink-2);line-height:1.5;max-width:90ch;}
+.uxc-rows{display:grid;gap:6px;}
+.uxc-row{display:grid;grid-template-columns:minmax(150px,1fr) 70px minmax(120px,2.4fr) 150px;gap:12px;align-items:center;}
+.uxc-l{display:flex;flex-direction:column;min-width:0;}
+.uxc-l b{font-size:var(--uar-t-sm);color:var(--uar-ink);}
+.uxc-l span{font-size:var(--uar-t-micro);color:var(--uar-ink-3);}
+.uxc-dir{font-size:var(--uar-t-sm);font-weight:650;color:var(--uar-ink-2);}
+.uxc-track{position:relative;height:10px;border-radius:999px;background:var(--uar-subtle,rgba(255,255,255,.06));}
+.uxc-fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--uar-ink-2);}
+.uxc-fill.uxc-e-clear{background:var(--uar-ink);}
+.uxc-fill.uxc-e-tentative{background:color-mix(in srgb,var(--uar-ink) 55%,transparent);}
+.uxc-fill.uxc-e-indistinct,.uxc-fill.uxc-e-not_enough_data{background:transparent;box-shadow:inset 0 0 0 1px var(--uar-ink-3);}
+.uxc-tick{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#6ce5d2;border-radius:2px;}
+html[data-ua-theme="light"] .uxc-tick{background:#0b6f64;}
+.uxc-na{grid-column:2 / -1;font-size:var(--uar-t-sm);color:var(--uar-ink-3);}
+.uxc-foot{margin-top:10px;font-size:var(--uar-t-micro);color:var(--uar-ink-3);line-height:1.5;}
+@media (max-width:640px){.uxc-row{grid-template-columns:1fr auto;}.uxc-track{grid-column:1 / -1;}.uxc-ev{grid-column:1 / -1;}}
 .uar-flow-n{fill:var(--uar-ink-3);font-size:var(--uar-t-micro);font-family:inherit;}
 .uar-hname{display:block;margin-top:1px;font-size:var(--uar-t-micro);font-weight:400;color:var(--uar-ink-3);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34ch;}
 @media (prefers-reduced-motion: reduce){.uar-rib{transition:none;}}
@@ -875,6 +903,75 @@ def takeaway_html(report: dict) -> str:
         rest.append(f"Moves {beta:.2f}× the U.S. stock market, which is accounted for separately")
     return ('<div class="uar uar-take"><div class="uar-take-lead">' + lead + '</div>'
             + (f'<div class="uar-take-rest">{" · ".join(rest)}.</div>' if rest else "") + '</div>')
+
+
+_CHECK_VERDICTS = {
+    "confirmed": ("ok", "Holds on both measures",
+                  "It moves the same way when the Cleveland Fed's model of inflation expectations rises, so this "
+                  "reading is about inflation itself, not one bond market's quirks."),
+    "same_direction": ("mid", "Same direction, weaker on the model",
+                       "The model measure points the same way but could not be told apart from zero. "
+                       "Treat the headline as less certain than its label."),
+    "unconfirmed": ("warn", "Not confirmed by the model",
+                    "On the model measure the link points the other way and could not be told apart "
+                    "from zero. Read the headline with caution."),
+    "contradicted": ("warn", "The two measures disagree",
+                     "The model measure shows a link in the opposite direction. The headline inflation "
+                     "reading may reflect the bond market more than inflation itself."),
+    "no_headline": ("mid", "Nothing to confirm",
+                    "The headline inflation reading did not hold up, so there is nothing to cross-check."),
+}
+
+
+def _strength_row(label: str, sub: str, r: Optional[dict], clear_t: float, span: float) -> str:
+    """One measure: direction and strength of evidence (|t| against the Clear line).
+    Unitless on purpose, so two measures on different scales sit on one axis."""
+    if not r:
+        return (f'<div class="uxc-row"><div class="uxc-l"><b>{escape(label)}</b><span>{escape(sub)}</span></div>'
+                '<div class="uxc-na">Not available</div></div>')
+    t = abs(r.get("t") or 0.0)
+    w = min(100.0, 100.0 * t / span)              # one axis for every row: the ticks line up
+    mark = 100.0 * clear_t / span
+    ev = r.get("evidence", "indistinct")
+    arrow = "↑" if r.get("impact", 0) > 0 else "↓"
+    word = "up" if r.get("impact", 0) > 0 else "down"
+    return (f'<div class="uxc-row"><div class="uxc-l"><b>{escape(label)}</b><span>{escape(sub)}</span></div>'
+            f'<div class="uxc-dir" title="Moved {word} when this measure rose">{arrow} {word}</div>'
+            f'<div class="uxc-track" role="img" aria-label="{escape(f"{label}: moved {word}, {ex.EVIDENCE_LABELS.get(ev, ev)}")}">'
+            f'<i class="uxc-fill uxc-e-{escape(ev)}" style="width:{w:.1f}%"></i>'
+            f'<i class="uxc-tick" style="left:{mark:.1f}%"></i></div>'
+            f'<div class="uxc-ev">{_evidence_cell(ev)}</div></div>')
+
+
+def inflation_check_html(report: dict) -> str:
+    """The inflation reading, cross-checked against the Cleveland Fed's model of
+    expected inflation (exposure.inflation_crosscheck). Empty when not checked."""
+    c = report.get("inflation_check") or {}
+    if not c.get("available") or c.get("verdict") not in _CHECK_VERDICTS:
+        return ""
+    tone, title, body = _CHECK_VERDICTS[c["verdict"]]
+    head = (report.get("portfolio") or {}).get("readings", {}).get("inflation")
+    ct = float(c.get("clear_t") or ex.CLEAR_T)
+    measures = (head, c.get("breakeven"), c.get("model"))
+    span = max([ct * 1.6] + [abs(m.get("t") or 0.0) * 1.05 for m in measures if m])
+    rows = (_strength_row("Market breakeven", "weekly · the headline reading", head, ct, span)
+            + _strength_row("Market breakeven", f'monthly · {c["n_obs"]} months', c.get("breakeven"), ct, span)
+            + _strength_row("Cleveland Fed model", f'monthly · {c["n_obs"]} months', c.get("model"), ct, span))
+    be_m = c.get("breakeven")
+    if (head and be_m and be_m.get("evidence") in ("clear", "tentative")
+            and (head.get("impact", 0) > 0) != (be_m.get("impact", 0) > 0)):
+        body += (" On monthly data the breakeven itself points the other way, so this inflation reading "
+                 "depends on the time scale it is measured over.")
+    return (f'<div class="uar"><div class="uxc uxc-{tone}">'
+            '<div class="uxc-head"><span class="uxc-k">Cross-check · inflation expectations</span>'
+            f'<span class="uxc-pill">{escape(title)}</span></div>'
+            f'<p class="uxc-body">{escape(body)}</p>'
+            f'<div class="uxc-rows">{rows}</div>'
+            f'<div class="uxc-foot">Bar: strength of evidence; the tick is where a reading counts as Clear. '
+            f'Monthly fits cover {fmt_date(c["start"])} to {fmt_date(c["end"])}, the market held fixed. '
+            'Only direction and strength are compared: the two measures move on different scales. '
+            'Cleveland Fed series EXPINF10YR via FRED. It describes the past; it is not a forecast.</div>'
+            '</div></div>')
 
 
 def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
