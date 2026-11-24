@@ -57,6 +57,39 @@ def test_the_sec_snapshot_is_the_last_resort(monkeypatch):
     assert hn.full_name(some) == ""                                 # no snapshot: shown bare, no guess
 
 
+def test_mutual_funds_and_share_classes_are_named(monkeypatch):
+    monkeypatch.setattr(hn, "_library_names", lambda: {})
+    funds = hn._fund_names()
+    assert len(funds) > 20000                                      # the bundled file loads
+    assert hn.full_name("VTWAX") == hn._fund_names()["VTWAX"] and "(Admiral Shares)" in hn.full_name("VTWAX")
+    assert hn.full_name("DODGX") == "Dodge & Cox Stock Fund (Class I)"
+    assert hn.full_name("AGTHX") == "Growth Fund of America (Class A)"   # all-caps filing tidied
+    assert hn.full_name("FXAIX") == "Fidelity 500 Index Fund"      # the curated table still wins
+    # a fund name beats the company file, which lists some funds under their trust
+    monkeypatch.setattr(hn, "_sec", {"ZZFND": "SOME TRUST"})
+    monkeypatch.setattr(hn, "_funds", {"ZZFND": "Some Index Fund (Class A)"})
+    assert hn.full_name("ZZFND") == "Some Index Fund (Class A)"
+    assert hn.with_name("ZZFND") == "ZZFND (Some Index Fund, Class A)"   # no nested brackets in prose
+    monkeypatch.setattr(hn, "_funds", {})
+    assert hn.full_name("ZZFND") == "SOME TRUST"
+
+
+def test_the_fund_name_rules():
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import refresh_sec_tickers as r
+    assert r.tidy("GROWTH FUND OF AMERICA") == "Growth Fund of America"
+    assert r.tidy("iShares MSCI EAFE ETF") == "iShares MSCI EAFE ETF"         # mixed case kept as filed
+    assert r.fund_name("Vanguard Wellington Fund", "Investor Shares") == "Vanguard Wellington Fund (Investor Shares)"
+    assert r.fund_name("Fidelity 500 Index Fund", "Fidelity 500 Index Fund") == "Fidelity 500 Index Fund"
+    assert r.fund_name("Some Fund", "") == "Some Fund"
+    rows = [{"Class Ticker": "abcx", "Series Name": "A Fund", "Class Name": "Class I"},
+            {"Class Ticker": "", "Series Name": "No Ticker Fund", "Class Name": "Class A"},
+            {"Class Ticker": "ABCX", "Series Name": "Duplicate", "Class Name": "Class Z"}]
+    assert r.build_funds(rows) == {"ABCX": "A Fund (Class I)"}              # untickered and repeats skipped
+
+
 def test_long_names_are_trimmed_for_labels_only():
     assert hn.short("Vanguard Total International Stock ETF", 20) == "Vanguard Total Inte…"
     assert hn.short("SPDR Gold Shares", 20) == "SPDR Gold Shares"
