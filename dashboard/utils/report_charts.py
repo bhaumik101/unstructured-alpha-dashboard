@@ -33,6 +33,8 @@ from __future__ import annotations
 import math
 from datetime import datetime
 from html import escape
+
+from utils import holding_names as hn
 from typing import Dict, List, Optional, Sequence, Tuple
 
 FACTOR_COLORS = {"rates": "#3b7ddd", "inflation": "#e0664a", "dollar": "#1a9a70",
@@ -378,7 +380,7 @@ def contribution_bars_svg(report: dict, key: str) -> str:
         faint = r["evidence"] not in ("clear", "tentative")
         bars.append(
             f'<text class="uac-label" x="{label_w - 8}" y="{yy + 19}" text-anchor="end">'
-            f'{escape(r["ticker"])}</text>'
+            f'<title>{escape(hn.with_name(r["ticker"]))}</title>{escape(r["ticker"])}</text>'
             f'<rect x="{x0:.1f}" y="{yy + 5}" width="{max(length, 1.5):.1f}" height="{row_h - 10}" '
             f'rx="3" fill="{hue}" fill-opacity="{0.28 if faint else 0.9}"/>'
             f'<text class="uac-val" x="{width - 4}" y="{yy + 19}" text-anchor="end">'

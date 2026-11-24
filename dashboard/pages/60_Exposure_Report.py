@@ -78,6 +78,11 @@ if user and "uar_holdings" not in st.session_state:
         st.session_state["uar_name"] = "Your saved portfolio"
 
 holdings = st.session_state.get("uar_holdings") or []
+# Names the visitor's holdings carried (search results include them), so the
+# report can print a full name beside every ticker (utils/holding_names.py).
+from utils import holding_names as _hn  # noqa: E402
+_hn.remember(holdings)
+_hn.remember(st.session_state.get("uar_draft"))
 editing = st.session_state.get("uar_editing", False) or not holdings
 
 # The banner introduces the page; once a report is on screen the findings take
