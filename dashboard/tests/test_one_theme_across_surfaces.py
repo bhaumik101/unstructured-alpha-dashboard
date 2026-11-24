@@ -43,8 +43,13 @@ def test_buttons_share_the_landing_pages_radius():
 
 
 def test_the_sign_in_popover_is_themed():
-    body = _rule('button[data-testid="stPopoverButton"]')
-    assert "background:var(--p-surface)" in body and "color:var(--p-ink)" in body
+    # Never a bare white box: dark glass by default, and in the light theme's
+    # band the page's own ink on frosted white (utils/app_theme.py, glass bar).
+    from utils.app_theme import GLASS_CSS
+    dark = _rule('button[data-testid="stPopoverButton"]')
+    assert "background-color:rgba(16,24,36,.6)!important" in dark and "color:#eef3f9!important" in dark
+    light = GLASS_CSS.split('html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"]{')[1].split("}")[0]
+    assert "color:var(--p-ink)!important" in light and "border-color:var(--p-line)!important" in light
 
 
 def test_the_landing_nav_wears_the_apps_wordmark_not_the_old_logo():

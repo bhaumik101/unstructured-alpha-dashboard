@@ -83,6 +83,181 @@ def _vars(*groups: dict) -> str:
 
 _SHARED = _vars(_TYPE, _RADII) + "".join(f"--f-{k}:{v};" for k, v in FACTOR_HUES.items())
 
+def _twin(css: str) -> str:
+    """Expand each "@@ sel" into the html[data-ua-theme] pair (see SPECIFICITY above)."""
+    import re
+
+    def sel(m):
+        parts = [p.strip() for p in m.group(1).split(",")]
+        out = []
+        for p in parts:
+            if p.startswith("@@ "):
+                rest = p[3:]
+                out += [f'html[data-ua-theme="light"] {rest}', f'html:not([data-ua-theme="light"]) {rest}']
+            else:
+                out.append(p)
+        return ",\n".join(out) + "{"
+
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)   # comments stay in this file, not the page
+    return re.sub(r"([^{}]*@@[^{}]*)\{", sel, css)
+
+
+GLASS_CSS = _twin(r"""/* ── the glass command bar (2026-11) ─────────────────────────────────────
+   One object instead of a flat strip with two stray buttons floating above
+   it: a frosted navy bar with a hairline edge, a faint blueprint grid at
+   both ends, a teal-to-gold light rail along the bottom that a glint runs
+   across once, and every control in it a glass chip of the same height.
+   The bar is navy in both themes (the landing's band), so the chips docked
+   in it are always the dark glass; chips left in the band above it follow
+   the theme. Selectors are written once and doubled by _twin(). */
+@@ .ua-topnav{
+  background-color:var(--p-navy)!important;
+  background-image:
+    linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0) 55%),
+    radial-gradient(520px 150px at 6% -70%,rgba(108,229,210,.20),transparent 70%),
+    radial-gradient(440px 150px at 98% 170%,rgba(216,182,106,.13),transparent 70%)!important;
+  border:1px solid rgba(148,180,210,.17)!important;border-radius:16px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 26px 50px -30px rgba(0,0,0,.9),0 0 0 1px rgba(8,13,20,.55)!important;
+  backdrop-filter:blur(16px) saturate(150%)!important;-webkit-backdrop-filter:blur(16px) saturate(150%)!important;
+  isolation:isolate;
+}
+@@ .ua-topnav::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(rgba(108,229,210,.075) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(108,229,210,.075) 1px,transparent 1px);
+  background-size:16px 16px;background-position:-1px -1px;
+  -webkit-mask-image:linear-gradient(90deg,#000,transparent 20%,transparent 72%,#000);
+  mask-image:linear-gradient(90deg,#000,transparent 20%,transparent 72%,#000);
+}
+@@ .ua-topnav::after{
+  content:"";position:absolute;left:20px;right:20px;bottom:-1px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,#fff,transparent) -140px 0/140px 1px no-repeat,
+    linear-gradient(90deg,transparent,rgba(108,229,210,.85) 22%,rgba(216,182,106,.75) 78%,transparent);
+  filter:drop-shadow(0 0 5px rgba(108,229,210,.55));
+  animation:ua-rail-glint 2.8s cubic-bezier(.3,.6,.2,1) .5s 1 both;
+}
+@keyframes ua-rail-glint{from{background-position:-140px 0,0 0}to{background-position:calc(100% + 140px) 0,0 0}}
+
+/* chips in the bar: theme toggle, Upgrade, ADMIN */
+@@ .ua-topnav .ua-theme-toggle{
+  height:32px!important;border-radius:10px!important;color:rgba(238,243,250,.82)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.02))!important;
+  border:1px solid rgba(255,255,255,.13)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important;
+  transition:border-color .2s ease,box-shadow .2s ease,color .2s ease!important;
+}
+@@ .ua-topnav .ua-theme-toggle:hover{color:#fff!important;border-color:rgba(108,229,210,.6)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 18px -6px rgba(108,229,210,.6)!important;}
+@@ .ua-topnav .ua-tnav-upgrade,
+@@ .ua-topnav .ua-tnav-admin{
+  height:32px!important;border-radius:10px!important;color:#f1d896!important;
+  background:linear-gradient(180deg,rgba(216,182,106,.24),rgba(216,182,106,.05))!important;
+  border:1px solid rgba(216,182,106,.5)!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.22),0 6px 18px -12px rgba(216,182,106,.6)!important;
+}
+@@ .ua-topnav .ua-tnav-upgrade:hover{color:#fff4d6!important;border-color:rgba(232,199,120,.85)!important;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.3),0 0 22px -6px rgba(216,182,106,.75)!important;}
+
+/* the account row: glass chips of one height */
+@@ .st-key-ua_account_row button[data-testid="stBaseButton-secondary"],
+@@ .st-key-ua_account_row button[data-testid="stPopoverButton"]{
+  height:36px!important;min-height:36px!important;border-radius:12px!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;
+  color:#eef3f9!important;font-size:var(--p-t-sm)!important;font-weight:650!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.03))!important;
+  background-color:rgba(16,24,36,.6)!important;
+  border:1px solid rgba(255,255,255,.13)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,0,0,.35),0 8px 22px -12px rgba(0,0,0,.8)!important;
+  backdrop-filter:blur(12px) saturate(160%)!important;-webkit-backdrop-filter:blur(12px) saturate(160%)!important;
+  transition:border-color .2s ease,box-shadow .2s ease,transform .18s ease!important;
+}
+@@ .st-key-ua_account_row button[data-testid="stBaseButton-secondary"]:hover,
+@@ .st-key-ua_account_row button[data-testid="stPopoverButton"]:hover{
+  border-color:rgba(108,229,210,.6)!important;transform:translateY(-1px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 0 3px rgba(108,229,210,.10),0 0 22px -6px rgba(108,229,210,.55)!important;
+}
+@@ .st-key-ua_account_row button:active{transform:translateY(0) scale(.97)!important;}
+@@ .st-key-ua_account_row button:focus-visible{outline:2px solid #6ce5d2!important;outline-offset:2px!important;}
+@@ .st-key-ua_account_row button p,
+@@ .st-key-ua_account_row button svg{color:inherit!important;font-size:var(--p-t-sm)!important;font-weight:650!important;}
+
+/* the bell: an icon, and a teal count badge on its corner only when something is unread */
+@@ .st-key-ua_account_row [class*="st-key-ua_bell_"] button{padding:0 10px!important;min-width:44px!important;}
+@@ .st-key-ua_account_row [class*="st-key-ua_bell_"] [data-testid="stIconMaterial"]{
+  font-size:var(--p-t-lg)!important;color:rgba(238,243,250,.78)!important;transform-origin:50% 10%;}
+@@ .st-key-ua_account_row .st-key-ua_bell_unread [data-testid="stIconMaterial"]{
+  color:#6ce5d2!important;animation:ua-bell-ring 1.1s ease .7s 1 both;}
+@@ .st-key-ua_account_row [class*="st-key-ua_bell_"] button{width:44px!important;position:relative!important;}
+@@ .st-key-ua_account_row [class*="st-key-ua_bell_"] button p{font-size:0!important;margin:0!important;position:static!important;}
+@@ .st-key-ua_account_row [class*="st-key-ua_bell_"] button,
+@@ .st-key-ua_account_row [class*="st-key-ua_bell_"] button *{overflow:visible!important;}
+@@ .st-key-ua_account_row .st-key-ua_bell_unread button p strong{
+  position:absolute;top:-7px;right:-8px;margin:0!important;display:block;
+  min-width:20px;padding:1px 6px!important;border-radius:999px;text-align:center;line-height:1.35!important;
+  font-size:var(--p-t-xs)!important;font-weight:800!important;color:#04201c!important;
+  background:linear-gradient(135deg,#6ce5d2,#a6f1e5);
+  box-shadow:0 0 0 2px rgba(8,13,20,.85),0 0 14px -2px rgba(108,229,210,.85);
+  animation:ua-pill-breathe 3.2s ease-in-out 1.8s infinite;
+}
+@keyframes ua-bell-ring{0%,100%{transform:none}20%{transform:rotate(-14deg)}40%{transform:rotate(11deg)}60%{transform:rotate(-7deg)}80%{transform:rotate(3deg)}}
+@keyframes ua-pill-breathe{0%,100%{box-shadow:0 0 0 2px rgba(8,13,20,.85),0 0 10px -3px rgba(108,229,210,.6)}50%{box-shadow:0 0 0 2px rgba(8,13,20,.85),0 0 18px 0 rgba(108,229,210,.9)}}
+
+/* the account chip: a gradient-ringed avatar with the name's initial */
+@@ .st-key-ua_account_row button[data-testid="stPopoverButton"]{padding:0 10px 0 5px!important;max-width:112px!important;}
+@@ .st-key-ua_account_row button[data-testid="stPopoverButton"]::before{
+  content:var(--ua-initial,none) / "";flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  font-size:var(--p-t-xs);font-weight:800;color:#04201c;
+  background:conic-gradient(from 210deg,#6ce5d2,#d8b66a,#6ce5d2);
+  box-shadow:0 0 0 2px rgba(8,13,20,.9),0 0 14px -3px rgba(108,229,210,.65);
+}
+@@ .st-key-ua_account_row button[data-testid="stPopoverButton"] p{
+  max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+@@ .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"]{padding:0 12px!important;}
+
+/* In the band above the bar (where it does not fit inside), the light theme's
+   chips are frosted white on the light page. */
+html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stBaseButton-secondary"],
+html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"]{
+  color:var(--p-ink)!important;background:linear-gradient(180deg,#fff,rgba(255,255,255,.7))!important;
+  background-color:rgba(255,255,255,.8)!important;border-color:var(--p-line)!important;
+  box-shadow:inset 0 1px 0 #fff,0 8px 20px -14px rgba(21,32,51,.45)!important;}
+html[data-ua-theme="light"] .st-key-ua_account_row [class*="st-key-ua_bell_"] [data-testid="stIconMaterial"]{color:var(--p-ink3)!important;}
+html[data-ua-theme="light"] .st-key-ua_account_row .st-key-ua_bell_unread [data-testid="stIconMaterial"]{color:var(--p-accent)!important;}
+html[data-ua-theme="light"] .st-key-ua_account_row button:hover{border-color:var(--p-accent)!important;
+  box-shadow:inset 0 1px 0 #fff,0 0 0 3px rgba(11,111,100,.10)!important;}
+
+/* ── docked: inside the bar wherever it has room ─────────────────────────
+   Measured: at >=1320px the links end 197px short of the bar's controls; in
+   the menu layout (<=1000px) the links fold away. Between those widths, and
+   on phones, the row stays in the band above. The bar keeps the room the
+   row needs (padding-right), so nothing slides under it. */
+@media (min-width:1320px),(min-width:680px) and (max-width:1000px){
+  @@ .stApp .st-key-ua_account_row{top:8px!important;right:12px!important;}
+  @@ .stApp .ua-topnav{padding-right:138px!important;}
+  @@ .stApp:has(.st-key-_notification_tray_toggle) .ua-topnav{padding-right:184px!important;}
+  html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stBaseButton-secondary"],
+  html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"]{
+    color:#eef3f9!important;background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.03))!important;
+    background-color:rgba(16,24,36,.6)!important;border-color:rgba(255,255,255,.13)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 22px -12px rgba(0,0,0,.8)!important;}
+  html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"] *{color:#eef3f9!important;}
+  html[data-ua-theme="light"] .st-key-ua_account_row [class*="st-key-ua_bell_"] [data-testid="stIconMaterial"]{color:rgba(238,243,250,.78)!important;}
+  html[data-ua-theme="light"] .st-key-ua_account_row .st-key-ua_bell_unread [data-testid="stIconMaterial"]{color:#6ce5d2!important;}
+}
+/* Signed in at >=1320px the theme toggle drops its word too, so the bar's
+   links keep a clear gap from its controls. */
+@media (min-width:1320px){
+  @@ .stApp:has(.st-key-_notification_tray_toggle) .ua-topnav .ua-theme-toggle{font-size:0!important;gap:0!important;padding:0 9px!important;}
+  @@ .stApp:has(.st-key-_notification_tray_toggle) .ua-topnav .ua-theme-toggle .ua-tt-ico{font-size:var(--p-t-sm)!important;margin:0!important;}
+}
+@media (prefers-reduced-motion:reduce){
+  @@ .ua-topnav::after{animation:none!important;}
+  @@ .st-key-ua_account_row [data-testid="stIconMaterial"],
+  @@ .st-key-ua_account_row button p strong{animation:none!important;}
+  @@ .st-key-ua_account_row button{transition:none!important;}
+}
+""")
+
 PRODUCT_CSS = f"""<style>
 /* ── tokens ─────────────────────────────────────────────────────────────── */
 html:not([data-ua-theme="light"]) .stApp,
@@ -544,24 +719,6 @@ html:not([data-ua-theme="light"]) .stApp [data-testid="stFileUploaderFile"] div{
   border:1px solid var(--p-line)!important;}}
 .stApp [data-testid="stCheckbox"] label p{{color:var(--p-ink2)!important;font-size:var(--p-t-base)!important;}}
 
-/* ── the account row reads as part of the nav, not a stray control ──────── */
-html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stBaseButton-secondary"],
-html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stBaseButton-secondary"]{{
-  min-height:34px!important;border-radius:var(--p-r-sm)!important;font-size:var(--p-t-sm)!important;}}
-/* Sign In is an st.popover, whose button carries its own testid and so
-   matched none of the rules above: a bare white 16px box hanging off the nav. */
-html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"],
-html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stPopoverButton"]{{
-  background:var(--p-surface)!important;border:1px solid var(--p-line)!important;
-  color:var(--p-ink)!important;box-shadow:none!important;border-radius:var(--p-r-btn)!important;
-  min-height:34px!important;font-weight:600!important;font-size:var(--p-t-sm)!important;}}
-html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"] p,
-html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stPopoverButton"] p{{
-  color:var(--p-ink)!important;font-weight:600!important;font-size:var(--p-t-sm)!important;}}
-html[data-ua-theme="light"] .st-key-ua_account_row button[data-testid="stPopoverButton"]:hover,
-html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stPopoverButton"]:hover{{
-  border-color:var(--p-accent)!important;background:var(--p-sky)!important;}}
-
 /* Below 1180px the theme toggle keeps its icon and drops its word, so the
    bar's last control no longer runs past its edge at 1024px. Its accessible
    name is the aria-label, so nothing is lost to a screen reader. */
@@ -571,28 +728,7 @@ html:not([data-ua-theme="light"]) .st-key-ua_account_row button[data-testid="stP
   html[data-ua-theme="light"] .ua-topnav .ua-theme-toggle .ua-tt-ico,
   html:not([data-ua-theme="light"]) .ua-topnav .ua-theme-toggle .ua-tt-ico{{font-size:var(--p-t-sm)!important;margin:0!important;}}
 }}
-/* ── one account location ───────────────────────────────────────────────
-   Sign In lived in the band above the nav: a control detached from the bar
-   that holds the rest of the account (Upgrade, the Account menu). Where the
-   bar has room -- wide screens, signed out, so the row is the one button --
-   it docks at the bar's right end, styled as one of its controls. Below
-   that width, or with the notifications button beside it, the row stays in
-   the band above (utils/header.py), where it always fits. */
-@media (min-width:1320px){{
-  .stApp .block-container{{max-width:1280px;}}
-  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row,
-  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row{{top:9px!important;right:14px!important;}}
-  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .ua-topnav .ua-tnav-right,
-  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .ua-topnav .ua-tnav-right{{margin-right:118px!important;}}
-  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"],
-  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"]{{
-    background:transparent!important;border:1px solid #2c3b52!important;min-height:30px!important;}}
-  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"] p,
-  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"] p,
-  html[data-ua-theme="light"] .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"] svg,
-  html:not([data-ua-theme="light"]) .stApp:not(:has(.st-key-_notification_tray_toggle)) .st-key-ua_account_row button[data-testid="stPopoverButton"] svg{{
-    color:#f3f6fa!important;fill:currentColor;}}
-}}
+{GLASS_CSS}
 </style>"""
 
 
