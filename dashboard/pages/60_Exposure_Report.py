@@ -494,35 +494,41 @@ st.markdown(ui.takeaway_html(report), unsafe_allow_html=True)
 # (utils/track_record.py). Cached an hour; no study means no line.
 _held = ui.held_up()
 st.markdown(ui.exposure_table_html(report, _held), unsafe_allow_html=True)
+_icheck = ui.inflation_check_html(report)   # Cleveland Fed cross-check of the inflation reading
+if _icheck:
+    st.markdown(_icheck, unsafe_allow_html=True)
 # The question that follows "what is it exposed to": what if those forces move?
-_stress_col, _ = st.columns([1.3, 3])
-if _stress_col.button("Stress-test this portfolio", key="uar_to_scenarios", width="stretch",
-                      help="Move the market and up to nineteen forces and see the estimated move."):
-    record("scenario_lab_opened_from_report")
-    st.switch_page("pages/70_Scenarios.py")
+# ── one glass action bar under the findings: stress-test, the weekly email,
+# and the Pro note, side by side instead of three loose rows of open space ──
+with st.container(key="uar_actions"):
+    if st.button("Stress-test this portfolio", key="uar_to_scenarios", width="content",
+                          help="Move the market and up to nineteen forces and see the estimated move."):
+        record("scenario_lab_opened_from_report")
+        st.switch_page("pages/70_Scenarios.py")
 
-# ── keeping up with this portfolio: account utilities, after the findings ───
-if user and report.get("status") == "ok":
-    from utils.exposure_email import get_weekly_opt_in, set_weekly_opt_in
-    _opt_key = f"uar_weekly_{user['id']}"
-    if _opt_key not in st.session_state:
-        st.session_state[_opt_key] = get_weekly_opt_in(int(user["id"]))
-    _wants_weekly = st.checkbox(
-        "Email me a weekly summary of what changed in this portfolio",
-        value=st.session_state[_opt_key], key="uar_weekly_optin",
-        help="Sundays. Most weeks nothing changes measurably, and the email says so.",
-    )
-    if _wants_weekly != st.session_state[_opt_key]:
-        if set_weekly_opt_in(int(user["id"]), _wants_weekly):
-            st.session_state[_opt_key] = _wants_weekly
-            record("exposure_weekly_opt_in" if _wants_weekly else "exposure_weekly_opt_out")
-            st.caption("Saved." if _wants_weekly else "Turned off.")
-elif report.get("status") == "ok":
-    # Signed out: the weekly email was invisible, so the one reason to come
-    # back was never offered to the people who could use it.
-    st.caption("**Want to hear when this changes?** A free account saves this portfolio and emails you "
-               "a weekly summary of what changed in its readings. Most weeks nothing measurable does, "
-               "and the email says so. Create one or sign in at the top right.")
+    # ── keeping up with this portfolio: account utilities, after the findings ───
+    if user and report.get("status") == "ok":
+        from utils.exposure_email import get_weekly_opt_in, set_weekly_opt_in
+        _opt_key = f"uar_weekly_{user['id']}"
+        if _opt_key not in st.session_state:
+            st.session_state[_opt_key] = get_weekly_opt_in(int(user["id"]))
+        _wants_weekly = st.checkbox(
+            "Email me a weekly summary of what changed in this portfolio",
+            value=st.session_state[_opt_key], key="uar_weekly_optin",
+            help="Sundays. Most weeks nothing changes measurably, and the email says so.",
+        )
+        if _wants_weekly != st.session_state[_opt_key]:
+            if set_weekly_opt_in(int(user["id"]), _wants_weekly):
+                st.session_state[_opt_key] = _wants_weekly
+                record("exposure_weekly_opt_in" if _wants_weekly else "exposure_weekly_opt_out")
+                st.caption("Saved." if _wants_weekly else "Turned off.")
+    elif report.get("status") == "ok":
+        # Signed out: the weekly email was invisible, so the one reason to come
+        # back was never offered to the people who could use it.
+        st.caption("**Want to hear when this changes?** A free account saves this portfolio and emails "
+                   "a weekly summary of what changed. Sign in at the top right.")
+    if user and report.get("status") == "ok" and not is_pro:
+        st.caption("Investor Pro: get an email when an exposure crosses a line you set.")
 
 # ── Investor Pro: exposure alerts (utils/exposure_alerts.py) ────────────────
 # Checked by the weekly job after each week's measurement; an alert emails once
@@ -560,8 +566,6 @@ if user and is_pro and report.get("status") == "ok":
                     record("exposure_alert_added", factor=_factor)
                     st.rerun()
                 st.warning(_msg)
-elif report.get("status") == "ok" and not is_pro:
-    st.caption("Investor Pro: get an email when an exposure crosses a line you set.")
 
 
 readings = report["portfolio"]["readings"]
