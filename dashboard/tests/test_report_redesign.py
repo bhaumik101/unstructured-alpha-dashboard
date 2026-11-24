@@ -91,7 +91,8 @@ def test_the_takeaway_names_the_holding_and_never_forecasts(report):
     lead = next((k for k in ui.ordered_keys(report) if report["portfolio"]["readings"][k]["evidence"] == "clear"
                  and rows.get(k) and (rows[k][0].get("share") or 0) >= 0.5), None)
     if lead:
-        assert f'{rows[lead][0]["ticker"]} carries' in text
+        from utils import holding_names as hn
+        assert f'{hn.with_name(rows[lead][0]["ticker"])} carries' in text   # spelled out for a beginner
 
 
 def test_history_says_it_is_a_shorter_window(report):
@@ -120,13 +121,14 @@ def test_the_flow_draws_only_contributions_that_add_to_a_held_up_reading(mixed):
     drawn = re.findall(r"<title>([^<]+?) → ([^<:]+?): ([0-9.]+) points", svg)
     assert drawn, "nothing drawn"
     labels = {r["label"]: k for k, r in readings.items()}
-    for ticker, label, v in drawn:
+    for named, label, v in drawn:
+        ticker = named.split(" ")[0]                     # "TLT (iShares 20+ Year Treasury Bond ETF)"
         key = labels[label.replace("&amp;", "&")]
         assert readings[key]["evidence"] in ("clear", "tentative")
         c = next(c for c in report["contributions"][key] if c["ticker"] == ticker)
         assert c["contribution"] * readings[key]["impact"] > 0          # same direction only
         assert abs(abs(c["contribution"]) - float(v)) < 0.006
-    assert "GLD → " not in svg                                            # the offset is not a flow
+    assert "<title>GLD " not in svg                                       # the offset is not a flow
 
 
 def test_the_tiles_restate_the_report_and_nothing_else(mixed):

@@ -359,6 +359,8 @@ html[data-ua-theme="light"] .uar-chip-tentative{background:#fdefd6;border-color:
 .uar-flow-t{fill:var(--uar-ink);font-weight:600;font-size:var(--uar-t-sm);font-family:ui-monospace,"SF Mono",Menlo,monospace;}
 .uar-flow-l{fill:var(--uar-ink);font-size:var(--uar-t-sm);font-weight:650;}
 .uar-flow-s{fill:var(--uar-ink-3);font-size:var(--uar-t-micro);}
+.uar-flow-n{fill:var(--uar-ink-3);font-size:var(--uar-t-micro);font-family:inherit;}
+.uar-hname{display:block;margin-top:1px;font-size:var(--uar-t-micro);font-weight:400;color:var(--uar-ink-3);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34ch;}
 @media (prefers-reduced-motion: reduce){.uar-rib{transition:none;}}
 @media (max-width:900px){.uar-tiles{grid-template-columns:1fr 1fr;}.uar-tile-lead{grid-column:1/-1;}}
 @media (max-width:520px){.uar-tile{padding:12px;}.uar-tile-s{display:none;}.uar-tile-lead .uar-tile-s{display:block;}}
@@ -786,6 +788,17 @@ def exposure_map_html(report: dict) -> str:
         + '</svg></div>')
 
 
+from utils import holding_names as hn  # noqa: E402  (display names only)
+
+
+def _hname(ticker: str, n: int = 40) -> str:
+    """The full name under a ticker, as a quiet second line; nothing if unknown."""
+    name = hn.full_name(ticker)
+    if not name:
+        return ""
+    return f'<span class="uar-hname" title="{escape(name)}">{escape(hn.short(name, n))}</span>'
+
+
 def _main_holding(report: dict, key: str) -> Tuple[str, str]:
     """(short text, full sentence) naming the holding behind a reading."""
     reading = report["portfolio"]["readings"][key]
@@ -795,12 +808,12 @@ def _main_holding(report: dict, key: str) -> Tuple[str, str]:
     top = rows[0]
     if top.get("share") is not None and top["share"] >= 0.5:
         return (f'{top["ticker"]} {100 * top["share"]:.0f}%',
-                f'Mostly {top["ticker"]}: {100 * top["share"]:.0f}% of this exposure')
+                f'Mostly {hn.with_name(top["ticker"])}: {100 * top["share"]:.0f}% of this exposure')
     shown = [r for r in rows[:2] if r.get("share") is not None]
     if not shown:
         return ", ".join(r["ticker"] for r in rows[:2]), "Largest: " + ", ".join(r["ticker"] for r in rows[:2])
     return (" · ".join(f'{r["ticker"]} {100 * r["share"]:.0f}%' for r in shown),
-            "Largest: " + ", ".join(f'{r["ticker"]} ({100 * r["share"]:.0f}%)' for r in shown))
+            "Largest: " + ", ".join(f'{hn.with_name(r["ticker"])}, {100 * r["share"]:.0f}%' for r in shown))
 
 
 _EVIDENCE_SHORT = {"indistinct": "Not distinguishable"}
@@ -818,6 +831,14 @@ def _evidence_cell(evidence: str) -> str:
         return f'<span class="uar-chip{cls}"><i aria-hidden="true"></i>{escape(label)}</span>'
     return (f'<span class="uar-chip{cls}" title="{escape(label)}"><i aria-hidden="true"></i>'
             f'<span aria-hidden="true">{escape(short)}</span><span class="uar-sr">{escape(label)}</span></span>')
+
+
+def _top_name(report: dict, key: str) -> str:
+    rows = report["contributions"].get(key, [])
+    r = report["portfolio"]["readings"][key]
+    if r["evidence"] in ("clear", "tentative") and rows and (rows[0].get("share") or 0) >= 0.5:
+        return _hname(rows[0]["ticker"], 30)
+    return ""
 
 
 def takeaway_html(report: dict) -> str:
@@ -840,7 +861,7 @@ def takeaway_html(report: dict) -> str:
     for k in (clear or tent)[:2]:
         rows = report["contributions"].get(k, [])
         if rows and rows[0].get("share") is not None and rows[0]["share"] >= 0.5:
-            carriers.append(f'{escape(rows[0]["ticker"])} carries {100 * rows[0]["share"]:.0f}% '
+            carriers.append(f'{escape(hn.with_name(rows[0]["ticker"]))} carries {100 * rows[0]["share"]:.0f}% '
                             f'of the measured {name(k)} exposure')
     if carriers:
         lead += " " + "; ".join(carriers) + "."
@@ -886,7 +907,7 @@ def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
             f'{fmt_pct(r["low"])} to {fmt_pct(r["high"])}</div>'
             f'<div role="cell" class="uar-xev">{_evidence_cell(r["evidence"])}</div>'
             f'<div role="cell" class="uar-driver uar-xhold" title="{escape(full)}">'
-            f'<span class="uar-xlab">Main holding </span>{escape(short)}</div>'
+            f'<span class="uar-xlab">Main holding </span>{escape(short)}{_top_name(report, key)}</div>'
             '</div>'
         )
     held_bits = [f'{escape(readings[k]["label"])} {100 * held[k]["rate"]:.0f}%'
@@ -1003,7 +1024,7 @@ def factor_detail_html(report: dict, key: str, held: Optional[dict] = None) -> s
     rows = report["contributions"].get(key, [])
     if rows:
         body = "".join(
-            f'<tr><td><b>{escape(c["ticker"])}</b></td><td>{c["weight_pct"]:.1f}%</td>'
+            f'<tr><td><b>{escape(c["ticker"])}</b>{_hname(c["ticker"])}</td><td>{c["weight_pct"]:.1f}%</td>'
             f'<td>{fmt_pct(c["impact"])} {evidence_chip(c["evidence"])}</td>'
             f'<td>{fmt_pct(c["contribution"])}</td>'
             f'<td>{"—" if c["share"] is None else f"{100 * c["share"]:.0f}%"}</td></tr>'
@@ -1262,7 +1283,7 @@ def draft_header_html(draft: List[dict]) -> str:
 
 
 def draft_row_html(row: dict) -> str:
-    name = str(row.get("name") or "")
+    name = str(row.get("name") or "") or hn.full_name(str(row.get("ticker", "")))
     return (f'<div class="uar"><div class="uar-hit uar-hit-row">'
             f'<span class="uar-hit-tick">{escape(str(row.get("ticker", "")))}</span>'
             f'<span class="uar-hit-name">{escape(name)}</span></div></div>')
@@ -1410,7 +1431,7 @@ def holdings_diff_html(key_a: Tuple[Tuple[str, float], ...], key_b: Tuple[Tuple[
             change = f"{'+' if diff > 0 else '−'}{abs(diff):.1f} pts"
             tag = ""
         rows.append(
-            f'<tr><td><b>{escape(t)}</b> {tag}</td>'
+            f'<tr><td><b>{escape(t)}</b> {tag}{_hname(t)}</td>'
             f'<td>{"—" if wa is None else f"{wa:.1f}%"}</td>'
             f'<td>{"—" if wb is None else f"{wb:.1f}%"}</td><td>{change}</td></tr>')
     if not rows:
@@ -1558,7 +1579,7 @@ def holdings_matrix_html(report: dict) -> str:
             else:
                 tds.append(_heat_cell(row["impact"], row["evidence"], largest, say))
         body.append(
-            f'<tr><th scope="row" class="uar-m-name"><div class="uar-m-tick">{escape(ticker)}</div>'
+            f'<tr><th scope="row" class="uar-m-name"><div class="uar-m-tick">{escape(ticker)}</div>{_hname(ticker, 30)}'
             f'<div class="uar-m-weight">{weights[ticker]:.1f}% of the portfolio</div></th>'
             + "".join(tds) + "</tr>")
 
@@ -1772,11 +1793,13 @@ def flow_svg(report: dict) -> str:
     left = sorted({t for t, _, _ in flows}, key=lambda t: -weights.get(t, 0))[:12]
     flows = [f for f in flows if f[0] in left]
     right = [k for k in keys if any(f[1] == k for f in flows)]
-    W, NODE, GAP, LX, RX = 760, 10, 14, 96, 520
+    # LX leaves room for each holding's full name (two lines: ticker and
+    # weight, then the name) so a reader who does not know VTI still can.
+    W, NODE, GAP, LX, RX = 860, 10, 14, 250, 600
     total = sum(v for _, _, v in flows)
     n = max(len(left), len(right))
     k = (300 - GAP * (n - 1)) / total          # ribbons sized for a 300-unit column...
-    SLOT = 34                                  # ...then each node keeps room for its two-line label
+    SLOT = 40                                  # ...then each node keeps room for its two-line label
 
     def column(names, size):
         return sum(max(size(x) * k, SLOT) for x in names) + GAP * (len(names) - 1)
@@ -1805,20 +1828,23 @@ def flow_svg(report: dict) -> str:
         ribbons.append(
             f'<path d="M{x0},{y0:.1f} C{mx},{y0:.1f} {mx},{y1:.1f} {x1},{y1:.1f} L{x1},{y1 + w:.1f} '
             f'C{mx},{y1 + w:.1f} {mx},{y0 + w:.1f} {x0},{y0 + w:.1f} Z" fill="{FACTOR_COLORS[f]}" class="uar-rib">'
-            f'<title>{escape(t)} → {escape(readings[f]["label"])}: {v:.2f} points of {fmt_pct(readings[f]["impact"])}</title></path>')
+            f'<title>{escape(hn.with_name(t))} → {escape(readings[f]["label"])}: {v:.2f} points of {fmt_pct(readings[f]["impact"])}</title></path>')
     labels = []
     for t in left:
         y, h, _ = L[t]
         labels.append(f'<rect x="{LX}" y="{y:.1f}" width="{NODE}" height="{max(2, h):.1f}" rx="2" class="uar-flow-bar"/>'
-                      f'<text x="{LX - 12}" y="{y + h / 2 + 4:.1f}" text-anchor="end" class="uar-flow-t">{escape(t)}</text>'
-                      f'<text x="{LX - 12}" y="{y + h / 2 + 19:.1f}" text-anchor="end" class="uar-flow-s">{weights.get(t, 0):.0f}%</text>')
+                      f'<text x="{LX - 12}" y="{y + h / 2 - 1:.1f}" text-anchor="end" class="uar-flow-t">{escape(t)}'
+                      f'<tspan class="uar-flow-s" dx="8">{weights.get(t, 0):.0f}%</tspan></text>'
+                      + (f'<text x="{LX - 12}" y="{y + h / 2 + 15:.1f}" text-anchor="end" class="uar-flow-n">'
+                         f'<title>{escape(hn.full_name(t))}</title>{escape(hn.short(hn.full_name(t), 32))}</text>'
+                         if hn.full_name(t) else ""))
     for f in right:
         y, h, _ = R[f]
         labels.append(f'<rect x="{RX}" y="{y:.1f}" width="{NODE}" height="{max(2, h):.1f}" rx="2" fill="{FACTOR_COLORS[f]}"/>'
                       f'<text x="{RX + NODE + 12}" y="{y + h / 2 - 1:.1f}" class="uar-flow-l">{escape(readings[f]["label"])}</text>'
                       f'<text x="{RX + NODE + 12}" y="{y + h / 2 + 16:.1f}" class="uar-flow-s">{fmt_pct(readings[f]["impact"])} · '
                       f'{escape(ex.EVIDENCE_LABELS.get(readings[f]["evidence"], ""))}</text>')
-    summary = "; ".join(f"{t} to {readings[f]['label']} {v:.2f} points" for t, f, v in flows)
+    summary = "; ".join(f"{hn.with_name(t)} to {readings[f]['label']} {v:.2f} points" for t, f, v in flows)
     return (f'<div class="uar"><div class="uar-card uar-flow"><div class="uar-flow-head"><b>Where each exposure comes from</b>'
             '<span>Ribbon width: each holding&#39;s contribution, its weight times its own sensitivity. '
             'Hover a ribbon for the figure.</span></div>'
@@ -1831,7 +1857,11 @@ def workspace_header_html(name: str, report: dict) -> str:
     and the measurement window and data date together on one line."""
     positions = sorted(report.get("positions") or [], key=lambda p: -p["weight_pct"])
     p = report.get("portfolio") or {}
-    chips = "".join(f'<span role="listitem"><b>{escape(x["ticker"])}</b>{x["weight_pct"]:.0f}%</span>' for x in positions[:10])
+    chips = "".join(
+        f'<span role="listitem" title="{escape(hn.full_name(x["ticker"]) or x["ticker"])}">'
+        f'<b>{escape(x["ticker"])}</b>{x["weight_pct"]:.0f}%'
+        + (f'<span class="uar-sr"> {escape(hn.full_name(x["ticker"]))}</span>' if hn.full_name(x["ticker"]) else "")
+        + '</span>' for x in positions[:10])
     if len(positions) > 10:
         chips += f'<span role="listitem">+{len(positions) - 10} more</span>'
     meta = [f'{len(positions)} holding{"" if len(positions) == 1 else "s"}']
