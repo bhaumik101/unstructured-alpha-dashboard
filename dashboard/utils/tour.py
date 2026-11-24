@@ -277,6 +277,22 @@ TOUR_CSS = (
     "@media (prefers-reduced-motion:reduce){.uat-ring,.uat-card{transition:none;animation:none}.uat-ring.uat-pulse,.uat-hint span{animation:none}}"
 )
 
+# The app's light theme colours every h2, p, a and button with !important
+# (html[data-ua-theme="light"] ...), and the card lives on that page. Measured
+# live: a light-theme visitor saw a dark title on dark glass. Every text
+# colour in the card is pinned here, more specific and !important.
+TOUR_CSS += (
+    "html body .uat-card,html body .uat-card *{text-shadow:none!important;}"
+    "html body .uat-card h2.uat-h{color:#fff!important;}"
+    "html body .uat-card p.uat-p{color:#c9d5e6!important;}"
+    "html body .uat-card .uat-count{color:#a8b5c7!important;}"
+    "html body .uat-card button.uat-x{color:#a8b5c7!important;background:none!important;border:0!important;box-shadow:none!important;}"
+    "html body .uat-card button.uat-x:hover{color:#fff!important;}"
+    "html body .uat-card p.uat-hint{color:#6ce5d2!important;}"
+    "html body .uat-card button.uat-next{color:#04201c!important;background:linear-gradient(180deg,#8debdd,#6ce5d2)!important;border:0!important;}"
+    "html body .uat-card .uat-links a{color:#eef3f9!important;}"
+)
+
 
 def tour_js() -> str:
     steps = [list(s) for s in STEPS]
