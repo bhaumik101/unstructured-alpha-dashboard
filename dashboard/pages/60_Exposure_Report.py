@@ -87,8 +87,6 @@ if editing:
         "Exposure report",
         "See which economic forces a portfolio is exposed to, which holdings cause it, and how sure we can be.",
         eyebrow="Measure a portfolio",
-        facts=("Three years of weekly returns", "Five economic series from FRED",
-               "The market's own movement removed", "Every reading labelled by evidence"),
     )
 
 # ── dashboard: what a first visit sees before choosing a portfolio ──────────
@@ -123,174 +121,177 @@ if first_visit:
     ]), unsafe_allow_html=True)
 
 # ── onboarding / edit ───────────────────────────────────────────────────────
+# One primary job on this page: measure a portfolio. The builder comes first,
+# in the glass card; the samples are the quick way into it; everything the
+# record already knows (most exposed stocks, the forces' paths, single
+# companies) sits below in tabs, there to explore, not competing for the eye.
 if editing:
-    st.markdown(
-        '<div class="uar"><p class="uar-lead">Start from a sample portfolio, or enter your own holdings. '
-        f'Up to {max_holdings} U.S.-listed stocks, ETFs or mutual funds, each with at least two '
-        'years of price history. Nothing is saved unless you choose to save it.</p></div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown("## Start from a sample")
-    sample_cols = st.columns(len(ui.SAMPLE_KEYS))
-    for col, (key, name) in zip(sample_cols, ui.SAMPLE_KEYS.items()):
-        with col:
-            st.markdown(ui.sample_card_html(name), unsafe_allow_html=True)
-            if st.button("Measure this one", key=f"uar_sample_{key}", type="primary", width="stretch"):
-                st.session_state.update(
-                    uar_holdings=ex.SAMPLE_PORTFOLIOS[name], uar_name=f"Sample: {name}",
-                    uar_editing=False,
-                )
-                record("exposure_sample_opened", sample=key, source="button")
+    with st.container(key="uar_build"):
+        st.markdown("## Measure a portfolio")
+        st.caption(f"Add up to {max_holdings} U.S.-listed stocks, ETFs or mutual funds, each with at least "
+                   "two years of price history. Nothing is saved unless you choose to save it.")
+        method = st.radio(
+            "How would you like to add holdings?",
+            ("Search by name", "Upload a statement", "Paste a list"),
+            horizontal=True, key="uar_method", label_visibility="collapsed",
+        )
+        text, upload = "", None
+
+        if method == "Search by name":
+            # The primary path. Typing a ticker assumes the visitor knows it; most
+            # people know the fund's name, and a workplace-plan statement often
+            # prints no symbol at all. The panel is the same one the report carries,
+            # so the surface used to build a portfolio is the one used to change it.
+            if panel.render_search(max_holdings):
+                record("exposure_holding_added")
                 st.rerun()
+            record_once("exposure_symbol_searched")
+            panel.render(max_holdings,
+                         empty_hint="Search above and add holdings one at a time. Amounts can "
+                                    "be percentages, dollar values or share counts.")
+
+        elif method == "Upload a statement":
+            # A workplace plan often offers nothing but a PDF, and "export
+            # positions" is three menus deep at most brokers. What comes out of a
+            # statement is a GUESS, so it lands in the same editable list as
+            # everything else and is measured only after someone has looked at it.
+            from utils import statement_import as si
+
+            upload = st.file_uploader(
+                "A PDF statement, or a CSV or text positions export. Most brokerage "
+                "statements work. Nothing is uploaded anywhere else — the file is read "
+                "here and discarded.",
+                type=list(si.SUPPORTED),
+                key="uar_file",
+            )
+            if upload is not None:
+                signature = (upload.name, upload.size)
+                if st.session_state.get("uar_upload_sig") != signature:
+                    st.session_state["uar_upload_sig"] = signature
+                    data = upload.getvalue()
+                    if upload.name.lower().endswith(".csv"):
+                        # The CSV reader understands brokerage exports column by
+                        # column, which beats parsing them as loose text.
+                        rows, rejected = ui.parse_holdings_csv(data)
+                        found = ui.equalize([{"ticker": r["ticker"], "name": "",
+                                              "weight_pct": 0.0} for r in rows]) if rows else []
+                        if rows and any(r.get("weight_pct") for r in rows):
+                            total = sum(float(r.get("weight_pct") or 0) for r in rows)
+                            if total > 0:
+                                found = [{"ticker": r["ticker"], "name": "",
+                                          "weight_pct": round(100.0 * float(r.get("weight_pct") or 0) / total, 1)}
+                                         for r in rows]
+                        notes = rejected
+                    else:
+                        found, notes = si.read_statement(upload.name, data)
+                    st.session_state["uar_draft"] = found[:max_holdings]
+                    st.session_state["uar_upload_notes"] = notes
+                    st.session_state["uar_weights_touched"] = False
+                    st.session_state["uar_gen"] = st.session_state.get("uar_gen", 0) + 1
+                    record("exposure_statement_imported", n=len(found),
+                           kind=upload.name.rsplit(".", 1)[-1].lower())
+                    st.rerun()
+
+            for note in st.session_state.get("uar_upload_notes", []):
+                st.caption(note)
+            if st.session_state.get("uar_draft"):
+                st.info("Check these before measuring. A statement is read, not understood — "
+                        "remove anything that does not belong and correct any weight.")
+            panel.render(max_holdings, empty_hint="Upload a statement or positions export above.",
+                         show_mode=False)
+
+        elif method == "Paste a list":
+            text = st.text_area(
+                "One holding per line: the ticker, then its weight in percent. Weights are optional; "
+                "without them every holding counts equally.",
+                value=ui.holdings_to_text(holdings),
+                placeholder="VTI 40\nBND 30\nVXUS 20\nGLD 10",
+                height=180,
+                key="uar_text",
+            )
+
+        submit_col, cancel_col, _ = st.columns([1.3, 1, 3])
+        with submit_col:
+            submitted = st.button("Measure exposure", type="primary", key="uar_submit", width="stretch")
+        with cancel_col:
+            if holdings and st.button("Cancel", key="uar_cancel", width="stretch"):
+                st.session_state["uar_editing"] = False
+                st.rerun()
+
+        if submitted:
+            if method in ("Search by name", "Upload a statement"):
+                _draft = st.session_state.get("uar_draft", [])
+                _mode = st.session_state.get("uar_mode", "percent")
+                _prices = hold.latest_closes([r["ticker"] for r in _draft]) if _mode == "shares" else {}
+                rows = panel.draft_to_holdings(_draft, _mode, _prices)
+                rejected = []
+            else:
+                rows, rejected = ui.parse_holdings_text(text)
+            if rejected:
+                st.warning("These lines weren't understood and were skipped: " + "; ".join(rejected[:8])
+                           + (" …" if len(rejected) > 8 else ""))
+            if not rows:
+                # "for example VTI 60 and BND 40" is pasting advice, and it was shown
+                # to someone standing in the search tab with nowhere to type it.
+                st.error({
+                    "Search by name": "Nothing has been added yet. Search for a holding above "
+                                      "and press Add.",
+                    "Upload a statement": "No holdings were read from that file. Try the search "
+                                          "box, or paste the tickers.",
+                }.get(method, "No holdings found. Add at least one ticker, for example "
+                              "VTI 60 and BND 40."))
+            else:
+                st.session_state.update(uar_holdings=rows, uar_name="Your portfolio", uar_editing=False)
+                record("exposure_holdings_entered", n=len(rows), source="csv" if upload is not None else "paste")
+                st.rerun()
+
+        st.markdown("### Start from a sample")
+        sample_cols = st.columns(len(ui.SAMPLE_KEYS))
+        for col, (key, name) in zip(sample_cols, ui.SAMPLE_KEYS.items()):
+            with col:
+                if st.button(name, key=f"uar_sample_{key}", width="stretch"):
+                    st.session_state.update(
+                        uar_holdings=ex.SAMPLE_PORTFOLIOS[name], uar_name=f"Sample: {name}",
+                        uar_editing=False,
+                    )
+                    record("exposure_sample_opened", sample=key, source="button")
+                    st.rerun()
+                st.caption(" · ".join(f"{h['weight_pct']:g}% {h['ticker']}" for h in ex.SAMPLE_PORTFOLIOS[name]))
 
     if first_visit:
-        _rank_col, _forces_col = st.columns([1.1, 1], gap="large")
-        with _rank_col:
-            st.markdown("## Most exposed stocks on record")
-            _factor = st.radio(
-                "Economic force", [f.key for f in ex.FACTORS],
-                format_func=lambda k: ui.FACTOR_BY_KEY[k].label,
-                horizontal=True, key="udb_factor", label_visibility="collapsed",
-            )
-            st.markdown(dash.ranked_panel_html(_factor, lib.ranked(_factor, n=4, stocks=_stocks),
-                                               _on_record), unsafe_allow_html=True)
-        with _forces_col:
-            st.markdown("## What the forces themselves did")
-            _paths = charts.factor_paths_html(_recent, [f.key for f in ex.FACTORS]) if _recent else ""
-            # There is no portfolio on this page yet.
-            _paths = _paths.replace("not what this portfolio did", "not what any one holding did")
-            st.markdown(_paths or dash.forces_empty_html(), unsafe_allow_html=True)
+        with st.container(key="uar_explore"):
+            st.markdown("## Explore the record")
+            _t_rank, _t_forces, _t_one = st.tabs(["Most exposed stocks", "What the forces did", "Single companies"])
+            with _t_rank:
+                st.markdown("### Most exposed stocks on record")
+                _factor = st.radio(
+                    "Economic force", [f.key for f in ex.FACTORS],
+                    format_func=lambda k: ui.FACTOR_BY_KEY[k].label,
+                    horizontal=True, key="udb_factor", label_visibility="collapsed",
+                )
+                st.markdown(dash.ranked_panel_html(_factor, lib.ranked(_factor, n=4, stocks=_stocks),
+                                                   _on_record), unsafe_allow_html=True)
+            with _t_forces:
+                st.markdown("### What the forces themselves did")
+                _paths = charts.factor_paths_html(_recent, [f.key for f in ex.FACTORS]) if _recent else ""
+                # There is no portfolio on this page yet.
+                _paths = _paths.replace("not what this portfolio did", "not what any one holding did")
+                st.markdown(_paths or dash.forces_empty_html(), unsafe_allow_html=True)
+            with _t_one:
+                st.markdown("### Or look at a single company")
+                st.caption("The same measurement, run on one name, on its own page with its history. "
+                           "These are common examples, not suggestions.")
+                for _row_start in range(0, len(ui.SINGLE_STOCKS), 4):
+                    for col, (ticker, company) in zip(
+                        st.columns(4), ui.SINGLE_STOCKS[_row_start:_row_start + 4]
+                    ):
+                        if col.button(f"{ticker} · {company}", key=f"uar_one_{ticker}", width="stretch"):
+                            # One company has its own page now, with its stored history.
+                            st.session_state["ua_stock_ticker"] = ticker
+                            st.session_state[f"ua_stock_name_{ticker}"] = company
+                            record("exposure_single_stock_opened", ticker=ticker)
+                            st.switch_page("pages/69_Stock.py")
         record_once("dashboard_viewed", stocks_on_record=_on_record, forces_shown=bool(_paths))
-
-    st.markdown("## Or look at a single company")
-    st.caption("The same measurement, run on one name, on its own page with its history. "
-               "These are common examples, not suggestions.")
-    for _row_start in range(0, len(ui.SINGLE_STOCKS), 4):
-        for col, (ticker, company) in zip(
-            st.columns(4), ui.SINGLE_STOCKS[_row_start:_row_start + 4]
-        ):
-            if col.button(f"{ticker} · {company}", key=f"uar_one_{ticker}", width="stretch"):
-                # One company has its own page now, with its stored history.
-                st.session_state["ua_stock_ticker"] = ticker
-                st.session_state[f"ua_stock_name_{ticker}"] = company
-                record("exposure_single_stock_opened", ticker=ticker)
-                st.switch_page("pages/69_Stock.py")
-
-    st.markdown("## Or build your own portfolio")
-    method = st.radio(
-        "How would you like to add holdings?",
-        ("Search by name", "Upload a statement", "Paste a list"),
-        horizontal=True, key="uar_method", label_visibility="collapsed",
-    )
-    text, upload = "", None
-
-    if method == "Search by name":
-        # The primary path. Typing a ticker assumes the visitor knows it; most
-        # people know the fund's name, and a workplace-plan statement often
-        # prints no symbol at all. The panel is the same one the report carries,
-        # so the surface used to build a portfolio is the one used to change it.
-        if panel.render_search(max_holdings):
-            record("exposure_holding_added")
-            st.rerun()
-        record_once("exposure_symbol_searched")
-        panel.render(max_holdings,
-                     empty_hint="Search above and add holdings one at a time. Amounts can "
-                                "be percentages, dollar values or share counts.")
-
-    elif method == "Upload a statement":
-        # A workplace plan often offers nothing but a PDF, and "export
-        # positions" is three menus deep at most brokers. What comes out of a
-        # statement is a GUESS, so it lands in the same editable list as
-        # everything else and is measured only after someone has looked at it.
-        from utils import statement_import as si
-
-        upload = st.file_uploader(
-            "A PDF statement, or a CSV or text positions export. Most brokerage "
-            "statements work. Nothing is uploaded anywhere else — the file is read "
-            "here and discarded.",
-            type=list(si.SUPPORTED),
-            key="uar_file",
-        )
-        if upload is not None:
-            signature = (upload.name, upload.size)
-            if st.session_state.get("uar_upload_sig") != signature:
-                st.session_state["uar_upload_sig"] = signature
-                data = upload.getvalue()
-                if upload.name.lower().endswith(".csv"):
-                    # The CSV reader understands brokerage exports column by
-                    # column, which beats parsing them as loose text.
-                    rows, rejected = ui.parse_holdings_csv(data)
-                    found = ui.equalize([{"ticker": r["ticker"], "name": "",
-                                          "weight_pct": 0.0} for r in rows]) if rows else []
-                    if rows and any(r.get("weight_pct") for r in rows):
-                        total = sum(float(r.get("weight_pct") or 0) for r in rows)
-                        if total > 0:
-                            found = [{"ticker": r["ticker"], "name": "",
-                                      "weight_pct": round(100.0 * float(r.get("weight_pct") or 0) / total, 1)}
-                                     for r in rows]
-                    notes = rejected
-                else:
-                    found, notes = si.read_statement(upload.name, data)
-                st.session_state["uar_draft"] = found[:max_holdings]
-                st.session_state["uar_upload_notes"] = notes
-                st.session_state["uar_weights_touched"] = False
-                st.session_state["uar_gen"] = st.session_state.get("uar_gen", 0) + 1
-                record("exposure_statement_imported", n=len(found),
-                       kind=upload.name.rsplit(".", 1)[-1].lower())
-                st.rerun()
-
-        for note in st.session_state.get("uar_upload_notes", []):
-            st.caption(note)
-        if st.session_state.get("uar_draft"):
-            st.info("Check these before measuring. A statement is read, not understood — "
-                    "remove anything that does not belong and correct any weight.")
-        panel.render(max_holdings, empty_hint="Upload a statement or positions export above.",
-                     show_mode=False)
-
-    elif method == "Paste a list":
-        text = st.text_area(
-            "One holding per line: the ticker, then its weight in percent. Weights are optional; "
-            "without them every holding counts equally.",
-            value=ui.holdings_to_text(holdings),
-            placeholder="VTI 40\nBND 30\nVXUS 20\nGLD 10",
-            height=180,
-            key="uar_text",
-        )
-
-    submit_col, cancel_col, _ = st.columns([1.3, 1, 3])
-    with submit_col:
-        submitted = st.button("Measure exposure", type="primary", key="uar_submit", width="stretch")
-    with cancel_col:
-        if holdings and st.button("Cancel", key="uar_cancel", width="stretch"):
-            st.session_state["uar_editing"] = False
-            st.rerun()
-
-    if submitted:
-        if method in ("Search by name", "Upload a statement"):
-            _draft = st.session_state.get("uar_draft", [])
-            _mode = st.session_state.get("uar_mode", "percent")
-            _prices = hold.latest_closes([r["ticker"] for r in _draft]) if _mode == "shares" else {}
-            rows = panel.draft_to_holdings(_draft, _mode, _prices)
-            rejected = []
-        else:
-            rows, rejected = ui.parse_holdings_text(text)
-        if rejected:
-            st.warning("These lines weren't understood and were skipped: " + "; ".join(rejected[:8])
-                       + (" …" if len(rejected) > 8 else ""))
-        if not rows:
-            # "for example VTI 60 and BND 40" is pasting advice, and it was shown
-            # to someone standing in the search tab with nowhere to type it.
-            st.error({
-                "Search by name": "Nothing has been added yet. Search for a holding above "
-                                  "and press Add.",
-                "Upload a statement": "No holdings were read from that file. Try the search "
-                                      "box, or paste the tickers.",
-            }.get(method, "No holdings found. Add at least one ticker, for example "
-                          "VTI 60 and BND 40."))
-        else:
-            st.session_state.update(uar_holdings=rows, uar_name="Your portfolio", uar_editing=False)
-            record("exposure_holdings_entered", n=len(rows), source="csv" if upload is not None else "paste")
-            st.rerun()
 
     ui.render_report_footer()
     st.stop()

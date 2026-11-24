@@ -256,6 +256,82 @@ html[data-ua-theme="light"] .st-key-ua_account_row button:hover{border-color:var
   @@ .st-key-ua_account_row button p strong{animation:none!important;}
   @@ .st-key-ua_account_row button{transition:none!important;}
 }
+
+/* ── full width on desktop ───────────────────────────────────────────────
+   The page used to stop at 1200px and leave dark bands either side on any
+   wide screen. It now runs edge to edge with a gutter that grows with the
+   window; reading text keeps its own measure (76ch). */
+@@ .stApp .block-container{max-width:none!important;
+  padding-left:clamp(16px,3.2vw,64px)!important;padding-right:clamp(16px,3.2vw,64px)!important;}
+
+/* ── the first page: one job, then the record ────────────────────────────
+   Hierarchy, top to bottom: what the page does (hero), the four numbers as
+   one quiet strip, the builder in a glass card (the only primary action),
+   samples as the quick way into it, and the record below in tabs. */
+@@ .udb-tiles{display:flex!important;flex-wrap:wrap;gap:0!important;margin:-6px 0 22px!important;
+  border:1px solid rgba(148,180,210,.14);border-radius:14px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01));}
+@@ .udb-tiles > li{flex:1 1 200px;border-right:1px solid var(--p-line);}
+@@ .udb-tiles > li:last-child{border-right:0;}
+@@ .udb-tiles .udb-tile{background:transparent!important;border:0!important;border-radius:0!important;
+  padding:12px 18px!important;display:grid!important;grid-template-columns:auto 1fr;column-gap:12px;align-items:baseline;}
+@@ .udb-tiles .udb-v{font-size:var(--p-t-lg)!important;grid-row:span 2;}
+@@ .udb-tiles .udb-l{margin:0!important;font-size:var(--p-t-sm)!important;color:var(--p-ink)!important;}
+@@ .udb-tiles .udb-d{margin:0!important;}
+@@ .udb-tiles a.udb-tile:hover{background:rgba(108,229,210,.06)!important;}
+
+@@ .stApp .st-key-uar_build{position:relative;isolation:isolate;padding:26px 28px 22px;border-radius:20px;
+  border:1px solid rgba(148,180,210,.18);
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.012)),var(--p-surface);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 30px 60px -36px rgba(0,0,0,.85);}
+@@ .stApp .st-key-uar_build::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
+  background:radial-gradient(560px 220px at 0% 0%,rgba(108,229,210,.13),transparent 70%),
+    radial-gradient(420px 200px at 100% 100%,rgba(216,182,106,.08),transparent 70%);}
+@@ .stApp .st-key-uar_build h2{margin-top:0!important;padding-top:0!important;}
+@@ .stApp .st-key-uar_build h3,
+@@ .stApp .st-key-uar_explore h3{display:flex;align-items:center;gap:12px;margin:18px 0 6px!important;padding:0!important;
+  font-size:var(--p-t-xs)!important;font-weight:700!important;letter-spacing:.08em;text-transform:uppercase;color:var(--p-ink3)!important;}
+@@ .stApp .st-key-uar_build h3::after{content:"";flex:1;height:1px;background:var(--p-line);}
+@@ .stApp .st-key-uar_build [data-testid="stCaptionContainer"] p{font-size:var(--p-t-xs)!important;color:var(--p-ink3)!important;}
+@@ .stApp .st-key-uar_build [class*="st-key-uar_sample_"] button{min-height:40px!important;border-radius:12px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;
+  border:1px solid rgba(148,180,210,.2)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important;
+  transition:border-color .2s ease,box-shadow .2s ease,transform .18s ease!important;}
+@@ .stApp .st-key-uar_build [class*="st-key-uar_sample_"] button:hover{border-color:rgba(108,229,210,.6)!important;transform:translateY(-1px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 22px -8px rgba(108,229,210,.6)!important;}
+@@ .stApp .st-key-uar_build [class*="st-key-uar_sample_"] button p{font-weight:650!important;}
+
+@@ .stApp .st-key-uar_explore{margin-top:14px;}
+@@ .stApp .st-key-uar_explore h2{font-size:var(--p-t-md)!important;color:var(--p-ink2)!important;}
+@@ .stApp .st-key-uar_explore [role="tablist"]{gap:4px!important;padding:4px;border-radius:12px;width:max-content;max-width:100%;
+  border:1px solid rgba(148,180,210,.14);background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));}
+@@ .stApp .st-key-uar_explore [data-testid="stTab"]{border-radius:9px!important;padding:6px 14px!important;height:auto!important;border:0!important;}
+@@ .stApp .st-key-uar_explore [data-testid="stTab"] > div:not([data-testid="stMarkdownContainer"]){display:none!important;}
+@@ .stApp .st-key-uar_explore [role="tablist"]::after,
+@@ .stApp .st-key-uar_explore [role="tablist"]::before{display:none!important;}
+@@ .stApp .st-key-uar_explore [data-testid="stTab"][aria-selected="true"]{background:rgba(108,229,210,.12)!important;
+  box-shadow:inset 0 0 0 1px rgba(108,229,210,.45);}
+@@ .stApp .st-key-uar_explore [role="tablist"]{border-bottom:1px solid rgba(148,180,210,.14)!important;}
+@@ .stApp .st-key-uar_explore [role="tablist"]{margin-bottom:6px!important;}
+
+html[data-ua-theme="light"] .stApp .st-key-uar_build{border-color:var(--p-line);
+  background:linear-gradient(180deg,#fff,rgba(255,255,255,.85));box-shadow:0 24px 50px -34px rgba(21,32,51,.4);}
+html[data-ua-theme="light"] .stApp .st-key-uar_build::before{background:radial-gradient(560px 220px at 0% 0%,rgba(11,111,100,.08),transparent 70%);}
+html[data-ua-theme="light"] .stApp .st-key-uar_build [class*="st-key-uar_sample_"] button{background:#fff!important;border-color:var(--p-line)!important;}
+html[data-ua-theme="light"] .udb-tiles{border-color:var(--p-line);background:#fff;}
+html[data-ua-theme="light"] .stApp .st-key-uar_explore [role="tablist"]{border-color:var(--p-line);background:#fff;}
+html[data-ua-theme="light"] .stApp .st-key-uar_explore [data-testid="stTab"][aria-selected="true"]{background:var(--p-sky)!important;
+  box-shadow:inset 0 0 0 1px var(--p-accent);}
+@media (max-width:640px){
+  @@ .stApp .st-key-uar_build{padding:18px 16px 16px;}
+  @@ .udb-tiles > li{flex-basis:50%;border-bottom:1px solid var(--p-line);}
+}
+
+/* the hero as glass too, and one line of subtitle on a wide screen */
+@@ .stApp .ua-phero{border:1px solid rgba(148,180,210,.16)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 30px 60px -40px rgba(0,0,0,.8)!important;}
+@@ .stApp .ua-phero .ua-phero-sub{max-width:78ch!important;margin-bottom:0!important;}
+@@ .stApp .ua-phero h1{margin-bottom:6px!important;}
 """)
 
 PRODUCT_CSS = f"""<style>

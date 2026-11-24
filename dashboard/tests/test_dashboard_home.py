@@ -164,6 +164,27 @@ def test_the_ranked_lists_and_tiles_are_named_lists(store, xom):
 
 def test_dashboard_sections_are_headings_not_bold_text():
     src = (_ROOT / "pages" / "60_Exposure_Report.py").read_text(encoding="utf-8")
-    for label in ("Start from a sample", "Most exposed stocks on record",
-                  "What the forces themselves did", "Or look at a single company"):
-        assert f'st.markdown("## {label}")' in src, label
+    for label in ("## Measure a portfolio", "## Explore the record", "### Start from a sample",
+                  "### Most exposed stocks on record", "### What the forces themselves did",
+                  "### Or look at a single company"):
+        assert f'st.markdown("{label}")' in src, label
+
+
+def test_the_first_page_has_one_primary_action_and_the_record_below_it():
+    """Simplified 2026-11: the builder first, samples as a quiet way into it,
+    the stored record in tabs underneath -- not nine sections of equal weight."""
+    src = (_ROOT / "pages" / "60_Exposure_Report.py").read_text(encoding="utf-8")
+    build, explore = src.index('st.container(key="uar_build")'), src.index('st.container(key="uar_explore")')
+    assert build < src.index('st.markdown("### Start from a sample")') < explore
+    assert build < src.index('key="uar_submit"') < explore
+    assert 'st.tabs(["Most exposed stocks", "What the forces did", "Single companies"])' in src
+    # the samples are secondary buttons; "Measure exposure" is the page's one primary button
+    sample = src[src.index('key=f"uar_sample_{key}"') - 120:src.index('key=f"uar_sample_{key}"') + 60]
+    assert 'type="primary"' not in sample
+    assert src.count('type="primary"', build, explore) == 1
+
+
+def test_the_app_runs_edge_to_edge_on_a_wide_screen():
+    from utils.app_theme import GLASS_CSS
+    assert ('.stApp .block-container{max-width:none!important;\n'
+            '  padding-left:clamp(16px,3.2vw,64px)!important;') in GLASS_CSS
