@@ -44,6 +44,10 @@ GROUPS = {
         # Announces the re-measured pages to search engines (IndexNow). After
         # the library, so every page it names already carries the new week.
         "cron.ping_indexnow",
+        # Fund look-through from new SEC N-PORT filings: ~80 small feed
+        # requests most weeks, parsing only funds whose filing changed.
+        # Light (~100s, no library-sized memory), so before track_record.
+        "cron.refresh_lookthrough",
         # Monthly in practice: it skips itself if a result from the last 28
         # days exists. Last, so it never holds the library's memory headroom.
         "cron.track_record",

@@ -947,6 +947,23 @@ stock_exposures = Table(
 )
 
 
+# ── Fund look-through (SEC Form N-PORT) ─────────────────────────────────────
+# One row per fund: the compact summary utils/nport.summarize() keeps (counts,
+# asset/issuer/currency/country mix, largest holdings) from the fund's latest
+# public NPORT-P, refreshed weekly by cron/refresh_lookthrough.py. The bundled
+# utils/data/lookthrough.json.gz is the fallback; a newer filing here wins.
+# Public filing data only; safe to truncate. Brand-new table: create_all().
+fund_lookthrough = Table(
+    "fund_lookthrough", metadata,
+    Column("ticker",     String(16), primary_key=True),
+    Column("source",     String(255)),                  # the filing's index URL
+    Column("filed",      String(10)),
+    Column("period",     String(10)),
+    Column("payload",    Text, nullable=False),
+    Column("updated_at", String(64), nullable=False),
+)
+
+
 def _migrate_users_table() -> None:
     """
     metadata.create_all() only creates tables that don't exist yet -- it

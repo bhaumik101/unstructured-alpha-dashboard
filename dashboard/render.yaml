@@ -377,6 +377,8 @@ services:
     # (see MAX_CRON_SERVICES): both are weekly, both warm data for the next
     # visitor, and Tuesday 03:00 UTC is after Friday's closes and Monday's H.10 dollar release.
     # It goes first so grow_universe's pre-warm can't eat its memory headroom.
+    # Before track_record, cron.refresh_lookthrough checks every fund's SEC
+    # N-PORT feed (~80 small requests, ~100s) and re-parses only new filings.
     startCommand: python -m cron.run_group weekly-universe
     envVars:
       - key: DATABASE_URL

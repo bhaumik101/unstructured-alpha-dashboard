@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import time
 from html import escape
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -64,13 +65,47 @@ COUNTRIES = {
 BOND_ASSETS = ("DBT", "ABS-MBS", "ABS-CBDO", "ABS-O", "ABS-APCP")
 
 
+_snap_at = 0.0
+_TTL = 3600.0
+
+
+def _bundled() -> dict:
+    try:
+        return json.loads(gzip.decompress(_FILE.read_bytes()))
+    except Exception:
+        return {"funds": {}}
+
+
+def _stored() -> Dict[str, dict]:
+    """Rows the weekly refresh wrote; empty when the table is missing or unreachable."""
+    try:
+        from sqlalchemy import select
+        from utils import db
+        with db.engine.begin() as conn:
+            rows = conn.execute(select(db.fund_lookthrough.c.ticker, db.fund_lookthrough.c.payload)).all()
+        return {t: json.loads(p) for t, p in rows}
+    except Exception:
+        return {}
+
+
+def _newer(a: Optional[dict], b: Optional[dict]) -> bool:
+    """Is summary a from a later filing than b?"""
+    if not b:
+        return True
+    return (a.get("filed") or "", a.get("period") or "") > (b.get("filed") or "", b.get("period") or "")
+
+
 def snapshot() -> dict:
-    global _snap
-    if _snap is None:
-        try:
-            _snap = json.loads(gzip.decompress(_FILE.read_bytes()))
-        except Exception:
-            _snap = {"funds": {}}
+    """The bundled snapshot, with any newer filing the weekly refresh stored on top.
+    Re-read at most hourly, so a report never queries per render."""
+    global _snap, _snap_at
+    if _snap is None or time.time() - _snap_at > _TTL:
+        snap = _bundled()
+        funds = dict(snap.get("funds", {}))
+        for t, s in _stored().items():
+            if s.get("holdings") and _newer(s, funds.get(t)):
+                funds[t] = s
+        _snap, _snap_at = {"built": snap.get("built"), "funds": funds}, time.time()
     return _snap
 
 

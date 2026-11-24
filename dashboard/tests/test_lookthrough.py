@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import copy
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -20,7 +21,8 @@ from tests.test_exposure import _report
 from utils import lookthrough as lt
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-import build_lookthrough as bl  # noqa: E402
+import build_lookthrough as bl  # noqa: E402,F401
+from utils import nport as bl  # noqa: E402,F811  (the parser lives here now)
 
 XML = b"""<?xml version="1.0"?>
 <edgarSubmission xmlns="http://www.sec.gov/edgar/nport"><formData><genInfo><seriesName>Test Intl Fund</seriesName>
@@ -62,6 +64,7 @@ def snap(monkeypatch):
     us = {"holdings": 3500, "period": "2026-06-30", "source": "https://www.sec.gov/z",
           "assets": [["EC", 99.8]], "issuers": [["CORP", 100.0]], "currencies": [["USD", 100.0]],
           "countries": [["US", 100.0]], "top": [["Apple", 6.0, "EC", "US", 1]]}
+    monkeypatch.setattr(lt, "_snap_at", time.time())      # a fresh cache: snapshot() serves it as is
     monkeypatch.setattr(lt, "_snap", _with({"XOM": None, "TLT": bond, "VTI": us, "GLDX": {"none": "no N-PORT filer"},
                                          "ODD": {"series": "S9"}}))           # malformed: no holdings, no reason
     return intl, bond, us
@@ -100,6 +103,7 @@ def test_the_section_names_filers_and_admits_non_filers(snap):
 
 
 def test_nothing_is_shown_without_a_filing(monkeypatch):
+    monkeypatch.setattr(lt, "_snap_at", time.time())
     monkeypatch.setattr(lt, "_snap", _with({}))
     assert lt.lookthrough_html(_report()) == ""
 
