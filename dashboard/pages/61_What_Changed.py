@@ -85,6 +85,15 @@ if _paths_html:
     st.markdown("## What the forces themselves did")
     st.markdown(_paths_html, unsafe_allow_html=True)
 
+try:                                               # context only; a failed download shows nothing
+    from utils import gdpnow
+    _gdp = ui.gdpnow_html(gdpnow.context())
+except Exception:
+    _gdp = ""
+if _gdp:
+    st.markdown("## The economy around it")
+    st.markdown(_gdp, unsafe_allow_html=True)
+
 st.markdown(
     '<div class="uar"><div class="uar-note"><b>Get this by email.</b> Sign in, open the portfolio '
     'on the report page and tick &ldquo;Email me a weekly summary&rdquo;. It arrives on Sundays, '
