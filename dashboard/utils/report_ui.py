@@ -964,6 +964,72 @@ def takeaway_html(report: dict) -> str:
             + (f'<div class="uar-take-rest">{" · ".join(rest)}.</div>' if rest else "") + '</div>')
 
 
+_MARKET_ICON = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+                'stroke-linejoin="round" aria-hidden="true"><polyline points="3 17 9 11 13 15 21 7"/>'
+                '<polyline points="15 7 21 7 21 13"/></svg>')
+
+
+def plain_english_html(report: dict) -> str:
+    """The report in three sentences a first-time investor can read, in dollars
+    for an amount they type (utils/explain.py fills the figures). Built from the
+    same readings as everything below it; it adds no new claim."""
+    p = report["portfolio"]
+    readings = p["readings"]
+    order = ordered_keys(report)
+    clear = [k for k in order if readings[k]["evidence"] == "clear"]
+    tent = [k for k in order if readings[k]["evidence"] == "tentative"]
+    none = [k for k in order if readings[k]["evidence"] in ("indistinct", "not_enough_data")]
+    label = lambda k: ex.lower_label(readings[k]["label"])  # noqa: E731
+
+    def force(k: str) -> str:
+        return xp.term(xp.FORCE_TERM[k], label(k)) if k in xp.FORCE_TERM else escape(label(k))
+
+    def through(k: str) -> str:
+        rows = report["contributions"].get(k, [])
+        if rows and (rows[0].get("share") or 0) >= 0.5:
+            return f", mostly through {escape(hn.with_name(rows[0]['ticker']))}"
+        return ""
+
+    def row(icon: str, text: str) -> str:
+        return f'<li><span class="upe-ic">{icon}</span><span>{text}</span></li>'
+
+    rows = []
+    beta = p.get("market_beta_total")
+    if beta is not None and math.isfinite(beta):
+        rows.append(row(_MARKET_ICON,
+                        f'<b>The stock market comes first.</b> In a week the U.S. stock market rose 1%, this mix '
+                        f'typically {xp.usd_verb(beta)} ({beta:.2f}× the market).'))
+    if clear:
+        k = clear[0]
+        r = readings[k]
+        rows.append(row(factor_icon(k, 30),
+                        f'<b>Beyond the market, the clearest link is {force(k)}.</b> In weeks when '
+                        f'{escape(r["shock_phrase"])}, it typically {xp.usd_verb(r["impact"])}{through(k)}.'))
+        for k in clear[1:2]:
+            r = readings[k]
+            rows.append(row(factor_icon(k, 30),
+                            f'It also moved with {force(k)}: it typically {xp.usd_verb(r["impact"])} in weeks when '
+                            f'{escape(r["shock_phrase"])}.'))
+    elif tent:
+        k = tent[0]
+        r = readings[k]
+        rows.append(row(factor_icon(k, 30),
+                        f'<b>Beyond the market, nothing is clear.</b> The strongest hint is {force(k)}: it typically '
+                        f'{xp.usd_verb(r["impact"])} in weeks when {escape(r["shock_phrase"])}, but that could be '
+                        f'chance ({xp.term("tentative", "tentative")}).'))
+    else:
+        rows.append(row("·", "<b>Beyond the market, no economic force clearly moved it.</b>"))
+    if none:
+        rows.append(row("○", f'{xp.term("indistinct", "No measurable link")} to {_join([force(k) for k in none])} '
+                             f'over these {p["n_obs"]} weeks. That can mean a small effect, not necessarily none.'))
+    return ('<div class="uar"><div class="upe" role="region" aria-label="The report in plain English">'
+            '<div class="upe-k"><i></i>In plain English</div>'
+            f'<div class="upe-lead">If you had {xp.amount_input()} in this mix, here is how it has '
+            'typically moved in a single week:</div>'
+            f'<ul class="upe-rows">{"".join(rows)}</ul>'
+            f'<div class="upe-foot">Typical moves in weeks like those, {escape(fmt_date(p["start"]))} to '
+            f'{escape(fmt_date(p["end"]))}. It describes the past; it is not a forecast.</div></div></div>')
+
 def rates_split_html(report: dict) -> str:
     """Interest rates split into the expected path of short-term rates and the
     term premium (NY Fed ACM; exposure.rates_split). Empty when unavailable."""

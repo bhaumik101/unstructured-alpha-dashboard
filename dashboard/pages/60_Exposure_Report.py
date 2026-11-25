@@ -488,6 +488,8 @@ if report.get("status") != "ok":
     ui.render_report_footer()
     st.stop()
 
+# The answer in plain English, in dollars, before any number or chart.
+st.markdown(ui.plain_english_html(report), unsafe_allow_html=True)
 st.markdown(ui.summary_tiles_html(report), unsafe_allow_html=True)
 st.markdown(ui.takeaway_html(report), unsafe_allow_html=True)
 # How each force's readings held up out of sample, from the published study

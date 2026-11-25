@@ -153,6 +153,20 @@ def usd(pct: float) -> str:
     return f'<span class="uar-usd" data-pct="{pct:.4f}" aria-live="polite"></span>'
 
 
+def usd_verb(pct: float) -> str:
+    """Inline "lost about $56" / "gained about $56" for the chosen amount, with
+    the dollar-free wording as the fallback text before the script runs."""
+    word = "lost" if pct < 0 else "gained"
+    return (f'<span class="uar-usd uar-usd-verb" data-pct="{pct:.4f}" data-mode="verb">'
+            f'{word} about {abs(pct):.2f}%</span>')
+
+
+def amount_input(label: str = "Amount invested") -> str:
+    """An inline amount box; every box on the page stays in step (DOLLARS_JS)."""
+    return (f'<label class="uusd-box uusd-inline"><span>$</span><input class="uusd-in" inputmode="numeric" '
+            f'autocomplete="off" aria-label="{escape(label)}" placeholder="{DEFAULT_AMOUNT:,}"></label>')
+
+
 def dollars_bar_html() -> str:
     """The amount box over the exposure table. The script reads and fills it.
 
@@ -200,6 +214,21 @@ html[data-ua-theme="light"] .ugl-list li{background:#f8fafc;}
 html[data-ua-theme="light"] .uusd-box{background:#fff;border-color:rgba(11,111,100,.35);}
 .uar-usd{display:block;font-size:var(--uar-t-micro,.74rem);font-weight:600;color:var(--uar-ink-3);font-variant-numeric:tabular-nums;white-space:nowrap;}
 .uar-usd:empty{display:none;}
+.uar-usd.uar-usd-verb{display:inline;font-size:inherit;font-weight:700;color:var(--uar-ink);white-space:normal;}
+.uusd-inline{vertical-align:baseline;margin:0 2px;padding:1px 8px;}
+.uusd-inline .uusd-in{width:84px;font-size:inherit;}
+.upe{position:relative;margin:4px 0 14px;padding:18px 22px 14px;border-radius:20px;border:1px solid rgba(108,229,210,.22);
+  background:radial-gradient(120% 140% at 0% 0%,rgba(108,229,210,.10),transparent 55%),radial-gradient(90% 120% at 100% 100%,rgba(74,138,230,.10),transparent 60%),rgba(255,255,255,.025);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);box-shadow:0 18px 50px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);}
+.upe-k{display:flex;align-items:center;gap:8px;font-size:var(--uar-t-micro,.74rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6ce5d2;}
+.upe-k i{width:8px;height:8px;border-radius:50%;background:#6ce5d2;box-shadow:0 0 10px #6ce5d2;}
+.upe-lead{margin:8px 0 10px;font-size:var(--uar-t-lead,1.18rem);font-weight:600;color:var(--uar-ink);line-height:1.5;}
+.upe-rows{list-style:none;margin:0 !important;padding:0 !important;display:grid;gap:8px;}
+.upe-rows li{margin:0 !important;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;font-size:var(--uar-t-body,.88rem);color:var(--uar-ink-2);line-height:1.55;}
+.upe-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;border:1px solid var(--uar-line);background:rgba(255,255,255,.04);color:var(--uar-ink-2);font-weight:700;}
+.upe-foot{margin-top:10px;font-size:var(--uar-t-micro,.74rem);color:var(--uar-ink-3);}
+html[data-ua-theme="light"] .upe{background:radial-gradient(120% 140% at 0% 0%,rgba(11,111,100,.08),transparent 55%),#fff;border-color:rgba(11,111,100,.22);box-shadow:0 12px 34px rgba(15,23,42,.08);}
+html[data-ua-theme="light"] .upe-k{color:#0b6f64;}html[data-ua-theme="light"] .upe-k i{background:#0b6f64;box-shadow:none;}
 </style>"""
 
 
@@ -217,7 +246,10 @@ DOLLARS_JS = r"""
   }
   function paint(root){
     (root || document).querySelectorAll('.uar-usd[data-pct]').forEach(function(el){
-      var t = '≈ ' + money(parseFloat(el.getAttribute('data-pct')) / 100 * amt);
+      var v = parseFloat(el.getAttribute('data-pct')) / 100 * amt, t;
+      if (el.getAttribute('data-mode') === 'verb')          // "lost about $56" / "gained about $56"
+        t = (v < 0 ? 'lost about ' : 'gained about ') + money(v).slice(1);
+      else t = '≈ ' + money(v);
       if (el.textContent !== t) el.textContent = t;
     });
     (root || document).querySelectorAll('.uusd-in').forEach(function(i){
