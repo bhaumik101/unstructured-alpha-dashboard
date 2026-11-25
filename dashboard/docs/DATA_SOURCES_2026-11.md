@@ -23,7 +23,7 @@ Henry Hub gas (DHHNGSP), VIX, ICE BofA credit spreads, SEC EDGAR XBRL.
 | 7 | **Kenneth French data library** (weekly Fama-French factors) | Independent check on the product's market adjustment, and an optional "style" panel (size, value) beside the macro forces. | **Shipped (#394)**: weekly Mkt-RF/SMB/HML/RF snapshot from 2014 (665 weeks) plus a weekly cron (`cron/refresh_famafrench.py`, table `ff_weekly`). Every report re-measures market beta against Mkt-RF+RF on the same weeks (agrees within 0.05 or 5%) and fits SMB/HML tilts with the market held fixed, compared with its own IWM/IWB and IWD/IWF readings. Growth mix: SMB −0.27, HML −0.80, both Clear. | **Verified** (Dartmouth weekly zip fetched, current to 2026-09-25) |
 | 8 | **Tiingo end-of-day prices** | A second price provider when Yahoo fails, so a report degrades instead of erroring. Free tier ≈ 50 requests/hour, 1,000/day, 500 symbols/month (secondhand figures; confirm on Tiingo's pricing page). | Medium; **needs a free key** | Documented ([Tiingo docs](https://api.tiingo.com/documentation)) |
 | 9 | **EIA API v2** | Energy detail beyond prices (inventories, production) for oil and gas readings. Free; **key required**; stay under ~5 requests/second. | Medium | Documented ([EIA FAQ](https://www.eia.gov/opendata/faqs.php)) |
-| 10 | **Atlanta Fed GDPNow** (FRED `GDPNOW`) | Context on the "What changed" page: the Atlanta Fed's running estimate of this quarter's growth, clearly labelled as theirs. Never used as a signal or a forecast of ours. | Low | Documented ([FRED](https://fred.stlouisfed.org/data/GDPNOW)) |
+| 10 | **Atlanta Fed GDPNow** (FRED `GDPNOW`) | Context on the "What changed" page: the Atlanta Fed's running estimate of this quarter's growth, clearly labelled as theirs. Never used as a signal or a forecast of ours. | **Shipped (#395)**: on "What changed", with the estimate's path through each update (ALFRED vintages: daily for the last 12 days, weekly before) and its 8-quarter record against BEA's current figures. Cached 6 hours in the app; a failed download shows nothing. Feeds no reading. | **Verified** (FRED and ALFRED fetched, 2026-11-25: Q4 2026 +3.21%, updated 2026-11-18) |
 
 ## For beginners
 
@@ -43,7 +43,8 @@ Henry Hub gas (DHHNGSP), VIX, ICE BofA credit spreads, SEC EDGAR XBRL.
 3. ~~Fund names~~ shipped in #391 (28,845 mutual fund and ETF share classes).
 4. ~~Cleveland Fed cross-check~~ shipped in #392.
 5. ~~Fama-French check~~ shipped in #394.
-6. Tiingo as a price fallback (needs the owner to create a free key).
+6. ~~GDPNow context~~ shipped in #395.
+7. Tiingo as a price fallback (needs the owner to create a free key).
 
 ## Rules any of these must follow (from CLAUDE.md)
 

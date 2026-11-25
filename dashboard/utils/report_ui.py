@@ -397,6 +397,37 @@ html[data-ua-theme="light"] .uxc-tick{background:#0b6f64;}
 .uff-note{font-size:var(--uar-t-micro);color:var(--uar-ink-3);line-height:1.45;}
 html[data-ua-theme="light"] .uff-cell{background:#f8fafc;}
 @media (max-width:900px){.uff-grid{grid-template-columns:1fr;}}
+.ugn::before{background:linear-gradient(180deg,#4a8ae6,#6ce5d2);}
+.ugn{--ugn-a:#4a8ae6;--ugn-b:#b97d1a;}
+html[data-ua-theme="light"] .ugn{--ugn-a:#2f6fd0;--ugn-b:#b9770e;}
+.ugn-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:10px;margin-top:8px;}
+.ugn-cell{padding:10px 12px;border-radius:12px;border:1px solid var(--uar-line);background:rgba(255,255,255,.025);display:grid;gap:6px;align-content:start;}
+html[data-ua-theme="light"] .ugn-cell{background:#f8fafc;}
+.ugn-big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.ugn-big b{font-size:var(--uar-t-ws);letter-spacing:-.02em;background:linear-gradient(90deg,var(--uar-ink),#6ce5d2);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--uar-ink);font-variant-numeric:tabular-nums;}
+html[data-ua-theme="light"] .ugn-big b{background:linear-gradient(90deg,var(--uar-ink),#0b6f64);-webkit-background-clip:text;background-clip:text;}
+.ugn-big span{font-size:var(--uar-t-sm);color:var(--uar-ink-2);}
+.ugn-path,.ugn-track{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;row-gap:4px;}
+.ugn-yax{display:flex;flex-direction:column;justify-content:space-between;font-size:var(--uar-t-micro);color:var(--uar-ink-3);font-variant-numeric:tabular-nums;text-align:right;}
+.ugn-plot{position:relative;height:96px;margin:12px 10px 4px;border-top:1px dashed var(--uar-line);border-bottom:1px dashed var(--uar-line);}
+.ugn-plot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.ugn-line{fill:none;stroke:var(--ugn-a);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;}
+.ugn-dot{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--ugn-a);box-shadow:0 0 0 2px var(--uar-surface,#0f1622),0 0 12px color-mix(in srgb,var(--ugn-a) 60%,transparent);}
+.ugn-dot em{position:absolute;bottom:13px;left:50%;transform:translateX(-50%);font-style:normal;font-size:var(--uar-t-micro);font-weight:700;color:var(--uar-ink);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.ugn-dot em.ugn-l0{left:0;transform:none;}.ugn-dot em.ugn-l1{left:auto;right:0;transform:none;}
+.ugn-xax{grid-column:2;display:flex;justify-content:space-between;font-size:var(--uar-t-micro);color:var(--uar-ink-3);margin:0 4px;}
+.ugn-cols{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:clamp(3px,1vw,8px);}
+.ugn-q{display:grid;grid-template-rows:110px auto;gap:5px;justify-items:center;min-width:0;}
+.ugn-qb{position:relative;width:100%;max-width:40px;height:110px;}
+.ugn-qb::after{content:"";position:absolute;left:-4px;right:-4px;top:var(--z);border-top:1px solid var(--uar-ink-3);opacity:.6;}
+.ugn-bar{position:absolute;width:calc(50% - 1px);border-radius:4px 4px 0 0;}
+.ugn-bar.ugn-neg{border-radius:0 0 4px 4px;}
+.ugn-ba{left:0;background:var(--ugn-a);}.ugn-bb{right:0;background:var(--ugn-b);}
+.ugn-q span{font-size:var(--uar-t-micro);color:var(--uar-ink-3);text-align:center;line-height:1.2;}
+.ugn-track .ugn-yax{height:110px;}
+.ugn-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:var(--uar-t-micro);color:var(--uar-ink-2);}
+.ugn-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+@media (max-width:900px){.ugn-grid{grid-template-columns:1fr;}}
 .urs-scale{display:grid;grid-template-columns:minmax(130px,1fr) minmax(140px,2fr) 64px 130px;gap:10px;font-size:var(--uar-t-micro);color:var(--uar-ink-3);}
 .urs-scale span:nth-child(1){grid-column:2;justify-self:start;}.urs-scale span:nth-child(2){grid-column:2;justify-self:center;}
 .urs-scale span:nth-child(3){grid-column:2;justify-self:end;}.urs-scale span{grid-row:1;}
@@ -1012,6 +1043,97 @@ def ff_check_html(report: dict) -> str:
             'Tilts are per 1 percentage point of the factor, the market held fixed. It describes the past; it is not a '
             'forecast.</div></div></div>')
 
+
+def _iso(d: str) -> datetime:
+    return datetime.strptime(str(d)[:10], "%Y-%m-%d")
+
+
+def _gdp_path_chart(path: list) -> str:
+    """This quarter's estimate, one dot per update. The line is SVG stretched to
+    the box (its stroke does not stretch); dots and labels are HTML placed in
+    percent, so text keeps its size at any width. The axis spans the values with
+    a point of room each side, labelled, so a small revision does not look large."""
+    if len(path) < 2:
+        return ""
+    vals = [p["value"] for p in path]
+    lo, hi = math.floor(min(vals) - 0.5), math.ceil(max(vals) + 0.5)
+    span = float(hi - lo)
+    t0 = _iso(path[0]["date"])
+    days = max(1, (_iso(path[-1]["date"]) - t0).days)
+    pts = [(100.0 * (_iso(p["date"]) - t0).days / days, 100.0 * (hi - p["value"]) / span) for p in path]
+    line = " ".join(f"{x:.2f},{y:.2f}" for x, y in pts)
+    peak = max(range(len(vals)), key=lambda i: vals[i])
+    # The highest point gets a label too, unless it sits near an end label.
+    labelled = {0, len(vals) - 1} | ({peak} if 30 < pts[peak][0] < 70 else set())
+    dots = "".join(
+        f'<i class="ugn-dot" style="left:{x:.2f}%;top:{y:.2f}%" title="{escape(fmt_date(p["date"]))}: {p["value"]:+.1f}%">'
+        + (f'<em class="{"ugn-l0" if i == 0 else "ugn-l1" if i == len(vals) - 1 else ""}">{p["value"]:+.1f}%</em>' if i in labelled else "")
+        + '</i>' for i, ((x, y), p) in enumerate(zip(pts, path)))
+    return (f'<div class="ugn-path" role="img" aria-label="'
+            f'{escape(f"Estimate went from {vals[0]:+.1f}% to {vals[-1]:+.1f}% over {len(path) - 1} updates")}">'
+            f'<div class="ugn-yax"><span>{hi:+d}%</span><span>{lo:+d}%</span></div>'
+            f'<div class="ugn-plot"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
+            f'<polyline class="ugn-line" points="{line}" vector-effect="non-scaling-stroke"/></svg>{dots}</div>'
+            f'<div class="ugn-xax"><span>{escape(fmt_date(path[0]["date"])[:-6])}</span>'
+            f'<span>{escape(fmt_date(path[-1]["date"])[:-6])}</span></div></div>')
+
+
+def _gdp_track_chart(rows: list) -> str:
+    """Past quarters: the final GDPNow estimate beside the BEA figure, on one
+    signed axis with a zero line. HTML columns, so labels keep their size."""
+    vals = [v for r in rows for v in (r["gdpnow"], r["bea"])]
+    lo, hi = min(vals + [0.0]), max(vals + [0.0])
+    span = (hi - lo) or 1.0
+    zero = 100.0 * hi / span
+
+    def bar(cls: str, v: float, who: str, short: str) -> str:
+        top, h = (zero - 100.0 * v / span, 100.0 * v / span) if v >= 0 else (zero, -100.0 * v / span)
+        return (f'<i class="ugn-bar {cls}{" ugn-neg" if v < 0 else ""}" style="top:{top:.2f}%;height:max(2px,{h:.2f}%)" '
+                f'title="{escape(short)} · {who}: {v:+.1f}%"></i>')
+    cols = "".join(
+        f'<div class="ugn-q"><div class="ugn-qb">{bar("ugn-ba", r["gdpnow"], "GDPNow final estimate", r["short"])}'
+        f'{bar("ugn-bb", r["bea"], "BEA", r["short"])}</div><span>{escape(r["short"][:2])}<br>’{escape(r["short"][-2:])}</span></div>'
+        for r in rows)
+    return (f'<div class="ugn-track" role="img" aria-label="GDPNow final estimate and BEA figure for the last {len(rows)} quarters">'
+            f'<div class="ugn-yax"><span>{fmt_pct(hi) if hi else "0"}</span><span>{fmt_pct(lo) if lo else "0"}</span></div>'
+            f'<div class="ugn-cols" style="--z:{zero:.2f}%">{cols}</div></div>')
+
+
+def gdpnow_html(ctx: Optional[dict]) -> str:
+    """The Atlanta Fed's GDPNow estimate for this quarter, with its record.
+    Context only (utils/gdpnow.py): it feeds no reading. Empty when unavailable."""
+    c = ctx or {}
+    if not c.get("available"):
+        return ""
+    when = (f"updated {fmt_date(c['updated'])}" if c.get("updated")
+            else f"latest as of {fmt_date(c['checked'])}")
+    path = c.get("path") or []
+    moved = ""
+    if len(path) > 1:
+        moved = (f"{len(path) - 1} update{'s' if len(path) > 2 else ''} since {fmt_date(path[0]['date'])[:-6]}, "
+                 f"from {path[0]['value']:+.1f}%.")
+    now_cell = (f'<div class="ugn-cell"><div class="uff-k">{escape(c["label"])} · their latest estimate</div>'
+                f'<div class="ugn-big"><b>{c["value"]:+.1f}%</b><span>real GDP growth, annual rate · {escape(when)}</span></div>'
+                f'{_gdp_path_chart(path)}'
+                + (f'<div class="uff-note">{escape(moved)}</div>' if moved else "") + '</div>')
+    t = c.get("track") or {}
+    track_cell = ""
+    if t.get("rows"):
+        worst = max(t["rows"], key=lambda r: abs(r["gdpnow"] - r["bea"]))
+        track_cell = (f'<div class="ugn-cell"><div class="uff-k">Their record · last {t["n"]} quarters</div>'
+                      '<div class="ugn-leg"><span><i style="background:var(--ugn-a)"></i>GDPNow, final estimate</span>'
+                      '<span><i style="background:var(--ugn-b)"></i>BEA, current figure</span></div>'
+                      f'{_gdp_track_chart(t["rows"])}'
+                      f'<div class="uff-note">Off by {t["mean_miss"]:.1f} points on average. Widest: {escape(worst["short"])}, '
+                      f'{worst["gdpnow"]:+.1f}% estimated against {worst["bea"]:+.1f}%.</div></div>')
+    return (f'<div class="uar"><div class="uxc ugn">'
+            '<div class="uxc-head"><span class="uxc-k">The economy this quarter · Atlanta Fed GDPNow</span>'
+            '<span class="uxc-pill">Their estimate, not ours</span></div>'
+            f'<div class="ugn-grid">{now_cell}{track_cell}</div>'
+            '<div class="uxc-foot">GDPNow is the Federal Reserve Bank of Atlanta\'s running model estimate of this '
+            'quarter\'s real GDP growth, revised as new data arrive; the Atlanta Fed says it is not an official '
+            'forecast of theirs. BEA figures are the current, revised estimates. Read from FRED and ALFRED (St. Louis Fed). '
+            'Shown for context only: it does not feed any reading on this page.</div></div></div>')
 
 _CHECK_VERDICTS = {
     "confirmed": ("ok", "Holds on both measures",
