@@ -488,12 +488,23 @@ if report.get("status") != "ok":
     ui.render_report_footer()
     st.stop()
 
+# The answer in plain English, in dollars, before any number or chart.
+from utils import evidence as _ev  # noqa: E402
+try:                                       # the week-by-week proof; a failed check shows nothing
+    _proof = _ev.evidence(report)
+except Exception:
+    _proof = {}
+st.markdown(ui.plain_english_html(report, _proof), unsafe_allow_html=True)
 st.markdown(ui.summary_tiles_html(report), unsafe_allow_html=True)
 st.markdown(ui.takeaway_html(report), unsafe_allow_html=True)
 # How each force's readings held up out of sample, from the published study
 # (utils/track_record.py). Cached an hour; no study means no line.
 _held = ui.held_up()
 st.markdown(ui.exposure_table_html(report, _held), unsafe_allow_html=True)
+# The proof: did each reading show up in its biggest weeks, and on weeks it never saw?
+_proof_html = ui.proof_html(report, _proof)
+if _proof_html:
+    st.markdown(_proof_html, unsafe_allow_html=True)
 # Deeper checks, side by side on a wide screen: the inflation reading against
 # the Cleveland Fed's model, and interest rates split by the NY Fed's model.
 _icheck = ui.inflation_check_html(report)

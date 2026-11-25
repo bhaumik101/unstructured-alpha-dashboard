@@ -67,3 +67,53 @@ read +0.11% per 10% gas move, "Clear". Fixed in #373:
 | **Result, checked Nov 25** | **Passed.** 540 of 545 gas rows dated Nov 20 (5 stragglers older), guard did not exclude UNG. EQT +0.11% → **+1.89%** per 10% (Clear), EXE **+1.78%** (Clear); 16 Clear, 127 Tentative overall. "Several %" was a loose bar: ~1.9% (elasticity ~0.19 with the market and oil held fixed) is the honest size. Notice gone from /forces/natgas and both /when gas pages; both indexable, in the sitemap, submitted to IndexNow (200). | — |
 | Dec 22 (4 weeks): `/when/*` page views from search | ≥ 25 views/week on When pages, and ≥ 3 X-ray clicks from them | if < 5/week after IndexNow + sitemap, the titles do not match demand: rewrite titles from Search Console queries (needs GSC verification) |
 | Dec 22: tool users per week | > 0, rising | if still 0, the first-session problem is on every page: put an answer above the fold on the landing too |
+
+## 6. Does a reading matter? Out-of-sample evidence (2026-11-25)
+
+Asked for: "clear evidence ... find some sort of correlation ... make it matter".
+A Clear label is a statistic; the question a reader has is whether the
+exposure showed up in real money and whether it lasts. `utils/evidence.py`
+answers both from each report's own weekly data:
+
+- **Big weeks.** For each Clear or Tentative force, its 8 largest weeks; in each,
+  the portfolio's move beyond the market and the other forces (the joint fit's
+  residual plus that force's term), and whether it went the reading's way.
+- **New weeks.** Re-estimate on the first two-thirds of the weeks only, then in
+  the last third's big weeks (|move| > 1 sd) count how often the beyond-market
+  move pointed the way the earlier estimate said. A coin flip scores 50%.
+
+Pooled across 14 test portfolios (Balanced, international-heavy, long bonds,
+energy, gold, homebuilders, banks, high yield, growth, utilities, EM, TIPS,
+small value, miners; 104 weeks to estimate, 52 to test, ending 2026-11-20):
+
+| Force (Clear readings) | Readings | Matched on new weeks |
+|---|---|---|
+| Interest rates | 8 | **72 / 80 = 90%** |
+| Credit spreads | 2 | 22 / 26 = 85% |
+| U.S. dollar | 6 | **80 / 102 = 78%** |
+| Oil | 4 | 77 / 116 = 66% |
+| Inflation expectations | 4 | **20 / 40 = 50%** (a coin flip) |
+
+Tentative readings: oil 61%, credit 51%, inflation 47%.
+
+**What it means.** Rate and dollar exposures are real and persistent: a reader
+can act on knowing them (e.g. how much a long-bond or international fund carries).
+Inflation readings mostly did not survive new weeks; the exception was TIPS
+(9 / 10), which hold inflation directly. This agrees with the Cleveland Fed
+cross-check (#392), where the inflation reading depended on the time scale.
+
+**Shipped (#398).** Every report now shows, per reading, its biggest weeks as
+bars, the average gap in dollars, and the new-weeks verdict ("Held up on weeks
+it had never seen" ≥ 70%, "Partly" 55–70%, "Did not hold up" < 55%); the
+plain-English summary at the top repeats the verdict next to each finding and
+says "treat it with caution" when a reading failed.
+
+**Caveats.** One split, one 3-year window. The 14 portfolios share VTI, so they
+are not independent; read the pooled rates as indicative. A reading that held
+up in the past describes the past; it is not a forecast.
+
+**Bug found on the way.** The first big-weeks view took out only the market.
+Long bonds' credit reading then went the wrong way in 7 of 8 big weeks while
+matching 13 / 13 out of sample: big credit weeks are big rate weeks, and the
+rate effect swamped them. Both views now net out the other forces, as the
+reading itself does (credit 8 / 8 and 13 / 13); a test pins it.
