@@ -64,5 +64,6 @@ read +0.11% per 10% gas move, "Clear". Fixed in #373:
 | Check | Pass | Fail → correct |
 |---|---|---|
 | Dec 1: natural-gas readings re-measured | data week ≥ Nov 20, gas producers (EQT, EXE) read several % per 10% move, notice gone | if the guard excluded UNG too, or producers still read ~0.1%, re-examine the series |
+| **Result, checked Nov 25** | **Passed.** 540 of 545 gas rows dated Nov 20 (5 stragglers older), guard did not exclude UNG. EQT +0.11% → **+1.89%** per 10% (Clear), EXE **+1.78%** (Clear); 16 Clear, 127 Tentative overall. "Several %" was a loose bar: ~1.9% (elasticity ~0.19 with the market and oil held fixed) is the honest size. Notice gone from /forces/natgas and both /when gas pages; both indexable, in the sitemap, submitted to IndexNow (200). | — |
 | Dec 22 (4 weeks): `/when/*` page views from search | ≥ 25 views/week on When pages, and ≥ 3 X-ray clicks from them | if < 5/week after IndexNow + sitemap, the titles do not match demand: rewrite titles from Search Console queries (needs GSC verification) |
 | Dec 22: tool users per week | > 0, rising | if still 0, the first-session problem is on every page: put an answer above the fold on the landing too |
