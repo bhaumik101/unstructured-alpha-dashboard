@@ -33,6 +33,8 @@ Henry Hub gas (DHHNGSP), VIX, ICE BofA credit spreads, SEC EDGAR XBRL.
   rather than writing our own definitions of regulated terms. The glossary
   pages did not return their text to the search tool, so the exact URLs
   should be opened and checked before linking.
+  **Shipped (#397)**: 9 Investor.gov pages confirmed and linked from tap-to-define
+  tooltips (`utils/explain.py`); a test pins the list so no guessed URL ships.
 - **Look-through (source 1) is the biggest beginner win**: it turns "this
   fund carries the exposure" into "because of what it owns".
 

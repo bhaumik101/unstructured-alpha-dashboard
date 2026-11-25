@@ -735,6 +735,13 @@ if _extras:
     st.markdown("## More forces")
     st.markdown(_extras, unsafe_allow_html=True)
 
+# Every term the report used, in one place: tap one for a plain definition.
+from utils import explain as _xp  # noqa: E402
+st.markdown(_xp.glossary_html(
+    [_xp.FORCE_TERM[k] for k in ui.ordered_keys(report) if k in _xp.FORCE_TERM]
+    + ["market", "beta", "range90", "clear", "tentative", "indistinct", "term_premium", "breakeven",
+       "smb", "hml", "etf", "mutual_fund", "index_fund", "bonds", "interest_rate_risk", "diversification", "risk"]),
+    unsafe_allow_html=True)
 st.markdown(ui.notes_html(report, cleaning_notes), unsafe_allow_html=True)
 
 with st.expander("Export or share this report", expanded=False):
