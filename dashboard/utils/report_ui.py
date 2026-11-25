@@ -13,6 +13,8 @@ import math
 import re
 from datetime import datetime
 from html import escape
+
+from utils import explain as xp
 from typing import Iterable, List, Optional, Tuple
 
 from urllib.parse import quote
@@ -465,6 +467,9 @@ REPORT_CSS = REPORT_CSS.replace("</style>",
     ".uar .uar-group{padding:12px 20px 4px;font-size:var(--uar-t-micro);font-weight:700;"
     "letter-spacing:.05em;text-transform:uppercase;color:var(--uar-ink-3);}"
     ".uar .uar-why{margin-top:6px;font-style:italic;}</style>")
+# The glossary tooltips and the dollar view (utils/explain.py).
+# One <style> block only: Streamlit's markdown keeps the first and drops a second.
+REPORT_CSS = REPORT_CSS.replace("</style>", xp.EXPLAIN_CSS.replace("<style>", "").replace("</style>", "") + "</style>", 1)
 
 
 # ── formatting ──────────────────────────────────────────────────────────────
@@ -984,7 +989,7 @@ def rates_split_html(report: dict) -> str:
                              ("Term premium", "extra pay for holding long bonds", tp_r)) if r[2]]
     scale = _nice_scale([v for _, _, r in rows_data for v in (r["low"], r["high"])])
     rows = "".join(
-        f'<div class="urs-row{" urs-head" if i == 0 else ""}"><div class="urs-l"><b>{escape(lab)}</b><span>{escape(sub)}</span></div>'
+        f'<div class="urs-row{" urs-head" if i == 0 else ""}"><div class="urs-l"><b>{xp.term("term_premium", lab) if lab == "Term premium" else escape(lab)}</b><span>{escape(sub)}</span></div>'
         f'<div class="urs-bar">{exposure_bar(r["impact"], r["low"], r["high"], scale, r["evidence"])}</div>'
         f'<div class="urs-v">{fmt_pct(r["impact"])}</div>'
         f'<div class="urs-ev">{_evidence_cell(r["evidence"])}</div></div>'
@@ -1023,11 +1028,12 @@ def ff_check_html(report: dict) -> str:
               'whole U.S. market, measured two ways.</div></div>')
 
     def tilt(title: str, r: Optional[dict], pos: str, neg: str, vs: Optional[str]) -> str:
+        head = xp.term({"Size tilt (SMB)": "smb", "Value tilt (HML)": "hml"}.get(title, ""), title)
         if not r:
-            return f'<div class="uff-cell"><div class="uff-k">{escape(title)}</div><div class="uff-note">Not available</div></div>'
+            return f'<div class="uff-cell"><div class="uff-k">{head}</div><div class="uff-note">Not available</div></div>'
         held = r["evidence"] in ("clear", "tentative")
         words = (pos if r["impact"] > 0 else neg) if held else "no clear tilt"
-        return (f'<div class="uff-cell"><div class="uff-k">{escape(title)}</div>'
+        return (f'<div class="uff-cell"><div class="uff-k">{head}</div>'
                 f'<div class="uff-big"><b>{r["impact"]:+.2f}</b><span>{escape(words)}</span>{_evidence_cell(r["evidence"])}</div>'
                 + (f'<div class="uff-note">{escape(_FF_VS[vs])}.</div>' if vs in _FF_VS else "") + '</div>')
     cells = (market
@@ -1113,7 +1119,7 @@ def gdpnow_html(ctx: Optional[dict]) -> str:
         moved = (f"{len(path) - 1} update{'s' if len(path) > 2 else ''} since {fmt_date(path[0]['date'])[:-6]}, "
                  f"from {path[0]['value']:+.1f}%.")
     now_cell = (f'<div class="ugn-cell"><div class="uff-k">{escape(c["label"])} · their latest estimate</div>'
-                f'<div class="ugn-big"><b>{c["value"]:+.1f}%</b><span>real GDP growth, annual rate · {escape(when)}</span></div>'
+                f'<div class="ugn-big"><b>{c["value"]:+.1f}%</b><span>{xp.term("gdp", "real GDP growth")}, annual rate · {escape(when)}</span></div>'
                 f'{_gdp_path_chart(path)}'
                 + (f'<div class="uff-note">{escape(moved)}</div>' if moved else "") + '</div>')
     t = c.get("track") or {}
@@ -1157,7 +1163,7 @@ def _strength_row(label: str, sub: str, r: Optional[dict], clear_t: float, span:
     """One measure: direction and strength of evidence (|t| against the Clear line).
     Unitless on purpose, so two measures on different scales sit on one axis."""
     if not r:
-        return (f'<div class="uxc-row"><div class="uxc-l"><b>{escape(label)}</b><span>{escape(sub)}</span></div>'
+        return (f'<div class="uxc-row"><div class="uxc-l"><b>{xp.term("breakeven", label) if label == "Market breakeven" else escape(label)}</b><span>{escape(sub)}</span></div>'
                 '<div class="uxc-na">Not available</div></div>')
     t = abs(r.get("t") or 0.0)
     w = min(100.0, 100.0 * t / span)              # one axis for every row: the ticks line up
@@ -1226,10 +1232,10 @@ def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
         rows.append(
             f'<div class="uar-xrow" role="row">'
             f'<div class="uar-xforce" role="cell">{factor_icon(key)}'
-            f'<div><div class="uar-label">{escape(r["label"])}</div>'
+            f'<div><div class="uar-label">{xp.term(xp.FORCE_TERM[key], r["label"]) if key in xp.FORCE_TERM else escape(r["label"])}</div>'
             f'<div class="uar-shock">In weeks when {escape(r["shock_phrase"])}</div></div></div>'
             f'<div role="cell" class="uar-xbar">{exposure_bar(r["impact"], r["low"], r["high"], scale, r["evidence"])}</div>'
-            f'<div role="cell" class="uar-xnum uar-val">{fmt_pct(r["impact"])}</div>'
+            f'<div role="cell" class="uar-xnum uar-val">{fmt_pct(r["impact"])}{xp.usd(r["impact"])}</div>'
             f'<div role="cell" class="uar-xnum uar-range"><span class="uar-xlab">90% range </span>'
             f'{fmt_pct(r["low"])} to {fmt_pct(r["high"])}</div>'
             f'<div role="cell" class="uar-xev">{_evidence_cell(r["evidence"])}</div>'
@@ -1246,22 +1252,22 @@ def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
         'by force, in the published study.</div>'
     ) if held_bits else ""
     return (
-        '<div class="uar"><div class="uar-card uar-xcard" role="table" aria-label="Exposure to economic forces">'
+        '<div class="uar">' + xp.dollars_bar_html() + '<div class="uar-card uar-xcard" role="table" aria-label="Exposure to economic forces">'
         '<div class="uar-xrow uar-xhead" role="row">'
         '<div role="columnheader">Economic force</div>'
         f'<div role="columnheader" class="uar-xaxis"><span>−{scale:g}%</span><span>0</span><span>+{scale:g}%</span></div>'
         '<div role="columnheader" class="uar-xnum">Estimate</div>'
-        '<div role="columnheader" class="uar-xnum">90% range</div>'
+        '<div role="columnheader" class="uar-xnum">' + xp.term("range90", "90% range") + '</div>'
         '<div role="columnheader">Evidence</div>'
         '<div role="columnheader">Main holding</div></div>'
         + "".join(rows) +
-        '<div class="uar-xkey"><span><i class="uar-k uar-k-clear"></i>Solid bar: Clear</span>'
-        '<span><i class="uar-k uar-k-tent"></i>Lighter: Tentative</span>'
-        '<span><i class="uar-k uar-k-zero"></i>Outline: not distinguishable from zero (not the same as no exposure)</span>'
+        '<div class="uar-xkey"><span><i class="uar-k uar-k-clear"></i>Solid bar: ' + xp.term("clear", "Clear") + '</span>'
+        '<span><i class="uar-k uar-k-tent"></i>Lighter: ' + xp.term("tentative", "Tentative") + '</span>'
+        '<span><i class="uar-k uar-k-zero"></i>Outline: ' + xp.term("indistinct", "not distinguishable from zero") + ' (not the same as no exposure)</span>'
         f'<span><i class="uar-k uar-k-range"></i>Line: 90% range</span><span>One shared scale, ±{scale:g}%</span></div>'
         + held_line +
         f'<div class="uar-foot">Each figure is the portfolio&#39;s typical same-week move when that force '
-        f'moved by the stated amount, after accounting for the stock market. Measured over '
+        f'moved by the stated amount, {xp.term("market", "after accounting for the stock market")}. Measured over '
         f'{p["n_obs"]} weeks, {escape(fmt_date(p["start"]))} to {escape(fmt_date(p["end"]))}. '
         f'It describes the past; it is not a forecast.</div>'
         '</div></div>'
@@ -2079,7 +2085,7 @@ def summary_tiles_html(report: dict) -> str:
     beta_html = ""
     if beta is not None and math.isfinite(beta):
         w = max(0.0, min(1.5, beta)) / 1.5 * 100
-        beta_html = (f'<div class="uar-tile"><div class="uar-tile-k">With the stock market</div>'
+        beta_html = (f'<div class="uar-tile"><div class="uar-tile-k">{xp.term("beta", "With the stock market")}</div>'
                      f'<div class="uar-tile-v">{beta:.2f}×</div>'
                      f'<div class="uar-gauge" aria-hidden="true"><i style="width:{w:.0f}%"></i><b style="left:{100 / 1.5:.1f}%"></b></div>'
                      f'<div class="uar-tile-s">its typical weekly move vs the market (1× marked), accounted for separately</div></div>')

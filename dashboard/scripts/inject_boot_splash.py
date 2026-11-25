@@ -53,6 +53,11 @@ def _tour_js() -> str:
     return tour_js().replace("</", "<\\/")
 
 
+def _dollars_js() -> str:
+    from utils.explain import DOLLARS_JS
+    return DOLLARS_JS.replace("</", "<\\/")
+
+
 def _build_runtime() -> str:
     """Scripts that must run on every page, splash or no splash.
 
@@ -461,6 +466,8 @@ def _build_runtime() -> str:
             # The first-visit walkthrough (utils/tour.py) runs here for the same
             # reason as everything above: st.markdown strips <script>.
             + "\n<script>" + _tour_js() + "</script>"
+            # Dollar figures on the report (utils/explain.py): same reason.
+            + "\n<script>" + _dollars_js() + "</script>"
             + "\n" + RUNTIME_END + "\n")
 
 
