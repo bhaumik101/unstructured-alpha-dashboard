@@ -117,3 +117,11 @@ Long bonds' credit reading then went the wrong way in 7 of 8 big weeks while
 matching 13 / 13 out of sample: big credit weeks are big rate weeks, and the
 rate effect swamped them. Both views now net out the other forces, as the
 reading itself does (credit 8 / 8 and 13 / 13); a test pins it.
+
+**Acted on (#399).** Inflation readings now keep "Clear" only if they pass the
+new-weeks test themselves (≥ 70% of the later period's big weeks matched);
+otherwise they are shown as Tentative, marked "was Clear", with the score. The
+numbers are unchanged. Applied in the engine (`exposure._require_out_of_sample`),
+so the report, stock pages, `/exposure.csv` and the "when" pages agree. On the
+study's portfolios: banks (5/10), high yield (2/10) and small value (4/10) lost
+Clear; TIPS (9/10) kept it.

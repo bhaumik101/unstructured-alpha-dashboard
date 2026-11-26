@@ -135,6 +135,27 @@ def term(key: str, text: Optional[str] = None) -> str:
             f'<b>{escape(t.label)}</b>{escape(t.text)}{link}</span></span>')
 
 
+def tip(shown: str, title: str, body: str, cls: str = "") -> str:
+    """Like term(), for a one-off explanation that is not a glossary word."""
+    return (f'<span class="ugl{(" " + cls) if cls else ""}" tabindex="0">{escape(shown)}<span class="ugl-tip" role="tooltip">'
+            f'<b>{escape(title)}</b>{escape(body)}</span></span>')
+
+
+def downgrade_note(reading: dict) -> str:
+    """The "was Clear" marker for a reading that failed the new-weeks test."""
+    d = reading.get("downgraded")
+    if not d:
+        return ""
+    if d.get("reason") == "failed":
+        body = (f"This reading passed the usual test, but inflation readings must also hold up on weeks the "
+                f"estimate never saw. Re-measured on earlier weeks and checked on later ones, it matched "
+                f"{d['hits']} of {d['big_weeks']} big weeks, so it is shown as Tentative.")
+    else:
+        body = ("This reading passed the usual test, but inflation readings must also hold up on weeks the "
+                "estimate never saw, and there were too few weeks to check. It is shown as Tentative until it can be.")
+    return tip("was Clear", "Downgraded after a stricter test", body, "uar-down")
+
+
 def glossary_html(keys) -> str:
     """A compact glass card of the words used on the page: tap any to read it."""
     items = "".join(f'<li>{term(k)}</li>' for k in dict.fromkeys(keys) if k in GLOSSARY)
@@ -257,6 +278,7 @@ html[data-ua-theme="light"] .upf-card{background:#f8fafc;}
 html[data-ua-theme="light"] .upf-yes{background:linear-gradient(180deg,#14a38b,#0b6f64);box-shadow:none;}
 .upe-ok{color:#35c98b;font-weight:600;}.upe-warn{color:#e8a0a6;font-weight:600;}
 html[data-ua-theme="light"] .upe-ok{color:#0b7a55;}html[data-ua-theme="light"] .upe-warn{color:#b3323d;}
+.uar-down{display:inline-block;margin-left:6px;font-size:var(--uar-t-micro,.74rem);font-weight:600;color:#d8b66a;white-space:nowrap;}
 .upe-foot{margin-top:10px;font-size:var(--uar-t-micro,.74rem);color:var(--uar-ink-3);}
 html[data-ua-theme="light"] .upe{background:radial-gradient(120% 140% at 0% 0%,rgba(11,111,100,.08),transparent 55%),#fff;border-color:rgba(11,111,100,.22);box-shadow:0 12px 34px rgba(15,23,42,.08);}
 html[data-ua-theme="light"] .upe-k{color:#0b6f64;}html[data-ua-theme="light"] .upe-k i{background:#0b6f64;box-shadow:none;}
