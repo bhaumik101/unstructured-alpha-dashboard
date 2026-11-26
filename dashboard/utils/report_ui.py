@@ -1023,7 +1023,8 @@ def plain_english_html(report: dict, proof: Optional[Mapping[str, dict]] = None)
         r = readings[k]
         rows.append(row(factor_icon(k, 30),
                         f'<b>Beyond the market, the clearest link is {subject(k)}.</b> In weeks when '
-                        f'{escape(r["shock_phrase"])}, it typically {xp.usd_verb(r["impact"])}{through(k)}.{held(k)}'))
+                        f'{escape(r["shock_phrase"])}, it typically {xp.usd_verb(r["impact"])}{through(k)}.{held(k)}'
+                        + (" It is also Clear on five years of data." if r.get("confirmed_5y") else "")))
         for k in clear[1:2]:
             r = readings[k]
             rows.append(row(factor_icon(k, 30),
@@ -1098,7 +1099,7 @@ def proof_html(report: dict, proof: Mapping[str, dict]) -> str:
         cards.append(
             f'<div class="upf-card upf-{tone}"><div class="upf-head">{factor_icon(k, 26)}'
             f'<b>{xp.term(xp.FORCE_TERM[k], r["label"]) if k in xp.FORCE_TERM else escape(r["label"])}</b>'
-            f'<span class="upf-pill">{escape(pill)}</span></div>'
+            f'{xp.confirmed_note(r)}<span class="upf-pill">{escape(pill)}</span></div>'
             f'<div class="upf-strip" role="img" aria-label="{escape(aria)}">'
             f'<i class="upf-zero"></i>{bars}</div>'
             f'<p class="upf-text">In the <b>{b["n"]} weeks</b> {escape(name)} moved most, this mix went the way '
@@ -1110,8 +1111,8 @@ def proof_html(report: dict, proof: Mapping[str, dict]) -> str:
             '<div class="uxc-foot">Bars: this mix&#39;s move beyond the stock market and the other forces in each of the force&#39;s biggest weeks; '
             'teal went the way the reading says, red the other way. Hover a bar for the week. The new-weeks test re-measures '
             'on the earlier two-thirds of the data and checks the rest. Across 14 test portfolios, interest-rate readings '
-            'matched 90% of big new weeks, the dollar 78%, oil 66% and inflation 50%. It describes the past; it is not a '
-            'forecast.</div></div></div>')
+            'matched 90% of big new weeks, the dollar 78%, oil 66% and inflation 50%. ' + escape(xp.TRACK_RECORD)
+            + ' It describes the past; it is not a forecast.</div></div></div>')
 
 def rates_split_html(report: dict) -> str:
     """Interest rates split into the expected path of short-term rates and the
@@ -1387,7 +1388,7 @@ def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
             f'<div role="cell" class="uar-xnum uar-val">{fmt_pct(r["impact"])}{xp.usd(r["impact"])}</div>'
             f'<div role="cell" class="uar-xnum uar-range"><span class="uar-xlab">90% range </span>'
             f'{fmt_pct(r["low"])} to {fmt_pct(r["high"])}</div>'
-            f'<div role="cell" class="uar-xev">{_evidence_cell(r["evidence"])}{xp.downgrade_note(r)}</div>'
+            f'<div role="cell" class="uar-xev">{_evidence_cell(r["evidence"])}{xp.downgrade_note(r)}{xp.confirmed_note(r)}</div>'
             f'<div role="cell" class="uar-driver uar-xhold" title="{escape(full)}">'
             f'<span class="uar-xlab">Main holding </span>{escape(short)}{_top_name(report, key)}</div>'
             '</div>'

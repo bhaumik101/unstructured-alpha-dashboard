@@ -156,6 +156,23 @@ def downgrade_note(reading: dict) -> str:
     return tip("was Clear", "Downgraded after a stricter test", body, "uar-down")
 
 
+def confirmed_note(reading: dict) -> str:
+    """The "5-yr confirmed" marker for a Clear reading that is also Clear, the same
+    way, on five years of data (exposure._confirm_long_window)."""
+    if not reading.get("confirmed_5y"):
+        return ""
+    weeks = reading.get("confirm_weeks") or 260
+    return tip("5-yr confirmed", "Confirmed on five years of data",
+               f"Re-measured on {weeks} weeks instead of three years, this reading is Clear again and points the "
+               "same way. In our walk-forward test across 35 funds, readings confirmed like this held their "
+               "direction in 75% of the next year's big weeks, against 65% for Clear readings that were not.",
+               "uar-conf")
+
+
+TRACK_RECORD = ("Tested walk-forward on 35 funds over three held-out years, Clear readings held their direction in "
+                "74% of the next year's big weeks (75% when confirmed on five years); weaker readings, 55%.")
+
+
 def glossary_html(keys) -> str:
     """A compact glass card of the words used on the page: tap any to read it."""
     items = "".join(f'<li>{term(k)}</li>' for k in dict.fromkeys(keys) if k in GLOSSARY)
@@ -214,15 +231,16 @@ def dollars_bar_html() -> str:
 
 
 EXPLAIN_CSS = """<style>
+:root{--ux-teal:#6ce5d2;}html[data-ua-theme="light"]{--ux-teal:#0b6f64;}
 .ugl{position:relative;display:inline;cursor:help;border-bottom:1px dotted color-mix(in srgb,currentColor 55%,transparent);outline:none;}
-.ugl:focus-visible{border-bottom-style:solid;border-bottom-color:#6ce5d2;}
+.ugl:focus-visible{border-bottom-style:solid;border-bottom-color:var(--ux-teal);}
 .ugl-tip{position:absolute;left:0;top:calc(100% + 8px);z-index:60;width:min(300px,78vw);padding:10px 12px;border-radius:12px;
   background:rgba(14,22,34,.94);border:1px solid rgba(108,229,210,.28);box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06);
   -webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);
   color:#d8e1ec;font-size:var(--uar-t-sm,.82rem);font-weight:400;line-height:1.45;letter-spacing:0;text-transform:none;white-space:normal;text-align:left;
   opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .14s ease,transform .14s ease,visibility .14s;pointer-events:none;}
 .ugl-tip b{display:block;margin-bottom:3px;color:#fff;font-weight:700;}
-.ugl-tip a{display:inline-block;margin-top:6px;color:#6ce5d2;font-weight:600;text-decoration:none;}
+.ugl-tip a{display:inline-block;margin-top:6px;color:var(--ux-teal);font-weight:600;text-decoration:none;}
 .ugl:hover>.ugl-tip,.ugl:focus>.ugl-tip,.ugl:focus-within>.ugl-tip{opacity:1;visibility:visible;transform:none;pointer-events:auto;}
 html[data-ua-theme="light"] .ugl-tip{background:rgba(255,255,255,.97);border-color:rgba(11,111,100,.25);color:#334155;box-shadow:0 14px 40px rgba(15,23,42,.18);}
 html[data-ua-theme="light"] .ugl-tip b{color:#0f172a;}
@@ -250,7 +268,7 @@ html[data-ua-theme="light"] .uusd-box{background:#fff;border-color:rgba(11,111,1
 .upe{position:relative;margin:4px 0 14px;padding:18px 22px 14px;border-radius:20px;border:1px solid rgba(108,229,210,.22);
   background:radial-gradient(120% 140% at 0% 0%,rgba(108,229,210,.10),transparent 55%),radial-gradient(90% 120% at 100% 100%,rgba(74,138,230,.10),transparent 60%),rgba(255,255,255,.025);
   -webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);box-shadow:0 18px 50px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);}
-.upe-k{display:flex;align-items:center;gap:8px;font-size:var(--uar-t-micro,.74rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6ce5d2;}
+.upe-k{display:flex;align-items:center;gap:8px;font-size:var(--uar-t-micro,.74rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ux-teal);}
 .upe-k i{width:8px;height:8px;border-radius:50%;background:#6ce5d2;box-shadow:0 0 10px #6ce5d2;}
 .upe-lead{margin:8px 0 10px;font-size:var(--uar-t-lead,1.18rem);font-weight:600;color:var(--uar-ink);line-height:1.5;}
 .upe-rows{list-style:none;margin:0 !important;padding:0 !important;display:grid;gap:10px 22px;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));}
@@ -279,6 +297,8 @@ html[data-ua-theme="light"] .upf-yes{background:linear-gradient(180deg,#14a38b,#
 .upe-ok{color:#35c98b;font-weight:600;}.upe-warn{color:#e8a0a6;font-weight:600;}
 html[data-ua-theme="light"] .upe-ok{color:#0b7a55;}html[data-ua-theme="light"] .upe-warn{color:#b3323d;}
 .uar-down{display:inline-block;margin-left:6px;font-size:var(--uar-t-micro,.74rem);font-weight:600;color:#d8b66a;white-space:nowrap;}
+.uar-conf{display:inline-block;margin-left:6px;font-size:var(--uar-t-micro,.74rem);font-weight:700;color:var(--ux-teal);white-space:nowrap;}
+html[data-ua-theme="light"] .uar-conf{color:#0b6f64;}
 .upe-foot{margin-top:10px;font-size:var(--uar-t-micro,.74rem);color:var(--uar-ink-3);}
 html[data-ua-theme="light"] .upe{background:radial-gradient(120% 140% at 0% 0%,rgba(11,111,100,.08),transparent 55%),#fff;border-color:rgba(11,111,100,.22);box-shadow:0 12px 34px rgba(15,23,42,.08);}
 html[data-ua-theme="light"] .upe-k{color:#0b6f64;}html[data-ua-theme="light"] .upe-k i{background:#0b6f64;box-shadow:none;}

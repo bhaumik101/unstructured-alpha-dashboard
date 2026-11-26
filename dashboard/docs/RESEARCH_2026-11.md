@@ -125,3 +125,53 @@ numbers are unchanged. Applied in the engine (`exposure._require_out_of_sample`)
 so the report, stock pages, `/exposure.csv` and the "when" pages agree. On the
 study's portfolios: banks (5/10), high yield (2/10) and small value (4/10) lost
 Clear; TIPS (9/10) kept it.
+
+## 7. More Clear readings? What the walk-forward test allows (2026-11-26)
+
+Asked for: "more clears and more data to be actually useful or marketable".
+Loosening the bar would add readings that do not last, so each candidate was
+judged by how its Clear readings held up on a year they had never seen.
+
+**Design.** 35 funds (broad, sector, bond, credit, commodity, international),
+each alone. Three held-out test years ending 2024-11, 2025-11, 2026-11. Before
+each, fit the engine's model on a window; label the five core forces; then in
+the test year's big weeks (|move| > 1 sd) count how often the fund's move beyond
+the market and the other forces went the way the fitted slope said. 1,050
+readings per variant. Scripts: `/tmp` study harness, reproduced from
+`utils/exposure.py` internals (`_fit_on_frame`, `to_changes`).
+
+| Variant | Clear readings | Held up next year |
+|---|---|---|
+| 3 years weekly, Bonferroni (before) | 149 (28%) | 74% |
+| 3 years weekly, **Holm step-down** | 161 (31%) | 73% |
+| 3 years weekly, FDR 10% | 216 (41%) | 69% |
+| 5 years weekly, Bonferroni | 180 (34%) | 71% |
+| 5 years weekly, Holm | 193 (37%) | 70% |
+| 3 years **daily** | 176 (34%) | 69% |
+| 3 years, 2-day returns | 149 (28%) | 72% |
+| *Tentative (any variant)* | — | *52–56%* |
+
+The readings each loosening ADDS: Holm 64% (12), 5-year window 59% (62), FDR
+55% (55). FDR and the longer window mostly add coin flips; daily data adds
+noise from mismatched closing times. **Clear on both 3 and 5 years, same
+direction: 76%** (118 readings); Clear on 3 years only: 64%.
+
+Also: 87% of fund-years already have at least one Clear reading; a lack of
+Clears is not what limits the product.
+
+**Shipped (#400).**
+- Holm's step-down for the five core forces (same 5% family-wise error; can
+  only promote: its first bar is the old one). False-Clear rate re-measured on
+  the null simulation: 10 of 1,000 (1.0%), none from the step-down.
+- "5-yr confirmed": every Clear reading is re-fitted on 260 weeks (already
+  loaded for the rolling chart); Clear again, same sign, earns the badge.
+  Confirmed held 75%, unconfirmed Clear 65%. On the 14 study portfolios, 17 of
+  21 Clear readings are confirmed.
+- The track record itself, now stated in the report and on Methodology:
+  Clear readings held their direction in 74% of the next year's big weeks
+  (75% confirmed), weaker readings 55%.
+
+**What would genuinely add more Clears** (not done here): more forces that
+matter to specific holdings (sector and style spreads already exist as
+extras), and per-holding readings for single stocks, where exposures are larger
+than in diversified funds.

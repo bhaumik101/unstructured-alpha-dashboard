@@ -515,10 +515,43 @@ def _sentence(f: Factor, impact: float, low: float, high: float, evidence: str,
     return text
 
 
+def holm_bars(m: int = None, alpha: float = 0.05) -> List[float]:
+    """Holm's step-down bars for a family of m tests: the largest |t| must clear
+    the Bonferroni bar (CLEAR_T for the five core forces), the next the bar for
+    m-1 tests, and so on, stopping at the first that fails. Same 5% chance of
+    any false Clear as Bonferroni, never fewer Clears."""
+    m = m or len(FACTORS)
+    return [_bonferroni_t(m - i, alpha) for i in range(m)]
+
+
+def _holm_step_down(readings: Dict[str, dict], by_key: Mapping[str, Factor], n: int, min_obs: int,
+                    subject: str, period: str, control: str) -> None:
+    """Promote Tentative core readings that pass Holm's step-down bars to Clear.
+
+    Walk-forward study (docs/RESEARCH_2026-11.md §7): on 35 ETFs over three
+    held-out years it adds about 8% more Clear readings at the same error
+    guarantee; Clear readings held their direction in 73-74% of the next year's
+    big weeks either way. The family is the five core forces, as for CLEAR_T.
+    """
+    if n < min_obs:
+        return
+    bars = holm_bars()
+    ranked = sorted((k for k in readings if math.isfinite(readings[k]["t"])),
+                    key=lambda k: -abs(readings[k]["t"]))
+    for i, k in enumerate(ranked[:len(bars)]):
+        r = readings[k]
+        if abs(r["t"]) < bars[i]:
+            break
+        if r["evidence"] != "clear":
+            f = by_key[k]
+            r.update({"evidence": "clear", "evidence_label": EVIDENCE_LABELS["clear"], "holm": True,
+                      "sentence": _sentence(f, r["impact"], r["low"], r["high"], "clear", subject, period, control)})
+
+
 def _fit_on_frame(frame: pd.DataFrame, ycol: str, factors: Iterable[Factor],
                   min_obs: int, clear_t: float = CLEAR_T,
                   subject: str = "this portfolio", period: str = "weeks",
-                  control: str = "the overall stock market") -> dict:
+                  control: str = "the overall stock market", holm: bool = False) -> dict:
     by_key = {f.key: f for f in factors}
     keys = [k for k in by_key if k in frame.columns]
     n = int(len(frame))
@@ -556,6 +589,9 @@ def _fit_on_frame(frame: pd.DataFrame, ycol: str, factors: Iterable[Factor],
             "vif": factor_vif, "hard_to_separate_from": partner,
             "sentence": _sentence(f, impact, low, high, ev, subject, period, control),
         }
+
+    if holm:
+        _holm_step_down(readings, by_key, n, min_obs, subject, period, control)
 
     # Two different market numbers, kept apart on purpose:
     #   market_beta        the market's coefficient in this joint fit -- its effect
@@ -1011,6 +1047,44 @@ def _require_out_of_sample(fit: dict, frame: pd.DataFrame, ycol: str, factors: I
     return fit
 
 
+# ── confirmation on five years ─────────────────────────────────────────────
+#
+# A Clear reading that is also Clear, in the same direction, when re-measured
+# on five years instead of three held its direction in 75% of the next year's
+# big weeks in the walk-forward study, against 65% for one that was not
+# (docs/RESEARCH_2026-11.md §7). The report shows which is which. Ten years of
+# prices and series are already loaded for the rolling chart, so this costs no
+# extra download.
+CONFIRM_WEEKS = 260
+CONFIRM_MIN_WEEKS = 234                       # 90% of the window, after dropping incomplete weeks
+
+
+def _confirm_long_window(fit: dict, weights: Mapping[str, float], weekly_full: Mapping[str, pd.Series],
+                         market_full: pd.Series, changes_full: Mapping[str, pd.Series],
+                         factors: Iterable[Factor]) -> None:
+    readings = fit.get("readings") or {}
+    clear = [k for k, r in readings.items() if r.get("evidence") == "clear"]
+    if not clear:
+        return
+    try:
+        factors = tuple(factors)
+        long = pd.concat({**{t: weekly_full[t] for t in weights}, "__mkt__": market_full,
+                          **{f.key: changes_full[f.key] for f in factors}}, axis=1).dropna().iloc[-CONFIRM_WEEKS:]
+        if len(long) < CONFIRM_MIN_WEEKS:
+            return
+        long["__portfolio__"] = sum(long[t] * w for t, w in weights.items())
+        lf = _fit_on_frame(long, "__portfolio__", factors, CONFIRM_MIN_WEEKS, holm=True)
+    except Exception:
+        return                                         # no confirmation shown, nothing estimated
+    for k in clear:
+        lr = (lf.get("readings") or {}).get(k)
+        if not lr:
+            continue
+        readings[k]["confirmed_5y"] = bool(lr["evidence"] == "clear"
+                                           and np.sign(lr["impact"]) == np.sign(readings[k]["impact"]))
+        readings[k]["confirm_weeks"] = int(lf["n_obs"])
+
+
 def build_exposure_report(
     holdings: Iterable[dict],
     prices_fetcher: Callable[[List[str], str, str], Mapping[str, pd.Series]],
@@ -1098,7 +1172,7 @@ def build_exposure_report(
     frame["__portfolio__"] = sum(frame[t] * w for t, w in weights.items())
 
     now = frame.iloc[-WINDOW_WEEKS:]
-    portfolio = _require_out_of_sample(_fit_on_frame(now, "__portfolio__", active, MIN_WEEKS),
+    portfolio = _require_out_of_sample(_fit_on_frame(now, "__portfolio__", active, MIN_WEEKS, holm=True),
                                        now, "__portfolio__", active)
     history = (_history_frame(weekly_full, weights, market_full, changes_full, now.index[-1],
                               history_weeks) if history_weeks else None)
@@ -1106,9 +1180,11 @@ def build_exposure_report(
         return _error(f"Exposure couldn't be measured: {portfolio['reason']}.",
                       excluded=excluded, notes=notes)
 
+    _confirm_long_window(portfolio, weights, weekly_full, market_full, changes_full, active)
+
     # Holdings are fitted on exactly the same weeks and regressors as the
     # portfolio, so weight x holding impact sums to the portfolio impact.
-    holding_fits = {t: _require_out_of_sample(_fit_on_frame(now, t, active, MIN_WEEKS, subject=t),
+    holding_fits = {t: _require_out_of_sample(_fit_on_frame(now, t, active, MIN_WEEKS, subject=t, holm=True),
                                               now, t, active, subject=t) for t in weights}
     contributions: Dict[str, List[dict]] = {}
     for key, reading in portfolio["readings"].items():

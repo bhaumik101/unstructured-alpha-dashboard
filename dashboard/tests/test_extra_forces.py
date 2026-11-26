@@ -372,8 +372,9 @@ def test_china_is_measured_beyond_emerging_markets():
 
 @pytest.mark.slow
 def test_the_core_false_clear_rate_is_what_the_methodology_page_says():
-    """The page says fewer than 2 in 100 (measured 80 of 5,000, ~1.6%, over
-    two data generators). It used to say "about 1 in 100", which nothing
+    """The page says fewer than 2 in 100 (measured 10 of 1,000 with Holm's
+    step-down and the inflation check, over two data generators; 80 of 5,000
+    before them). It used to say "about 1 in 100", which nothing
     tested and a simulation contradicted."""
     from tests.test_exposure import _daily_world
 
@@ -391,7 +392,7 @@ def test_the_core_false_clear_rate_is_what_the_methodology_page_says():
 def test_the_methodology_page_states_the_measured_core_rate_not_the_nominal_one():
     src = (_ROOT / "pages" / "63_Methodology.py").read_text(encoding="utf-8")
     assert "about 1 in 100 factor readings" not in src
-    assert "fewer than 2 in 100 factor readings are labelled Clear (80 of 5,000" in src
+    assert "fewer than 2 in 100 factor readings are labelled Clear (10 of 1,000" in src
 
 
 def test_a_force_dominated_by_freak_weeks_is_excluded_not_shown_distorted():

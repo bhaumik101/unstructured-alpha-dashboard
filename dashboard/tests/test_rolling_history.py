@@ -77,7 +77,13 @@ def _report(prices, levels, keep_days=None):
 def test_the_headline_is_identical_with_three_years_or_ten():
     prices, levels = _world()
     long_, short = _report(prices, levels), _report(prices, levels, keep_days=900)
-    assert long_["portfolio"]["readings"] == short["portfolio"]["readings"]
+    # The five-year confirmation (exposure._confirm_long_window) is a note added
+    # beside a reading when five years exist; with ~2.5 years there is nothing to
+    # confirm against, so it is absent. Every number and label must still match.
+    extra = ("confirmed_5y", "confirm_weeks")
+    strip = lambda rs: {k: {f: v for f, v in r.items() if f not in extra} for k, r in rs.items()}  # noqa: E731
+    assert strip(long_["portfolio"]["readings"]) == strip(short["portfolio"]["readings"])
+    assert not any("confirmed_5y" in r for r in short["portfolio"]["readings"].values())
     assert long_["contributions"] == short["contributions"]
     assert long_["series"] == short["series"]
 
