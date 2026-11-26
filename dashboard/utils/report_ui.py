@@ -1387,7 +1387,7 @@ def exposure_table_html(report: dict, held: Optional[dict] = None) -> str:
             f'<div role="cell" class="uar-xnum uar-val">{fmt_pct(r["impact"])}{xp.usd(r["impact"])}</div>'
             f'<div role="cell" class="uar-xnum uar-range"><span class="uar-xlab">90% range </span>'
             f'{fmt_pct(r["low"])} to {fmt_pct(r["high"])}</div>'
-            f'<div role="cell" class="uar-xev">{_evidence_cell(r["evidence"])}</div>'
+            f'<div role="cell" class="uar-xev">{_evidence_cell(r["evidence"])}{xp.downgrade_note(r)}</div>'
             f'<div role="cell" class="uar-driver uar-xhold" title="{escape(full)}">'
             f'<span class="uar-xlab">Main holding </span>{escape(short)}{_top_name(report, key)}</div>'
             '</div>'

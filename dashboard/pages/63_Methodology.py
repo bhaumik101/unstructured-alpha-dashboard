@@ -72,6 +72,8 @@ Prices come from Yahoo Finance and are adjusted for dividends and splits. Holdin
 | **Not distinguishable from zero** | Anything weaker | {ex.EVIDENCE_EXPLAINED['indistinct']} |
 | **Not enough data** | Fewer than {ex.MIN_WEEKS} weeks | {ex.EVIDENCE_EXPLAINED['not_enough_data']} |
 
+**Inflation readings face one more test.** Across 14 test portfolios, Clear readings of interest rates pointed the right way in 90% of big weeks the estimate had never seen, the dollar 78%, oil 66%, but inflation expectations only 50%: a coin flip. So an inflation reading keeps Clear only if it passes that test itself: re-measured on the earlier two-thirds of the weeks, it must point the right way in at least {ex.OOS_PASS:.0%} of the later period's big weeks. Otherwise, or when there are too few weeks to check, it is shown as Tentative and marked "was Clear". Its numbers do not change.
+
 **Why "Clear" is strict.** Testing five factors at once gives five chances for noise to look like a finding. The Clear threshold is corrected for that (Bonferroni: it is set for a 5% error rate shared across five tests). On simulated portfolios with no real exposure, fewer than 2 in 100 factor readings are labelled Clear (80 of 5,000, about 1.6%). That is a little above the 1 in 100 the threshold is set for, because standard errors estimated from three years of weekly data run slightly small; we state the measured rate rather than the nominal one.
 
 ## Sample size and power

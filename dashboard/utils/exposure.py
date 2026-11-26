@@ -961,6 +961,56 @@ def inflation_crosscheck(daily: Mapping[str, pd.Series], weights: Mapping[str, f
             "headline_impact": (headline or {}).get("impact")}
 
 
+# ── forces that must prove themselves on new weeks ─────────────────────────
+#
+# Tested across 14 portfolios (docs/RESEARCH_2026-11.md §6), Clear readings of
+# interest rates matched 90% of big weeks the estimate had never seen, the
+# dollar 78%, oil 66% -- and inflation expectations 50%, a coin flip. So an
+# inflation reading keeps "Clear" only if it passes that test itself: re-fitted
+# on the earlier two-thirds of the weeks, it must point the right way in at
+# least OOS_PASS of the later period's big weeks. Otherwise it is shown as
+# Tentative, with the reason. The numbers are unchanged; only the label is.
+OOS_REQUIRED = ("inflation",)
+OOS_PASS = 0.7
+
+
+def _require_out_of_sample(fit: dict, frame: pd.DataFrame, ycol: str, factors: Iterable[Factor],
+                           subject: str = "this portfolio") -> dict:
+    """Downgrade Clear readings of OOS_REQUIRED forces that fail the new-weeks test."""
+    from utils import evidence as ev
+
+    readings = fit.get("readings") or {}
+    todo = [k for k in OOS_REQUIRED if (readings.get(k) or {}).get("evidence") == "clear"]
+    if not todo:
+        return fit
+    by_key = {f.key: f for f in factors}
+    keys = [k for k in by_key if k in frame.columns and k in readings]
+    col = lambda c: [None if not np.isfinite(v) else float(v) for v in frame[c].to_numpy(dtype=float)]  # noqa: E731
+    series = {"weeks": [str(d.date()) for d in frame.index], "portfolio": col(ycol), "market": col("__mkt__"),
+              "core": {k: col(k) for k in keys}}
+    for k in todo:
+        try:
+            o = ev.out_of_sample(series, k, keys)
+        except Exception:
+            o = None
+        if o and o.get("available") and o["hit_rate"] >= OOS_PASS:
+            readings[k]["oos"] = {"passed": True, "hits": o["hits"], "big_weeks": o["big_weeks"]}
+            continue
+        r, f = readings[k], by_key[k]
+        if o and o.get("available"):
+            why = (f"It did not hold up when re-measured on earlier weeks and checked on later ones "
+                   f"({o['hits']} of {o['big_weeks']} big weeks matched), so it is shown as tentative.")
+            info = {"from": "clear", "hits": o["hits"], "big_weeks": o["big_weeks"], "reason": "failed"}
+        else:
+            why = ("There were too few weeks to check it on data it had not seen, so it is shown as "
+                   "tentative until it can be.")
+            info = {"from": "clear", "reason": "untested"}
+        r.update({"evidence": "tentative", "evidence_label": EVIDENCE_LABELS["tentative"], "downgraded": info,
+                  "sentence": _sentence(f, r["impact"], r["low"], r["high"], "tentative", subject).replace(
+                      " The evidence is tentative.", " " + why)})
+    return fit
+
+
 def build_exposure_report(
     holdings: Iterable[dict],
     prices_fetcher: Callable[[List[str], str, str], Mapping[str, pd.Series]],
@@ -1048,7 +1098,8 @@ def build_exposure_report(
     frame["__portfolio__"] = sum(frame[t] * w for t, w in weights.items())
 
     now = frame.iloc[-WINDOW_WEEKS:]
-    portfolio = _fit_on_frame(now, "__portfolio__", active, MIN_WEEKS)
+    portfolio = _require_out_of_sample(_fit_on_frame(now, "__portfolio__", active, MIN_WEEKS),
+                                       now, "__portfolio__", active)
     history = (_history_frame(weekly_full, weights, market_full, changes_full, now.index[-1],
                               history_weeks) if history_weeks else None)
     if not portfolio["available"]:
@@ -1057,7 +1108,8 @@ def build_exposure_report(
 
     # Holdings are fitted on exactly the same weeks and regressors as the
     # portfolio, so weight x holding impact sums to the portfolio impact.
-    holding_fits = {t: _fit_on_frame(now, t, active, MIN_WEEKS, subject=t) for t in weights}
+    holding_fits = {t: _require_out_of_sample(_fit_on_frame(now, t, active, MIN_WEEKS, subject=t),
+                                              now, t, active, subject=t) for t in weights}
     contributions: Dict[str, List[dict]] = {}
     for key, reading in portfolio["readings"].items():
         rows = []
