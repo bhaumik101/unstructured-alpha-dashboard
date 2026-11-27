@@ -645,6 +645,8 @@ def fit_extras(frame: pd.DataFrame, ycol: str, core: Iterable[Factor],
         fx = frame.join(ch.rename(f.key), how="inner").dropna()
         fit = _fit_on_frame(fx, ycol, core + (f,), MIN_WEEKS, EXTRA_CLEAR_T, subject,
                             control=CORE_CONTROL)
+        if f.key in OOS_REQUIRED:
+            fit = _require_out_of_sample(fit, fx, ycol, core + (f,), subject, control=CORE_CONTROL)
         reading = fit["readings"].get(f.key)
         if reading:
             out[f.key] = dict(reading, group=f.group)
@@ -1006,12 +1008,17 @@ def inflation_crosscheck(daily: Mapping[str, pd.Series], weights: Mapping[str, f
 # on the earlier two-thirds of the weeks, it must point the right way in at
 # least OOS_PASS of the later period's big weeks. Otherwise it is shown as
 # Tentative, with the reason. The numbers are unchanged; only the label is.
-OOS_REQUIRED = ("inflation",)
+# Extras whose Clear readings held up no better than about a coin flip in the
+# walk-forward test of extra forces (docs/RESEARCH_2026-11.md §9, ~105 stocks and
+# funds x 3 held-out years): China 56%, natural gas 52%, mortgage rates 50%,
+# momentum 61%, bitcoin 64%. They face the same per-reading test.
+OOS_REQUIRED = ("inflation", "china", "natgas", "mortgage", "momentum", "bitcoin")
 OOS_PASS = 0.7
 
 
 def _require_out_of_sample(fit: dict, frame: pd.DataFrame, ycol: str, factors: Iterable[Factor],
-                           subject: str = "this portfolio") -> dict:
+                           subject: str = "this portfolio",
+                           control: str = "the overall stock market") -> dict:
     """Downgrade Clear readings of OOS_REQUIRED forces that fail the new-weeks test."""
     from utils import evidence as ev
 
@@ -1042,7 +1049,8 @@ def _require_out_of_sample(fit: dict, frame: pd.DataFrame, ycol: str, factors: I
                    "tentative until it can be.")
             info = {"from": "clear", "reason": "untested"}
         r.update({"evidence": "tentative", "evidence_label": EVIDENCE_LABELS["tentative"], "downgraded": info,
-                  "sentence": _sentence(f, r["impact"], r["low"], r["high"], "tentative", subject).replace(
+                  "sentence": _sentence(f, r["impact"], r["low"], r["high"], "tentative", subject,
+                                        control=control).replace(
                       " The evidence is tentative.", " " + why)})
     return fit
 

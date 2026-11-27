@@ -208,3 +208,40 @@ the other forces (style, currency, commodity) in the summary, labelled "not yet
 tested on new weeks" because this study covered the five core forces.
 Check on XOM: oil Clear, 25 of 29 big new weeks matched, 5-yr confirmed; its
 weekly beta of 0.09 over 2023-26 was verified against raw prices (corr 0.06).
+
+## 9. The extra forces on new weeks, and a bigger stock library (2026-11-27)
+
+**Extras.** `scripts/study_extras_oos.py`: 70 stocks + 29 funds, each of the 14
+measurable extra forces, three held-out years, the engine's own extra model
+(market + core five + that extra) and bar (EXTRA_CLEAR_T). 4,116 readings.
+
+| Extra force (Clear) | Held up next year | Big weeks |
+|---|---|---|
+| Value vs growth | **82%** | 3,552 |
+| Emerging markets | **78%** | 212 |
+| Copper | **72%** | 172 |
+| Small vs large | **71%** | 1,627 |
+| Euro | 85% | 95 (too few to count) |
+| Short-term rates | 97% | 35 (too few) |
+| Volatility | 69% | 107 |
+| Gold | 66% | 541 |
+| Bitcoin | 64% | 42 |
+| Momentum | 61% | 189 |
+| China | 56% | 215 |
+| Natural gas | 52% | 48 |
+| Mortgage rates | 50% | 26 |
+| *All extras: Clear / Tentative / none* | *76% / 57% / 52%* | |
+
+**Shipped (#402).** Summaries name the clearest extra force, preferring ones
+that held up (≥ 70% over ≥ 150 big weeks: value, size, emerging, copper) and
+saying so ("held up on new weeks 82% of the time in our tests"); others say
+"not yet tested enough". China, natural gas, mortgage rates, momentum and
+bitcoin join inflation in `OOS_REQUIRED`: Clear only if the reading passes its
+own new-weeks test, otherwise Tentative, marked "was Clear".
+
+**Library.** The weekly job now also measures the S&P MidCap 400
+(`cron/sp400.csv`, 399 names not in the S&P 500, from Wikipedia's constituent
+table on 2026-11-27): ~945 companies instead of ~545. Capacity is ~900 a run
+(12 passes × ~75); the first run measures the new names first, and any S&P
+500 refreshes it cannot reach move to the next week. `/pipeline-status`
+reports `midcap_size` and `midcap_measured`.

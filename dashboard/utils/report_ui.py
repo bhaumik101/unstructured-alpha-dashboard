@@ -1050,13 +1050,15 @@ def plain_english_html(report: dict, proof: Optional[Mapping[str, dict]] = None,
     # sectors): for single stocks it is often the strongest finding. Labelled as
     # not tested on new weeks: the walk-forward study covered the five core forces.
     xr = ((report.get("extras") or {}).get("readings") or {})
-    xclear = sorted((k for k, r in xr.items() if r.get("evidence") == "clear"), key=lambda k: -abs(xr[k]["t"]))
+    # Forces whose readings held up in the walk-forward test come first.
+    xclear = sorted((k for k, r in xr.items() if r.get("evidence") == "clear"),
+                    key=lambda k: (not xp.extra_proven(k), -abs(xr[k]["t"])))
     if xclear:
         r = xr[xclear[0]]
         rows.append(row(factor_icon(xclear[0], 30) if xclear[0] in _GLYPHS else "◆",
                         f'Among the other forces we track, the clearest is <b>{escape(ex.lower_label(r["label"]))}</b>: '
                         f'in weeks when {escape(r["shock_phrase"])}, {noun} typically {xp.usd_verb(r["impact"])} '
-                        '(not yet tested on new weeks).'))
+                        f'({escape(xp.extra_verdict(xclear[0], r))}).'))
     if none:
         rows.append(row("○", f'{xp.term("indistinct", "No measurable link")} to {_join([force(k) for k in none])} '
                              f'over these {p["n_obs"]} weeks. That can mean a small effect, not necessarily none.'))

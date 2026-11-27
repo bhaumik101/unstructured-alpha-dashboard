@@ -43,11 +43,11 @@ def test_a_portfolio_summary_is_unchanged():
     assert "this mix" in html and "mostly through VXUS" in html
 
 
-def test_the_clearest_other_force_is_shown_and_labelled_untested():
+def test_the_clearest_other_force_is_shown_with_its_tested_record():
     rep = _stock_report(_VALUE)
     html = ui.plain_english_html(rep, ev.evidence(rep), stock="XOM")
     assert "the clearest is <b>value vs growth</b>" in html            # the larger |t| of the two Clear ones
-    assert "(not yet tested on new weeks)" in html and "small vs large" not in html.lower()
+    assert "held up on new weeks 82% of the time in our tests" in html and "small vs large" not in html.lower()
     assert "Among the other forces" not in ui.plain_english_html(_stock_report({}), {}, stock="XOM")
 
 
@@ -77,3 +77,16 @@ def test_the_stock_page_shows_all_three():
     assert "ui.proof_html(report, _proof, stock=ticker)" in page
     assert "_xp.glossary_html(" in page
     assert page.index("plain_english_html") < page.index("exposure_table_html")   # the answer comes first
+
+
+def test_a_proven_force_is_preferred_and_an_untested_one_says_so():
+    extras = {"gold": {"label": "Gold", "impact": 0.3, "t": 9.0, "evidence": "clear", "shock_phrase": "gold rose 10%"},
+              "size": {"label": "Small vs large companies", "impact": 0.2, "t": 3.0, "evidence": "clear",
+                       "shock_phrase": "small companies beat large ones by 1 percentage point"}}
+    html = ui.plain_english_html(_stock_report(extras), {}, stock="XOM")
+    assert "the clearest is <b>small vs large companies</b>" in html            # proven (71%) beats a larger t
+    only_gold = ui.plain_english_html(_stock_report({"gold": extras["gold"]}), {}, stock="XOM")
+    assert "not yet tested enough on new weeks" in only_gold
+    passed = dict(extras["gold"], oos={"passed": True, "hits": 9, "big_weeks": 11})
+    assert "passed its own test on new weeks: 9 of 11" in xp.extra_verdict("gold", passed)
+    assert xp.extra_proven("value") and not xp.extra_proven("euro")        # euro: too few weeks to count

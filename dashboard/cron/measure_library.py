@@ -35,6 +35,8 @@
 # (source: github.com/datasets/s-and-p-500-companies), in Yahoo ticker form
 # (BRK-B, not BRK.B). Index changes are a few a quarter; refresh it by hand.
 #
+# Since 2026-11-27 it also measures the S&P MidCap 400 (cron/sp400.csv).
+#
 # Scheduled as the first job of the "weekly-universe" group (cron/run_group.py,
 # render.yaml's grow-universe service), with the defaults below.
 # Run manually from dashboard/:
@@ -58,6 +60,12 @@ if str(_here) not in sys.path:
 from utils.memory import release_memory  # noqa: E402
 
 CONSTITUENTS = Path(__file__).resolve().parent / "sp500.csv"
+# The S&P MidCap 400 (cron/sp400.csv, from Wikipedia's constituent list on
+# 2026-11-27; names also in the S&P 500 removed). Added so the library -- and
+# the public /exposure pages -- cover ~900 U.S. companies, not ~500. One run
+# measures ~900 (12 passes x ~75), so after the first week the two indexes fit;
+# that first week the 399 never-measured names go first, as any new name does.
+MIDCAPS = Path(__file__).resolve().parent / "sp400.csv"
 # Its own ceiling, not the scorer's 390MB. Live on 2026-10-04 the library
 # stopped on that guard after three batches (75 of 426 stocks) at 422MB --
 # still 90MB under Render's 512MB limit -- so at that pace the index took six
@@ -77,6 +85,15 @@ def _log(event: str, **fields) -> None:
         pass
     print(f"[measure_library] {event} " + " ".join(f"{k}={v}" for k, v in fields.items()),
           flush=True)
+
+
+def load_midcaps(path: Path = MIDCAPS) -> List[Target]:
+    """(ticker, name) for each S&P MidCap 400 company not already in the S&P 500 list."""
+    if not path.exists():
+        return []
+    with open(path, newline="", encoding="utf-8") as fh:
+        return [(r["ticker"].strip().upper(), r["name"].strip())
+                for r in csv.DictReader(fh) if r.get("ticker", "").strip()]
 
 
 def load_constituents(path: Path = CONSTITUENTS) -> List[Target]:
@@ -258,7 +275,7 @@ def _one_pass(args: argparse.Namespace) -> int:
     from utils.funds import load_funds
     # The index, then the widely held ETFs (cron/etfs.csv): funds are what most
     # retail investors actually own.
-    targets = [t for t in plan_targets(load_constituents() + load_funds(), lib.latest(limit=5000), now,
+    targets = [t for t in plan_targets(load_constituents() + load_midcaps() + load_funds(), lib.latest(limit=5000), now,
                                        args.fresh_days) if t[0] not in skip][:args.budget]
     _log("start", targets=len(targets), skipped=len(skip), rss_mb=round(_rss_mb(), 1))
     if not targets:
