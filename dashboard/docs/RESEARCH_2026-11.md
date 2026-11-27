@@ -175,3 +175,36 @@ Clears is not what limits the product.
 matter to specific holdings (sector and style spreads already exist as
 extras), and per-holding readings for single stocks, where exposures are larger
 than in diversified funds.
+
+## 8. Single stocks: do their readings hold up? (2026-11-27)
+
+Same walk-forward design as §7 on 70 large U.S. stocks across sectors (tech,
+banks, energy producers and refiners, utilities, staples, homebuilders,
+industrials, health care, REITs, materials, autos), three held-out years,
+2,095 readings, 3-year window, Holm labels.
+
+| Stock readings | Held up next year |
+|---|---|
+| Clear | **71%** (151) |
+| Clear, 5-yr confirmed | **74%** (109) |
+| Clear, not confirmed | 60% (42) |
+| Tentative | 56% |
+| Not distinguishable | 51% |
+
+By force (Clear): rates 78%, oil 78%, dollar 62%, inflation **36%** (12; worse
+than chance, which the §6 inflation check now screens), credit 6/8.
+
+Single stocks give FEWER core Clears per reading than funds (14% vs ~30%):
+company news is noise the five forces do not explain. In the stock library
+(545 stocks, live `/exposure.csv`) 469 (86%) have at least one Clear reading,
+mostly through style and extra forces (value 60%, size 31%, momentum 23%) plus
+rates (23%) and oil (15%).
+
+**Shipped (#401).** The stock page now opens with the plain-English answer
+("If you had $10,000 in XOM…", in dollars, with each reading's held-up
+verdict), shows the proof panel with the stock track record, the dollar view
+and the glossary. Portfolio reports and stock pages also name the clearest of
+the other forces (style, currency, commodity) in the summary, labelled "not yet
+tested on new weeks" because this study covered the five core forces.
+Check on XOM: oil Clear, 25 of 29 big new weeks matched, 5-yr confirmed; its
+weekly beta of 0.09 over 2023-26 was verified against raw prices (corr 0.06).

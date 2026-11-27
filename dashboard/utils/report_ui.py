@@ -969,11 +969,16 @@ _MARKET_ICON = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
                 '<polyline points="15 7 21 7 21 13"/></svg>')
 
 
-def plain_english_html(report: dict, proof: Optional[Mapping[str, dict]] = None) -> str:
+def plain_english_html(report: dict, proof: Optional[Mapping[str, dict]] = None,
+                       stock: Optional[str] = None) -> str:
     """The report in three sentences a first-time investor can read, in dollars
     for an amount they type (utils/explain.py fills the figures). Built from the
-    same readings as everything below it; it adds no new claim."""
+    same readings as everything below it; it adds no new claim.
+
+    stock: a ticker when the report is one stock (the stock page): the wording
+    names it instead of "this mix", and "mostly through" is dropped."""
     p = report["portfolio"]
+    noun = escape(stock) if stock else "this mix"
     readings = p["readings"]
     order = ordered_keys(report)
     clear = [k for k in order if readings[k]["evidence"] == "clear"]
@@ -989,6 +994,8 @@ def plain_english_html(report: dict, proof: Optional[Mapping[str, dict]] = None)
         return xp.term(xp.FORCE_TERM[k], words) if k in xp.FORCE_TERM else escape(words)
 
     def through(k: str) -> str:
+        if stock:
+            return ""
         rows = report["contributions"].get(k, [])
         if rows and (rows[0].get("share") or 0) >= 0.5:
             return f", mostly through {escape(hn.with_name(rows[0]['ticker']))}"
@@ -1016,7 +1023,7 @@ def plain_english_html(report: dict, proof: Optional[Mapping[str, dict]] = None)
     beta = p.get("market_beta_total")
     if beta is not None and math.isfinite(beta):
         rows.append(row(_MARKET_ICON,
-                        f'<b>The stock market comes first.</b> In a week the U.S. stock market rose 1%, this mix '
+                        f'<b>The stock market comes first.</b> In a week the U.S. stock market rose 1%, {noun} '
                         f'typically {xp.usd_verb(beta)} ({beta:.2f}× the market).'))
     if clear:
         k = clear[0]
@@ -1039,12 +1046,24 @@ def plain_english_html(report: dict, proof: Optional[Mapping[str, dict]] = None)
                         f'chance ({xp.term("tentative", "tentative")}).'))
     else:
         rows.append(row("·", "<b>Beyond the market, no economic force clearly moved it.</b>"))
+    # The clearest of the other forces measured (styles, currencies, commodities,
+    # sectors): for single stocks it is often the strongest finding. Labelled as
+    # not tested on new weeks: the walk-forward study covered the five core forces.
+    xr = ((report.get("extras") or {}).get("readings") or {})
+    xclear = sorted((k for k, r in xr.items() if r.get("evidence") == "clear"), key=lambda k: -abs(xr[k]["t"]))
+    if xclear:
+        r = xr[xclear[0]]
+        rows.append(row(factor_icon(xclear[0], 30) if xclear[0] in _GLYPHS else "◆",
+                        f'Among the other forces we track, the clearest is <b>{escape(ex.lower_label(r["label"]))}</b>: '
+                        f'in weeks when {escape(r["shock_phrase"])}, {noun} typically {xp.usd_verb(r["impact"])} '
+                        '(not yet tested on new weeks).'))
     if none:
         rows.append(row("○", f'{xp.term("indistinct", "No measurable link")} to {_join([force(k) for k in none])} '
                              f'over these {p["n_obs"]} weeks. That can mean a small effect, not necessarily none.'))
     return ('<div class="uar"><div class="upe" role="region" aria-label="The report in plain English">'
             '<div class="upe-k"><i></i>In plain English</div>'
-            f'<div class="upe-lead">If you had {xp.amount_input()} in this mix, here is how it has '
+            f'<div class="upe-lead">If you had {xp.amount_input()} in '
+            f'{escape(hn.with_name(stock)) if stock else "this mix"}, here is how it has '
             'typically moved in a single week:</div>'
             f'<ul class="upe-rows">{"".join(rows)}</ul>'
             f'<div class="upe-foot">Typical moves in weeks like those, {escape(fmt_date(p["start"]))} to '
@@ -1061,11 +1080,13 @@ def _oos_verdict(o: Optional[dict]) -> Tuple[str, str]:
     return "warn", "Did not hold up on new weeks"
 
 
-def proof_html(report: dict, proof: Mapping[str, dict]) -> str:
+def proof_html(report: dict, proof: Mapping[str, dict], stock: Optional[str] = None) -> str:
     """Did each reading show up in real weeks? One glass card per Clear or
     Tentative force: its biggest weeks as bars (the portfolio's move beyond the
     market, coloured by whether it went the way the reading says), the average
     gap in dollars, and the out-of-sample test. Empty when nothing to show."""
+    noun = escape(stock) if stock else "this mix"
+    noun_pos = f"{escape(stock)}&#39;s" if stock else "this mix&#39;s"
     readings = report["portfolio"]["readings"]
     keys = [k for k in ordered_keys(report) if k in proof and (proof[k] or {}).get("big")][:3]
     if not keys:
@@ -1080,7 +1101,7 @@ def proof_html(report: dict, proof: Mapping[str, dict]) -> str:
             f'<i class="upf-bar {"upf-yes" if x["agrees"] else "upf-no"}{" upf-neg" if x["beyond"] < 0 else ""}" '
             f'style="height:{max(4.0, 50.0 * abs(x["beyond"]) / top):.1f}%" '
             f'title="Week of {escape(fmt_date(x["week"]))}: {escape(name)} moved {abs(x["z"]):.1f}× a typical week '
-            f'{"up" if x["move"] > 0 else "down"}; this mix moved {fmt_pct(x["beyond"])} beyond the market '
+            f'{"up" if x["move"] > 0 else "down"}; {noun} moved {fmt_pct(x["beyond"])} beyond the market '
             f'({"the way this reading says" if x["agrees"] else "the other way"})"></i>'
             for x in b["rows"])
         aria = f'{b["agree"]} of {b["n"]} biggest weeks went the way the reading says'
@@ -1102,16 +1123,17 @@ def proof_html(report: dict, proof: Mapping[str, dict]) -> str:
             f'{xp.confirmed_note(r)}<span class="upf-pill">{escape(pill)}</span></div>'
             f'<div class="upf-strip" role="img" aria-label="{escape(aria)}">'
             f'<i class="upf-zero"></i>{bars}</div>'
-            f'<p class="upf-text">In the <b>{b["n"]} weeks</b> {escape(name)} moved most, this mix went the way '
+            f'<p class="upf-text">In the <b>{b["n"]} weeks</b> {escape(name)} moved most, {noun} went the way '
             f'this reading says <b>{times}</b>, {gap}.</p>{oos}</div>')
     return ('<div class="uar"><div class="uxc upf-wrap"><div class="uxc-head">'
             '<span class="uxc-k">Did it show up in real weeks?</span>'
             '<span class="uxc-pill">The evidence, week by week</span></div>'
             f'<div class="upf-grid">{"".join(cards)}</div>'
-            '<div class="uxc-foot">Bars: this mix&#39;s move beyond the stock market and the other forces in each of the force&#39;s biggest weeks; '
+            f'<div class="uxc-foot">Bars: {noun_pos} move beyond the stock market and the other forces in each of the force&#39;s biggest weeks; '
             'teal went the way the reading says, red the other way. Hover a bar for the week. The new-weeks test re-measures '
             'on the earlier two-thirds of the data and checks the rest. Across 14 test portfolios, interest-rate readings '
-            'matched 90% of big new weeks, the dollar 78%, oil 66% and inflation 50%. ' + escape(xp.TRACK_RECORD)
+            'matched 90% of big new weeks, the dollar 78%, oil 66% and inflation 50%. '
+            + escape(xp.TRACK_RECORD_STOCKS if stock else xp.TRACK_RECORD)
             + ' It describes the past; it is not a forecast.</div></div></div>')
 
 def rates_split_html(report: dict) -> str:

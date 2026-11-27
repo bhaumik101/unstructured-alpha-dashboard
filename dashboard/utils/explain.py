@@ -173,6 +173,11 @@ TRACK_RECORD = ("Tested walk-forward on 35 funds over three held-out years, Clea
                 "74% of the next year's big weeks (75% when confirmed on five years); weaker readings, 55%.")
 
 
+TRACK_RECORD_STOCKS = ("Tested the same way on 70 single stocks over three held-out years, Clear readings held their "
+                       "direction in 71% of the next year's big weeks (74% when confirmed on five years); weaker "
+                       "readings, 51-56%.")
+
+
 def glossary_html(keys) -> str:
     """A compact glass card of the words used on the page: tap any to read it."""
     items = "".join(f'<li>{term(k)}</li>' for k in dict.fromkeys(keys) if k in GLOSSARY)

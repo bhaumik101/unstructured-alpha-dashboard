@@ -122,6 +122,15 @@ lib.record(report, name)
 record_once("stock_page_viewed", dedupe_key=f"stock_page_viewed:{ticker}", ticker=ticker)
 
 st.markdown(sui.stock_header_html(ticker, name, report), unsafe_allow_html=True)
+# The answer first, in plain English and dollars, with whether each reading
+# held up on weeks it had never seen (utils/evidence.py) -- as on the report.
+from utils import evidence as _ev  # noqa: E402
+from utils import explain as _xp  # noqa: E402
+try:
+    _proof = _ev.evidence(report)
+except Exception:
+    _proof = {}
+st.markdown(ui.plain_english_html(report, _proof, stock=ticker), unsafe_allow_html=True)
 _summary_col, _map_col = st.columns([1.05, 1], gap="large")
 with _summary_col:
     st.markdown(f'<div class="uar"><p class="uar-lead">{sui.as_stock(ui.summary_text(report))}</p></div>',
@@ -129,6 +138,9 @@ with _summary_col:
 with _map_col:
     st.markdown(sui.as_stock(ui.exposure_map_html(report), ticker), unsafe_allow_html=True)
 st.markdown(sui.as_stock(ui.exposure_table_html(report)), unsafe_allow_html=True)
+_proof_html = ui.proof_html(report, _proof, stock=ticker)
+if _proof_html:
+    st.markdown(_proof_html, unsafe_allow_html=True)
 _extras = ui.extras_html(report, subject="stock")
 if _extras:
     st.markdown(f"## {ticker} and more forces")
@@ -148,6 +160,11 @@ if _table:
 else:
     st.caption(f"This is the first week of {ticker} on record here. Each week it is viewed adds "
                "a row, so how its exposures shift can be followed over time.")
+
+st.markdown(_xp.glossary_html(
+    [_xp.FORCE_TERM[k] for k in order if k in _xp.FORCE_TERM]
+    + ["market", "beta", "range90", "clear", "tentative", "indistinct", "smb", "hml", "risk", "diversification"]),
+    unsafe_allow_html=True)
 
 st.markdown("## Use it")
 _port_col, _cmp_col, _stress_col, _ = st.columns([1.3, 1.3, 1.3, 0.7])
