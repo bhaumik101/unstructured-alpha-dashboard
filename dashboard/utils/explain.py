@@ -147,12 +147,12 @@ def downgrade_note(reading: dict) -> str:
     if not d:
         return ""
     if d.get("reason") == "failed":
-        body = (f"This reading passed the usual test, but inflation readings must also hold up on weeks the "
-                f"estimate never saw. Re-measured on earlier weeks and checked on later ones, it matched "
+        body = (f"This reading passed the usual test, but readings of this force must also hold up on weeks "
+                f"the estimate never saw, because across our tests they often did not. Re-measured on earlier weeks and checked on later ones, it matched "
                 f"{d['hits']} of {d['big_weeks']} big weeks, so it is shown as Tentative.")
     else:
-        body = ("This reading passed the usual test, but inflation readings must also hold up on weeks the "
-                "estimate never saw, and there were too few weeks to check. It is shown as Tentative until it can be.")
+        body = ("This reading passed the usual test, but readings of this force must also hold up on weeks "
+                "the estimate never saw, and there were too few weeks to check. It is shown as Tentative until it can be.")
     return tip("was Clear", "Downgraded after a stricter test", body, "uar-down")
 
 
@@ -171,6 +171,31 @@ def confirmed_note(reading: dict) -> str:
 
 TRACK_RECORD = ("Tested walk-forward on 35 funds over three held-out years, Clear readings held their direction in "
                 "74% of the next year's big weeks (75% when confirmed on five years); weaker readings, 55%.")
+
+
+# Walk-forward results for the extra forces (docs/RESEARCH_2026-11.md §9):
+# key -> (% of next-year big weeks a Clear reading pointed the right way, big weeks tested).
+EXTRA_TRACK = {"value": (82, 3552), "size": (71, 1627), "emerging": (78, 212), "copper": (72, 172),
+               "euro": (85, 95), "short_rates": (97, 35), "volatility": (69, 107), "gold": (66, 541),
+               "bitcoin": (64, 42), "momentum": (61, 189), "china": (56, 215), "natgas": (52, 48),
+               "mortgage": (50, 26)}
+EXTRA_PROVEN_MIN = (70, 150)          # held up at least 70% over at least 150 big weeks
+
+
+def extra_proven(key: str) -> bool:
+    held, n = EXTRA_TRACK.get(key, (0, 0))
+    return held >= EXTRA_PROVEN_MIN[0] and n >= EXTRA_PROVEN_MIN[1]
+
+
+def extra_verdict(key: str, reading: dict) -> str:
+    """How far an extra force's Clear reading is backed by the walk-forward test."""
+    held, n = EXTRA_TRACK.get(key, (0, 0))
+    if extra_proven(key):
+        return f"readings like this held up on new weeks {held}% of the time in our tests"
+    if (reading.get("oos") or {}).get("passed"):
+        o = reading["oos"]
+        return f"it passed its own test on new weeks: {o['hits']} of {o['big_weeks']} big weeks matched"
+    return "not yet tested enough on new weeks"
 
 
 TRACK_RECORD_STOCKS = ("Tested the same way on 70 single stocks over three held-out years, Clear readings held their "

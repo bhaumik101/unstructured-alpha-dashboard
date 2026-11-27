@@ -71,7 +71,9 @@ def test_the_engine_applies_it_to_the_portfolio_and_every_holding():
     src = inspect.getsource(ex.build_exposure_report)
     assert 'portfolio = _require_out_of_sample(_fit_on_frame(now, "__portfolio__"' in src
     assert "_require_out_of_sample(_fit_on_frame(now, t," in src
-    assert ex.OOS_REQUIRED == ("inflation",) and ex.OOS_PASS == 0.7
+    assert ex.OOS_REQUIRED == ("inflation", "china", "natgas", "mortgage", "momentum", "bitcoin")
+    assert ex.OOS_PASS == 0.7
+    assert "if f.key in OOS_REQUIRED:" in inspect.getsource(ex.fit_extras)        # extras face it too
 
 
 def test_the_table_marks_a_downgraded_reading(monkeypatch):
@@ -84,3 +86,18 @@ def test_the_table_marks_a_downgraded_reading(monkeypatch):
     assert html.count("was Clear") == 1 and "Downgraded after a stricter test" in html
     assert re.search(r"matched \d+ of \d+ big weeks", html)
     assert xp.downgrade_note({"evidence": "clear"}) == ""
+
+
+def test_a_weak_extra_force_that_fails_new_weeks_is_shown_as_tentative():
+    import numpy as np
+    rng = np.random.default_rng(5)
+    frame = _frame(b_infl=0.0)
+    n = len(frame)
+    mom = pd.Series(rng.normal(0, 1.0, n), frame.index)
+    b = np.full(n, 1.5)
+    b[130:] = -1.5          # reverses for the last 26 weeks: Clear over the window, a coin flip on new weeks
+    frame["__portfolio__"] = frame["__portfolio__"] + b * mom.to_numpy()
+    out = ex.fit_extras(frame, "__portfolio__", ex.FACTORS, {"momentum": mom})
+    r = out["momentum"]
+    assert r["evidence"] == "tentative" and r["downgraded"]["reason"] == "failed"
+    assert "the overall stock market" not in r["sentence"] or ex.CORE_CONTROL in r["sentence"]

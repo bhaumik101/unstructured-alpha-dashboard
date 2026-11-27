@@ -29,7 +29,7 @@ def test_the_list_is_clean_and_has_no_market_tracker():
 def test_the_weekly_job_targets_the_funds(monkeypatch):
     import cron.measure_library as ml
     src = open(ml.__file__, encoding="utf-8").read()
-    assert "load_constituents() + load_funds()" in src
+    assert "load_constituents() + load_midcaps() + load_funds()" in src
     targets = ml.plan_targets(ml.load_constituents() + fd.load_funds(), [], ml.datetime(2026, 11, 3,
                               tzinfo=ml.timezone.utc), fresh_days=5)
     assert {"TLT", "SCHD"} <= {t for t, _ in targets}

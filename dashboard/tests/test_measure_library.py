@@ -50,6 +50,25 @@ def test_every_listed_symbol_would_get_a_page():
     assert all(SYMBOL_RE.match(t) for t, _ in ml.load_constituents())
 
 
+def test_the_midcap_list_adds_about_four_hundred_new_companies():
+    from utils.exposure_pages import SYMBOL_RE
+
+    mid = ml.load_midcaps()
+    tickers = [t for t, _ in mid]
+    assert 380 <= len(mid) <= 410, "the S&P MidCap 400, less names also in the S&P 500"
+    assert len(set(tickers)) == len(tickers) and all(name for _, name in mid)
+    assert not set(tickers) & {t for t, _ in ml.load_constituents()}, "no company measured twice"
+    assert all(SYMBOL_RE.match(t) for t in tickers)
+    assert dict(mid)["ZION"] == "Zions Bancorporation"
+
+
+def test_the_weekly_run_measures_both_indexes_largest_first():
+    assert "load_constituents() + load_midcaps()" in open(ml.__file__).read()
+    plan = ml.plan_targets(ml.load_constituents() + ml.load_midcaps(), [], NOW, fresh_days=6)
+    assert len(plan) == len({t for t, _ in plan}) >= 880
+    assert [t for t, _ in plan[:3]] == ml.PRIORITY[:3]       # the largest S&P 500 names still lead
+
+
 # ── what to measure ─────────────────────────────────────────────────────────
 
 def test_never_measured_first_then_oldest_and_fresh_ones_skipped():
@@ -173,6 +192,7 @@ def test_a_run_that_measures_nothing_fails(monkeypatch, store):
     monkeypatch.setattr(db, "init_db", lambda: None)
     monkeypatch.setattr(fetchers, "fetch_prices_batch", lambda *a: {})
     monkeypatch.setattr(ml, "load_constituents", lambda: [("AAA", "A Co")])
+    monkeypatch.setattr(ml, "load_midcaps", lambda: [])           # the S&P 500 list only, for this test
     assert ml.main(["--budget", "1", "--passes", "1"]) == 1
 
 
@@ -400,6 +420,7 @@ def test_a_pass_writes_its_status_for_the_supervisor(monkeypatch, store, tmp_pat
     monkeypatch.setattr(db, "init_db", lambda: None)
     monkeypatch.setattr(fetchers, "fetch_prices_batch", lambda *a: {})
     monkeypatch.setattr(ml, "load_constituents", lambda: [("AAA", "A Co"), ("BBB", "B Co")])
+    monkeypatch.setattr(ml, "load_midcaps", lambda: [])           # the S&P 500 list only, for this test
     import utils.funds as funds
     monkeypatch.setattr(funds, "load_funds", lambda: [])     # the index only, for this test
     path = tmp_path / "status.json"
