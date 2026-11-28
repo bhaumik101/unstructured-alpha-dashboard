@@ -37,8 +37,16 @@ product_page_header(
     eyebrow="Out-of-sample evidence",
 )
 
+# The walk-forward studies (docs/RESEARCH_2026-11.md §6-9), drawn: always
+# shown, whatever the weekly study below has published so far.
+from utils import walkforward_ui as wf  # noqa: E402
+st.markdown(wf.WF_CSS, unsafe_allow_html=True)
+st.markdown("## Tested on weeks they never saw")
+st.markdown(wf.section_html(), unsafe_allow_html=True)
+
 result = tr.latest()
 if not result or not result.get("available"):
+    st.markdown("## The weekly S&P 500 study")
     st.markdown(tui.empty_html(), unsafe_allow_html=True)
 else:
     st.markdown(tui.coverage_html(result), unsafe_allow_html=True)

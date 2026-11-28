@@ -4213,6 +4213,20 @@ def render_page_header(title: str, subtitle: str = "",
     # put the {icon} span back.
     icon_html = ""
 
+    # A page on the product theme (utils/app_theme.EXTRA_PRODUCT_PAGES and the
+    # redesign pages) gets the same glass hero band as the rest of the product,
+    # not this plain title. Detected from the caller, as render_header() does.
+    try:
+        import inspect
+
+        from utils.app_theme import is_product_page, product_page_header
+        _caller = inspect.currentframe().f_back
+        if is_product_page(_caller.f_globals.get("__file__") if _caller else None):
+            product_page_header(title, subtitle)
+            return
+    except Exception:
+        pass
+
     stat_html = (
         f'<div style="display:inline-flex;align-items:center;gap:6px;'
         f'background:var(--ua-bg-card);border:1px solid rgba(var(--ua-onbg-rgb),0.09);'

@@ -869,7 +869,45 @@ html:not([data-ua-theme="light"]) .stApp [data-testid="stFileUploaderFile"] div{
 # product. 29_Upgrade.py is here because Stripe's success_url, the Pro gates,
 # referral links and several emails all point at /upgrade-to-pro; the route
 # cannot move, so the page comes to the theme instead.
-EXTRA_PRODUCT_PAGES = frozenset({"29_Upgrade.py"})
+# Account, legal and evidence pages are linked from the top bar's menus, so a
+# visitor reaches them from inside the product; until 2026-11-28 they kept the
+# pre-redesign look (floating nav, blue buttons, a left menu column).
+EXTRA_PRODUCT_PAGES = frozenset({"29_Upgrade.py", "11_Model_Validation.py", "30_Track_Record_Live.py",
+                                 "48_Data_Trust.py", "32_Profile.py", "37_Legal.py", "47_Account_Setup.py"})
+
+
+# Pages with an in-page section menu (Privacy & Terms, My Profile, Data Trust,
+# Track Record) were built for the old fixed-width page: the menu sat in a
+# 238px left gutter and the top bar was shifted to make room. On the full-width
+# product page that pushed the bar off-screen and the menu out of view. Here
+# the bar keeps its normal place and the menu becomes a row of glass chips.
+_RAIL_FIX = _twin("""
+@@ body:has(.st-key-ua_page_section_rail) .ua-topnav{left:0!important;right:0!important;width:auto!important;}
+@@ body:has(.st-key-ua_page_section_rail) [data-testid="stMainBlockContainer"] div:has(> .st-key-ua_page_section_rail){
+  position:static!important;top:auto!important;height:auto!important;}
+@@ .st-key-ua_page_section_rail{position:sticky!important;top:64px!important;left:auto!important;width:auto!important;
+  max-height:none!important;overflow:visible!important;z-index:900!important;margin:0 0 16px!important;padding:8px 10px!important;
+  border-radius:14px!important;border:1px solid rgba(148,180,210,.18)!important;
+  background:linear-gradient(120deg,rgba(108,229,210,.06),rgba(74,138,230,.05)),rgba(13,20,32,.72)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 14px 30px -20px rgba(0,0,0,.8)!important;}
+html[data-ua-theme="light"] .st-key-ua_page_section_rail{background:rgba(255,255,255,.88)!important;border-color:rgba(11,111,100,.2)!important;}
+@@ .st-key-ua_page_section_rail [data-testid="stRadio"] [role="radiogroup"]{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;gap:6px!important;}
+@@ .st-key-ua_page_section_rail [data-testid="stRadio"] label{flex:0 1 auto!important;padding:6px 12px!important;border-radius:999px!important;}
+@@ .st-key-ua_page_section_rail [data-testid="stRadio"] label:has(input:checked){background:rgba(108,229,210,.13)!important;border-color:rgba(108,229,210,.5)!important;}
+html[data-ua-theme="light"] .st-key-ua_page_section_rail [data-testid="stRadio"] label:has(input:checked){background:rgba(11,111,100,.1)!important;border-color:rgba(11,111,100,.4)!important;}
+@@ .st-key-ua_page_section_rail .ua-page-rail-note{display:none!important;}
+html[data-ua-theme="light"] .stApp .stFormSubmitButton > button,
+html:not([data-ua-theme="light"]) .stApp .stFormSubmitButton > button{
+  background:var(--p-accent)!important;border:1px solid var(--p-accent)!important;color:var(--p-accent-ink)!important;
+  box-shadow:none!important;border-radius:var(--p-r-btn)!important;font-weight:650!important;min-height:44px!important;}
+html[data-ua-theme="light"] .stApp .stFormSubmitButton > button:hover,
+html:not([data-ua-theme="light"]) .stApp .stFormSubmitButton > button:hover{
+  background:var(--p-accent-hover)!important;border-color:var(--p-accent-hover)!important;}
+html[data-ua-theme="light"] .stApp .stFormSubmitButton > button p,
+html:not([data-ua-theme="light"]) .stApp .stFormSubmitButton > button p{color:var(--p-accent-ink)!important;font-weight:650!important;}
+""")
+PRODUCT_CSS = PRODUCT_CSS.replace("</style>", _RAIL_FIX + "</style>", 1)
 
 
 def is_product_page(caller_file: str | None) -> bool:

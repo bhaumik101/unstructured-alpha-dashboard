@@ -94,6 +94,48 @@ def library_chips_html(stocks: List[dict], limit: int = 12) -> str:
     return f'<div class="usl-chips">{chips}</div>' if chips else ""
 
 
+LANDSCAPE_FORCES = ("rates", "oil", "dollar", "credit", "inflation", "value", "size", "emerging", "copper",
+                    "gold", "volatility")
+
+
+def landscape_html(stocks: List[dict]) -> str:
+    """What the library's stocks moved with: per force, how many are Clear in
+    each direction, as a diverging bar on one shared scale. Built from the
+    stored readings only; empty when the library is."""
+    from utils import exposure as ex
+
+    labels = {f.key: f.label for f in ex.FACTORS + ex.EXTRA_FACTORS}
+    stocks = [x for x in stocks if x.get("exposures")]
+    if len(stocks) < 20:
+        return ""
+    rows, top = [], 1
+    for k in LANDSCAPE_FORCES:
+        up = down = 0
+        for x in stocks:
+            r = x["exposures"].get(k) or {}
+            if r.get("evidence") == "clear" and r.get("impact") is not None:
+                up += r["impact"] > 0
+                down += r["impact"] < 0
+        if up + down:
+            rows.append((k, up, down))
+            top = max(top, up, down)
+    if not rows:
+        return ""
+    with_any = sum(1 for x in stocks if any((r or {}).get("evidence") == "clear" for r in x["exposures"].values()))
+    bars = "".join(
+        f'<div class="usl-lrow" title="{escape(labels.get(k, k))}: {up} stocks rose with it, {down} fell, Clear only">'
+        f'<span class="usl-ldown"><i style="width:{100 * down / top:.1f}%"></i><b>{down or ""}</b></span>'
+        f'<span class="usl-lname">{escape(labels.get(k, k))}</span>'
+        f'<span class="usl-lup"><i style="width:{100 * up / top:.1f}%"></i><b>{up or ""}</b></span></div>'
+        for k, up, down in sorted(rows, key=lambda r: -(r[1] + r[2])))
+    return (f'<div class="usl-land"><div class="usl-lhead"><span class="usl-lk">What {len(stocks):,} stocks moved with</span>'
+            f'<span class="usl-lstat"><b>{100 * with_any / len(stocks):.0f}%</b> have at least one Clear link</span></div>'
+            '<div class="usl-laxis"><span>fell when it rose</span><span></span><span>rose when it rose</span></div>'
+            f'{bars}<p class="usl-lnote">Stocks with a Clear reading in each direction, after accounting for the stock '
+            'market, over the last three years of weekly data. Hover a row for the counts. It describes the past; it '
+            'is not a forecast.</p></div>')
+
+
 STOCK_CSS = """<style>
 .usl-table{width:100%;border-collapse:collapse;font-size:var(--p-t-sm,.82rem);font-variant-numeric:tabular-nums;}
 .usl-table th{text-align:left;font-weight:650;color:var(--p-ink3);padding:6px 8px;border-bottom:1px solid var(--p-line);white-space:nowrap;}
@@ -110,4 +152,27 @@ STOCK_CSS = """<style>
 .usl-chip span{color:var(--p-ink3);}
 .usl-chip:hover{border-color:var(--p-accent);background:var(--p-sky);}
 @media (max-width:700px){.usl-table{display:block;overflow-x:auto;}}
+
+.usl-land{margin:4px 0 16px;padding:14px 16px 12px;border-radius:16px;border:1px solid rgba(148,180,210,.18);
+  background:radial-gradient(100% 140% at 50% 0%,rgba(108,229,210,.07),transparent 60%),rgba(255,255,255,.025);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+.usl-lhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 12px;margin-bottom:8px;}
+.usl-lk{font-size:var(--uar-t-micro,.74rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ux-teal,#6ce5d2);}
+.usl-lstat{font-size:var(--uar-t-sm,.82rem);color:var(--uar-ink-2,#b7c3d4);}
+.usl-lstat b{font-size:var(--uar-t-val,1.02rem);color:var(--uar-ink,#e8edf5);}
+.usl-laxis,.usl-lrow{display:grid;grid-template-columns:1fr minmax(120px,170px) 1fr;gap:10px;align-items:center;}
+.usl-laxis{font-size:var(--uar-t-micro,.74rem);color:var(--uar-ink-3,#8394ab);margin-bottom:4px;}
+.usl-laxis span:first-child{text-align:right;}
+.usl-lrow{padding:3px 0;font-size:var(--uar-t-sm,.82rem);}
+.usl-lname{text-align:center;color:var(--uar-ink,#e8edf5);font-weight:600;}
+.usl-ldown,.usl-lup{position:relative;display:flex;align-items:center;gap:6px;height:14px;}
+.usl-ldown{flex-direction:row-reverse;}
+.usl-ldown i,.usl-lup i{display:block;height:12px;min-width:2px;}
+.usl-ldown i{border-radius:4px 0 0 4px;background:linear-gradient(270deg,#b97d1a,#e0a43a);}
+.usl-lup i{border-radius:0 4px 4px 0;background:linear-gradient(90deg,#4a8ae6,#6cb4f0);}
+.usl-ldown b,.usl-lup b{font-size:var(--uar-t-micro,.74rem);color:var(--uar-ink-2,#b7c3d4);font-variant-numeric:tabular-nums;}
+.usl-lnote{margin:8px 0 0;font-size:var(--uar-t-micro,.74rem);color:var(--uar-ink-3,#8394ab);}
+html[data-ua-theme="light"] .usl-land{background:#fff;border-color:rgba(15,23,42,.1);}
+html[data-ua-theme="light"] .usl-ldown i{background:#b9770e;}html[data-ua-theme="light"] .usl-lup i{background:#2f6fd0;}
+@media (max-width:640px){.usl-laxis,.usl-lrow{grid-template-columns:1fr 96px 1fr;gap:6px;}}
 </style>"""

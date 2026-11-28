@@ -88,6 +88,13 @@ if query and len(query.strip()) >= 2:
 ticker = str(st.query_params.get("t", "") or "").strip().upper()
 
 if not ticker:
+    # The library at a glance: what its stocks moved with, Clear only.
+    try:
+        _land = sui.landscape_html(lib.latest(limit=5000))
+    except Exception:
+        _land = ""
+    if _land:
+        st.markdown(_land, unsafe_allow_html=True)
     st.markdown("## Common examples")
     st.caption("Examples, not suggestions.")
     for _row_start in range(0, len(ui.SINGLE_STOCKS), 4):
