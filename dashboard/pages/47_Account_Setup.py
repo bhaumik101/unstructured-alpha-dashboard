@@ -27,6 +27,10 @@ from utils.theme import inject_premium_css  # noqa: E402
 
 
 inject_premium_css()
+# This page skips the shared header (it is the sign-in screen), so it carries
+# the product theme itself: teal actions instead of the pre-redesign royal.
+from utils.app_theme import PRODUCT_CSS  # noqa: E402
+st.markdown(PRODUCT_CSS, unsafe_allow_html=True)
 user = require_login("Sign in to finish setting up your account")
 user_id = user["id"]
 
